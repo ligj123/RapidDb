@@ -9,30 +9,27 @@ namespace storage {
 	public:
 		TDataValue(const DataType dt, const int maxLength);
 		TDataValue(const DataType dt, const T& soleVal, const int maxLength);
-		TDataValue(const DataType dt, char* byArray, const int spos, const int len, const int maxLength);
+		TDataValue(const DataType dt, char* byArray, const int len, const int maxLength);
 		TDataValue(const TDataValue& dv);
 		TDataValue() {}
-		TDataValue& operator != (const TDataValue& dv);
+		~TDataValue() {}
 	public:
 		virtual std::any GetValue() const;
-		virtual int WriteData(char* buf, int pos, bool bkey);
-		virtual int ReadData(char* buf, int pos, bool bkey, int len);
+		virtual int WriteData(char* buf, bool bkey);
+		virtual int ReadData(char* buf, bool bkey, int len = 0);
 		virtual int GetLength(bool bKey) const;
 		virtual int GetMaxLength() const;
 		virtual bool IsNull() const;
-
-		virtual bool operator > (const IDataValue& dv) const;
-		virtual bool operator < (const IDataValue& dv) const;
-		virtual bool operator >= (const IDataValue& dv) const;
-		virtual bool operator <= (const IDataValue& dv) const;
-		virtual bool operator == (const IDataValue& dv) const;
+	protected:
+		bool Lg(const TDataValue& dv) const;
+		bool Le(const TDataValue& dv) const;
+		bool Equal(const TDataValue& dv) const;
 	protected:
 		int maxLength_;
 		union {
 			T soleValue_;
 			struct {
 				char* byArray_;
-				uint32_t spos_;
 				uint32_t len_;
 			};
 		};
@@ -47,16 +44,13 @@ namespace storage {
 		: IDataValue(dt, ValueType::SOLE_VALUE), soleValue_(soleVal), maxLength_(maxLength)
 	{
 	}
-	template<class T> TDataValue<T>::TDataValue(const DataType dt, char* byArray, const int spos, const int len, const int maxLength)
-		: IDataValue(dt, ValueType::BYTES_VALUE), byArray_(byArray), spos_(spos),
-		len_(len), maxLength_(maxLength)
+	template<class T> TDataValue<T>::TDataValue(const DataType dt, char* byArray, const int len, const int maxLength)
+		: IDataValue(dt, ValueType::BYTES_VALUE), byArray_(byArray), len_(len), maxLength_(maxLength)
 	{
 	}
 
-	template<class T> TDataValue<T>::TDataValue(const TDataValue<T>& dv)
+	template<class T> TDataValue<T>::TDataValue(const TDataValue<T>& dv) : IDataValue(dv)
 	{
-		dataType_ = dv.dataType_;
-		valType_ = dv.valType_;
 		maxLength_ = dv.maxLength_;
 
 		switch (valType_)
@@ -68,36 +62,13 @@ namespace storage {
 			break;
 		case ValueType::BYTES_VALUE:
 			byArray_ = dv.byArray_;
-			spos_ = dv.spos_;
 			len_ = dv.len_;
 			break;
 		}
 	}
 
-	template<class T> TDataValue<T>& TDataValue<T>::operator != (const TDataValue<T>& dv)
+	template<class T> bool TDataValue<T>::Lg(const TDataValue<T>& dv) const
 	{
-		dataType_ = dv.dataType_;
-		valType_ = dv.valType_;
-		maxLength_ = dv.maxLength_;
-
-		switch (valType_)
-		{
-		case ValueType::NULL_VALUE:
-			break;
-		case ValueType::SOLE_VALUE:
-			soleValue_ = dv.soleValue_;
-			break;
-		case ValueType::BYTES_VALUE:
-			byArray_ = dv.byArray_;
-			spos_ = dv.spos_;
-			len_ = dv.len_;
-			break;
-		}
-	}
-
-	template<class T> bool TDataValue<T>::operator > (const IDataValue& idv) const
-	{
-		const TDataValue<T>& dv = reinterpret_cast<const TDataValue<T>&>(idv);
 		if (dataType_ != dv.dataType_)
 		{
 			throw std::logic_error("The data value is not consistent with the right.");
@@ -108,8 +79,8 @@ namespace storage {
 
 		if (!IsArrayType(dataType_))
 		{
-			const T& v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : *(reinterpret_cast<const T*>(byArray_ + spos_)));
-			const T& v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : *(reinterpret_cast<const T*>(dv.byArray_ + dv.spos_)));
+			const T& v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : *(reinterpret_cast<const T*>(byArray_)));
+			const T& v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : *(reinterpret_cast<const T*>(dv.byArray_)));
 			return v1 > v2;
 		}
 
@@ -125,14 +96,8 @@ namespace storage {
 		throw std::logic_error("Unsupport data type, should implement in subclass.");
 	}
 
-	template<class T> bool TDataValue<T>::operator < (const IDataValue& dv) const
+	template<class T> bool TDataValue<T>::Le(const TDataValue<T>& dv) const
 	{
-		return dv >= (*this);
-	}
-
-	template<class T> bool TDataValue<T>::operator >= (const IDataValue& idv) const
-	{
-		const TDataValue<T>& dv = reinterpret_cast<const TDataValue<T>&>(idv);
 		if (dataType_ != dv.dataType_)
 		{
 			throw std::logic_error("The data value is not consistent with the right.");
@@ -143,8 +108,8 @@ namespace storage {
 
 		if (!IsArrayType(dataType_))
 		{
-			const T& v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : *(reinterpret_cast<const T*>(byArray_ + spos_)));
-			const T& v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : *(reinterpret_cast<const T*>(dv.byArray_ + dv.spos_)));
+			const T& v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : *(reinterpret_cast<const T*>(byArray_)));
+			const T& v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : *(reinterpret_cast<const T*>(dv.byArray_)));
 			return v1 >= v2;
 		}
 
@@ -160,26 +125,22 @@ namespace storage {
 		throw std::logic_error("Unsupport data type, should implement in subclass.");
 	}
 
-	template<class T> bool TDataValue<T>::operator <= (const IDataValue& dv) const
+	template<class T> bool TDataValue<T>::Equal(const TDataValue<T>& dv) const
 	{
-		return dv > (*this);
-	}
-
-	template<class T> bool TDataValue<T>::operator == (const IDataValue& idv) const
-	{
-		const TDataValue<T>& dv = reinterpret_cast<const TDataValue<T>&>(idv);
 		if (dataType_ != dv.dataType_)
 		{
 			throw std::logic_error("The data value is not consistent with the right.");
 		}
 
-		if (valType_ != dv.valType_) { return false; }
-		if (valType_ == ValueType::NULL_VALUE) { return true; }
+		if (valType_ == ValueType::NULL_VALUE || dv.valType_ == ValueType::NULL_VALUE)
+		{
+			return valType_ == dv.valType_;
+		}
 
 		if (!IsArrayType(dataType_))
 		{
-			const T& v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : *(reinterpret_cast<const T*>(byArray_ + spos_)));
-			const T& v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : *(reinterpret_cast<const T*>(dv.byArray_ + dv.spos_)));
+			const T& v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : *(reinterpret_cast<const T*>(byArray_)));
+			const T& v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : *(reinterpret_cast<const T*>(dv.byArray_)));
 			return v1 == v2;
 		}
 
@@ -197,14 +158,14 @@ namespace storage {
 	
 	template<class T> std::any TDataValue<T>::GetValue() const
 	{
-		if (valType_ == ValueType::NULL_VALUE) return nullptr;
+		if (valType_ == ValueType::NULL_VALUE) return std::any();
 		if (valType_ == ValueType::SOLE_VALUE) return soleValue_;
-		if (!IsArrayType(dataType_)) return *(reinterpret_cast<T*>(byArray_ + spos_));
+		if (!IsArrayType(dataType_)) return *(reinterpret_cast<T*>(byArray_));
 
 		throw std::logic_error("Unsupport operator for this data type, should implement in subclass.");
 	}
 
-	template<class T> int TDataValue<T>::WriteData(char* buf, int pos, bool bkey)
+	template<class T> int TDataValue<T>::WriteData(char* buf, bool bkey)
 	{
 		if (bkey)
 		{
@@ -217,13 +178,13 @@ namespace storage {
 			if (valType_ == ValueType::BYTES_VALUE)
 			{
 				int len = (IsFixLength(dataType_) ? maxLength_ : len_);
-				std::memcpy(buf + pos, byArray_ + spos_, len);
+				std::memcpy(buf, byArray_, len);
 				return len;
 			}
 
 			if (!IsArrayType(dataType_))
 			{
-				std::memcpy(buf + pos, reinterpret_cast<char*>(&soleValue_), sizeof(maxLength_));
+				std::memcpy(buf, reinterpret_cast<char*>(&soleValue_), maxLength_);
 				return maxLength_;
 			}
 		}
@@ -231,22 +192,24 @@ namespace storage {
 		{
 			if (valType_ == ValueType::NULL_VALUE)
 			{
-				buf[pos] = 0;
+				*buf = 0;
 				return 1;
 			}
 
 			if (valType_ == ValueType::BYTES_VALUE)
 			{
-				buf[pos++] = 1;
+				*buf = 1;
+				buf++;
 				int len = (IsFixLength(dataType_) ? maxLength_ : len_ + sizeof(uint32_t));
-				std::memcpy(buf + pos, byArray_ + spos_, len);
+				std::memcpy(buf, byArray_, len);
 				return len + 1;
 			}
 
 			if (!IsArrayType(dataType_))
 			{
-				buf[pos++] = 1;
-				std::memcpy(buf + pos, reinterpret_cast<char*>(&soleValue_), maxLength_);
+				*buf = 1;
+				buf++;
+				std::memcpy(buf, reinterpret_cast<char*>(&soleValue_), maxLength_);
 				return maxLength_ + 1;
 			}
 		}
@@ -254,7 +217,7 @@ namespace storage {
 		throw std::logic_error("Unsupport operator for this data type, should implement in subclass.");
 	}
 
-	template<class T> int TDataValue<T>::ReadData(char* buf, int pos, bool bkey, int len)
+	template<class T> int TDataValue<T>::ReadData(char* buf, bool bkey, int len)
 	{
 		if (len > maxLength_) {
 			throw std::out_of_range("Try to read too much bytes than max length of data value.");
@@ -272,29 +235,29 @@ namespace storage {
 			valType_ = ValueType::BYTES_VALUE;
 			len_ = IsFixLength(dataType_) ? maxLength_ : len;
 			byArray_ = buf;
-			spos_ = pos;
 			return len_;
 		}
 		else
 		{
-			valType_ = (buf[pos++] ? ValueType::BYTES_VALUE : ValueType::NULL_VALUE);
-			if (valType_ == ValueType::BYTES_VALUE)
+			valType_ = (*buf ? ValueType::BYTES_VALUE : ValueType::NULL_VALUE);
+			buf++;
+
+			if (valType_ == ValueType::NULL_VALUE)
+				return 1;
+
+			if (IsFixLength(dataType_))
 			{
-				if (IsFixLength(dataType_))
-				{
-					len_ = maxLength_;
-					byArray_ = buf + pos;
-					return len_;
-				}
-				else
-				{
-					len_ = *(reinterpret_cast <uint32_t*>(buf + pos));
-					byArray_ = buf + pos;
-					return len_ + sizeof(uint32_t);
-				}
+				len_ = maxLength_;
+				byArray_ = buf;
+				return len_;
+			}
+			else
+			{
+				len_ = *(reinterpret_cast <uint32_t*>(buf));
+				byArray_ = buf + sizeof(uint32_t);
+				return len_ + sizeof(uint32_t);
 			}
 		}
-		throw std::logic_error("Unsupport operator for this data type, should implement in subclass.");
 	}
 
 	template<class T> int TDataValue<T>::GetLength(bool bKey) const

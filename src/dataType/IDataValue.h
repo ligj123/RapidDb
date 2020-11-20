@@ -18,7 +18,7 @@ namespace storage {
 		static bool IsArrayType(const DataType dt) { return ((int)dt & (int)DataType::ARRAY_TYPE) == (int)DataType::ARRAY_TYPE; }
 
 	public:
-		IDataValue() : dataType_(DataType::UNKNOWN), valType_(ValueType::NULL_VALUE) {}
+		IDataValue(const IDataValue& dv) : dataType_(dv.dataType_), valType_(dv.valType_) {}
 		IDataValue(const DataType dataType, const ValueType valType) : dataType_(dataType), valType_(valType) {}
 		/**
 		* return the data type for this data value
@@ -28,8 +28,8 @@ namespace storage {
 		virtual bool IsFixLength() const { return IsFixLength(dataType_); }
 
 		virtual std::any GetValue() const = 0;
-		virtual int WriteData(char* buf, int pos, bool bkey) = 0;
-		virtual int ReadData(char* buf, int pos, bool bkey, int len) = 0;
+		virtual int WriteData(char* buf, bool bkey) = 0;
+		virtual int ReadData(char* buf, bool bkey, int len) = 0;
 		virtual int GetLength(const bool bKey) const = 0;
 		virtual int GetMaxLength() const = 0;
 		virtual void SetMinValue() = 0;
@@ -37,11 +37,6 @@ namespace storage {
 		virtual void SetDefaultValue() = 0;
 		virtual bool IsNull() const = 0;
 
-		virtual bool operator > (const IDataValue& dv) const = 0;
-		virtual bool operator < (const IDataValue& dv) const = 0;
-		virtual bool operator >= (const IDataValue& dv) const = 0;
-		virtual bool operator <= (const IDataValue& dv) const = 0;
-		virtual bool operator == (const IDataValue& dv) const = 0;
 
 	protected:
 		DataType dataType_;
