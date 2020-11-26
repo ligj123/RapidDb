@@ -20,6 +20,7 @@ namespace storage {
 	public:
 		IDataValue(const IDataValue& dv) : dataType_(dv.dataType_), valType_(dv.valType_) {}
 		IDataValue(const DataType dataType, const ValueType valType) : dataType_(dataType), valType_(valType) {}
+		virtual ~IDataValue() {	}
 		/**
 		* return the data type for this data value
 		*/
