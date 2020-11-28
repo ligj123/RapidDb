@@ -39,7 +39,7 @@ namespace storage {
 	};
 
 	static const int DEFAULT_MAX_LEN = 1000;
-
+	
 	inline std::ostream& operator<< (std::ostream& os, const DataType& dt)
 	{
 		switch (dt)
