@@ -3,62 +3,45 @@
 #include <exception>
 #include <string>
 #include <sstream>
+#include <boost/stacktrace.hpp>
 
 using namespace std;
-namespace rapid {
-	namespace utils {
-#define Exception(what) ExceptionEx(what, __FILE__, __FUNCTION__, __LINE__)
-		class ExceptionEx : public exception
+namespace utils {
+	class BacktraceException : public exception
+	{
+	public:
+		BacktraceException(string what)
 		{
-		public:
-			ExceptionEx(string what,
-				string throwFile,
-				string throwFunction,
-				int throwLine)
-			{
-				m_strWhat = what;
-				m_throwFile = throwFile;
-				m_throwFunction = throwFunction;
-				m_throwLine = throwLine;
-			}
+			std::stringstream ss;
+			ss << boost::stacktrace::stacktrace() << "\n";
+			m_strTrace = ss.str();
+			m_strWhat = what;
+		}
 
-			virtual ~ExceptionEx(void)
-			{}
+		virtual ~BacktraceException(void)
+		{}
 
-			virtual const char* what()
-			{
-				std::stringstream ss;
-				ss << "Error Message: " << m_strWhat << "\nFile: " << m_throwFile << "\nFunction: " << m_throwFunction << "\nLine: " << m_throwLine;
-				return ss.str().c_str();
-			}
+		virtual const char* what()
+		{
+			std::stringstream ss;
+			ss << m_strWhat << "\n" << m_strTrace;
+			return ss.str().c_str();
+		}
 
-			const char* GetThrowFile() const
-			{
-				return m_throwFile.c_str();
-			}
+		const char* GetBacktrace() const
+		{
+			return m_strTrace.c_str();
+		}
 
-			const char* GetThrowFunction() const
-			{
-				return m_throwFunction.c_str();
-			}
+		const string GetMessage()
+		{
+			return m_strWhat;
+		}
 
-			int GetThrowLine() const
-			{
-				return m_throwLine;
-			}
-
-			const string GetExceptionInfor()
-			{
-				return m_strWhat;
-			}
-
-		private:
-			string m_strWhat;
-			string m_throwFile;
-			string m_throwFunction;
-			int m_throwLine;
-		};
-	}
+	private:
+		string m_strWhat;
+		string m_strTrace;
+	};
 }
 
 #endif

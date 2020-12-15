@@ -1,0 +1,2 @@
+0001	function test
+1001	table error1-{}, error2-{}

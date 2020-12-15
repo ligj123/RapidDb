@@ -19,23 +19,50 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\dataType\dataType.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueByte.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueChar.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueDouble.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueFixChar.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueFloat.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueInt.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueLong.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueShort.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueUInt.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueULong.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueUShort.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
+    <ClCompile Include="..\..\src\table\TableDesc.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
-    <ClCompile Include="..\..\src\utils\log.cpp" />
+    <ClCompile Include="..\..\src\utils\ErrorMsg.cpp" />
+    <ClCompile Include="..\..\src\utils\Log.cpp" />
     <ClCompile Include="..\..\src\utils\ThreadPool.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\dataType\DataType.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueByte.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueChar.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueDouble.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueFixChar.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueFloat.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueInt.h" />
     <ClInclude Include="..\..\src\dataType\DataValueLong.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueShort.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueUInt.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueULong.h" />
+    <ClInclude Include="..\..\src\dataType\DataValueUShort.h" />
     <ClInclude Include="..\..\src\dataType\DataValueVarChar.h" />
     <ClInclude Include="..\..\src\dataType\IDataValue.h" />
-    <ClInclude Include="..\..\src\dataType\TDataValue.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
+    <ClInclude Include="..\..\src\table\FileVersion.h" />
+    <ClInclude Include="..\..\src\table\IndexType.h" />
+    <ClInclude Include="..\..\src\table\TableDesc.h" />
+    <ClInclude Include="..\..\src\utils\BytesConvert.h" />
     <ClInclude Include="..\..\src\utils\CharsetConvert.h" />
+    <ClInclude Include="..\..\src\utils\ErrorMsg.h" />
     <ClInclude Include="..\..\src\utils\ExceptionEx.h" />
-    <ClInclude Include="..\..\src\utils\log.h" />
+    <ClInclude Include="..\..\src\utils\Log.h" />
     <ClInclude Include="..\..\src\utils\ThreadPool.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -141,6 +168,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -156,6 +184,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -1,27 +1,27 @@
-#include "DataValueLong.h"
+#include "DataValueULong.h"
 #include <stdexcept>
 #include <string>
 #include "../utils/ErrorMsg.h"
 #include "../utils/BytesConvert.h"
 
 namespace storage {
-	DataValueLong::DataValueLong(bool bKey)
-		:IDataValue(DataType::LONG, ValueType::NULL_VALUE, bKey)
+	DataValueULong::DataValueULong(bool bKey)
+		:IDataValue(DataType::ULONG, ValueType::NULL_VALUE, bKey)
 	{
 	}
 
-	DataValueLong::DataValueLong(int64_t val, bool bKey)
-		: IDataValue(DataType::LONG, ValueType::SOLE_VALUE, bKey), soleValue_(val)
+	DataValueULong::DataValueULong(uint64_t val, bool bKey)
+		: IDataValue(DataType::ULONG, ValueType::SOLE_VALUE, bKey), soleValue_(val)
 	{
 	}
 
-	DataValueLong::DataValueLong(char* byArray, bool bKey)
-		: IDataValue(DataType::LONG, ValueType::BYTES_VALUE, bKey), byArray_(byArray)
+	DataValueULong::DataValueULong(char* byArray, bool bKey)
+		: IDataValue(DataType::ULONG, ValueType::BYTES_VALUE, bKey), byArray_(byArray)
 	{
 	}
 
-	DataValueLong::DataValueLong(std::any val, bool bKey)
-		: IDataValue(DataType::LONG, ValueType::SOLE_VALUE, bKey)
+	DataValueULong::DataValueULong(std::any val, bool bKey)
+		: IDataValue(DataType::ULONG, ValueType::SOLE_VALUE, bKey)
 	{
 		if (val.type() == typeid(int64_t)) soleValue_ = std::any_cast<int64_t>(val);
 		else if (val.type() == typeid(int32_t)) soleValue_ = std::any_cast<int32_t>(val);
@@ -32,10 +32,10 @@ namespace storage {
 		else if (val.type() == typeid(int8_t)) soleValue_ = std::any_cast<int8_t>(val);
 		else if (val.type() == typeid(uint8_t)) soleValue_ = std::any_cast<uint8_t>(val);
 		else if (val.type() == typeid(std::string)) soleValue_ = std::stoll(std::any_cast<std::string>(val));
-		else throw utils::ErrorMsg(2001, { val.type().name(), "DataValueLong" });
+		else throw utils::ErrorMsg(2001, { val.type().name(), "DataValueULong" });
 	}
 
-	DataValueLong::DataValueLong(const DataValueLong& src)
+	DataValueULong::DataValueULong(const DataValueULong& src)
 		: IDataValue(src)
 	{
 		switch (src.valType_)
@@ -51,38 +51,38 @@ namespace storage {
 		}
 	}
 
-	std::any DataValueLong::GetValue() const
+	std::any DataValueULong::GetValue() const
 	{
 		switch (valType_)
 		{
 		case ValueType::SOLE_VALUE:
 			return soleValue_;
 		case ValueType::BYTES_VALUE:
-			return utils::Int64FromBytes(byArray_, bKey_);
+			return utils::UInt64FromBytes(byArray_, bKey_);
 		case ValueType::NULL_VALUE:
 		default:
 			return std::any();
 		}
 	}
 
-	uint32_t DataValueLong::WriteData(char* buf)
+	uint32_t DataValueULong::WriteData(char* buf)
 	{
 		if (bKey_)
 		{
 			if (valType_ == ValueType::NULL_VALUE)
 			{
-				std::memset(buf, 0, sizeof(int64_t));
+				std::memset(buf, 0, sizeof(uint64_t));
 			}
 			else if (valType_ == ValueType::BYTES_VALUE)
 			{
-				std::memcpy(buf, byArray_, sizeof(int64_t));
+				std::memcpy(buf, byArray_, sizeof(uint64_t));
 			}
 			else if (valType_ == ValueType::SOLE_VALUE)
 			{
-				utils::Int64ToBytes(soleValue_, buf, true);
+				utils::UInt64ToBytes(soleValue_, buf, bKey_);
 			}
 
-			return sizeof(int64_t);
+			return sizeof(uint64_t);
 		}
 		else
 		{
@@ -95,32 +95,32 @@ namespace storage {
 			{
 				*buf = 1;
 				buf++;
-				std::memcpy(buf, byArray_, sizeof(int64_t));
-				return sizeof(int64_t) + 1;
+				std::memcpy(buf, byArray_, sizeof(uint64_t));
+				return sizeof(uint64_t) + 1;
 			}
 			else
 			{
 				*buf = 1;
 				buf++;
-				utils::Int64ToBytes(soleValue_, buf, false);
-				return sizeof(int64_t) + 1;
+				utils::UInt64ToBytes(soleValue_, buf, bKey_);
+				return sizeof(uint64_t) + 1;
 			}
 		}
 	}
 
-	uint32_t DataValueLong::ReadData(char* buf, uint32_t len)
+	uint32_t DataValueULong::ReadData(char* buf, uint32_t len)
 	{
 		if (bKey_)
 		{
 			if (len == -1)
 			{
 				valType_ = ValueType::NULL_VALUE;
-				return sizeof(int64_t);
+				return sizeof(uint64_t);
 			}
 
 			valType_ = ValueType::BYTES_VALUE;
 			byArray_ = buf;
-			return sizeof(int64_t);
+			return sizeof(uint64_t);
 		}
 		else
 		{
@@ -131,42 +131,42 @@ namespace storage {
 				return 1;
 
 			byArray_ = buf;
-			return sizeof(int64_t) + 1;
+			return sizeof(uint64_t) + 1;
 		}
 	}
 
-	uint32_t DataValueLong::GetLength() const
+	uint32_t DataValueULong::GetLength() const
 	{
-		return bKey_ ? sizeof(int64_t) : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(int64_t));
+		return bKey_ ? sizeof(uint64_t) : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(uint64_t));
 	}
 
-	uint32_t DataValueLong::GetMaxLength() const
+	uint32_t DataValueULong::GetMaxLength() const
 	{
-		return sizeof(int64_t) + (bKey_ ? 0 : 1);
+		return sizeof(uint64_t) + (bKey_ ? 0 : 1);
 	}
 	
-	uint32_t DataValueLong::GetPersistenceLength() const
+	uint32_t DataValueULong::GetPersistenceLength() const
 	{
-		return bKey_ ? sizeof(int64_t) : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(int64_t));
+		return bKey_ ? sizeof(uint64_t) : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(uint64_t));
 	}
 
-	void DataValueLong::SetMinValue()
+	void DataValueULong::SetMinValue()
 	{
 		valType_ = ValueType::SOLE_VALUE;
-		soleValue_ = LLONG_MIN;
+		soleValue_ = 0;
 	}
-	void DataValueLong::SetMaxValue()
+	void DataValueULong::SetMaxValue()
 	{
 		valType_ = ValueType::SOLE_VALUE;
-		soleValue_ = LLONG_MAX;
+		soleValue_ = ULLONG_MAX;
 	}
-	void DataValueLong::SetDefaultValue()
+	void DataValueULong::SetDefaultValue()
 	{
 		valType_ = ValueType::SOLE_VALUE;
 		soleValue_ = 0;
 	}
 
-	DataValueLong::operator int64_t() const
+	DataValueULong::operator uint64_t() const
 	{
 		switch (valType_) 
 		{
@@ -175,20 +175,27 @@ namespace storage {
 		case ValueType::SOLE_VALUE:
 			return soleValue_;
 		case ValueType::BYTES_VALUE:
-			return utils::Int64FromBytes(byArray_, bKey_);
+			return utils::UInt64FromBytes(byArray_, bKey_);
 		}
 
 		return 0;
 	}
 
-	DataValueLong& DataValueLong::operator=(int64_t val)
+	DataValueULong& DataValueULong::operator=(uint64_t val)
 	{
 		valType_ = ValueType::SOLE_VALUE;
 		soleValue_ = val;
 		return *this;
 	}
 
-	DataValueLong& DataValueLong::operator=(const DataValueLong& src)
+	DataValueULong& DataValueULong::operator=(const char* pArr)
+	{
+		valType_ = ValueType::SOLE_VALUE;
+		soleValue_ = std::atoll(pArr);
+		return *this;
+	}
+
+	DataValueULong& DataValueULong::operator=(const DataValueULong& src)
 	{
 		dataType_ = src.dataType_;
 		valType_ = src.valType_;
@@ -208,52 +215,52 @@ namespace storage {
 		return *this;
 	}
 
-	bool DataValueLong::operator > (const DataValueLong& dv) const
+	bool DataValueULong::operator > (const DataValueULong& dv) const
 	{
 		if (valType_ == ValueType::NULL_VALUE) { return false; }
 		if (dv.valType_ == ValueType::NULL_VALUE) { return true; }
 
-		int64_t v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::Int64FromBytes(byArray_, bKey_));
-		int64_t v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::Int64FromBytes(dv.byArray_, dv.bKey_));
+		uint64_t v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::UInt64FromBytes(byArray_, bKey_));
+		uint64_t v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::UInt64FromBytes(dv.byArray_, dv.bKey_));
 		return v1 > v2;
 	}
 
-	bool DataValueLong::operator < (const DataValueLong& dv) const
+	bool DataValueULong::operator < (const DataValueULong& dv) const
 	{
 		return !(*this >= dv);
 	}
 
-	bool DataValueLong::operator >= (const DataValueLong& dv) const
+	bool DataValueULong::operator >= (const DataValueULong& dv) const
 	{
 		if (valType_ == ValueType::NULL_VALUE) { return dv.valType_ == ValueType::NULL_VALUE; }
 		if (dv.valType_ == ValueType::NULL_VALUE) { return true; }
 
-		int64_t v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::Int64FromBytes(byArray_, bKey_));
-		int64_t v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::Int64FromBytes(dv.byArray_, dv.bKey_));
+		uint64_t v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::UInt64FromBytes(byArray_, bKey_));
+		uint64_t v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::UInt64FromBytes(dv.byArray_, dv.bKey_));
 		return v1 >= v2;
 	}
 
-	bool DataValueLong::operator <= (const DataValueLong& dv) const
+	bool DataValueULong::operator <= (const DataValueULong& dv) const
 	{
 		return !(*this > dv);
 	}
 
-	bool DataValueLong::operator == (const DataValueLong& dv) const
+	bool DataValueULong::operator == (const DataValueULong& dv) const
 	{
 		if (valType_ == ValueType::NULL_VALUE) { return dv.valType_ == ValueType::NULL_VALUE; }
 		if (dv.valType_ == ValueType::NULL_VALUE) { return false; }
 
-		int64_t v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::Int64FromBytes(byArray_, bKey_));
-		int64_t v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::Int64FromBytes(dv.byArray_, dv.bKey_));
+		uint64_t v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::UInt64FromBytes(byArray_, bKey_));
+		uint64_t v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::UInt64FromBytes(dv.byArray_, dv.bKey_));
 		return v1 == v2;
 	}
 
-	bool DataValueLong::operator != (const DataValueLong& dv) const
+	bool DataValueULong::operator != (const DataValueULong& dv) const
 	{
 		return !(*this == dv);
 	}
 
-	std::ostream& operator<< (std::ostream& os, const DataValueLong& dv)
+	std::ostream& operator<< (std::ostream& os, const DataValueULong& dv)
 	{
 		switch (dv.valType_)
 		{
@@ -264,7 +271,7 @@ namespace storage {
 			os << dv.soleValue_;
 			break;
 		case ValueType::BYTES_VALUE:
-			os << utils::Int64FromBytes(dv.byArray_, dv.bKey_);
+			os << utils::UInt64FromBytes(dv.byArray_, dv.bKey_);
 			break;
 		}
 

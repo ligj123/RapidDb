@@ -1,7 +1,6 @@
 #pragma once
 #include <any>
 #include "DataType.h"
-#include "../table/Column.h"
 
 namespace storage {
 	class IDataValue {
@@ -25,9 +24,9 @@ namespace storage {
 
 	public:
 		IDataValue(const IDataValue& dv)
-			: dataType_(dv.dataType_), valType_(dv.valType_), pColumn_(dv.pColumn_), bKey_(dv.bKey_){}
-		IDataValue(DataType dataType, ValueType valType, ColumnBase* pColumn, const bool bKey)
-			: dataType_(dataType), valType_(valType), bKey_(bKey), pColumn_(pColumn) {}
+			: dataType_(dv.dataType_), valType_(dv.valType_), bKey_(dv.bKey_){}
+		IDataValue(DataType dataType, ValueType valType, const bool bKey)
+			: dataType_(dataType), valType_(valType), bKey_(bKey) {}
 		virtual ~IDataValue() {	}
 		/**
 		* return the data type for this data value
@@ -41,17 +40,16 @@ namespace storage {
 		virtual std::any GetValue() const = 0;
 		virtual uint32_t WriteData(char* buf) = 0;
 		virtual uint32_t ReadData(char* buf, uint32_t len) = 0;
-		virtual uint32_t GetLength(const bool bKey) const = 0;
+		virtual uint32_t GetLength() const = 0;
 		virtual uint32_t GetMaxLength() const = 0;
+		virtual uint32_t GetPersistenceLength() const = 0;
 		virtual void SetMinValue() = 0;
 		virtual void SetMaxValue() = 0;
 		virtual void SetDefaultValue() = 0;
 
-
 	protected:
 		DataType dataType_;
 		ValueType valType_;
-		ColumnBase* pColumn_;
 		bool bKey_;
 	};
 }

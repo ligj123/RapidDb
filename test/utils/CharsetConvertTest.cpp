@@ -6,7 +6,7 @@
 using namespace std;
 
 namespace utils {
-	BOOST_AUTO_TEST_SUITE(CodeConvertTest)
+	BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 	BOOST_AUTO_TEST_CASE(CharsetConvert_test)
 	{

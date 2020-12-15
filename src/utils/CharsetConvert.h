@@ -5,7 +5,7 @@
 
 namespace utils {
   using namespace std;
-  enum class Charsets
+  enum class Charsets : uint32_t
   {
     UTF8 = 0,
     UTF16,
@@ -63,7 +63,7 @@ namespace utils {
       static const int WCHAR_SIZE = sizeof(wchar_t);
       wstring str = boost::locale::conv::to_utf<wchar_t>(inFrom, inFrom + inLen, mapCharset[cset]);
       if (str.size() > outLen) {
-        std::memcpy(outFrom, str.c_str(), outLen * WCHAR_SIZE);
+        std::memcpy(outFrom, str.c_str(), (size_t)outLen * WCHAR_SIZE);
         return ConvResult::PARTIAL;
       }
 

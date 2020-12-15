@@ -1,50 +1,40 @@
 #include "ThreadPool.h"
 
-Function_pool::Function_pool() : m_function_queue(), m_lock(), m_data_condition(), m_accept_functions(true)
-{
-}
+namespace utils {
+  thread_local string ThreadPool::_threadName = "main";
 
-Function_pool::~Function_pool()
-{
-}
+  ThreadPool::ThreadPool(string threadPrefix, size_t threadCount)
+    : _threadPrefix(threadPrefix), _stopThreads(false)
+  {
+    for (size_t i = 0; i < threadCount; ++i) {
+      _threads.emplace_back(std::thread([this, i]() {
+        std::unique_lock<std::mutex> queue_lock(_task_mutex, std::defer_lock);
+        _threadName = _threadPrefix + "_" + to_string(i);
 
-void Function_pool::push(std::function<void()> func)
-{
-    std::unique_lock<std::mutex> lock(m_lock);
-    m_function_queue.push(func);
-    // when we send the notification immediately, the consumer will try to get the lock , so unlock asap
-    lock.unlock();
-    m_data_condition.notify_one();
-}
+        while (true) {
+          queue_lock.lock();
+          _taskCv.wait(queue_lock, [&]() -> bool {return !_tasks.empty() || _stopThreads; });
 
-void Function_pool::done()
-{
-    std::unique_lock<std::mutex> lock(m_lock);
-    m_accept_functions = false;
-    lock.unlock();
-    // when we send the notification immediately, the consumer will try to get the lock , so unlock asap
-    m_data_condition.notify_all();
-    //notify all waiting threads.
-}
+          if (_stopThreads && _tasks.empty())
+            return;
 
-void Function_pool::infinite_loop_func()
-{
-    std::function<void()> func;
-    while (true)
-    {
-        {
-            std::unique_lock<std::mutex> lock(m_lock);
-            m_data_condition.wait(lock, [this]() {return !m_function_queue.empty() || !m_accept_functions; });
-            if (!m_accept_functions && m_function_queue.empty())
-            {
-                //lock will be release automatically.
-                //finish the thread loop and let it join in the main thread.
-                return;
-            }
-            func = m_function_queue.front();
-            m_function_queue.pop();
-            //release the lock
+          auto temp_task = std::move(_tasks.front());
+
+          _tasks.pop();
+          queue_lock.unlock();
+
+          (*temp_task)();
         }
-        func();
+        }));
     }
+  }
+
+  ThreadPool::~ThreadPool() {
+    _stopThreads = true;
+    _taskCv.notify_all();
+
+    for (std::thread& thread : _threads) {
+      thread.join();
+    }
+  }
 }

@@ -2,7 +2,7 @@
 #include <ostream>
 
 namespace storage {
-	enum class DataType
+	enum class DataType : uint32_t
 	{
 		INDEX_TYPE = 0x10000,
 		FIX_LEN = 0x20000,
@@ -12,24 +12,23 @@ namespace storage {
 
 		UNKNOWN = 0,
 
-		BYTE = AUTO_INC_TYPE + AGGR_TYPE + FIX_LEN + 1,
+		CHAR = AUTO_INC_TYPE + AGGR_TYPE + FIX_LEN + 1,
 		SHORT = AUTO_INC_TYPE + AGGR_TYPE + INDEX_TYPE + FIX_LEN + 2,
 		INT = AUTO_INC_TYPE + AGGR_TYPE + INDEX_TYPE + FIX_LEN + 3,
 		LONG = AUTO_INC_TYPE + AGGR_TYPE + INDEX_TYPE + FIX_LEN + 4,
 
-		UBYTE = AUTO_INC_TYPE + AGGR_TYPE + FIX_LEN + 5,
+		BYTE = AUTO_INC_TYPE + AGGR_TYPE + FIX_LEN + 5,
 		USHORT = AUTO_INC_TYPE + AGGR_TYPE + INDEX_TYPE + FIX_LEN + 6,
 		UINT = AUTO_INC_TYPE + AGGR_TYPE + INDEX_TYPE + FIX_LEN + 7,
 		ULONG = AUTO_INC_TYPE + AGGR_TYPE + INDEX_TYPE + FIX_LEN + 8,
 
-		CHAR = INDEX_TYPE + FIX_LEN + ARRAY_TYPE + 9,
+		FIXCHAR = INDEX_TYPE + FIX_LEN + ARRAY_TYPE + 9,
 		VARCHAR = INDEX_TYPE + ARRAY_TYPE + 10,
 		DATETIME = INDEX_TYPE + FIX_LEN + 11,
 		FLOAT = AGGR_TYPE + INDEX_TYPE + FIX_LEN + 12,
 		DOUBLE = AGGR_TYPE + INDEX_TYPE + FIX_LEN + 13,
 		BLOB = ARRAY_TYPE + 14,
-		BOOL = FIX_LEN + 15,
-		COMPRESS = ARRAY_TYPE + 100,
+		BOOL = FIX_LEN + 15
 	};
 
 	enum class ValueType {
@@ -57,8 +56,8 @@ namespace storage {
 			os << "LONG(" << (int)DataType::LONG << ")";
 			break;
 
-		case DataType::UBYTE:
-			os << "UBYTE(" << (int)DataType::UBYTE << ")";
+		case DataType::CHAR:
+			os << "CHAR(" << (int)DataType::CHAR << ")";
 			break;
 		case DataType::USHORT:
 			os << "USHORT(" << (int)DataType::USHORT << ")";
@@ -70,8 +69,8 @@ namespace storage {
 			os << "ULONG(" << (int)DataType::ULONG << ")";
 			break;
 
-		case DataType::CHAR:
-			os << "CHAR(" << (int)DataType::CHAR << ")";
+		case DataType::FIXCHAR:
+			os << "FIXCHAR(" << (int)DataType::FIXCHAR << ")";
 			break;
 		case DataType::VARCHAR:
 			os << "VARCHAR(" << (int)DataType::VARCHAR << ")";
@@ -90,9 +89,6 @@ namespace storage {
 			break;
 		case DataType::BOOL:
 			os << "BOOL(" << (int)DataType::BOOL << ")";
-			break;
-		case DataType::COMPRESS:
-			os << "COMPRESS(" << (int)DataType::COMPRESS << ")";
 			break;
 		}
 		return os;

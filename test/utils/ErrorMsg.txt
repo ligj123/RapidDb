@@ -1,0 +1,12 @@
+#Only for unit test
+0001	function test
+0002	table error1-{}, error2-{}
+
+#table error
+1001	Failed to parse file version text "{}", it is not a valid version.
+1002	Invalid table name, name = {}.
+1003	Repeated column name, name = {}.
+1004	Invalid data type, only fix length data type can be added, column name = {}.
+
+#data type error
+2001 Unsupport data type conversion from {} to {}.

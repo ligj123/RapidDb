@@ -1,54 +1,54 @@
-#ifndef LOG_H
-#define LOG_H
+#pragma once
+#include <iostream>
+#include <string>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/log/support/date_time.hpp>
+#include <boost/log/common.hpp>
+#include <boost/log/expressions.hpp>
+#include <boost/log/expressions/keyword.hpp>
+#include <boost/log/attributes.hpp>
+#include <boost/log/attributes/timer.hpp>
+#include <boost/log/sources/logger.hpp>
+#include <boost/log/sources/severity_logger.hpp>
+#include <boost/log/sinks/sync_frontend.hpp>
+#include <boost/log/sinks/text_file_backend.hpp>
+#include <boost/log/utility/setup/file.hpp>
+#include <boost/log/utility/setup/console.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
+#include <boost/log/attributes/named_scope.hpp>
 
-//#include <string>
-//#include <fstream>
-//#include <boost/thread/mutex.hpp>
-//
-//#define CRLF "\r\n"
-//
-//using namespace std;
-//
-//namespace rapid {
-//	namespace utils {
-//		enum emLogType : short
-//		{
-//			Fatal = 0,	//
-//			Exception = 1,	//
-//			Error = 2,    //
-//			Warning = 3,    //
-//			Infor = 4,	//
-//			Debug = 5,	//
-//			Trace = 6
-//		};
-//
-//		class Log
-//		{
-//		protected:
-//			Log();
-//			~Log();
-//
-//		protected:
-//			void WriteLog(string msg, emLogType logType, bool bTime);
-//			string FileName();
-//			string LogTypeToStr(emLogType logType);
-//			bool IsOpen() { return m_pLogStream != nullptr; }
-//
-//		protected:
-//			size_t m_byteCount;
-//			ofstream* m_pLogStream;
-//			boost::mutex m_mutex;
-//
-//			string m_strRootPath;
-//			emLogType m_logType;	//写入日志的级别，即只有优先级高于或等于此的才会写入日志
-//
-//			static Log* m_log;
-//
-//		public:
-//			static bool InitLog(string strRootPath, emLogType logTypeFrom);
-//			static void Write(wstring location, wstring msg, emLogType logType = LogTypeInforLow, bool bTime = true);
-//			static void Write(string location, string msg, emLogType logType = LogTypeInforLow, bool bTime = true);
-//		};
-//	}
-//}
-#endif
+#define LOG_TRACE(msg) utils::Logger::Write(utils::TRACE, msg)
+#define LOG_DEBUG(msg) utils::Logger::Write(utils::DEBUG, msg)
+#define LOG_INFO(msg) utils::Logger::Write(utils::INFO, msg)
+#define LOG_WARN(msg) utils::Logger::Write(utils::WARN, msg)
+#define LOG_ERROR(msg) utils::Logger::Write(utils::ERROR, msg)
+#define LOG_FATAL(msg) utils::Logger::Write(utils::FATAL, msg)
+
+namespace utils {
+  namespace logging = boost::log;
+  namespace src = boost::log::sources;
+  namespace expr = boost::log::expressions;
+  namespace sinks = boost::log::sinks;
+  namespace attrs = boost::log::attributes;
+  namespace keywords = boost::log::keywords;
+
+
+  enum severity_level : uint8_t
+  {
+    TRACE = 0,
+    DEBUG,
+    INFO,
+    WARN,
+    ERROR,
+    FATAL
+  };
+
+  class Logger {
+  public:
+    static void Write(severity_level level, std::string msg);
+    static void init();
+  protected:
+    static src::severity_logger< severity_level > slg_;
+  };
+
+}
