@@ -5,7 +5,7 @@
 
 namespace utils {
   using namespace std;
-  enum class Charsets : uint32_t
+  enum class Charsets : uint16_t
   {
     UTF8 = 0,
     UTF16,

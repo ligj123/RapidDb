@@ -17,11 +17,6 @@ namespace storage {
 
 		static bool IsArrayType(const DataType dt) { return ((int)dt & (int)DataType::ARRAY_TYPE) == (int)DataType::ARRAY_TYPE; }
 
-		static bool IsBigEndian() {
-			short tmp = 0x0102;
-			return *((char*)&tmp) == 0x01l;
-		}
-
 	public:
 		IDataValue(const IDataValue& dv)
 			: dataType_(dv.dataType_), valType_(dv.valType_), bKey_(dv.bKey_){}

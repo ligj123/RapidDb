@@ -31,7 +31,7 @@ namespace storage {
 		BOOL = FIX_LEN + 15
 	};
 
-	enum class ValueType {
+	enum class ValueType : uint16_t {
 		NULL_VALUE = 0,
 		SOLE_VALUE,
 		BYTES_VALUE
