@@ -15,7 +15,7 @@ namespace storage {
 	{
 	}
 
-	DataValueDouble::DataValueDouble(char* byArray, bool bKey)
+	DataValueDouble::DataValueDouble(Byte* byArray, bool bKey)
 		: IDataValue(DataType::DOUBLE, ValueType::BYTES_VALUE, bKey), byArray_(byArray)
 	{
 	}
@@ -67,7 +67,7 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueDouble::WriteData(char* buf)
+	uint32_t DataValueDouble::WriteData(Byte* buf)
 	{
 		if (bKey_)
 		{
@@ -110,7 +110,7 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueDouble::ReadData(char* buf, uint32_t len)
+	uint32_t DataValueDouble::ReadData(Byte* buf, uint32_t len)
 	{
 		if (bKey_)
 		{

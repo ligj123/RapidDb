@@ -1,7 +1,9 @@
 #pragma once
 #include <cstdint>
+#include "../header.h"
+
 namespace utils {
-	inline int64_t Int64FromBytes(char* pArr, bool bkey = false)
+	inline int64_t Int64FromBytes(Byte* pArr, bool bkey = false)
 	{
 		int64_t val = 0;
 #ifdef BIGENDIAN
@@ -10,7 +12,7 @@ namespace utils {
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			buf[7] = pArr[0];
 			buf[6] = pArr[1];
 			buf[5] = pArr[2];
@@ -30,7 +32,7 @@ namespace utils {
 		return val;
 	}
 
-	inline void Int64ToBytes(int64_t val, char* pArr, bool bkey = false)
+	inline void Int64ToBytes(int64_t val, Byte* pArr, bool bkey = false)
 	{
 #ifdef BIGENDIAN
 		if (bkey) val ^= 0x8000000000000000ll;
@@ -39,7 +41,7 @@ namespace utils {
 		if (bkey)
 		{
 			val ^= 0x8000000000000000ll;
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			pArr[0] = buf[7];
 			pArr[1] = buf[6];
 			pArr[2] = buf[5];
@@ -56,7 +58,7 @@ namespace utils {
 #endif
 	}
 
-	inline uint64_t UInt64FromBytes(char* pArr, bool bkey = false)
+	inline uint64_t UInt64FromBytes(Byte* pArr, bool bkey = false)
 	{
 		uint64_t val = 0;
 #ifdef BIGENDIAN
@@ -64,7 +66,7 @@ namespace utils {
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			buf[7] = pArr[0];
 			buf[6] = pArr[1];
 			buf[5] = pArr[2];
@@ -82,14 +84,14 @@ namespace utils {
 		return val;
 	}
 
-	inline void UInt64ToBytes(uint64_t val, char* pArr, bool bkey = false)
+	inline void UInt64ToBytes(uint64_t val, Byte* pArr, bool bkey = false)
 	{
 #ifdef BIGENDIAN
 		*((uint64_t*)pArr) = val;
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			pArr[0] = buf[7];
 			pArr[1] = buf[6];
 			pArr[2] = buf[5];
@@ -106,7 +108,7 @@ namespace utils {
 #endif
 	}
 
-	inline int32_t Int32FromBytes(char* pArr, bool bkey = false)
+	inline int32_t Int32FromBytes(Byte* pArr, bool bkey = false)
 	{
 		int32_t val = 0;
 #ifdef BIGENDIAN
@@ -115,7 +117,7 @@ namespace utils {
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			buf[3] = pArr[0];
 			buf[2] = pArr[1];
 			buf[1] = pArr[2];
@@ -130,7 +132,7 @@ namespace utils {
 		return val;
 	}
 
-	inline void Int32ToBytes(int32_t val, char* pArr, bool bkey = false)
+	inline void Int32ToBytes(int32_t val, Byte* pArr, bool bkey = false)
 	{
 #ifdef BIGENDIAN
 		if (bkey) val ^= 0x80000000; 
@@ -140,7 +142,7 @@ namespace utils {
 		if (bkey)
 		{
 			val ^= 0x80000000;
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			pArr[0] = buf[3];
 			pArr[1] = buf[2];
 			pArr[2] = buf[1];
@@ -153,7 +155,7 @@ namespace utils {
 #endif
 	}
 
-	inline uint32_t UInt32FromBytes(char* pArr, bool bkey = false)
+	inline uint32_t UInt32FromBytes(Byte* pArr, bool bkey = false)
 	{
 		uint32_t val = 0;
 #ifdef BIGENDIAN
@@ -161,7 +163,7 @@ namespace utils {
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			buf[3] = pArr[0];
 			buf[2] = pArr[1];
 			buf[1] = pArr[2];
@@ -175,14 +177,14 @@ namespace utils {
 		return val;
 	}
 
-	inline void UInt32ToBytes(uint32_t val, char* pArr, bool bkey = false)
+	inline void UInt32ToBytes(uint32_t val, Byte* pArr, bool bkey = false)
 	{
 #ifdef BIGENDIAN
 		*((uint32_t*)pArr) = val;
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			pArr[0] = buf[3];
 			pArr[1] = buf[2];
 			pArr[2] = buf[1];
@@ -195,7 +197,7 @@ namespace utils {
 #endif
 	}
 
-	inline int16_t Int16FromBytes(char* pArr, bool bkey = false)
+	inline int16_t Int16FromBytes(Byte* pArr, bool bkey = false)
 	{
 		int16_t val = 0;
 #ifdef BIGENDIAN
@@ -204,7 +206,7 @@ namespace utils {
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			buf[1] = pArr[0];
 			buf[0] = pArr[1];
 			val ^= 0x8000;
@@ -217,7 +219,7 @@ namespace utils {
 		return val;
 	}
 
-	inline void Int16ToBytes(int16_t val, char* pArr, bool bkey = false)
+	inline void Int16ToBytes(int16_t val, Byte* pArr, bool bkey = false)
 	{
 #ifdef BIGENDIAN
 		if (bkey) val ^= 0x8000;
@@ -226,7 +228,7 @@ namespace utils {
 		if (bkey)
 		{
 			val ^= 0x8000;
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			pArr[0] = buf[1];
 			pArr[1] = buf[0];
 		}
@@ -237,7 +239,7 @@ namespace utils {
 #endif
 	}
 
-	inline uint16_t UInt16FromBytes(char* pArr, bool bkey = false)
+	inline uint16_t UInt16FromBytes(Byte* pArr, bool bkey = false)
 	{
 		uint16_t val = 0;
 #ifdef BIGENDIAN
@@ -245,7 +247,7 @@ namespace utils {
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			buf[1] = pArr[0];
 			buf[0] = pArr[1];
 		}
@@ -257,14 +259,14 @@ namespace utils {
 		return val;
 	}
 
-	inline void UInt16ToBytes(uint16_t val, char* pArr, bool bkey = false)
+	inline void UInt16ToBytes(uint16_t val, Byte* pArr, bool bkey = false)
 	{
 #ifdef BIGENDIAN
 		*((uint16_t*)pArr) = val;
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			pArr[0] = buf[1];
 			pArr[1] = buf[0];
 		}
@@ -275,31 +277,31 @@ namespace utils {
 #endif
 	}
 
-	inline int8_t Int8FromBytes(char* pArr, bool bkey = false)
+	inline int8_t Int8FromBytes(Byte* pArr, bool bkey = false)
 	{
 		int8_t val = *pArr;
 		if (bkey) val ^= 0x80;
 		return val;
 	}
 
-	inline void Int8ToBytes(int8_t val, char* pArr, bool bkey = false)
+	inline void Int8ToBytes(int8_t val, Byte* pArr, bool bkey = false)
 	{
 		if (bkey) val ^= 0x80;
-		char* buf = (char*)&val;
+		Byte* buf = (Byte*)&val;
 		pArr[0] = val;
 	}
 
-	inline uint8_t UInt8FromBytes(char* pArr, bool bkey = false)
+	inline uint8_t UInt8FromBytes(Byte* pArr, bool bkey = false)
 	{
 		return *pArr;
 	}
 
-	inline void UInt8ToBytes(uint8_t val, char* pArr, bool bkey = false)
+	inline void UInt8ToBytes(uint8_t val, Byte* pArr, bool bkey = false)
 	{
 		*pArr = val;
 	}
 
-	inline double DoubleFromBytes(char* pArr, bool bkey = false)
+	inline double DoubleFromBytes(Byte* pArr, bool bkey = false)
 	{
 		uint64_t val = 0;
 #ifdef BIGENDIAN
@@ -318,7 +320,7 @@ namespace utils {
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			buf[7] = pArr[0];
 			buf[6] = pArr[1];
 			buf[5] = pArr[2];
@@ -345,7 +347,7 @@ namespace utils {
 		return *((double*)&val);
 	}
 
-	inline void DoubleToBytes(double dval, char* pArr, bool bkey = false)
+	inline void DoubleToBytes(double dval, Byte* pArr, bool bkey = false)
 	{
 		uint64_t* p = (uint64_t*)&dval;
 #ifdef BIGENDIAN
@@ -372,7 +374,7 @@ namespace utils {
 			{
 				*p ^= 0x8000000000000000ll;
 			}
-			char* buf = (char*)p;
+			Byte* buf = (Byte*)p;
 			pArr[0] = buf[7];
 			pArr[1] = buf[6];
 			pArr[2] = buf[5];
@@ -389,7 +391,7 @@ namespace utils {
 #endif
 	}
 
-	inline float FloatFromBytes(char* pArr, bool bkey = false)
+	inline float FloatFromBytes(Byte* pArr, bool bkey = false)
 	{
 		uint32_t val = 0;
 #ifdef BIGENDIAN
@@ -408,7 +410,7 @@ namespace utils {
 #else
 		if (bkey)
 		{
-			char* buf = (char*)&val;
+			Byte* buf = (Byte*)&val;
 			buf[3] = pArr[0];
 			buf[2] = pArr[1];
 			buf[1] = pArr[2];
@@ -430,7 +432,7 @@ namespace utils {
 		return *((float*)&val);
 	}
 
-	inline void FloatToBytes(float dval, char* pArr, bool bkey = false)
+	inline void FloatToBytes(float dval, Byte* pArr, bool bkey = false)
 	{
 		uint32_t* p = (uint32_t*)&dval;
 #ifdef BIGENDIAN
@@ -457,7 +459,7 @@ namespace utils {
 			{
 				*p ^= 0x80000000;
 			}
-			char* buf = (char*)p;
+			Byte* buf = (Byte*)p;
 			pArr[0] = buf[3];
 			pArr[1] = buf[2];
 			pArr[2] = buf[1];

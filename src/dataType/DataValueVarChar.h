@@ -9,25 +9,26 @@ namespace storage {
   class DataValueVarChar : public IDataValue
   {
   public:
-    DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false, utils::Charsets charset = utils::Charsets::UTF8);
-    DataValueVarChar(string val, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false, utils::Charsets charset = utils::Charsets::UTF8);
-    DataValueVarChar(char* byArray, uint32_t len, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false, utils::Charsets charset = utils::Charsets::UTF8);
-    DataValueVarChar(uint32_t maxLength, bool bKey, utils::Charsets charset, std::any val);
+    DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
+    DataValueVarChar(char* val, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
+    DataValueVarChar(Byte* byArray, uint32_t strlen, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
+    DataValueVarChar(uint32_t maxLength, bool bKey, std::any val);
     DataValueVarChar(const DataValueVarChar& src);
     ~DataValueVarChar();
   public:
-    virtual std::any GetValue() const;
-    virtual uint32_t WriteData(char* buf);
-    virtual uint32_t ReadData(char* buf, uint32_t len = 0);
-    virtual uint32_t GetLength() const;
-    virtual uint32_t GetMaxLength() const;
-    virtual uint32_t GetPersistenceLength() const;
-    virtual void SetMinValue();
-    virtual void SetMaxValue();
-    virtual void SetDefaultValue();
+    std::any GetValue() const override;
+    uint32_t WriteData(Byte* buf) override;
+    uint32_t ReadData(Byte* buf, uint32_t len = 0) override;
+    uint32_t GetLength() const override;
+    uint32_t GetMaxLength() const override;
+    uint32_t GetPersistenceLength() const override;
+    void SetMinValue() override;
+    void SetMaxValue() override;
+    void SetDefaultValue() override;
 
     operator string() const;
-    DataValueVarChar& operator=(const string& val);
+    operator char* () const;
+    DataValueVarChar& operator=(char* val);
     DataValueVarChar& operator=(const DataValueVarChar& src);
 
     bool operator > (const DataValueVarChar& dv) const;
@@ -40,11 +41,10 @@ namespace storage {
 
   protected:
     uint32_t maxLength_;
-    utils::Charsets charset_;
-    string soleValue_;
+    uint32_t soleLength_;
     struct {
-      char* byArray_;
-      uint32_t len_;
+      Byte* byArray_;
+      char* soleValue_;
     };
   };
 

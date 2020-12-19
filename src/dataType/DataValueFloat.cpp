@@ -15,7 +15,7 @@ namespace storage {
 	{
 	}
 
-	DataValueFloat::DataValueFloat(char* byArray, bool bKey)
+	DataValueFloat::DataValueFloat(Byte* byArray, bool bKey)
 		: IDataValue(DataType::FLOAT, ValueType::BYTES_VALUE, bKey), byArray_(byArray)
 	{
 	}
@@ -67,7 +67,7 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueFloat::WriteData(char* buf)
+	uint32_t DataValueFloat::WriteData(Byte* buf)
 	{
 		if (bKey_)
 		{
@@ -110,7 +110,7 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueFloat::ReadData(char* buf, uint32_t len)
+	uint32_t DataValueFloat::ReadData(Byte* buf, uint32_t len)
 	{
 		if (bKey_)
 		{

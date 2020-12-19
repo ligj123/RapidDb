@@ -10,3 +10,4 @@
 
 #data type error
 2001 Unsupport data type conversion from {} to {}.
+2002 Try to input over length value for column, max length={}, actual length={}.

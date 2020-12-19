@@ -1,5 +1,6 @@
 #pragma once
 #include <ostream>
+#include "../header.h"
 
 namespace storage {
 	enum class DataType : uint32_t
@@ -31,7 +32,7 @@ namespace storage {
 		BOOL = FIX_LEN + 15
 	};
 
-	enum class ValueType : uint16_t {
+	enum class ValueType : uint8_t {
 		NULL_VALUE = 0,
 		SOLE_VALUE,
 		BYTES_VALUE

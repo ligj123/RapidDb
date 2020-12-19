@@ -15,7 +15,7 @@ namespace storage {
 	{
 	}
 
-	DataValueULong::DataValueULong(char* byArray, bool bKey)
+	DataValueULong::DataValueULong(Byte* byArray, bool bKey)
 		: IDataValue(DataType::ULONG, ValueType::BYTES_VALUE, bKey), byArray_(byArray)
 	{
 	}
@@ -65,7 +65,7 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueULong::WriteData(char* buf)
+	uint32_t DataValueULong::WriteData(Byte* buf)
 	{
 		if (bKey_)
 		{
@@ -108,7 +108,7 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueULong::ReadData(char* buf, uint32_t len)
+	uint32_t DataValueULong::ReadData(Byte* buf, uint32_t len)
 	{
 		if (bKey_)
 		{

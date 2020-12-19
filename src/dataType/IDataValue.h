@@ -9,8 +9,6 @@ namespace storage {
 
 		static bool IsFixLength(const DataType dt) { return ((int)dt & (int)DataType::FIX_LEN) == (int)DataType::FIX_LEN; }
 
-		static bool IsCompressionable(const DataType dt) { return dt == DataType::VARCHAR || dt == DataType::BLOB; }
-
 		static bool IsAutoPrimaryKey(const DataType dt) { return ((int)dt & (int)DataType::AUTO_INC_TYPE) == (int)DataType::AUTO_INC_TYPE; }
 
 		static bool IsAggregate(const DataType dt) { return ((int)dt & (int)DataType::AGGR_TYPE) == (int)DataType::AGGR_TYPE; }
@@ -33,8 +31,8 @@ namespace storage {
 		bool isKey() { return bKey_; }
 
 		virtual std::any GetValue() const = 0;
-		virtual uint32_t WriteData(char* buf) = 0;
-		virtual uint32_t ReadData(char* buf, uint32_t len) = 0;
+		virtual uint32_t WriteData(Byte* buf) = 0;
+		virtual uint32_t ReadData(Byte* buf, uint32_t len) = 0;
 		virtual uint32_t GetLength() const = 0;
 		virtual uint32_t GetMaxLength() const = 0;
 		virtual uint32_t GetPersistenceLength() const = 0;
