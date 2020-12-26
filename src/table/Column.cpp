@@ -13,9 +13,9 @@ namespace storage {
     delete pDefaultVal_;
   }
 
-  uint32_t ColumnInTable::ReadData(char* pBuf)
+  uint32_t ColumnInTable::ReadData(Byte* pBuf)
   {
-    char* p = pBuf;
+    Byte* p = pBuf;
     *((uint32_t*)p) = (uint32_t)name_.size();
     p += sizeof(uint32_t);
     std::memcpy(p, name_.c_str(), name_.size());
@@ -57,13 +57,13 @@ namespace storage {
     return (int32_t)(p - pBuf);
   }
 
-  uint32_t ColumnInTable::WriteData(char* pBuf)
+  uint32_t ColumnInTable::WriteData(Byte* pBuf)
   {
-    char* p = pBuf;
+    Byte* p = pBuf;
 
     uint32_t len = *((uint32_t*)p);
     p += sizeof(uint32_t);
-    name_ = string(p, len);
+    name_ = string((char*)p, len);
     p += len;
 
     position_ = *((uint32_t*)p);
@@ -89,7 +89,7 @@ namespace storage {
 
     len = *((uint32_t*)p);
     p += sizeof(uint32_t);
-    comments_ = string(p, len);
+    comments_ = string((char*)p, len);
     p += len;
 
     bool bDefault = (*p != 0);
@@ -105,14 +105,14 @@ namespace storage {
       case DataType::VARCHAR:
         len = (*(int32_t*)p);
         p += sizeof(uint32_t);
-        pDefaultVal_ = new DataValueVarChar(p);
+        pDefaultVal_ = new DataValueVarChar((char*)p);
         p += len;
         break;
       case DataType::FIXCHAR:
         if (p[maxLength_ - 1] == '\0')
-          pDefaultVal_ = new DataValueFixChar(p);
+          pDefaultVal_ = new DataValueFixChar((char*)p);
         else 
-          pDefaultVal_ = new DataValueFixChar(p, maxLength_);
+          pDefaultVal_ = new DataValueFixChar((char*)p, maxLength_);
         p += maxLength_;
       }
     }

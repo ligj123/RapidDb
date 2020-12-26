@@ -135,7 +135,7 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueLong::GetLength() const
+	uint32_t DataValueLong::GetDataLength() const
 	{
 		return bKey_ ? sizeof(int64_t) : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(int64_t));
 	}

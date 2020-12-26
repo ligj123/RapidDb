@@ -13,13 +13,13 @@ namespace storage {
 		BOOST_TEST(dv1.IsFixLength());
 		BOOST_TEST(dv1.IsNull());
 		BOOST_TEST(dv1.GetMaxLength() == 2);
-		BOOST_TEST(dv1.GetLength() == 0);
+		BOOST_TEST(dv1.GetDataLength() == 0);
 		BOOST_TEST(dv1.GetPersistenceLength() == 1);
 		BOOST_TEST(!dv1.GetValue().has_value());
 
 		DataValueChar dv2(true);
 		BOOST_TEST(dv2.GetMaxLength() == 1);
-		BOOST_TEST(dv2.GetLength() == 1);
+		BOOST_TEST(dv2.GetDataLength() == 1);
 		BOOST_TEST(dv2.GetPersistenceLength() == 1);
 		BOOST_TEST(dv1 == dv2);
 
@@ -27,7 +27,7 @@ namespace storage {
 		BOOST_TEST(dv3.GetDataType() == DataType::CHAR);
 		BOOST_TEST(dv3.GetValueType() == ValueType::SOLE_VALUE);
 		BOOST_TEST(!dv3.IsNull());
-		BOOST_TEST(dv3.GetLength() == 1);
+		BOOST_TEST(dv3.GetDataLength() == 1);
 		BOOST_TEST(dv3.GetMaxLength() == 2);
 		BOOST_TEST(dv3.GetPersistenceLength() == 2);
 		BOOST_TEST(dv1 < dv3);
@@ -39,7 +39,7 @@ namespace storage {
 		BOOST_TEST(dv4.GetPersistenceLength() == 1);
 		BOOST_TEST(dv4 == dv3);
 
-		char buf[100];
+		Byte buf[100];
 		*((int8_t*)buf) = 10;
 		DataValueChar dv5(buf, false);
 		BOOST_TEST(std::any_cast<int8_t>(dv5.GetValue()) == 10);
@@ -49,7 +49,7 @@ namespace storage {
 		BOOST_TEST(dv5 >= dv3);
 		BOOST_TEST(dv5 != dv3);
 		
-		char buf2[100];
+		Byte buf2[100];
 		uint32_t len = dv5.WriteData(buf2);
 		BOOST_TEST(len == 2);
 		BOOST_TEST(buf2[0] == 1);

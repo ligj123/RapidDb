@@ -1,6 +1,7 @@
 #pragma once
 #include <any>
 #include "DataType.h"
+#include "../cache/CachePool.h"
 
 namespace storage {
 	class IDataValue {
@@ -33,12 +34,22 @@ namespace storage {
 		virtual std::any GetValue() const = 0;
 		virtual uint32_t WriteData(Byte* buf) = 0;
 		virtual uint32_t ReadData(Byte* buf, uint32_t len) = 0;
-		virtual uint32_t GetLength() const = 0;
+		virtual uint32_t GetDataLength() const = 0;
 		virtual uint32_t GetMaxLength() const = 0;
 		virtual uint32_t GetPersistenceLength() const = 0;
 		virtual void SetMinValue() = 0;
 		virtual void SetMaxValue() = 0;
 		virtual void SetDefaultValue() = 0;
+
+	public:
+		void* operator new(size_t size) 
+		{
+			return CachePool::Apply((uint32_t)size);
+		}
+		void operator delete(void* ptr, size_t size)
+		{			
+			CachePool::Release((Byte*)ptr, (uint32_t)size);
+		}
 
 	protected:
 		DataType dataType_;

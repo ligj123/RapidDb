@@ -4,6 +4,7 @@
 #include "../dataType/DataType.h"
 #include "../utils/CharsetConvert.h"
 #include "../dataType/IDataValue.h"
+#include "../header.h"
 
 namespace storage {
   class IDataValue;
@@ -34,8 +35,8 @@ namespace storage {
       bool bIndex, uint32_t maxLen, uint32_t incStep, utils::Charsets charset, IDataValue* defaultVal);
     ~ColumnInTable();
   public:
-    virtual uint32_t ReadData(char* pBuf);
-    virtual uint32_t WriteData(char* pBuf);
+    virtual uint32_t ReadData(Byte* pBuf);
+    virtual uint32_t WriteData(Byte* pBuf);
     bool IsNullable() const { return bNullable_; }
     uint32_t GetMaxLength() const { return maxLength_; }
     uint32_t GetIncStep() const { return incStep_; }

@@ -1,6 +1,5 @@
 #pragma once
 #include "IDataValue.h"
-#include "../utils/CharsetConvert.h"
 #include <any>
 
 namespace storage {
@@ -12,7 +11,8 @@ namespace storage {
    public:
      DataValueFixChar(uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
      DataValueFixChar(char* val, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
-     DataValueFixChar(Byte* byArray, uint32_t len, uint32_t maxLength, bool bKey = false);
+     DataValueFixChar(const char* val, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
+     DataValueFixChar(Byte* byArray, uint32_t strLen, uint32_t maxLength, bool bKey = false);
      DataValueFixChar(uint32_t maxLength, bool bKey, std::any val);
      DataValueFixChar(const DataValueFixChar& src);
      ~DataValueFixChar();
@@ -20,7 +20,7 @@ namespace storage {
      std::any GetValue() const override;
      uint32_t WriteData(Byte* buf) override;
      uint32_t ReadData(Byte* buf, uint32_t len = 0) override;
-     uint32_t GetLength() const override;
+     uint32_t GetDataLength() const override;
      uint32_t GetMaxLength() const override;
      uint32_t GetPersistenceLength() const override;
      
@@ -29,7 +29,7 @@ namespace storage {
      void SetDefaultValue() override;
 
      operator string() const;
-     operator char* () const;
+    // operator char*() const;
      DataValueFixChar& operator=(char* val);
      DataValueFixChar& operator=(const DataValueFixChar& src);
 

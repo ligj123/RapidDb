@@ -137,7 +137,7 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueDouble::GetLength() const
+	uint32_t DataValueDouble::GetDataLength() const
 	{
 		return bKey_ ? sizeof(double) : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(double));
 	}

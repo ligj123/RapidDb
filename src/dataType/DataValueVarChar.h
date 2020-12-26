@@ -1,6 +1,5 @@
 #pragma once
 #include "IDataValue.h"
-#include "../utils/CharsetConvert.h"
 
 namespace storage {
   using namespace utils;
@@ -11,7 +10,8 @@ namespace storage {
   public:
     DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
     DataValueVarChar(char* val, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
-    DataValueVarChar(Byte* byArray, uint32_t strlen, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
+    DataValueVarChar(const char* val, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
+    DataValueVarChar(Byte* byArray, uint32_t strLen, uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
     DataValueVarChar(uint32_t maxLength, bool bKey, std::any val);
     DataValueVarChar(const DataValueVarChar& src);
     ~DataValueVarChar();
@@ -19,7 +19,7 @@ namespace storage {
     std::any GetValue() const override;
     uint32_t WriteData(Byte* buf) override;
     uint32_t ReadData(Byte* buf, uint32_t len = 0) override;
-    uint32_t GetLength() const override;
+    uint32_t GetDataLength() const override;
     uint32_t GetMaxLength() const override;
     uint32_t GetPersistenceLength() const override;
     void SetMinValue() override;
@@ -27,7 +27,7 @@ namespace storage {
     void SetDefaultValue() override;
 
     operator string() const;
-    operator char* () const;
+    //operator char* () const;
     DataValueVarChar& operator=(char* val);
     DataValueVarChar& operator=(const DataValueVarChar& src);
 
@@ -42,7 +42,8 @@ namespace storage {
   protected:
     uint32_t maxLength_;
     uint32_t soleLength_;
-    struct {
+    union
+    {
       Byte* byArray_;
       char* soleValue_;
     };

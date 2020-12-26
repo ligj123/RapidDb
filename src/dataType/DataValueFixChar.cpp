@@ -9,7 +9,7 @@ namespace storage {
 
   DataValueFixChar::DataValueFixChar(char* val, uint32_t maxLength, bool bKey)
     : IDataValue(DataType::FIXCHAR, ValueType::SOLE_VALUE, bKey), soleValue_(val),
-      soleLength_(strlen(val) + 1), maxLength_(maxLength)
+      soleLength_((uint32_t)strlen(val) + 1), maxLength_(maxLength)
   {
     if (soleLength_ >= maxLength_)
     {
@@ -18,9 +18,21 @@ namespace storage {
     }
   }
 
-  DataValueFixChar::DataValueFixChar(Byte* byArray, uint32_t len, uint32_t maxLength, bool bKey)
+  DataValueFixChar::DataValueFixChar(const char* val, uint32_t maxLength, bool bKey)
+    : IDataValue(DataType::FIXCHAR, ValueType::SOLE_VALUE, bKey),
+      soleLength_((uint32_t)strlen(val) + 1), maxLength_(maxLength)
+  {
+    if (soleLength_ >= maxLength_)
+    {
+      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+    }
+    soleValue_ = new char[soleLength_];
+    memcpy(soleValue_, val, soleLength_);
+  }
+
+  DataValueFixChar::DataValueFixChar(Byte* byArray, uint32_t strLen, uint32_t maxLength, bool bKey)
     : IDataValue(DataType::FIXCHAR, ValueType::BYTES_VALUE, bKey), byArray_(byArray),
-      soleLength_(len), maxLength_(maxLength)
+      soleLength_(strLen), maxLength_(maxLength)
   { }
 
   DataValueFixChar::DataValueFixChar(uint32_t maxLength, bool bKey, std::any val)
@@ -39,12 +51,12 @@ namespace storage {
     else if (val.type() == typeid(std::string)) str = move(any_cast<std::string>(val));
     else throw utils::ErrorMsg(2001, { val.type().name(), "DataValueFixChar" });
 
-    soleLength_ = str.size() + 1;
+    soleLength_ = (uint32_t)str.size() + 1;
     if (soleLength_ >= maxLength_)
       throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
     
     soleValue_ = new char[soleLength_];
-    strcpy(soleValue_, str.c_str());
+    memcpy(soleValue_, str.c_str(), soleLength_);
   }
 
   DataValueFixChar::DataValueFixChar(const DataValueFixChar& src) : IDataValue(src)
@@ -56,7 +68,7 @@ namespace storage {
     {
     case ValueType::SOLE_VALUE:
       soleValue_ = new char[soleLength_];
-      strcpy(soleValue_, src.soleValue_);
+      memcpy(soleValue_, src.soleValue_, soleLength_);
       break;
     case ValueType::BYTES_VALUE:
       byArray_ = src.byArray_;      
@@ -69,7 +81,11 @@ namespace storage {
 
   DataValueFixChar::~DataValueFixChar()
   {
-    if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
+    if (valType_ == ValueType::SOLE_VALUE)
+    {
+      delete[] soleValue_;
+      valType_ = ValueType::NULL_VALUE;
+    }
   }
 
   std::any DataValueFixChar::GetValue() const
@@ -77,9 +93,9 @@ namespace storage {
     switch (valType_)
     {
     case ValueType::SOLE_VALUE:
-      return soleValue_;
+      return string(soleValue_);
     case ValueType::BYTES_VALUE:
-        return (char*)byArray_;
+        return string((char*)byArray_);
     case ValueType::NULL_VALUE:
     default:
       return std::any();
@@ -138,7 +154,7 @@ namespace storage {
     {
       valType_ = ValueType::BYTES_VALUE;
       byArray_ = buf;
-      soleLength_ = strlen((char*)buf) + 1;
+      soleLength_ = (uint32_t)strlen((char*)buf) + 1;
       return maxLength_;
     }
     else
@@ -150,12 +166,12 @@ namespace storage {
         return 1;
 
       byArray_ = buf;
-      soleLength_ = strlen((char*)buf) + 1;
+      soleLength_ = (uint32_t)strlen((char*)buf) + 1;
       return maxLength_ + 1;
     }
   }
 
-  uint32_t DataValueFixChar::GetLength() const
+  uint32_t DataValueFixChar::GetDataLength() const
   {
     if (valType_ == ValueType::NULL_VALUE)
       return 0;
@@ -179,9 +195,9 @@ namespace storage {
       switch (valType_)
       {
       case ValueType::SOLE_VALUE:
-        return maxLength_ + 1 + sizeof(uint32_t);
+        return maxLength_ + 1;
       case ValueType::BYTES_VALUE:
-        return maxLength_ + 1 + sizeof(uint32_t);
+        return maxLength_ + 1;
       case ValueType::NULL_VALUE:
       default:
         return 1;
@@ -231,7 +247,7 @@ namespace storage {
     return "";
   }
 
-  DataValueFixChar::operator char* () const
+ /* DataValueFixChar::operator char* () const
   {
     switch (valType_)
     {
@@ -243,7 +259,7 @@ namespace storage {
     default:
       return nullptr;
     }
-  }
+  }*/
 
   DataValueFixChar& DataValueFixChar::operator=(char* val)
   {
@@ -253,7 +269,7 @@ namespace storage {
 
     valType_ = ValueType::SOLE_VALUE;
     soleValue_ = val;
-    soleLength_ = strlen(val) + 1;
+    soleLength_ = (uint32_t)strlen(val) + 1;
     return *this;
   }
 
@@ -271,7 +287,7 @@ namespace storage {
     {
     case ValueType::SOLE_VALUE:
       soleValue_ = new char[soleLength_];
-      strcpy(soleValue_, src.soleValue_);
+      memcpy(soleValue_, src.soleValue_, soleLength_);
       break;
     case ValueType::BYTES_VALUE:
       byArray_ = src.byArray_;
@@ -291,10 +307,10 @@ namespace storage {
 
     const char* v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : (char*)byArray_);
     const char* v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : (char*)dv.byArray_);
-    int rt = strncmp(v1, v2, std::min(GetLength(), dv.GetLength()));
+    int rt = strncmp(v1, v2, std::min(GetDataLength(), dv.GetDataLength()));
     if (rt == 0)
     {
-      return GetLength() > dv.GetLength();
+      return GetDataLength() > dv.GetDataLength();
     }
     else
     {
@@ -314,10 +330,10 @@ namespace storage {
 
     const char* v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : (char*)byArray_);
     const char* v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : (char*)dv.byArray_);
-    int rt = strncmp(v1, v2, std::min(GetLength(), dv.GetLength()));
+    int rt = strncmp(v1, v2, std::min(GetDataLength(), dv.GetDataLength()));
     if (rt == 0)
     {
-      return GetLength() >= dv.GetLength();
+      return GetDataLength() >= dv.GetDataLength();
     }
     else
     {
@@ -337,7 +353,7 @@ namespace storage {
     
     const char* v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : (char*)byArray_);
     const char* v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : (char*)dv.byArray_);
-    return strncmp(v1, v2, std::min(GetLength(), dv.GetLength())) == 0;
+    return strncmp(v1, v2, std::min(GetDataLength(), dv.GetDataLength())) == 0;
   }
 
   bool DataValueFixChar::operator != (const DataValueFixChar& dv) const
