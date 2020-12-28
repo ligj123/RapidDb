@@ -13,10 +13,8 @@ namespace storage {
 		static const uint64_t DEFAULT_TOTAL_CACHE_SIZE;
 		/**A block size for memory cache, it will used to create DataValueInt etc.*/
 		static const uint64_t DEFAULT_CACHE_BLOCK_SIZE;
-		/**The max memory size of blocks used to allocate IDataValues.*/
-		static const uint64_t DEFAULT_MAX_MEM_DATAVALUE_SIZE;
-		/**The max memory size of blocks used to */
-		static const uint64_t DEFAULT_MAX_MEM_RECORD_SIZE;
+		/**The max memory size of blocks used to allocate buffer, For example  IDataValue or Record.*/
+		static const uint64_t DEFAULT_MAX_BUFFER_SIZE;
 		/**The max size for a record, key length + the value data length without fields saved to overflow file.
 		* It can not exceed the half of cache page.*/
 		static const uint64_t DEFAULT_MAX_RECORD_LENGTH;
@@ -39,8 +37,7 @@ namespace storage {
 		static uint64_t GetCachePageSize() { return GetInstance()._szCachePage; }
 		static uint64_t GetTotalCacheSize() { return GetInstance()._szTotalCache; }
 		static uint64_t GetCacheBlockSize() { return GetInstance()._szCacheBlock; }
-		static uint64_t GetMaxMemDataValueSize() { return GetInstance()._szMaxMemDataValue; }
-		static uint64_t GetMaxMemRecordSize() { return GetInstance()._szMaxMemRecord; }
+		static uint64_t GetMaxMemDataValueSize() { return GetInstance()._szMaxBuffer; }
 		static uint64_t GetMaxRecordLength() { return GetInstance()._lenMaxRecord; }
 		static uint64_t GetMaxKeyLength() { return GetInstance()._lenMaxKey; }
 		static uint64_t GetMaxColumnLength() { return GetInstance()._lenMaxColumn; }
@@ -56,8 +53,7 @@ namespace storage {
 		uint64_t _szCachePage;
 		uint64_t _szTotalCache;
 		uint64_t _szCacheBlock;
-		uint64_t _szMaxMemDataValue;
-		uint64_t _szMaxMemRecord;
+		uint64_t _szMaxBuffer;
 		uint64_t _lenMaxRecord;
 		uint64_t _lenMaxKey;
 		uint64_t _lenMaxColumn;

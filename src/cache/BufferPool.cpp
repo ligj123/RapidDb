@@ -1,10 +1,13 @@
 #include "BufferPool.h"
 #include "../config/Configure.h"
 #include "CachePool.h"
+#ifdef _MSVC_LANG
 #include <malloc.h>
 #include <stdio.h>
+#else
 #include <cstdio>
 #include <cstdlib>
+#endif // _MSVC_LANG
 
 namespace storage {
   Buffer::Buffer(uint32_t eleSize) : _eleSize(eleSize)
@@ -18,18 +21,18 @@ namespace storage {
 
     for (uint16_t i = 0; i < _maxEle; i++)
     {
-      _setFree.insert(i);
+      _queueFree.push(i);
     }
   }
 
   void Buffer::Init(uint32_t eleSize)
   {
-    _setFree.clear();
+    while(_queueFree.size() > 0) _queueFree.pop();
     _eleSize = eleSize;
     _maxEle = (uint32_t)Configure::GetCacheBlockSize() / eleSize;
     for (uint16_t i = 0; i < _maxEle; i++)
     {
-      _setFree.insert(i);
+      _queueFree.push(i);
     }
   }
 
@@ -44,20 +47,19 @@ namespace storage {
 
   Byte* Buffer::Apply()
   {
-    uint16_t index = *_setFree.begin();
-    _setFree.erase(index);
+    uint16_t index = _queueFree.front();
+    _queueFree.pop();
     return &_pBuf[_eleSize * index];
   }
 
   void Buffer::Release(Byte* bys)
   {
-    _setFree.insert(CalcPos(bys));
+    _queueFree.push(CalcPos(bys));
   }
 
 
   BufferPool::BufferPool(uint32_t eleSize) : _eleSize(eleSize)
   {
-
   }
 
   BufferPool::~BufferPool()
@@ -74,8 +76,8 @@ namespace storage {
     if (_mapFreeBuffer.size() == 0)
     {
       Buffer* buff = CachePool::AllotBuffer(_eleSize);
-      _mapBuffer.insert(pair<Byte*, Buffer*>((Byte*)buff, buff));
-      _mapFreeBuffer.insert(pair<Byte*, Buffer*>((Byte*)buff, buff));
+      _mapBuffer.insert(pair<Byte*, Buffer*>(buff->GetBuf(), buff));
+      _mapFreeBuffer.insert(pair<Byte*, Buffer*>(buff->GetBuf(), buff));
       return buff->Apply();
     }
     else

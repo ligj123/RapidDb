@@ -4,7 +4,7 @@
 #include <string>
 
 namespace storage {
-  CachePool* CachePool::cachePool = []() {
+  CachePool* CachePool::_gCachePool = []() {
     return new CachePool;
   }();
 

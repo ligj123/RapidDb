@@ -9,5 +9,9 @@
 1004	Invalid data type, only fix length data type can be added, column name = {}.
 
 #data type error
-2001 Unsupport data type conversion from {} to {}.
-2002 Try to input over length value for column, max length={}, actual length={}.
+2001	Unsupport data type conversion from {} to {}.
+2002	Try to input over length value for column, max length={}, actual length={}.
+
+#Cache manage
+3001	Exceed the cache size limit.
+3002	Failed to find the buffer cache with size = {}.

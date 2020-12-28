@@ -5,8 +5,7 @@ namespace storage {
   const uint64_t Configure::DEFAULT_CACHE_PAGE_SIZE = Configure::DEFULT_DISK_CLUSTER_SIZE * 4;
   const uint64_t Configure::DEFAULT_TOTAL_CACHE_SIZE = 8 * 1024 * 1024 * 1024LL;
   const uint64_t Configure::DEFAULT_CACHE_BLOCK_SIZE = 128 * 1024;
-  const uint64_t Configure::DEFAULT_MAX_MEM_DATAVALUE_SIZE = 1024 * 1024 * 1024;
-  const uint64_t Configure::DEFAULT_MAX_MEM_RECORD_SIZE = 1024 * 1024 * 1024;
+  const uint64_t Configure::DEFAULT_MAX_BUFFER_SIZE = 1024 * 1024 * 1024;
   const uint64_t Configure::DEFAULT_MAX_RECORD_LENGTH = 8000;
   const uint64_t Configure::DEFAULT_MAX_KEY_LENGTH = 2000;
   const uint64_t Configure::DEFAULT_MAX_COLUMN_LENGTH = 1024 * 1024 * 1024;
@@ -25,8 +24,7 @@ namespace storage {
     _szCachePage = DEFAULT_CACHE_PAGE_SIZE;
     _szTotalCache = DEFAULT_TOTAL_CACHE_SIZE;
     _szCacheBlock = DEFAULT_CACHE_BLOCK_SIZE;
-    _szMaxMemDataValue = DEFAULT_MAX_MEM_DATAVALUE_SIZE;
-    _szMaxMemRecord = DEFAULT_MAX_MEM_RECORD_SIZE;
+    _szMaxBuffer = DEFAULT_MAX_BUFFER_SIZE;
     _lenMaxRecord = DEFAULT_MAX_RECORD_LENGTH;
     _lenMaxKey = DEFAULT_MAX_KEY_LENGTH;
     _lenMaxColumn = DEFAULT_MAX_COLUMN_LENGTH;

@@ -16,17 +16,20 @@ namespace storage {
     ~CachePool();
   protected:
     static CachePool* GetInstance() {
-      return cachePool;
+      return _gCachePool;
     }
     static Buffer* AllotBuffer(uint32_t eleLen);
     static void RecycleBuffer(Buffer* buf);
+    static uint64_t GetMemCacheUsed() { return _gCachePool->_szMemUsed; }
+ 
   protected:
-    friend class BufferPool;
-    static CachePool* cachePool;
+    static CachePool* _gCachePool;
 
     uint64_t _szMemUsed;
     unordered_map<uint32_t, BufferPool*> _mapPool;
     queue<Buffer*> _queueFreeBuf;
     utils::SpinMutex _spinMutex;
+
+    friend class BufferPool;
   };
 }

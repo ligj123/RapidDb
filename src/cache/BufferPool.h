@@ -1,7 +1,7 @@
 #pragma once
 #include "../header.h"
-#include <set>
-#include <map>
+#include <queue>
+#include <unordered_map>
 #include "../utils/SpinMutex.h"
 #include "../config/Configure.h"
 
@@ -21,9 +21,9 @@ namespace storage {
     Byte* Apply();
     void Release(Byte* bys);
     void Init(uint32_t eleSize);
-    bool IsEmpty() { return _setFree.size() == _maxEle; }
-    bool IsFull() { return _setFree.size() == 0; }
-    operator Byte*() { return _pBuf; }
+    inline bool IsEmpty() { return _queueFree.size() == _maxEle; }
+    inline bool IsFull() { return _queueFree.size() == 0; }
+    inline Byte* GetBuf() { return _pBuf; }
     inline uint16_t CalcPos(Byte* sAddr)
     {
       return (uint16_t)(((uint64_t)sAddr & (Configure::GetCacheBlockSize() - 1)) / _eleSize);
@@ -33,7 +33,7 @@ namespace storage {
     Byte* _pBuf;
     uint32_t _eleSize;
     uint32_t _maxEle;
-    set<uint16_t> _setFree;
+    queue<uint16_t> _queueFree;
   };
 
   class BufferPool
@@ -44,8 +44,8 @@ namespace storage {
     Byte* Apply();
     void Release(Byte* bys);
   protected:
-    map<Byte*, Buffer*> _mapBuffer;
-    map<Byte*, Buffer*> _mapFreeBuffer;
+    unordered_map<Byte*, Buffer*> _mapBuffer;
+    unordered_map<Byte*, Buffer*> _mapFreeBuffer;
     uint32_t _eleSize;
     utils::SpinMutex _spinMutex;
   };
