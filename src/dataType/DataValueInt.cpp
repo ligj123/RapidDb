@@ -142,7 +142,7 @@ namespace storage {
 
 	uint32_t DataValueInt::GetMaxLength() const
 	{
-		return sizeof(int32_t) + (bKey_ ? 0 : 1);
+		return sizeof(int32_t);
 	}
 	
 	uint32_t DataValueInt::GetPersistenceLength() const

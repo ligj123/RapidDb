@@ -5,15 +5,15 @@
 #include "../dataType/DataValueFixChar.h"
 
 namespace storage {
-  ColumnInTable::ColumnInTable(const std::string& name, uint32_t pos, DataType dataType, const string& comments, bool bNullable,
+  TableColumn::TableColumn(const std::string& name, uint32_t pos, DataType dataType, const string& comments, bool bNullable,
     bool bIndex, uint32_t maxLen, uint32_t incStep, utils::Charsets charset, IDataValue* defaultVal) :
-    ColumnBase(name, pos, dataType), bNullable_(bNullable), bIndex_(bIndex), comments_(comments),
+    BaseColumn(name, pos, dataType), bNullable_(bNullable), bIndex_(bIndex), comments_(comments),
     maxLength_(maxLen), incStep_(incStep), charset_(charset), pDefaultVal_(defaultVal) {}
-  ColumnInTable::~ColumnInTable() {
+  TableColumn::~TableColumn() {
     delete pDefaultVal_;
   }
 
-  uint32_t ColumnInTable::ReadData(Byte* pBuf)
+  uint32_t TableColumn::ReadData(Byte* pBuf)
   {
     Byte* p = pBuf;
     *((uint32_t*)p) = (uint32_t)name_.size();
@@ -57,7 +57,7 @@ namespace storage {
     return (int32_t)(p - pBuf);
   }
 
-  uint32_t ColumnInTable::WriteData(Byte* pBuf)
+  uint32_t TableColumn::WriteData(Byte* pBuf)
   {
     Byte* p = pBuf;
 

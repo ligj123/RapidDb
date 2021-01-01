@@ -1,12 +1,34 @@
 #include "TableDesc.h"
 #include <regex>
 #include "../utils/ErrorMsg.h"
+#include "../dataType/DataValueLong.h"
+#include "../dataType/DataValueInt.h"
+#include "../dataType/DataValueShort.h"
+#include "../dataType/DataValueByte.h"
+#include "../dataType/DataValueChar.h"
+#include "../dataType/DataValueFixChar.h"
+#include "../dataType/DataValueFloat.h"
+#include "../dataType/DataValueUInt.h"
+#include "../dataType/DataValueULong.h"
+#include "../dataType/DataValueUShort.h"
+#include "../dataType/DataValueVarChar.h"
 
 namespace storage {
   using namespace utils;
 
-  const char* TableDesc::COLUMN_SPLITE_CHAR = ";";
+  const char* TableDesc::COLUMN_CONNECTOR_CHAR = "|";
   const char* TableDesc::NAME_PATTERN = "^[_a-zA-Z\\u4E00-\\u9FA5][_a-zA-Z0-9\\u4E00-\\u9FA5]*?$";
+	const char* TableDesc::PRIMARY_KEY = "PARMARYKEY";
+	
+	void TableDesc::IsValidName(string name)
+	{
+		static regex reg(NAME_PATTERN);
+		cmatch mt;
+		if (!regex_match(name.c_str(), mt, reg)) {
+			throw ErrorMsg(1001, { name });
+		}
+	}
+
   TableDesc::TableDesc(string name, string desc) {
     IsValidName(name);
 
@@ -14,14 +36,14 @@ namespace storage {
     _desc = desc;
   }
 
-  void TableDesc::IsValidName(string name)
-  {
-    static regex reg(NAME_PATTERN);
-    cmatch mt;
-    if (!regex_match(name.c_str(), mt, reg)) {
-      throw ErrorMsg(1001, { name });
-    }
-  }
+	TableDesc::TableDesc() {}
+
+	TableDesc::~TableDesc() {
+		for (auto iter = _vctColumn.begin(); iter != _vctColumn.end(); iter++) {
+			delete* iter;
+		}
+	}
+ 
 
   IndexType TableDesc::GetIndexType(string indexName) const
   {
@@ -32,82 +54,83 @@ namespace storage {
       return iter->second;
   }
 
-  const ColumnInTable* TableDesc::GetColumn(string fieldName) const {
+  const TableColumn* TableDesc::GetColumn(string fieldName) const {
     auto iter = _mapColumnPos.find(fieldName);
     if (iter == _mapColumnPos.end()) {
       return nullptr;
     }
     else
     {
-      return _arrColumn[iter->second];
+      return _vctColumn[iter->second];
     }
   }
 
-  const ColumnInTable* TableDesc::GetColumn(int pos) {
-    if (pos < 0 || pos > _arrColumn.size()) {
+  const TableColumn* TableDesc::GetColumn(int pos) {
+    if (pos < 0 || pos > _vctColumn.size()) {
       return nullptr;
     }
     else {
-      return _arrColumn[pos];
+      return _vctColumn[pos];
     }
   }
 
-	//TableDesc TableDesc::AddFixLenColumn(string columnName, DataType dataType, bool nullable, string comment, any valDefault)
-	//{
-	//	IsValidName(columnName);
+	TableDesc& TableDesc::AddFixLenColumn(string columnName, DataType dataType,
+			bool nullable, string comment, any valDefault)
+	{
+		IsValidName(columnName);
 
-	//	if (_mapColumnPos.find(columnName) != _mapColumnPos.end())
-	//	{
-	//		throw ErrorMsg(1003, { columnName });
-	//	}
+		if (_mapColumnPos.find(columnName) != _mapColumnPos.end())
+		{
+			throw ErrorMsg(1003, { columnName });
+		}
 
-	//	if (!IDataValue::IsFixLength(dataType)) {
-	//		throw ErrorMsg(1004, { columnName });
-	//	}
+		if (!IDataValue::IsFixLength(dataType)) {
+			throw ErrorMsg(1004, { columnName });
+		}
 
-	//	IDataValue* dvDefault = nullptr;
-	//	if (valDefault.has_value())
-	//	{
-	//		bool b = true;
-	//		switch (dataType) {
-	//		case DataType::LONG:
-	//			valDefault.
-	//			if (!(valDefault instanceof Long) && !(valDefault instanceof Integer)) b = false;
-	//			break;
-	//		case BOOLEAN:
-	//			if (!(valDefault instanceof Boolean)) b = false;
-	//			break;
-	//		case DATE:
-	//			if (!(valDefault instanceof Date) && !(valDefault instanceof Long)) b = false;
-	//			break;
-	//		case DOUBLE:
-	//			if (!(valDefault instanceof Double) && !(valDefault instanceof Float) && !(valDefault instanceof Integer)) b = false;
-	//			break;
-	//		case FLOAT:
-	//			if (!(valDefault instanceof Float) && !(valDefault instanceof Double) && !(valDefault instanceof Integer)) b = false;
-	//			break;
-	//		case INT:
-	//			if (!(valDefault instanceof Integer)) b = false;
-	//			break;
-	//		case SHORT:
-	//			if (!(valDefault instanceof Short) && !(valDefault instanceof Integer)) b = false;
-	//			break;
-	//		default:
-	//			b = false;
-	//			break;
-	//		}
+		//IDataValue* dvDefault = nullptr;
+		//if (valDefault.has_value())
+		//{
+		//	bool b = true;
+		//	switch (dataType) {
+		//	case DataType::LONG:
+		//		dvDefault = new DataValueLong(valDefault
+		//		if (!(valDefault instanceof Long) && !(valDefault instanceof Integer)) b = false;
+		//		break;
+		//	case BOOLEAN:
+		//		if (!(valDefault instanceof Boolean)) b = false;
+		//		break;
+		//	case DATE:
+		//		if (!(valDefault instanceof Date) && !(valDefault instanceof Long)) b = false;
+		//		break;
+		//	case DOUBLE:
+		//		if (!(valDefault instanceof Double) && !(valDefault instanceof Float) && !(valDefault instanceof Integer)) b = false;
+		//		break;
+		//	case FLOAT:
+		//		if (!(valDefault instanceof Float) && !(valDefault instanceof Double) && !(valDefault instanceof Integer)) b = false;
+		//		break;
+		//	case INT:
+		//		if (!(valDefault instanceof Integer)) b = false;
+		//		break;
+		//	case SHORT:
+		//		if (!(valDefault instanceof Short) && !(valDefault instanceof Integer)) b = false;
+		//		break;
+		//	default:
+		//		b = false;
+		//		break;
+		//	}
 
-	//		if (!b) {
-	//			throw new InvalidKeyColumnStorageException(
-	//				"Invalid default value data type, column name=" + columnName);
-	//		}
-	//	}
+		//	if (!b) {
+		//		throw new InvalidKeyColumnStorageException(
+		//			"Invalid default value data type, column name=" + columnName);
+		//	}
+		//}
 
-	//	mapColumnPos.put(columnName, lstColumn.size());
-	//	lstColumn.add(new Column(columnName, lstColumn.size(), nullable, dataType, -1, CompressionType.COMPRESSION_NONE,
-	//		comment, 0, StandardCharsets.UTF_8, verifyDefaultValue(dataType, valDefault)));
-	//	return this;
-	//}
+		//mapColumnPos.put(columnName, lstColumn.size());
+		//lstColumn.add(new Column(columnName, lstColumn.size(), nullable, dataType, -1, CompressionType.COMPRESSION_NONE,
+		//	comment, 0, StandardCharsets.UTF_8, verifyDefaultValue(dataType, valDefault)));
+		return *this;
+	}
 
 	//public TableDesc addBlobColumn(String columnName, int maxLength, boolean nullable,
 	//	String comment, byte[] valDefault) throws InvalidKeyColumnStorageException {

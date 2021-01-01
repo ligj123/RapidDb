@@ -144,7 +144,7 @@ namespace storage {
 
 	uint32_t DataValueFloat::GetMaxLength() const
 	{
-		return sizeof(float) + (bKey_ ? 0 : 1);
+		return sizeof(float);
 	}
 	
 	uint32_t DataValueFloat::GetPersistenceLength() const

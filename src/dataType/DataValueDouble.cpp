@@ -144,7 +144,7 @@ namespace storage {
 
 	uint32_t DataValueDouble::GetMaxLength() const
 	{
-		return sizeof(double) + (bKey_ ? 0 : 1);
+		return sizeof(double);
 	}
 	
 	uint32_t DataValueDouble::GetPersistenceLength() const

@@ -9,10 +9,10 @@
 namespace storage {
   class IDataValue;
   using namespace std;
-  class ColumnBase {
+  class BaseColumn {
   public:
-    ColumnBase(){ }
-    ColumnBase(std::string name, uint32_t pos, DataType dataType) :
+    BaseColumn(){ }
+    BaseColumn(std::string name, uint32_t pos, DataType dataType) :
       name_(name), position_(pos), dataType_(dataType) {}
     const string& GetName() const { return name_; }
     uint32_t GetPosition() { return position_; }
@@ -20,20 +20,18 @@ namespace storage {
 
     virtual uint32_t ReadData(char* pBuf) = 0;
     virtual uint32_t WriteData(char* pBuf) = 0;
-    virtual bool IsNullable() const = 0;
-    virtual uint32_t GetMaxLength() const = 0;
   protected:
     string name_;
     uint32_t position_;
     DataType dataType_;
   };
 
-  class ColumnInTable :public ColumnBase {
+  class TableColumn :public BaseColumn {
   public:
-    ColumnInTable() {};
-    ColumnInTable(const std::string& name, uint32_t pos, DataType dataType, const string& comments, bool bNullable,
+    TableColumn() {};
+    TableColumn(const std::string& name, uint32_t pos, DataType dataType, const string& comments, bool bNullable,
       bool bIndex, uint32_t maxLen, uint32_t incStep, utils::Charsets charset, IDataValue* defaultVal);
-    ~ColumnInTable();
+    ~TableColumn();
   public:
     virtual uint32_t ReadData(Byte* pBuf);
     virtual uint32_t WriteData(Byte* pBuf);

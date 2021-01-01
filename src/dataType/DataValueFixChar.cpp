@@ -14,6 +14,7 @@ namespace storage {
     if (soleLength_ >= maxLength_)
     {
       delete[] val;
+      soleValue_ = nullptr;
       throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
     }
   }
@@ -247,29 +248,30 @@ namespace storage {
     return "";
   }
 
- /* DataValueFixChar::operator char* () const
-  {
-    switch (valType_)
-    {
-    case ValueType::SOLE_VALUE:
-      return soleValue_;
-    case ValueType::BYTES_VALUE:
-      return (char*)byArray_;
-    case ValueType::NULL_VALUE:
-    default:
-      return nullptr;
-    }
-  }*/
-
   DataValueFixChar& DataValueFixChar::operator=(char* val)
   {
-    if (strlen(val) >= maxLength_ - 1)
+    uint32_t len = strlen(val) + 1;
+    if (len >= maxLength_)
       throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
     if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
 
     valType_ = ValueType::SOLE_VALUE;
     soleValue_ = val;
-    soleLength_ = (uint32_t)strlen(val) + 1;
+    soleLength_ = len;
+    return *this;
+  }
+
+  DataValueFixChar& DataValueFixChar::operator=(const char* val)
+  {
+    uint32_t len = strlen(val) + 1;
+    if (len >= maxLength_ - 1)
+      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+    if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
+
+    soleLength_ = len;
+    valType_ = ValueType::SOLE_VALUE;
+    soleValue_ = new char[len];
+    memcpy(soleValue_, val, len);
     return *this;
   }
 

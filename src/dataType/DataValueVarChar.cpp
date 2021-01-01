@@ -11,9 +11,10 @@ namespace storage {
     : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey), soleValue_(val),
       maxLength_(maxLength), soleLength_((uint32_t)strlen(val) + 1)
   {
-    if (soleLength_ >= maxLength_ - 1)
+    if (soleLength_ >= maxLength_)
     {
       delete[] val;
+      soleValue_ = nullptr;
       throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
     }
   }
@@ -22,7 +23,7 @@ namespace storage {
     : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey),
     maxLength_(maxLength), soleLength_((uint32_t)strlen(val) + 1)
   {
-    if (soleLength_ >= maxLength_ - 1)
+    if (soleLength_ >= maxLength_)
     {
       throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
     }
@@ -37,7 +38,7 @@ namespace storage {
   { }
 
   DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey, std::any val)
-    : IDataValue(DataType::FIXCHAR, ValueType::SOLE_VALUE, bKey), maxLength_(maxLength)
+    : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey), maxLength_(maxLength)
   {
     string str;
     if (val.type() == typeid(int64_t)) str = move(to_string(std::any_cast<int64_t>(val)));
@@ -114,8 +115,7 @@ namespace storage {
       else if (valType_ == ValueType::SOLE_VALUE)
       {
         std::memcpy(buf, soleValue_, soleLength_);
-        buf[soleLength_] = '\0';
-        return (uint32_t)soleLength_;
+        return soleLength_;
       }
       else
       {
@@ -196,10 +196,7 @@ namespace storage {
   {
     if (bKey_)
     {
-      if (valType_ == ValueType::NULL_VALUE)
-        return 0;
-      else
-        return soleLength_;
+      return soleLength_;
     }
     else
     {
@@ -257,34 +254,37 @@ namespace storage {
     return "";
   }
 
-  //DataValueVarChar::operator char* () const
-  //{
-  //  switch (valType_)
-  //  {
-  //  case ValueType::SOLE_VALUE:
-  //    return soleValue_;
-  //  case ValueType::BYTES_VALUE:
-  //    return (char*)byArray_;
-  //  case ValueType::NULL_VALUE:
-  //  default:
-  //    return nullptr;
-  //  }
-  //}
-
   DataValueVarChar& DataValueVarChar::operator=(char* val)
   {
-    if (strlen(val) >= maxLength_ - 1)
+    uint32_t len = strlen(val) + 1;
+    if (len >= maxLength_)
       throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
     if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
 
     valType_ = ValueType::SOLE_VALUE;
     soleValue_ = val;
-    soleLength_ = (uint32_t)strlen(val) + 1;
+    soleLength_ = len;
+    return *this;
+  }
+
+  DataValueVarChar& DataValueVarChar::operator=(const char* val)
+  {
+    uint32_t len = strlen(val) + 1;
+    if (len >= maxLength_ - 1)
+      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+    if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
+
+    soleLength_ = len;
+    valType_ = ValueType::SOLE_VALUE;
+    soleValue_ = new char[len];
+    memcpy(soleValue_, val, len);
     return *this;
   }
 
   DataValueVarChar& DataValueVarChar::operator=(const DataValueVarChar& src)
   {
+    if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
+
     dataType_ = src.dataType_;
     valType_ = src.valType_;
     bKey_ = src.bKey_;

@@ -12,12 +12,15 @@ namespace storage {
   class TableDesc
   {
   public:
-    static const char* COLUMN_SPLITE_CHAR;
+    static const char* COLUMN_CONNECTOR_CHAR;
     static const char* NAME_PATTERN;
-    inline static void IsValidName(string name);
+    static const char* PRIMARY_KEY;
+    static void IsValidName(string name);
+
   public:
     TableDesc(string tableName, string description);
-    TableDesc() {}
+    TableDesc();
+    ~TableDesc();
     const string GetTableName() const{ return _name; }
     void SetTableName(string name) {
       IsValidName(name);
@@ -25,18 +28,19 @@ namespace storage {
     }
 
 		const string& GetDescription() const {	return _desc;	}
-		const string GetPrimaryKey() const { return _primaryKey; }
-		const vector<ColumnInTable*>& GetPrimaryKeyColumns() const { return _mapIndexColumn.at(_primaryKey);	}
-		const unordered_map<string, vector<ColumnInTable*>>& GetMapIndexColumns() const {	return _mapIndexColumn;	}
+		const string GetPrimaryKey() const { return PRIMARY_KEY; }
+		const vector<TableColumn*>& GetPrimaryKeyColumns() const { return _mapIndexColumn.at(PRIMARY_KEY);	}
+		const unordered_map<string, vector<TableColumn*>>& GetMapIndexColumns() const {	return _mapIndexColumn;	}
     IndexType GetIndexType(string indexName) const;
 		const unordered_map<string, IndexType>& GetMapIndexType() const { return _mapIndexType; }
-		const vector<ColumnInTable*>& GetColumnArray() const {	return _arrColumn; }
+		const vector<TableColumn*>& GetColumnArray() const {	return _vctColumn; }
 		const unordered_map<string, string>& GetMapIndexName() const {	return _mapIndexName;	}
-		const ColumnInTable* GetColumn(string fieldName) const;
-    const ColumnInTable* GetColumn(int pos);
+		const TableColumn* GetColumn(string fieldName) const;
+    const TableColumn* GetColumn(int pos);
     unordered_map<string, int> GetMapColumnPos() { return _mapColumnPos; }
-    unordered_map<string, string> GetIndexFirstFieldMap() { return _mapIndexFirstField; }
-		TableDesc AddFixLenColumn(string columnName, DataType dataType, bool nullable, string comment, any valDefault);
+    unordered_map<uint16_t, string> GetIndexFirstFieldMap() { return _mapIndexFirstField; }
+
+		TableDesc& AddFixLenColumn(string columnName, DataType dataType, bool nullable, string comment, any valDefault);
 			
 
 		/*TableDesc addBlobColumn(String columnName, int maxLength, boolean nullable,
@@ -52,17 +56,25 @@ namespace storage {
     TableDesc addSecondaryKey(String name, IndexType indexType, String... fieldNames);*/
 
   protected:
+    /**Table name*/
     string _name;
+    /**Table describer*/
     string _desc;
-    vector<ColumnInTable*> _arrColumn;
+    /**Include all columns in this table, they will order by actual position in the table.*/
+    vector<TableColumn*> _vctColumn;
     /** The map for column name and their position in column list */
     unordered_map<string, int> _mapColumnPos;
-    string _primaryKey;
+    /**The first parameter is the unique name for a index and the primary key's name is fixed, must be PRIMARY_KEY.
+    The second parameter is the column(s)' position to constitute the index.*/
     unordered_map<string, string> _mapIndexName;
+    /**The first parameter, the unique name for a index;
+    The second parameter, the index type: PRIMARY, UNIQUE, NON_UNIQUE*/
     unordered_map<string, IndexType> _mapIndexType;
-    /** The map for column's names connected by semicolon for the index and their columns */
-    unordered_map<string, vector<ColumnInTable*>> _mapIndexColumn;
-    /**The first fields for composite index <=> the composite index that include this field */
-    unordered_map<string, string> _mapIndexFirstField;
+    /** The first parameter, the unique name for a index;
+    The second parameter, the columns to constitute it.*/
+    unordered_map<string, vector<TableColumn*>> _mapIndexColumn;
+    /**The first fields position to constitute the index;
+    The second parameter,  the unique name for a index;*/
+    unordered_map<uint16_t, string> _mapIndexFirstField;
   };
 }

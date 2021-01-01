@@ -29,8 +29,8 @@ namespace storage {
      void SetDefaultValue() override;
 
      operator string() const;
-    // operator char*() const;
      DataValueFixChar& operator=(char* val);
+     DataValueFixChar& operator=(const char* val);
      DataValueFixChar& operator=(const DataValueFixChar& src);
 
      bool operator > (const DataValueFixChar& dv) const;

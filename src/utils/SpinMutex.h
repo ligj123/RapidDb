@@ -24,63 +24,80 @@ namespace utils {
       return !_flag.load(std::memory_order_relaxed) &&
         !_flag.exchange(true, std::memory_order_acquire);
     }
+
     inline void unlock() noexcept {
       _flag.store(false, std::memory_order_release);
     }
 
-  private:
+  protected:
     std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
   };
 
   class SharedSpinMutex {
-  protected:
-    std::atomic<bool> _readFlag{ false };
-    std::atomic<bool> _writeFlag{ false };
-    volatile int32_t _readCount = 0;
-    hash<std::thread::id> thread_hasher;
   public:
     SharedSpinMutex() = default;
     SharedSpinMutex(const SharedSpinMutex&) = delete;
     SharedSpinMutex& operator= (const SharedSpinMutex&) = delete;
-    void lock() {
+
+    void lock() noexcept {
       while (_writeFlag.exchange(true, std::memory_order_acquire)) {
         std::this_thread::yield();
       }
 
-      while (_readCount != 0) {
+      while (_readCount.load(std::memory_order_relaxed) > 0) {
         std::this_thread::yield();
       }
     }
 
-    void unlock() {
+    bool try_lock() noexcept {
+      if (_readCount.load(std::memory_order_relaxed) == 0 &&
+        !_writeFlag.exchange(true, std::memory_order_acquire)) {
+        if (_readCount.load(std::memory_order_relaxed) > 0) {
+          _writeFlag.store(false, std::memory_order_relaxed);
+          return false;
+        }
+
+        return true;
+      }
+
+      return false;
+    }
+
+    void unlock() noexcept {
       _writeFlag.store(false, std::memory_order_release);
     }
 
-    void lock_shared()
-    {
-      size_t currId = thread_hasher(this_thread::get_id());
-      while (_readFlag.exchange(true, std::memory_order_relaxed))
-      {
-        std::this_thread::yield();
-      }
+    void lock_shared() noexcept {
       while (true)
       {
-        if (!_writeFlag.load(memory_order_relaxed)) break;
+        _readCount.fetch_add(1, std::memory_order_acquire);
+        if (!_writeFlag.load(std::memory_order_relaxed)) break;
+
+        _readCount.fetch_sub(1, std::memory_order_relaxed);
         std::this_thread::yield();
       }
-
-      _readCount++;
-      _readFlag.store(false, std::memory_order_relaxed);
     }
 
-    void unlock_shared() {
-      while (_readFlag.exchange(true, std::memory_order_relaxed))
-      {
-        std::this_thread::yield();
+    bool try_lock_shared() noexcept {
+      if (!_writeFlag.load(std::memory_order_relaxed)) {
+        _readCount.fetch_add(1, std::memory_order_acquire);
+        if (_writeFlag.load(std::memory_order_relaxed)) {
+          _readCount.fetch_sub(1, std::memory_order_relaxed);
+          return false;
+        }
+
+        return true;
       }
-      _readCount--;
-      _readFlag.store(false, std::memory_order_relaxed);
+
+      return false;
     }
+
+    void unlock_shared() noexcept {
+      _readCount.fetch_sub(1, std::memory_order_relaxed);
+    }
+  protected:
+    std::atomic<uint32_t> _readCount{ 0 };
+    std::atomic<bool> _writeFlag{ false };
   };
 
   class RecursiveSpinMutex {
@@ -88,13 +105,14 @@ namespace utils {
     std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
     size_t _owner = 0;
     int32_t _rcvCount = 0;
-    hash<std::thread::id> thread_hasher;
+    std::hash<std::thread::id> thread_hasher;
   public:
     RecursiveSpinMutex() = default;
     RecursiveSpinMutex(const RecursiveSpinMutex&) = delete;
     RecursiveSpinMutex& operator= (const RecursiveSpinMutex&) = delete;
-    inline void lock() {
-      size_t currId = thread_hasher(this_thread::get_id());
+
+    inline void lock() noexcept {
+      size_t currId = thread_hasher(std::this_thread::get_id());
       if (_owner == currId)
       {
         _rcvCount++;
@@ -122,7 +140,7 @@ namespace utils {
     }
 
     bool try_lock() noexcept {
-      size_t currId = thread_hasher(this_thread::get_id());
+      size_t currId = thread_hasher(std::this_thread::get_id());
       if (_owner == currId)
       {
         _rcvCount++;
@@ -131,6 +149,7 @@ namespace utils {
 
       if (!_flag.load(std::memory_order_relaxed) && !_flag.exchange(true, std::memory_order_acquire))
       {
+        _owner = currId;
         _rcvCount++;
         return true;
       }
@@ -138,8 +157,8 @@ namespace utils {
       return false;
     }
 
-    inline void unlock() {
-      assert(_owner == thread_hasher(this_thread::get_id()));
+    inline void unlock() noexcept {
+      assert(_owner == thread_hasher(std::this_thread::get_id()));
       _rcvCount--;
       if (_rcvCount == 0)
       {
