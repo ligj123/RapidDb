@@ -1,6 +1,7 @@
 #include "DataValueVarChar.h"
 #include <stdexcept>
 #include "../utils/ErrorMsg.h"
+#include "../config/ErrorID.h"
 
 namespace storage {
   DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey)
@@ -15,7 +16,7 @@ namespace storage {
     {
       delete[] val;
       soleValue_ = nullptr;
-      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
     }
   }
 
@@ -25,7 +26,7 @@ namespace storage {
   {
     if (soleLength_ >= maxLength_)
     {
-      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
     }
      
     soleValue_ = new char[soleLength_];
@@ -51,11 +52,11 @@ namespace storage {
     else if (val.type() == typeid(int8_t)) str = move(to_string(std::any_cast<int8_t>(val)));
     else if (val.type() == typeid(uint8_t)) str = move(to_string(std::any_cast<uint8_t>(val)));
     else if (val.type() == typeid(std::string)) str = std::any_cast<std::string>(val);
-    else throw utils::ErrorMsg(2001, { val.type().name(), "DataValueVarChar" });
+    else throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT, { val.type().name(), "DataValueVarChar" });
 
     soleLength_ = (uint32_t)str.size() + 1;
     if (soleLength_ >= maxLength_)
-      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
 
     soleValue_ = new char[soleLength_];
     memcpy(soleValue_, str.c_str(), soleLength_);
@@ -256,9 +257,9 @@ namespace storage {
 
   DataValueVarChar& DataValueVarChar::operator=(char* val)
   {
-    uint32_t len = strlen(val) + 1;
+    uint32_t len = (uint32_t)strlen(val) + 1;
     if (len >= maxLength_)
-      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
     if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
 
     valType_ = ValueType::SOLE_VALUE;
@@ -269,9 +270,9 @@ namespace storage {
 
   DataValueVarChar& DataValueVarChar::operator=(const char* val)
   {
-    uint32_t len = strlen(val) + 1;
+    uint32_t len = (uint32_t)strlen(val) + 1;
     if (len >= maxLength_ - 1)
-      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
     if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
 
     soleLength_ = len;

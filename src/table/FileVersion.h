@@ -2,6 +2,7 @@
 #include <string>
 #include <regex>
 #include "../utils/ErrorMsg.h"
+#include "../config/ErrorID.h"
 
 namespace storage {
   using namespace utils;
@@ -21,7 +22,7 @@ namespace storage {
       regex reg("([0-9]+)\\.([0-9]+)\\.([0-9]+)");
       cmatch mt;
       if (!regex_match(text.c_str(), mt, reg)) {
-        throw ErrorMsg(1001, { text });
+        throw ErrorMsg(TB_INVALID_FILE_VERSION, { text });
       }
 
       _majorVer = std::stoi(mt[1]);

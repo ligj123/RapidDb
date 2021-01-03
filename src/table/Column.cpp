@@ -6,14 +6,14 @@
 
 namespace storage {
   TableColumn::TableColumn(const std::string& name, uint32_t pos, DataType dataType, const string& comments, bool bNullable,
-    bool bIndex, uint32_t maxLen, uint32_t incStep, utils::Charsets charset, IDataValue* defaultVal) :
-    BaseColumn(name, pos, dataType), bNullable_(bNullable), bIndex_(bIndex), comments_(comments),
+    uint32_t maxLen, uint32_t incStep, utils::Charsets charset, IDataValue* defaultVal) :
+    BaseColumn(name, pos, dataType), bNullable_(bNullable), comments_(comments),
     maxLength_(maxLen), incStep_(incStep), charset_(charset), pDefaultVal_(defaultVal) {}
   TableColumn::~TableColumn() {
     delete pDefaultVal_;
   }
 
-  uint32_t TableColumn::ReadData(Byte* pBuf)
+  uint32_t TableColumn::ReadData(Byte* pBuf) 
   {
     Byte* p = pBuf;
     *((uint32_t*)p) = (uint32_t)name_.size();
@@ -35,9 +35,6 @@ namespace storage {
 
     *((uint32_t*)p) = incStep_;
     p += sizeof(uint32_t);
-
-    *p = (bIndex_ ? 1 : 0);
-    p++;
 
     *((uint32_t*)p) = (uint32_t)charset_;
     p += sizeof(uint32_t);
@@ -80,9 +77,6 @@ namespace storage {
 
     incStep_ = *((uint32_t*)p);
     p += sizeof(uint32_t);
-
-    bIndex_ = (*p != 0);
-    p++;
 
     charset_ = (utils::Charsets)*((uint32_t*)p);
     p += sizeof(uint32_t);

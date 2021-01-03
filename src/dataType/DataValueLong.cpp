@@ -3,6 +3,7 @@
 #include <string>
 #include "../utils/ErrorMsg.h"
 #include "../utils/BytesConvert.h"
+#include "../config/ErrorID.h"
 
 namespace storage {
 	DataValueLong::DataValueLong(bool bKey)
@@ -32,7 +33,7 @@ namespace storage {
 		else if (val.type() == typeid(int8_t)) soleValue_ = std::any_cast<int8_t>(val);
 		else if (val.type() == typeid(uint8_t)) soleValue_ = std::any_cast<uint8_t>(val);
 		else if (val.type() == typeid(std::string)) soleValue_ = std::stoll(std::any_cast<std::string>(val));
-		else throw utils::ErrorMsg(2001, { val.type().name(), "DataValueLong" });
+		else throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT, { val.type().name(), "DataValueLong" });
 	}
 
 	DataValueLong::DataValueLong(const DataValueLong& src)

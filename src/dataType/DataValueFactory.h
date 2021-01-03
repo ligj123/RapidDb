@@ -19,6 +19,7 @@
 #include "DataValueFixChar.h"
 #include "DataValueVarChar.h"
 #include "DataValueBlob.h"
+#include "../config/ErrorID.h"
 
 namespace storage {
   using namespace std;
@@ -75,7 +76,11 @@ namespace storage {
       case DataType::BLOB:
         pDv = new DataValueBlob(maxLen, bKey);
         break;
+      default:
+        throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)type)});
       }
+
+      return pDv;
     }
   };
 }

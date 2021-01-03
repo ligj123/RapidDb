@@ -1,5 +1,7 @@
 #pragma once
 #include <ostream>
+#include <string>
+#include <sstream>
 #include "../header.h"
 
 namespace storage {
@@ -39,7 +41,7 @@ namespace storage {
 	};
 
 	static const int DEFAULT_MAX_LEN = 1000;
-	
+
 	inline std::ostream& operator<< (std::ostream& os, const DataType& dt)
 	{
 		switch (dt)
@@ -91,6 +93,9 @@ namespace storage {
 		case DataType::BOOL:
 			os << "BOOL(" << (int)DataType::BOOL << ")";
 			break;
+		default:
+			os << "UNKNOWN type(" << (int)dt << ")";
+			break;
 		}
 		return os;
 	}
@@ -112,4 +117,12 @@ namespace storage {
 
 		return os;
 	}
+
+	inline std::string DateTypeToString(DataType dt)
+	{
+		std::stringstream ss;
+		ss << dt;
+		return ss.str();
+	}
+
 }

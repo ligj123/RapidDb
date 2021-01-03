@@ -37,24 +37,20 @@ namespace storage {
 		const unordered_map<string, string>& GetMapIndexName() const {	return _mapIndexName;	}
 		const TableColumn* GetColumn(string fieldName) const;
     const TableColumn* GetColumn(int pos);
-    unordered_map<string, int> GetMapColumnPos() { return _mapColumnPos; }
-    unordered_map<uint16_t, string> GetIndexFirstFieldMap() { return _mapIndexFirstField; }
-
-		TableDesc& AddFixLenColumn(string columnName, DataType dataType, bool nullable, string comment, any valDefault);
+    unordered_map<string, size_t> GetMapColumnPos() { return _mapColumnPos; }
+    unordered_map<string, string> GetIndexFirstFieldMap() { return _mapIndexFirstField; }
 			
+    void AddColumn(string& columnName, DataType dataType, bool nullable, uint32_t maxLen,
+      string& comment, utils::Charsets charset, any& valDefault);
+		void SetPrimaryKey(vector<string> priCols);
+    void SetPrimaryKey(string priCol, uint32_t incStep);
 
-		/*TableDesc addBlobColumn(String columnName, int maxLength, boolean nullable,
-			String comment, byte[] valDefault);
-		TableDesc addAutoPrimaryColumn(String columnName, DataType dataType, int step, String comment);
-			
+    void AddSecondaryKey(string indexName, IndexType indexType, vector<string> colNames);
 
-		TableDesc addCompressColumn(String columnName, DataType dataType, int maxLength, CompressionType cType,
-			boolean nullable, String comment);
-
-		TableDesc setPrimaryKey(String... priFields);
-
-    TableDesc addSecondaryKey(String name, IndexType indexType, String... fieldNames);*/
-
+  protected:
+    inline bool IsExistedColumn(string name) {
+      return _mapColumnPos.find(name) != _mapColumnPos.end();
+    }
   protected:
     /**Table name*/
     string _name;
@@ -63,9 +59,9 @@ namespace storage {
     /**Include all columns in this table, they will order by actual position in the table.*/
     vector<TableColumn*> _vctColumn;
     /** The map for column name and their position in column list */
-    unordered_map<string, int> _mapColumnPos;
+    unordered_map<string, size_t> _mapColumnPos;
     /**The first parameter is the unique name for a index and the primary key's name is fixed, must be PRIMARY_KEY.
-    The second parameter is the column(s)' position to constitute the index.*/
+    The second parameter is the column(s)' name to constitute the index.*/
     unordered_map<string, string> _mapIndexName;
     /**The first parameter, the unique name for a index;
     The second parameter, the index type: PRIMARY, UNIQUE, NON_UNIQUE*/
@@ -73,8 +69,8 @@ namespace storage {
     /** The first parameter, the unique name for a index;
     The second parameter, the columns to constitute it.*/
     unordered_map<string, vector<TableColumn*>> _mapIndexColumn;
-    /**The first fields position to constitute the index;
+    /**The first column name to constitute the index;
     The second parameter,  the unique name for a index;*/
-    unordered_map<uint16_t, string> _mapIndexFirstField;
+    unordered_map<string, string> _mapIndexFirstField;
   };
 }

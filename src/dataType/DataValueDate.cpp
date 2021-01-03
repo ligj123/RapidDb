@@ -3,6 +3,7 @@
 #include <string>
 #include "../utils/ErrorMsg.h"
 #include "../utils/BytesConvert.h"
+#include "../config/ErrorID.h"
 
 namespace storage {
 	DataValueDate::DataValueDate(bool bKey)
@@ -25,7 +26,7 @@ namespace storage {
 	{
 		if (val.type() == typeid(uint64_t)) soleValue_ = (uint64_t)std::any_cast<uint64_t>(val);
 		else if (val.type() == typeid(int64_t)) soleValue_ = (uint64_t)std::any_cast<int64_t>(val);
-		else throw utils::ErrorMsg(2001, { val.type().name(), "DataValueDate" });
+		else throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT, { val.type().name(), "DataValueDate" });
 	}
 
 	DataValueDate::DataValueDate(const DataValueDate& src)

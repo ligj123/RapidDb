@@ -3,6 +3,7 @@
 #include <string>
 #include "../utils/ErrorMsg.h"
 #include "../utils/BytesConvert.h"
+#include "../config/ErrorID.h"
 #include <algorithm>
 
 namespace storage {
@@ -40,7 +41,7 @@ namespace storage {
 			else if (str.find("false")) soleValue_ = false;
 			else soleValue_ = (bool)std::stoi(str);
 		}
-		else throw utils::ErrorMsg(2001, { val.type().name(), "DataValueBool" });
+		else throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT, { val.type().name(), "DataValueBool" });
 	}
 
 	DataValueBool::DataValueBool(const DataValueBool& src)

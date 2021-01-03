@@ -1,6 +1,7 @@
 #include "DataValueBlob.h"
 #include <stdexcept>
 #include "../utils/ErrorMsg.h"
+#include "../config/ErrorID.h"
 
 namespace storage {
   DataValueBlob::DataValueBlob(uint32_t maxLength, bool bKey)
@@ -14,7 +15,7 @@ namespace storage {
     if (soleLength_ >= maxLength_)
     {
       delete[] val;
-      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
     }
   }
 
@@ -24,7 +25,7 @@ namespace storage {
   {
     if (soleLength_ >= maxLength_)
     {
-      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
     }
      
     soleValue_ = new char[soleLength_];
@@ -39,7 +40,7 @@ namespace storage {
   DataValueBlob::DataValueBlob(uint32_t maxLength, bool bKey, std::any val)
     : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey), maxLength_(maxLength)
   {
-    throw utils::ErrorMsg(2001, { val.type().name(), "DataValueBlob" });
+    throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT, { val.type().name(), "DataValueBlob" });
   }
 
   DataValueBlob::DataValueBlob(const DataValueBlob& src) : IDataValue(src)
@@ -239,7 +240,7 @@ namespace storage {
   {
     uint32_t len = *(uint32_t*)val;
     if (len >= maxLength_)
-      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
     if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
 
     soleLength_ = len;
@@ -252,7 +253,7 @@ namespace storage {
   void DataValueBlob::Put(uint32_t len, char* val)
   {
     if (len >= maxLength_)
-      throw utils::ErrorMsg(2002, { to_string(maxLength_), to_string(soleLength_) });
+      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
     if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
 
     soleLength_ = len;

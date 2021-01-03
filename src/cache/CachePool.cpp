@@ -1,6 +1,7 @@
 #include "CachePool.h"
 #include "../utils/ErrorMsg.h"
 #include "../config/Configure.h"
+#include "../config/ErrorID.h"
 #include <string>
 
 namespace storage {
@@ -34,7 +35,7 @@ namespace storage {
     auto iter = pool->_mapPool.find(eleSize);
     if (iter == pool->_mapPool.end())
     {
-      throw utils::ErrorMsg(3002, { std::to_string(eleSize) });
+      throw utils::ErrorMsg(CM_FAILED_FIND_SIZE, { std::to_string(eleSize) });
     }
 
     iter->second->Release(pBuf);
@@ -55,7 +56,7 @@ namespace storage {
 
     if (pool->_szMemUsed >= Configure::GetTotalCacheSize())
     {
-      throw utils::ErrorMsg(3001, {});
+      throw utils::ErrorMsg(CM_EXCEED_LIMIT, {});
     }
 
     pool->_szMemUsed += Configure::GetCacheBlockSize();
