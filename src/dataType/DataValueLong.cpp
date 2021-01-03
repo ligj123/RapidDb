@@ -66,6 +66,45 @@ namespace storage {
 		}
 	}
 
+	uint32_t DataValueLong::WriteData(Byte* buf, bool key)
+	{
+		assert(valType_ != ValueType::BYTES_VALUE);
+		if (key)
+		{
+			if (valType_ == ValueType::NULL_VALUE)
+			{
+				std::memset(buf, 0, sizeof(int64_t));
+			}
+			else if (valType_ == ValueType::SOLE_VALUE)
+			{
+				utils::Int64ToBytes(soleValue_, buf, true);
+			}
+
+			return sizeof(int64_t);
+		}
+		else
+		{
+			if (valType_ == ValueType::NULL_VALUE)
+			{
+				*buf = 0;
+				return 1;
+			}
+			else
+			{
+				*buf = 1;
+				buf++;
+				utils::Int64ToBytes(soleValue_, buf, false);
+				return sizeof(int64_t) + 1;
+			}
+		}
+	}
+
+	uint32_t DataValueLong::GetPersistenceLength(bool key) const
+	{
+		assert(valType_ != ValueType::BYTES_VALUE);
+		return key ? sizeof(int64_t) : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(int64_t));
+	}
+
 	uint32_t DataValueLong::WriteData(Byte* buf)
 	{
 		if (bKey_)

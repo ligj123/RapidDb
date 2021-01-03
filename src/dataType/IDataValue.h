@@ -34,12 +34,14 @@ namespace storage {
 		virtual std::any GetValue() const = 0;
 		virtual uint32_t WriteData(Byte* buf) = 0;
 		virtual uint32_t ReadData(Byte* buf, uint32_t len) = 0;
+		virtual uint32_t WriteData(Byte* buf, bool key) = 0;
 		/**The memory size to save data*/
 		virtual uint32_t GetDataLength() const = 0;
 		/**The max memory size that can bu used to save this data*/
 		virtual uint32_t GetMaxLength() const = 0;
 		/**How much bytes to save this data to disk*/
 		virtual uint32_t GetPersistenceLength() const = 0;
+		virtual uint32_t GetPersistenceLength(bool key) const = 0;
 		virtual void SetMinValue() = 0;
 		virtual void SetMaxValue() = 0;
 		virtual void SetDefaultValue() = 0;

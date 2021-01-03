@@ -104,6 +104,60 @@ namespace storage {
     }
   }
 
+  uint32_t DataValueVarChar::WriteData(Byte* buf, bool key)
+  {
+    assert(valType_ != ValueType::BYTES_VALUE);
+    if (key)
+    {
+      if (valType_ == ValueType::BYTES_VALUE)
+      {
+        std::memcpy(buf, byArray_, soleLength_);
+        return soleLength_;
+      }
+      else
+      {
+        return 0;
+      }
+    }
+    else
+    {
+      if (valType_ == ValueType::NULL_VALUE)
+      {
+        *buf = 0;
+        return 1;
+      }
+      else
+      {
+        *buf = 1;
+        buf++;
+        *((uint32_t*)buf) = soleLength_;
+        buf += sizeof(uint32_t);
+        std::memcpy(buf, soleValue_, soleLength_);
+        return (uint32_t)soleLength_ + sizeof(uint32_t) + 1;
+      }
+    }
+  }
+
+  uint32_t DataValueVarChar::GetPersistenceLength(bool key) const
+  {
+    assert(valType_ != ValueType::BYTES_VALUE);
+    if (key)
+    {
+      return soleLength_;
+    }
+    else
+    {
+      switch (valType_)
+      {
+      case ValueType::SOLE_VALUE:
+        return soleLength_ + 1 + sizeof(uint32_t);
+      case ValueType::NULL_VALUE:
+      default:
+        return 1;
+      }
+    }
+  }
+
   uint32_t DataValueVarChar::WriteData(Byte* buf)
   {
     if (bKey_)
@@ -150,6 +204,7 @@ namespace storage {
       }
     }
   }
+
   uint32_t DataValueVarChar::ReadData(Byte* buf, uint32_t len)
   {
     if (bKey_)
@@ -182,7 +237,7 @@ namespace storage {
 
   uint32_t DataValueVarChar::GetDataLength() const
   {
-    if (valType_ == ValueType::NULL_VALUE)
+    if (!bKey_ && valType_ == ValueType::NULL_VALUE)
       return 0;
     else
       return soleLength_;

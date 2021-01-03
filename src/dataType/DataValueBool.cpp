@@ -74,6 +74,45 @@ namespace storage {
 		}
 	}
 
+	uint32_t DataValueBool::WriteData(Byte* buf, bool key)
+	{
+		assert(valType_ != ValueType::BYTES_VALUE);
+		if (key)
+		{
+			if (valType_ == ValueType::NULL_VALUE)
+			{
+				*buf = 0;
+			}
+			else if (valType_ == ValueType::SOLE_VALUE)
+			{
+				*buf = soleValue_;
+			}
+
+			return 1;
+		}
+		else
+		{
+			if (valType_ == ValueType::NULL_VALUE)
+			{
+				*buf = 0;
+				return 1;
+			}
+			else
+			{
+				*buf = 1;
+				buf++;
+				*buf = soleValue_;
+				return 2;
+			}
+		}
+	}
+
+	uint32_t DataValueBool::GetPersistenceLength(bool key) const
+	{
+		assert(valType_ != ValueType::BYTES_VALUE);
+		return key ? 1 : (valType_ == ValueType::NULL_VALUE ? 1 : 2);
+	}
+
 	uint32_t DataValueBool::WriteData(Byte* buf)
 	{
 		if (bKey_)

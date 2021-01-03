@@ -104,6 +104,61 @@ namespace storage {
     }
   }
 
+  uint32_t DataValueFixChar::WriteData(Byte* buf, bool key)
+  {
+    assert(valType_ != ValueType::BYTES_VALUE);
+    if (key)
+    {
+      if (valType_ == ValueType::BYTES_VALUE)
+      {
+        std::memcpy(buf, byArray_, maxLength_);
+        return maxLength_;
+      }
+      else
+      {
+        std::memset(buf, '\0', maxLength_);
+        return maxLength_;
+      }
+    }
+    else
+    {
+      if (valType_ == ValueType::NULL_VALUE)
+      {
+        *buf = 0;
+        return 1;
+      }
+      else
+      {
+        *buf = 1;
+        buf++;
+
+        std::memcpy(buf, soleValue_, soleLength_);
+        std::memset(buf + soleLength_, '\0', maxLength_ - soleLength_);
+        return maxLength_ + 1;
+      }
+    }
+  }
+
+  uint32_t DataValueFixChar::GetPersistenceLength(bool key) const
+  {
+    assert(valType_ != ValueType::BYTES_VALUE);
+    if (key)
+    {
+      return maxLength_;
+    }
+    else
+    {
+      switch (valType_)
+      {
+      case ValueType::SOLE_VALUE:
+        return maxLength_ + 1;
+      case ValueType::NULL_VALUE:
+      default:
+        return 1;
+      }
+    }
+  }
+
   uint32_t DataValueFixChar::WriteData(Byte* buf)
   {
     if (bKey_)
@@ -175,10 +230,10 @@ namespace storage {
 
   uint32_t DataValueFixChar::GetDataLength() const
   {
-    if (valType_ == ValueType::NULL_VALUE)
+    if (!bKey_ && valType_ == ValueType::NULL_VALUE)
       return 0;
     else
-      return soleLength_;
+      return maxLength_;
   }
 
   uint32_t DataValueFixChar::GetMaxLength() const

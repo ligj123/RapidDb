@@ -14,6 +14,9 @@ namespace storage {
 		DataValueFloat(std::any val, bool bKey = false);
 		~DataValueFloat() {}
 	public:
+		uint32_t WriteData(Byte* buf, bool key = false) override;
+		uint32_t GetPersistenceLength(bool key = false) const override;
+
 		std::any GetValue() const override;
 		uint32_t WriteData(Byte* buf) override;
 		uint32_t ReadData(Byte* buf, uint32_t len = 0) override;

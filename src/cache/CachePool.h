@@ -3,6 +3,7 @@
 #include "BufferPool.h"
 #include <mutex>
 #include <queue>
+#include <set>
 
 namespace storage {
   using namespace std;
@@ -11,6 +12,8 @@ namespace storage {
   public:
     static Byte* Apply(uint32_t eleSize);
     static void Release(Byte* pBuf, uint32_t eleSize);
+    static Byte* ApplyBys(uint32_t bufSize);
+    static void ReleaseBys(Byte* pBuf, uint32_t bufSize);
   public:
     CachePool();
     ~CachePool();
@@ -23,6 +26,7 @@ namespace storage {
     static uint64_t GetMemCacheUsed() { return _gCachePool->_szMemUsed; }
  
   protected:
+    static set<uint32_t> _gSetBufSize;
     static CachePool* _gCachePool;
 
     uint64_t _szMemUsed;

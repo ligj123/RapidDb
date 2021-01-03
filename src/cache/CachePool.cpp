@@ -9,6 +9,20 @@ namespace storage {
     return new CachePool;
   }();
 
+  set<uint32_t> CachePool::_gSetBufSize = {10, 30, 100, 300, 1000, 2000, 4000, 16000};
+
+  Byte* CachePool::ApplyBys(uint32_t bufSize)
+  {
+    uint32_t sz = *_gSetBufSize.lower_bound(bufSize);
+    return Apply(sz);
+  }
+
+  void CachePool::ReleaseBys(Byte* pBuf, uint32_t bufSize)
+  {
+    uint32_t sz = *_gSetBufSize.lower_bound(bufSize);
+    return Release(pBuf, sz);
+  }
+
   Byte* CachePool::Apply(uint32_t eleSize)
   {    
     CachePool* pool = GetInstance();
