@@ -52,6 +52,11 @@ namespace storage {
 		}
 	}
 
+	DataValueChar* DataValueChar::CloneDataValue(bool incVal)
+	{
+		return new DataValueChar(*this);
+	}
+
 	std::any DataValueChar::GetValue() const
 	{
 		switch (valType_)

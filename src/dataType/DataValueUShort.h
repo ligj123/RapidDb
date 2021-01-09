@@ -14,8 +14,9 @@ namespace storage {
 		DataValueUShort(std::any val, bool bKey = false);
 		~DataValueUShort(){}
 	public:
-		uint32_t WriteData(Byte* buf, bool key = false) override;
-		uint32_t GetPersistenceLength(bool key = false) const override;
+		DataValueUShort* CloneDataValue(bool incVal = false) override;
+		uint32_t WriteData(Byte* buf, bool key) override;
+		uint32_t GetPersistenceLength(bool key) const override;
 
 		std::any GetValue() const override;
 		uint32_t WriteData(Byte* buf) override;

@@ -3,7 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <any>
-#include "IndexType.h"
+#include "../core/IndexType.h"
 #include "Column.h"
 
 namespace storage {

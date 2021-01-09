@@ -38,41 +38,10 @@ namespace storage {
 		bool operator <= (const RawKey& key) const;
 		bool operator == (const RawKey& key) const;
 		bool operator != (const RawKey& key) const;
-		/*@Override
-			public boolean equals(Object o) {
-			if (this == o)
-				return true;
-
-			RawKey other = (RawKey)o;
-			if (length != other.length) {
-				return false;
-			}
-
-			return BytesUtils.equals(bysVal, startPos, other.bysVal, other.startPos, length);
-		}
-
-		@Override
-			public int compareTo(RawKey target) {
-			if (this == target)
-				return 0;
-
-			return BytesUtils.compareTo(bysVal, startPos, length, target.bysVal, target.startPos, target.length);
-		}*/
-
-		/*public void release() {
-			if (bysVal.length < Configuration.getCachePageSize() && startPos == 0) {
-				ObjectPool.releaseByteArray(bysVal);
-			}
-			ObjectPool.releaseRawKey(this);
-		}*/
-
-	
-
-		@Override
-			public String toString() {
-			return "startPos=" + startPos + "\tlength=" + length +
-				"\tkey=" + HexStringUtil.toHexString(bysVal, startPos, length);
-		}
+		
+		friend std::ostream& operator<< (std::ostream& os, const RawKey& key);
   };
+
+	std::ostream& operator<< (std::ostream& os, const RawKey& dv);
 }
 

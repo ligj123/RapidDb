@@ -52,6 +52,11 @@ namespace storage {
 		}
 	}
 
+	DataValueShort* DataValueShort::CloneDataValue(bool incVal)
+	{
+		return new DataValueShort(*this);
+	}
+
 	std::any DataValueShort::GetValue() const
 	{
 		switch (valType_)

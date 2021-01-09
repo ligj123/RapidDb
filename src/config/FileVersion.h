@@ -17,7 +17,7 @@ namespace storage {
       : _majorVer(majorVer), _minorVer(minorVer), _patchVer(patchVer)
     { }
 
-    void parseVersion(string text)
+    void ParseVersion(string text)
     {
       regex reg("([0-9]+)\\.([0-9]+)\\.([0-9]+)");
       cmatch mt;
@@ -30,27 +30,27 @@ namespace storage {
       _patchVer = std::stoi(mt[3]);
     }
 
-    short getMajorVersion() {
+    short GetMajorVersion() {
       return _majorVer;
     }
 
-    void setMajorVersion(short ver) {
+    void SetMajorVersion(short ver) {
       _majorVer = ver;
     }
 
-    uint8_t getMinorVersion() {
+    uint8_t GetMinorVersion() {
       return _minorVer;
     }
 
-    void setMinorVersion(uint8_t ver) {
+    void SetMinorVersion(uint8_t ver) {
       _minorVer = ver;
     }
 
-    uint8_t getPatchVersion() {
+    uint8_t GetPatchVersion() {
       return _patchVer;
     }
 
-    void setPatchVersion(uint8_t ver) {
+    void GetPatchVersion(uint8_t ver) {
       _patchVer = ver;
     }
 

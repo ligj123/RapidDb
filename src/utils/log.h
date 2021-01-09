@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/log/support/date_time.hpp>
 #include <boost/log/common.hpp>
@@ -16,13 +17,14 @@
 #include <boost/log/utility/setup/console.hpp>
 #include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/attributes/named_scope.hpp>
+#include "ThreadPool.h"
 
-#define LOG_TRACE(msg) utils::Logger::Write(utils::TRACE, msg)
-#define LOG_DEBUG(msg) utils::Logger::Write(utils::DEBUG, msg)
-#define LOG_INFO(msg) utils::Logger::Write(utils::INFO, msg)
-#define LOG_WARN(msg) utils::Logger::Write(utils::WARN, msg)
-#define LOG_ERROR(msg) utils::Logger::Write(utils::ERROR, msg)
-#define LOG_FATAL(msg) utils::Logger::Write(utils::FATAL, msg)
+#define LOG_TRACE   BOOST_LOG_SEV(utils::Logger::slg_, utils::TRACE) << "<" << utils::ThreadPool::GetThreadName() << ">  "
+#define LOG_DEBUG   BOOST_LOG_SEV(utils::Logger::slg_, utils::DEBUG) << "<" << utils::ThreadPool::GetThreadName() << ">  "
+#define LOG_INFO    BOOST_LOG_SEV(utils::Logger::slg_, utils::INFO) << "<" << utils::ThreadPool::GetThreadName() << ">  "
+#define LOG_WARN    BOOST_LOG_SEV(utils::Logger::slg_, utils::WARN) << "<" << utils::ThreadPool::GetThreadName() << ">  "
+#define LOG_ERROR   BOOST_LOG_SEV(utils::Logger::slg_, utils::ERROR) << "<" << utils::ThreadPool::GetThreadName() << ">  "
+#define LOG_FATAL   BOOST_LOG_SEV(utils::Logger::slg_, utils::FATAL) << "<" << utils::ThreadPool::GetThreadName() << ">  "
 
 namespace utils {
   namespace logging = boost::log;
@@ -45,9 +47,23 @@ namespace utils {
 
   class Logger {
   public:
-    static void Write(severity_level level, std::string msg);
     static void init();
-  protected:
+   // template <class ... Args>
+  //  static void Write(severity_level level, Args... args)
+  //  {
+  //    std::stringstream ss;
+  //    int a[] = { (ToString(ss, args), 0)... };
+
+  //    BOOST_LOG_SEV(slg_, level) << "<" << ThreadPool::GetThreadName() << ">  " << ss.str();
+  //  }
+
+  //protected:
+  //  template <class T>
+  //  static void ToString(std::stringstream& ss, T arg)
+  //  {
+  //    ss << arg;
+  //  }
+  public:
     static src::severity_logger< severity_level > slg_;
   };
 

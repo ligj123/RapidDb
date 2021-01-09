@@ -1,12 +1,11 @@
 #include "Log.h"
-#include "ThreadPool.h"
 #include <filesystem>
 
 namespace utils {
   BOOST_LOG_ATTRIBUTE_KEYWORD(log_severity, "Severity", severity_level)
-    BOOST_LOG_ATTRIBUTE_KEYWORD(log_timestamp, "TimeStamp", boost::posix_time::ptime)
+  BOOST_LOG_ATTRIBUTE_KEYWORD(log_timestamp, "TimeStamp", boost::posix_time::ptime)
 
-    std::ostream& operator<< (std::ostream& strm, severity_level level)
+  std::ostream& operator<< (std::ostream& strm, severity_level level)
   {
     static const char* strings[] = { "TRACE", "DEBUG", "INFO ", "WARN ", "ERROR", "FATAL" };
 
@@ -48,10 +47,5 @@ namespace utils {
     logging::add_common_attributes();
     logging::core::get()->add_sink(console_sink);
     logging::core::get()->add_sink(file_sink);
-  }
-
-  void Logger::Write(severity_level level, std::string msg)
-  {
-    BOOST_LOG_SEV(slg_, level) << "<" << ThreadPool::GetThreadName() << ">  " << msg;
   }
 }

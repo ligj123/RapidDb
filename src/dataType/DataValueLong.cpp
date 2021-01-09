@@ -52,6 +52,11 @@ namespace storage {
 		}
 	}
 
+	DataValueLong* DataValueLong::CloneDataValue(bool incVal)
+	{
+		return new DataValueLong(*this);
+	}
+
 	std::any DataValueLong::GetValue() const
 	{
 		switch (valType_)

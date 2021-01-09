@@ -2,6 +2,7 @@
 #include <any>
 #include "DataType.h"
 #include "../cache/CachePool.h"
+#include <cassert>
 
 namespace storage {
 	class IDataValue {
@@ -31,10 +32,13 @@ namespace storage {
 		bool IsNull() { return valType_ == ValueType::NULL_VALUE; }
 		bool isKey() { return bKey_; }
 
+		virtual IDataValue* CloneDataValue(bool incVal = false) = 0;
 		virtual std::any GetValue() const = 0;
 		virtual uint32_t WriteData(Byte* buf) = 0;
 		virtual uint32_t ReadData(Byte* buf, uint32_t len) = 0;
 		virtual uint32_t WriteData(Byte* buf, bool key) = 0;
+		virtual uint32_t WriteData(fstream& fs) { assert(false); return 0; }
+		virtual uint32_t ReadData(fstream& fs) { assert(false); return 0; }
 		/**The memory size to save data*/
 		virtual uint32_t GetDataLength() const = 0;
 		/**The max memory size that can bu used to save this data*/
@@ -46,12 +50,13 @@ namespace storage {
 		virtual void SetMaxValue() = 0;
 		virtual void SetDefaultValue() = 0;
 
+		friend std::ostream& operator<< (std::ostream& os, const IDataValue& dv);
 	public:
-		void* operator new(size_t size) 
+		static void* operator new(size_t size)
 		{
 			return CachePool::Apply((uint32_t)size);
 		}
-		void operator delete(void* ptr, size_t size)
+		static void operator delete(void* ptr, size_t size)
 		{			
 			CachePool::Release((Byte*)ptr, (uint32_t)size);
 		}

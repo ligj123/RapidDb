@@ -54,6 +54,11 @@ namespace storage {
 		}
 	}
 
+	DataValueFloat* DataValueFloat::CloneDataValue(bool incVal)
+	{
+		return new DataValueFloat(*this);
+	}
+
 	std::any DataValueFloat::GetValue() const
 	{
 		switch (valType_)

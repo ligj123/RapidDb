@@ -11,6 +11,30 @@ namespace storage {
 
   set<uint32_t> CachePool::_gSetBufSize = {10, 30, 100, 300, 1000, 2000, 4000, 16000};
 
+  Byte* CachePool::ApplyPage() {
+    CachePool* pool = GetInstance();
+    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutexPage);
+    if (pool->_queueFreePage.size() > 0) {
+      Byte* bys = pool->_queueFreePage.front();
+      pool->_queueFreePage.pop();
+      return bys;
+    } else {
+      lock.release();
+      return new Byte[Configure::GetCachePageSize()];
+    }
+  }
+
+  void CachePool::ReleasePage(Byte* page) {
+    CachePool* pool = GetInstance();
+    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutexPage);
+    if (pool->_queueFreePage.size() > Configure::GetMaxFreeBufferCount()) {
+      lock.release();
+      delete[] page;
+    } else {
+      pool->_queueFreePage.push(page);
+    }
+  }
+
   Byte* CachePool::ApplyBys(uint32_t bufSize)
   {
     uint32_t sz = *_gSetBufSize.lower_bound(bufSize);

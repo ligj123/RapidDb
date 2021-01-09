@@ -18,7 +18,9 @@ namespace storage {
 
 
     CM_EXCEED_LIMIT = 3001,
-    CM_FAILED_FIND_SIZE = 3002
+    CM_FAILED_FIND_SIZE = 3002,
+
+    FILE_OPEN_FAILED = 4001
   };
 }
 

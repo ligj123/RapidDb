@@ -90,6 +90,15 @@ namespace storage {
     }
   }
 
+  DataValueFixChar* DataValueFixChar::CloneDataValue(bool incVal = false)
+  {
+    if (incVal) {
+      return new DataValueFixChar(*this);
+    } else {
+      return new DataValueFixChar(maxLength_, bKey_);
+    }
+  }
+
   std::any DataValueFixChar::GetValue() const
   {
     switch (valType_)

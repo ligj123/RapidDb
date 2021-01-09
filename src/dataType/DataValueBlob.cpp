@@ -71,6 +71,15 @@ namespace storage {
     }
   }
 
+  DataValueBlob* DataValueBlob::CloneDataValue(bool incVal)
+  {
+    if (incVal) {
+      return new DataValueBlob(*this);
+    } else {
+      return new DataValueBlob(maxLength_, bKey_);
+    }
+  }
+
   std::any DataValueBlob::GetValue() const
   {
     switch (valType_)

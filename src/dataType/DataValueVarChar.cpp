@@ -90,6 +90,16 @@ namespace storage {
     }
   }
 
+  DataValueVarChar* DataValueVarChar::CloneDataValue(bool incVal)
+  {
+    if (incVal) {
+      return new DataValueVarChar(*this);
+    }
+    else {
+      return new DataValueVarChar(maxLength_, bKey_);
+    }
+  }
+
   std::any DataValueVarChar::GetValue() const
   {
     switch (valType_)

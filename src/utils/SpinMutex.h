@@ -20,13 +20,17 @@ namespace utils {
       }
     }
 
-    bool try_lock() noexcept {
+    inline bool try_lock() noexcept {
       return !_flag.load(std::memory_order_relaxed) &&
         !_flag.exchange(true, std::memory_order_acquire);
     }
 
     inline void unlock() noexcept {
       _flag.store(false, std::memory_order_release);
+    }
+
+    inline bool is_locked() {
+      return _flag.load(std::memory_order_relaxed);
     }
 
   protected:
@@ -39,7 +43,7 @@ namespace utils {
     SharedSpinMutex(const SharedSpinMutex&) = delete;
     SharedSpinMutex& operator= (const SharedSpinMutex&) = delete;
 
-    void lock() noexcept {
+    inline void lock() noexcept {
       while (_writeFlag.exchange(true, std::memory_order_acquire)) {
         std::this_thread::yield();
       }
@@ -49,7 +53,7 @@ namespace utils {
       }
     }
 
-    bool try_lock() noexcept {
+    inline bool try_lock() noexcept {
       if (_readCount.load(std::memory_order_relaxed) == 0 &&
         !_writeFlag.exchange(true, std::memory_order_acquire)) {
         if (_readCount.load(std::memory_order_relaxed) > 0) {
@@ -67,7 +71,7 @@ namespace utils {
       _writeFlag.store(false, std::memory_order_release);
     }
 
-    void lock_shared() noexcept {
+    inline void lock_shared() noexcept {
       while (true)
       {
         _readCount.fetch_add(1, std::memory_order_acquire);
@@ -78,7 +82,7 @@ namespace utils {
       }
     }
 
-    bool try_lock_shared() noexcept {
+    inline bool try_lock_shared() noexcept {
       if (!_writeFlag.load(std::memory_order_relaxed)) {
         _readCount.fetch_add(1, std::memory_order_acquire);
         if (_writeFlag.load(std::memory_order_relaxed)) {
@@ -92,8 +96,21 @@ namespace utils {
       return false;
     }
 
-    void unlock_shared() noexcept {
+    inline void unlock_shared() noexcept {
       _readCount.fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    inline bool is_write_locked() {
+      return _writeFlag.load(std::memory_order_relaxed);
+    }
+
+    inline uint32_t read_locked_count() {
+      return _readCount.load(std::memory_order_relaxed);
+    }
+
+    inline bool is_locked() {
+      return  _writeFlag.load(std::memory_order_relaxed) ||
+        _readCount.load(std::memory_order_relaxed) > 0;
     }
   protected:
     std::atomic<uint32_t> _readCount{ 0 };
@@ -165,6 +182,10 @@ namespace utils {
         _owner = 0;
         _flag.store(false, std::memory_order_release);
       }
+    }
+
+    inline bool is_locked() {
+      return _flag.load(std::memory_order_relaxed);
     }
   };
 }

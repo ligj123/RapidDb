@@ -45,6 +45,11 @@ namespace storage {
 		}
 	}
 
+	DataValueDate* DataValueDate::CloneDataValue(bool incVal)
+	{
+		return new DataValueDate(*this);
+	}
+
 	std::any DataValueDate::GetValue() const
 	{
 		switch (valType_)

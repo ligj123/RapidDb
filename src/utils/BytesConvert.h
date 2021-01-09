@@ -471,4 +471,10 @@ namespace utils {
 		}
 #endif
 	}
+
+	inline int BytesCompare(Byte* bys1, uint32_t len1, Byte* bys2, uint32_t len2) {
+		int hr = std::memcmp(bys1, bys2, std::min(len1, len2));
+		if (hr != 0) return hr;
+		return len1 - len2;
+	}
 }
