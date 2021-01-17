@@ -1,10 +1,10 @@
 #include "ThreadPool.h"
 
 namespace utils {
-  thread_local string ThreadPool::_threadName = "main";
+  thread_local string _threadName = "main";
 
-  ThreadPool::ThreadPool(string threadPrefix, size_t threadCount)
-    : _threadPrefix(threadPrefix), _stopThreads(false)
+  ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize, size_t threadCount)
+    : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize), _stopThreads(false)
   {
     for (size_t i = 0; i < threadCount; ++i) {
       _threads.emplace_back(std::thread([this, i]() {

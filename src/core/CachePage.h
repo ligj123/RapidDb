@@ -19,7 +19,7 @@ namespace storage {
 		inline static uint64_t CalcHashCode(uint64_t fileId, uint64_t pageId) {
 			return (fileId << 32) + pageId;
 		}
-		inline static uint64_t GetMsSinceEpoch() {
+		inline static uint64_t GetMsFromEpoch() {
 			return std::chrono::duration_cast<std::chrono::milliseconds>(
 				std::chrono::system_clock::now().time_since_epoch()).count();
 		}
@@ -36,6 +36,7 @@ namespace storage {
 
 	public:
 		CachePage(IndexTree* indexTree, uint64_t pageId);
+		virtual ~CachePage();
 		bool IsFileClosed();
 
 		inline utils::SharedSpinMutex& GetLock() { return _rwLock; }
@@ -43,18 +44,19 @@ namespace storage {
 		inline void SetDirty(bool b) { _bDirty = b; }
 		inline bool IsLocked() { return _rwLock.is_locked(); }
 		inline uint64_t getPageId() {	return _pageId; }
-		inline void UpdateAccessTime() { _dtPageLastAccess = GetMsSinceEpoch();	}
+		inline void UpdateAccessTime() { _dtPageLastAccess = GetMsFromEpoch();	}
+		inline uint64_t GetAccessTime() { return _dtPageLastAccess;	}
 		inline uint64_t HashCode() { return CalcHashCode(_fileId, _pageId); }
-		inline void UpdateWriteTime() { _dtPageLastWrite = GetMsSinceEpoch(); }
+		inline void UpdateWriteTime() { _dtPageLastWrite = GetMsFromEpoch(); }
 		inline uint64_t GetWriteTime() { return _dtPageLastWrite; }
 		inline uint64_t GetFileId() { return _fileId;	}
-		inline uint64_t IncRefCount() { return _refCount.fetch_add(1); }
-		inline uint64_t DecRefCount() { return _refCount.fetch_sub(1); }
-		inline uint64_t GetRefCount() { return _refCount; }
-		inline IndexTree* getIndexTree() { return _indexTree; }
+		inline int32_t IncRefCount() { return _refCount.fetch_add(1); }
+		inline int32_t DecRefCount() { return _refCount.fetch_sub(1); }
+		inline int32_t GetRefCount() { return _refCount; }
+		inline IndexTree* GetIndexTree() { return _indexTree; }
 		inline Byte* GetBysPage() { return _bysPage; }
 		virtual void Release() = 0;
-		virtual bool releaseable() { return _refCount == 0; }
+		virtual bool Releaseable() { return _refCount == 0; }
 		virtual void ReadPage();
 		virtual void WritePage() ;
 
@@ -100,14 +102,15 @@ namespace storage {
 
 	protected:
 		Byte* _bysPage;
-		bool _bDirty;
 		utils::SharedSpinMutex _rwLock;
 		uint64_t _dtPageLastWrite;
 		uint64_t _dtPageLastAccess;
 		uint64_t _pageId;
 		uint64_t _fileId;
 		IndexTree* _indexTree;
-		std::atomic<uint64_t> _refCount;
+		std::atomic<int32_t> _refCount;
+		bool _bDirty;
+		bool _bRecordUpdate = false;
   };
 }
 

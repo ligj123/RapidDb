@@ -4,7 +4,6 @@
 #include "IndexType.h"
 
 namespace storage {
-	class IndexTree;
   class BranchRecord : public RawRecord
   {
 	public:
@@ -22,18 +21,18 @@ namespace storage {
 
 	public:
 		BranchRecord(BranchPage* parentPage, Byte* bys) : _parentPage(parentPage), _bysVal(bys),
-										_indexTree(parentPage->getIndexTree()), _bSole(false) {	}
+										_indexTree(parentPage->GetIndexTree()), _bSole(false) {	}
 
 		BranchRecord(IndexTree* indexTree, RawRecord* rec, long childPageId);
 		BranchRecord(const BranchRecord& src);
 		~BranchRecord();
-		RawKey* GetKey() const;
+		RawKey* GetKey() const override;
 		vector<IDataValue*>& GetListKey() const override;
 		vector<IDataValue*>& GetListValue() const override;
-		int CompareTo(RawRecord& other) const;
-		int CompareKey(RawKey& key) const;
-		int CompareKey(RawRecord& other) const;
-		bool EqualPageId(BranchRecord& br) const;
+		int CompareTo(const RawRecord& other) const override;
+		int CompareKey(const RawKey& key) const override;
+		int CompareKey(const RawRecord& other) const override;
+		bool EqualPageId(const BranchRecord& br) const;
 
 		inline Byte* GetBysValue() const  override { return _bysVal; }
 		inline uint16_t GetTotalLength() const override { return *((uint16_t*)_bysVal); }
@@ -45,7 +44,7 @@ namespace storage {
 		inline void SetParentPage(IndexPage* page) override { _parentPage = (BranchPage*)page; }
 		inline uint64_t GetChildPageId() const { return *((uint64_t*)(_bysVal + GetTotalLength() - PAGE_ID_LEN)); }
 		inline IndexTree* GetTreeeFile() const override {	return _indexTree; }
-		inline void SaveData(Byte* bysPage) override {	std::memcpy(bysPage, _bysVal, GetTotalLength()); }
+		inline void SaveData(Byte* bysPage) override { std::memcpy(bysPage, _bysVal, GetTotalLength()); }
 
 		friend std::ostream& operator<< (std::ostream& os, const BranchRecord& br);		
   };

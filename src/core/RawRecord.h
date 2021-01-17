@@ -13,10 +13,14 @@ namespace storage {
   {
   public:
     virtual Byte* GetBysValue() const  = 0;
+		/**Only the bytes' length in IndexPage, key length + value length without overflow fields*/
 		virtual uint16_t GetTotalLength() const = 0;
 		virtual uint16_t GetKeyLength() const = 0;
 		virtual uint16_t GetValueLength() const = 0;
 		virtual RawKey* GetKey() const = 0;
+		virtual int CompareTo(const RawRecord& other) const = 0;
+		virtual int CompareKey(const RawKey& key) const = 0;
+		virtual int CompareKey(const RawRecord& other) const = 0;
 		virtual void SetParentPage(IndexPage* page) = 0;
 		virtual IndexPage* GetParentPage() const = 0;
 		virtual vector<IDataValue*>& GetListKey() const = 0;

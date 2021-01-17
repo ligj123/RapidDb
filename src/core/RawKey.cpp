@@ -69,6 +69,13 @@ namespace storage {
 		return (_length != key._length);
 	}
 
+	int RawKey::CompareTo(const RawKey& key) const
+	{
+		int hr = std::memcmp(_bysVal, key._bysVal, std::min(_length, key._length));
+		if (hr != 0) return hr;
+		return (_length - key._length);
+	}
+
 	std::ostream& operator<< (std::ostream& os, const RawKey& key)
 	{
 		os << "Length=" << key._length << std::uppercase << std::hex << std::setfill('0') << "\tKey=0x";

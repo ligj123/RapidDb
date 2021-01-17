@@ -19,8 +19,8 @@ namespace storage {
 		RawKey(Byte* bys, uint32_t len);
 		~RawKey();
 
-		Byte* GetBysVal() { return _bysVal;	}
-		uint32_t GetLength() { return _length; }
+		Byte* GetBysVal() const { return _bysVal;	}
+		uint32_t GetLength() const { return _length; }
 		
 		void* operator new(size_t size)
 		{
@@ -38,6 +38,7 @@ namespace storage {
 		bool operator <= (const RawKey& key) const;
 		bool operator == (const RawKey& key) const;
 		bool operator != (const RawKey& key) const;
+		int CompareTo(const RawKey& key) const;
 		
 		friend std::ostream& operator<< (std::ostream& os, const RawKey& key);
   };

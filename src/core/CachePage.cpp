@@ -18,6 +18,15 @@ namespace storage {
 		}
 	}
 
+	CachePage::~CachePage() {
+		if (_pageId == UINT64_MAX) {
+			delete[] _bysPage;
+		}
+		else {
+			CachePool::ReleasePage(_bysPage);
+		}
+	}
+
 	bool CachePage::IsFileClosed() {
 		return _indexTree->IsFileClosed();
 	}

@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\test\cache\CachePoolTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueByteTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueCharTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueFixCharTest.cpp" />

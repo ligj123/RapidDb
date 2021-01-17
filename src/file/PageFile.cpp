@@ -13,7 +13,7 @@ namespace storage {
 			_file.read(bys, length);
 			uint32_t len = (uint32_t)_file.gcount();
 		}
-		LOG_TRACE << "Read a page, offset=" << fileOffset << "  length=" << length << "  name=" << _path;
+		LOG_DEBUG << "Read a page, offset=" << fileOffset << "  length=" << length << "  name=" << _path;
 		return len;
 	}
 
@@ -25,7 +25,7 @@ namespace storage {
 			_file.write(bys, length);
 		}
 
-		LOG_TRACE << "Write a page, offset=" << fileOffset << "  length=" << length << "  name=" << _path;
+		LOG_DEBUG << "Write a page, offset=" << fileOffset << "  length=" << length << "  name=" << _path;
 	}
 
 	void PageFile::WriteDataValue(vector<IDataValue*> vctDv, uint32_t dvStart, uint64_t offset) {
@@ -52,7 +52,7 @@ namespace storage {
 
 		_file.write((char*)buf, pos);
 		CachePool::Release(buf, (uint32_t)Configure::GetCacheBlockSize());
-		LOG_TRACE << "Write overflow data, offset=" << offset << "  name=" << _path;
+		LOG_DEBUG << "Write overflow data, offset=" << offset << "  name=" << _path;
 	}
 
 	void PageFile::ReadDataValue(vector<IDataValue*> vctDv, uint32_t dvStart, uint64_t offset, uint32_t totalLen) {
@@ -79,6 +79,6 @@ namespace storage {
 			}
 		}
 
-		LOG_TRACE << "Read overflow data, offset=" << offset << "  name=" << _path;
+		LOG_DEBUG << "Read overflow data, offset=" << offset << "  name=" << _path;
 	}
 }

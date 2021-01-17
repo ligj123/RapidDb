@@ -11,9 +11,10 @@
 
 namespace utils {
   using namespace std;
+
   class ThreadPool {
   public:
-    ThreadPool(string threadPrefix, size_t threadCount = std::thread::hardware_concurrency());
+    ThreadPool(string threadPrefix, uint32_t maxQueueSize = 1000000, size_t threadCount = std::thread::hardware_concurrency());
     ~ThreadPool();
 
     // since std::thread objects are not copiable, it doesn't make sense for a
@@ -24,7 +25,12 @@ namespace utils {
     template <typename F, typename... Args, std::enable_if_t<std::is_invocable_v<F&&, Args &&...>, int> = 0>
     auto AddTask(F&&, Args &&...);
     void Stop() { _stopThreads = true; }
+    uint32_t GetTaskCount() { return _tasks.size(); }
+    void SetMaxQueueSize(uint32_t qsize) { _maxQueueSize = qsize; }
+    uint32_t GetMaxQueueSize() { return _maxQueueSize; }
+    bool IsFull() { return _maxQueueSize <= _tasks.size(); }
     static string GetThreadName() { return _threadName; }
+    static thread_local string _threadName;
   private:
     class _task_container_base {
     public:
@@ -53,7 +59,7 @@ namespace utils {
     condition_variable _taskCv;
     bool _stopThreads = false;
     string _threadPrefix;
-    static thread_local string _threadName;
+    uint32_t _maxQueueSize;    
   };
 
   template <typename F, typename... Args, std::enable_if_t<std::is_invocable_v<F&&, Args &&...>, int>>

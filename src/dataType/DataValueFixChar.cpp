@@ -90,7 +90,7 @@ namespace storage {
     }
   }
 
-  DataValueFixChar* DataValueFixChar::CloneDataValue(bool incVal = false)
+  DataValueFixChar* DataValueFixChar::CloneDataValue(bool incVal)
   {
     if (incVal) {
       return new DataValueFixChar(*this);

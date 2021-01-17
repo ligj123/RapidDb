@@ -83,7 +83,7 @@ namespace storage {
 		return vct;
 	}
 
-	int BranchRecord::CompareTo(RawRecord& other) const {
+	int BranchRecord::CompareTo(const RawRecord& other) const {
 		BranchRecord& br = (BranchRecord&)other;
 		uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
 		int rt = utils::BytesCompare(_bysVal + (2 + keyVarNum) * sizeof(uint16_t),
@@ -98,7 +98,7 @@ namespace storage {
 						br._bysVal + br.GetKeyLength() + 2 * sizeof(uint16_t), br.GetValueLength());
 	}
 
-	int BranchRecord::CompareKey(RawKey& key) const {
+	int BranchRecord::CompareKey(const RawKey& key) const {
 		int keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
 
 		return utils::BytesCompare(_bysVal + (2 + keyVarNum) * sizeof(uint16_t),
@@ -106,16 +106,15 @@ namespace storage {
 					key.GetBysVal(), key.GetLength());
 	}
 
-	int BranchRecord::CompareKey(RawRecord& other) const {
-		BranchRecord& br = (BranchRecord&)other;
+	int BranchRecord::CompareKey(const RawRecord& other) const {
 		uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
 		return utils::BytesCompare(_bysVal + (2 + keyVarNum) * sizeof(uint16_t),
 			GetKeyLength() - keyVarNum * sizeof(uint16_t),
-			br._bysVal + (2 + keyVarNum) * sizeof(uint16_t),
-			br.GetKeyLength() - keyVarNum * sizeof(uint16_t));
+			other.GetBysValue() + (2 + keyVarNum) * sizeof(uint16_t),
+			other.GetKeyLength() - keyVarNum * sizeof(uint16_t));
 	}
 
-	bool BranchRecord::EqualPageId(BranchRecord& br) const {
+	bool BranchRecord::EqualPageId(const BranchRecord& br) const {
 		return (utils::BytesCompare(_bysVal + GetKeyLength() + GetValueLength() + 2 * sizeof(uint16_t), sizeof(uint64_t),
 			br._bysVal + br.GetKeyLength() + br.GetValueLength() + 2 * sizeof(uint16_t), sizeof(uint64_t)) == 0);
 	}
@@ -133,9 +132,12 @@ namespace storage {
 			os << "  Values=";
 			for (IDataValue* dv : vctVal) {
 				os << *dv << "; ";
+				delete dv;
 			}
 
 			os << "  ChildPageId=" << br.GetChildPageId();
 		}
+
+		return os;
 	}
 }

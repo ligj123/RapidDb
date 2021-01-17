@@ -19,7 +19,6 @@
 #include <boost/log/attributes/named_scope.hpp>
 #include "ThreadPool.h"
 
-#define LOG_TRACE   BOOST_LOG_SEV(utils::Logger::slg_, utils::TRACE) << "<" << utils::ThreadPool::GetThreadName() << ">  "
 #define LOG_DEBUG   BOOST_LOG_SEV(utils::Logger::slg_, utils::DEBUG) << "<" << utils::ThreadPool::GetThreadName() << ">  "
 #define LOG_INFO    BOOST_LOG_SEV(utils::Logger::slg_, utils::INFO) << "<" << utils::ThreadPool::GetThreadName() << ">  "
 #define LOG_WARN    BOOST_LOG_SEV(utils::Logger::slg_, utils::WARN) << "<" << utils::ThreadPool::GetThreadName() << ">  "
@@ -37,8 +36,7 @@ namespace utils {
 
   enum severity_level : uint8_t
   {
-    TRACE = 0,
-    DEBUG,
+    DEBUG = 0,
     INFO,
     WARN,
     ERROR,

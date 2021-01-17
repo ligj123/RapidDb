@@ -81,7 +81,7 @@ namespace storage {
 
 		IDataValue* dvDefault = nullptr;
 		if (valDefault.has_value()) {
-			dvDefault = DataValueFactory::GenerateDataValue(dataType, false, -1, valDefault);
+			dvDefault = DataValueFactory(dataType, false, -1, valDefault);
 		}
 
 		TableColumn* cm = new TableColumn(columnName, (uint32_t)_vctColumn.size(), dataType, comment, nullable,
