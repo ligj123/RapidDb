@@ -23,22 +23,20 @@ namespace storage {
 		BranchRecord* DeleteRecord(uint16_t index);
 		bool SaveRecord() override;
 
-		bool InsertRecord(RawRecord* record);
+		void InsertRecord(BranchRecord* record);
 
-		BranchRecord DeleteRecord(RawRecord* record);
+		BranchRecord* DeleteRecord(BranchRecord* record);
 
-		bool AddRecord(RawRecord* record) override;
-		bool IsPageFull() override { return _totalDataLength >= MAX_DATA_LENGTH;	}
+		bool AddRecord(BranchRecord* record);
+		bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH;	}
 
 		uint16_t GetMaxDataLength() override {	return MAX_DATA_LENGTH;	}
 
 		uint32_t SearchRecord(const BranchRecord& rr);
 		uint32_t SearchKey(const RawKey& key);
+		BranchRecord* GetRecordByPos(uint32_t pos);
 	protected:
 		int CompareTo(uint32_t recPos, const BranchRecord& rr);
 		int CompareTo(uint32_t recPos, const RawKey& key);
-
-		
-
   };
 }

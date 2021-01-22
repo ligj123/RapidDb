@@ -76,39 +76,34 @@ namespace storage {
     return true;
   }
 
-  bool BranchPage::InsertRecord(RawRecord* record) {
- /*   if (recordNum > 0 && lstRecord.size() == 0) {
-      loadRecords();
-    }
+  void BranchPage::InsertRecord(BranchRecord* rr) {
+    if (_recordNum > 0 && _vctRecord.size() == 0) LoadRecords();
 
-    totalDataLength += record.getTotalLength() + Short.BYTES;
-    lstPageChildren.add(index, child);
-    record.setParentPage(this);
-    lstRecord.add(index, record);
-    recordNum++;
-    bDirty = true;
-    bRecordUpdate = true;*/
-
-    return false;
+    uint32_t index = SearchRecord(*rr);
+    _totalDataLength += rr->GetTotalLength() + sizeof(uint16_t);
+    rr->SetParentPage(this);
+    _vctRecord.insert(_vctRecord.begin() + index, rr);
+    _recordNum++;
+    _bDirty = true;
+    _bRecordUpdate = true;
   }
 
-  BranchRecord* BranchPage::DeleteRecord(RawRecord* record) {
+  BranchRecord* BranchPage::DeleteRecord(BranchRecord* rr) {
     if (_vctRecord.size() == 0) {
       LoadRecords();
     }
 
-    //BranchRecord br = (BranchRecord)lstRecord.get(index);
-    //lstRecord.remove(index);
-    //lstPageChildren.remove(index);
-    //totalDataLength -= br.getTotalLength();
-    //recordNum--;
-    //bRecordUpdate = true;
-    //bDirty = true;
-    //return br;
-    return nullptr;
+    uint32_t index = SearchRecord(*rr);
+    BranchRecord* br = (BranchRecord*)_vctRecord[index];
+    _vctRecord.erase(_vctRecord.begin() + index);
+    _totalDataLength -= br->GetTotalLength();
+    _recordNum--;
+    _bRecordUpdate = true;
+    _bDirty = true;
+    return br;
   }
 
-  bool BranchPage::AddRecord(RawRecord* rr) {
+  bool BranchPage::AddRecord(BranchRecord* rr) {
     if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR
       || _totalDataLength + rr->GetTotalLength() + sizeof(uint16_t) > MAX_DATA_LENGTH) {
       return false;
@@ -214,5 +209,19 @@ namespace storage {
     return utils::BytesCompare(_bysPage + start + (2 + keyVarNum) * sizeof(uint16_t),
       lenKey - keyVarNum * sizeof(uint16_t),
       key.GetBysVal(), key.GetLength());
+  }
+
+  BranchRecord* BranchPage::GetRecordByPos(uint32_t pos) {
+    if (pos < 0 || pos >= _recordNum) {
+      return nullptr;
+    }
+
+    if (_vctRecord.size() == 0) {
+      uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + pos * sizeof(uint16_t));
+      return new BranchRecord(this, _bysPage + offset);
+    }
+    else {
+      return ((BranchRecord*)_vctRecord[pos])->ReferenceRecord();
+    }
   }
 }

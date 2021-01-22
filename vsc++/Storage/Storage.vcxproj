@@ -48,6 +48,7 @@
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp" />
     <ClCompile Include="..\..\src\file\PageFile.cpp" />
     <ClCompile Include="..\..\src\pool\IndexPagePool.cpp" />
+    <ClCompile Include="..\..\src\pool\PageDividePool.cpp" />
     <ClCompile Include="..\..\src\pool\StoragePool.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
     <ClCompile Include="..\..\src\table\TableDesc.cpp" />
@@ -96,6 +97,7 @@
     <ClInclude Include="..\..\src\file\PageFile.h" />
     <ClInclude Include="..\..\src\header.h" />
     <ClInclude Include="..\..\src\pool\IndexPagePool.h" />
+    <ClInclude Include="..\..\src\pool\PageDividePool.h" />
     <ClInclude Include="..\..\src\pool\StoragePool.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
     <ClInclude Include="..\..\src\table\TableDesc.h" />

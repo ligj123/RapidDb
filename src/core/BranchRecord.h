@@ -16,6 +16,7 @@ namespace storage {
 		BranchPage* _parentPage;
 		/**tree file*/
 		IndexTree* _indexTree;
+		uint32_t _refCount; 
 		/**If this record' value is saved to solely buffer or branch page*/
 		bool _bSole;
 
@@ -34,6 +35,8 @@ namespace storage {
 		int CompareKey(const RawRecord& other) const override;
 		bool EqualPageId(const BranchRecord& br) const;
 
+		inline void ReleaseRecord() { _refCount--; if (_refCount == 0) delete this; }
+		inline BranchRecord* ReferenceRecord() { _refCount++; return this; }
 		inline Byte* GetBysValue() const  override { return _bysVal; }
 		inline uint16_t GetTotalLength() const override { return *((uint16_t*)_bysVal); }
 		inline uint16_t GetKeyLength() const override {	return *((uint16_t*)(_bysVal + sizeof(uint16_t)));	}

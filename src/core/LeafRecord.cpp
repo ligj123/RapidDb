@@ -10,6 +10,7 @@ namespace storage {
 		_bysVal = bys;
 		_indexTree = _parentPage->GetIndexTree();
 		_actionType = ActionType::UNKNOWN;
+		_refCount = 1;
 	}
 
 	LeafRecord::LeafRecord(IndexTree* indexTree, Byte* bys) {
@@ -17,6 +18,7 @@ namespace storage {
 		_bysVal = bys;
 		_indexTree = indexTree;
 		_actionType = ActionType::UNKNOWN;
+		_refCount = 1;
 	}
 
 
@@ -26,6 +28,7 @@ namespace storage {
 		_indexTree = src._indexTree;
 		_actionType = src._actionType;
 		_tranId = src._tranId;
+		_refCount = 1;
 	}
 
 	LeafRecord::LeafRecord(IndexTree* indexTree, const vector<IDataValue*>& vctKey, const vector<IDataValue*>& vctVal) {
@@ -33,8 +36,8 @@ namespace storage {
 	}
 
 	LeafRecord::LeafRecord(IndexTree* indexTree, const vector<IDataValue*>& vctKey, const vector<IDataValue*>& vctVal,
-		uint64_t offset, uint32_t oldSizeOverflow) {
-		
+				uint64_t offset, uint32_t oldSizeOverflow) {
+		_refCount = 1;
 		_parentPage = nullptr;
 		_indexTree = indexTree;
 		_actionType = ActionType::UNKNOWN;
@@ -137,7 +140,7 @@ namespace storage {
 		LeafRecord* rec = _undoRecords;
 		while (rec != nullptr) {
 			LeafRecord* next = rec->_undoRecords;
-			delete rec;
+			rec->ReleaseRecord();
 			rec = next;
 		}
 	}

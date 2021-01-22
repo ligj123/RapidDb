@@ -55,10 +55,16 @@ namespace storage {
 		inline int32_t GetRefCount() { return _refCount; }
 		inline IndexTree* GetIndexTree() { return _indexTree; }
 		inline Byte* GetBysPage() { return _bysPage; }
-		virtual void Release() = 0;
 		virtual bool Releaseable() { return _refCount == 0; }
 		virtual void ReadPage();
 		virtual void WritePage() ;
+
+		inline void ReadLock() {_rwLock.lock_shared();}
+		inline bool ReadTryLock() {	return _rwLock.try_lock_shared();	}
+		inline void ReadUnlock() { _rwLock.unlock_shared();	}
+		inline void WriteLock() { _rwLock.lock();	}
+		inline bool WriteTryLock() { return _rwLock.try_lock();	}
+		inline void WriteUnlock() { _rwLock.unlock();	}
 
 		inline Byte ReadByte(uint32_t pos) {
 			assert(Configure::GetCachePageSize() > sizeof(Byte) + pos);

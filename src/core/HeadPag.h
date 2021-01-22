@@ -75,7 +75,7 @@ namespace storage {
 			_bDirty = true;
 		}
 
-		inline long GetAndAddTotalRecordNum(uint64_t delta) {
+		inline uint64_t GetAndAddTotalRecordNum(uint64_t delta) {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			_bDirty = true;
 			uint64_t tmp = _totalRecordNum;
@@ -141,13 +141,13 @@ namespace storage {
 			return _autoPrimaryKey1;
 		}
 
-		void WriteAutoPrimaryKey(uint64_t key) {
+		inline void WriteAutoPrimaryKey(uint64_t key) {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			_autoPrimaryKey1 = key;
 			_bDirty = true;
 		}
 
-		uint64_t GetAndAddAutoPrimaryKey2(uint64_t step) {
+		inline uint64_t GetAndAddAutoPrimaryKey2(uint64_t step) {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			uint64_t num = _autoPrimaryKey2;
 			_autoPrimaryKey2 += step;
@@ -155,18 +155,18 @@ namespace storage {
 			return num;
 		}
 
-		uint64_t ReadAutoPrimaryKey2() {
+		inline uint64_t ReadAutoPrimaryKey2() {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			return _autoPrimaryKey2;
 		}
 
-		void WriteAutoPrimaryKey2(uint64_t key) {
+		inline void WriteAutoPrimaryKey2(uint64_t key) {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			_autoPrimaryKey2 = key;
 			_bDirty = true;
 		}
 
-		uint64_t GetAndAddAutoPrimaryKey3(uint64_t step) {
+		inline uint64_t GetAndAddAutoPrimaryKey3(uint64_t step) {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			uint64_t num = _autoPrimaryKey3;
 			_autoPrimaryKey3 += step;
@@ -174,7 +174,7 @@ namespace storage {
 			return num;
 		}
 
-		uint64_t ReadAutoPrimaryKey3() {
+		inline uint64_t ReadAutoPrimaryKey3() {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			return _autoPrimaryKey3;
 		}
@@ -185,7 +185,7 @@ namespace storage {
 			_bDirty = true;
 		}
 
-		uint16_t ReadKeyVariableFieldCount() {
+		inline uint16_t ReadKeyVariableFieldCount() {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			return _keyVariableFieldCount;
 		}
@@ -197,16 +197,18 @@ namespace storage {
 			_bDirty = true;
 		}
 
-		uint16_t ReadValueVariableFieldCount() {
+		inline uint16_t ReadValueVariableFieldCount() {
 			lock_guard<utils::SpinMutex> lock(_spinMutex); 
 			return _valueVariableFieldCount;
 		}
 
-		void WriteValueVariableFieldCount(uint16_t num) {
+		inline void WriteValueVariableFieldCount(uint16_t num) {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			_valueVariableFieldCount = num;
 			WriteShort(VALUE_VARIABLE_FIELD_COUNT, num);
 			_bDirty = true;
 		}
+
+		void Release() override {}
 	};
 }

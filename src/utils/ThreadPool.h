@@ -25,7 +25,7 @@ namespace utils {
     template <typename F, typename... Args, std::enable_if_t<std::is_invocable_v<F&&, Args &&...>, int> = 0>
     auto AddTask(F&&, Args &&...);
     void Stop() { _stopThreads = true; }
-    uint32_t GetTaskCount() { return _tasks.size(); }
+    uint32_t GetTaskCount() { return (uint32_t)_tasks.size(); }
     void SetMaxQueueSize(uint32_t qsize) { _maxQueueSize = qsize; }
     uint32_t GetMaxQueueSize() { return _maxQueueSize; }
     bool IsFull() { return _maxQueueSize <= _tasks.size(); }

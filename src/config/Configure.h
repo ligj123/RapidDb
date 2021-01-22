@@ -24,12 +24,13 @@ namespace storage {
 		static const uint64_t DEFAULT_MAX_COLUMN_LENGTH;
 		/**The free memory buffer in cache pool's queue*/
 		static const uint64_t DEFAULT_MAX_FREE_BUFFER_COUNT;
+		/**The max instances to open a index tree for reading or writing*/
+		static const uint64_t MAX_PAGE_FILE_COUNT;
 		//static const uint64_t WRITE_DELAY_MS = 10 * 1000;
 		//static const uint64_t MAX_QUEUE_SIZE = 10000;
 		//static const uint64_t DEFAULT_DISK_CACHE_PAGE_SIZE = 1024 * 1024;
 		//static const uint64_t MAX_DISK_CACHE_PAGE_COUNT = 2048;
 		//static const char* DEFAULT_DISK_CACHE_FILE = { "./" }; //System.getProperty("java.io.tmpdir");
-		//static const uint64_t MAX_RANDOM_FILE_NUM = 5;
 
 	public:
 		Configure();
@@ -42,6 +43,7 @@ namespace storage {
 		static uint64_t GetMaxKeyLength() { return GetInstance()._lenMaxKey; }
 		static uint64_t GetMaxColumnLength() { return GetInstance()._lenMaxColumn; }
 		static uint64_t GetMaxFreeBufferCount() {	return GetInstance()._countMaxFreeBuff; }
+		static uint64_t GetMaxPageFileCount() {	return GetInstance()._countMaxPageFile;	}
 	protected:
 		static Configure& GetInstance() {
 			return *instance;
@@ -58,5 +60,6 @@ namespace storage {
 		uint64_t _lenMaxKey;
 		uint64_t _lenMaxColumn;
 		uint64_t _countMaxFreeBuff;
+		uint64_t _countMaxPageFile;
 	};
 }

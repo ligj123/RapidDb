@@ -28,6 +28,6 @@ namespace storage {
 		static void WriteCachePage(CachePage* page);
 		static future<int> ReadCachePage(CachePage* page);
 		static void FlushWriteCachePage() { _bWriteFlush = true; }
-		static uint32_t GetWaitingWriteTaskCount() { return _queueWrite.size(); }
+		static uint32_t GetWaitingWriteTaskCount() { return (uint32_t)_queueWrite.size(); }
 	};
 }

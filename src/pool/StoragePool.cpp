@@ -92,8 +92,7 @@ namespace storage {
 					page->GetIndexTree()->DecreaseTasks();
 					page->DecRefCount();
 
-					return 1;
-				
+					return 1;				
 			});
 
 			return fut;

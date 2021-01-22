@@ -54,7 +54,7 @@ namespace storage {
       _patchVer = ver;
     }
 
-    bool operator=(FileVersion fv) {
+    bool operator==(FileVersion fv) {
       return _majorVer == fv._majorVer &&
         _minorVer == fv._minorVer &&
         _patchVer == fv._patchVer;

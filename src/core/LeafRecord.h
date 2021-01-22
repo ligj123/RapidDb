@@ -19,12 +19,15 @@ namespace storage {
 		LeafRecord* _undoRecords;
 		/**The transaction id if it is running in a transaction, or UINT64_MAX*/
 		uint64_t _tranId;
+		uint32_t _refCount;
 		/***/
 		ActionType _actionType;
 		/**In current transaction if this record has been executed.*/
 		bool _bTranFinished;
 		/**If this record' value is saved to solely buffer or branch page*/
 		bool _bSole;
+	protected:
+		~LeafRecord();
 	
 	public:
 		LeafRecord(LeafPage* indexPage, Byte* bys);
@@ -33,9 +36,9 @@ namespace storage {
 		LeafRecord(IndexTree* indexTree, const vector<IDataValue*>& vctKey, const vector<IDataValue*>& vctVal);
 		LeafRecord(IndexTree* indexTree, const vector<IDataValue*>& vctKey, const vector<IDataValue*>& vctVal,
 			uint64_t offset, uint32_t oldSizeOverflow);
-		~LeafRecord();
 		void CleanUndoRecord();
-
+		void ReleaseRecord() { _refCount--; if (_refCount == 0) delete this; }
+		LeafRecord* ReferenceRecord() { _refCount++; return this; }
 		void AddOldRecord(LeafRecord* old);
 		ActionType GetActionType() { return _actionType;	}
 		void SetActionType(ActionType type) { _actionType = type; }

@@ -1,7 +1,7 @@
 #include "ThreadPool.h"
 
 namespace utils {
-  thread_local string _threadName = "main";
+  thread_local string ThreadPool::_threadName = "main";
 
   ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize, size_t threadCount)
     : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize), _stopThreads(false)
