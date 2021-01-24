@@ -3,8 +3,8 @@
 #include "../cache/CachePool.h"
 
 namespace storage {
-  const uint32_t CachePage::CRC32_INDEX_OFFSET = Configure::GetCachePageSize() - sizeof(uint64_t);
-  const uint32_t CachePage::CRC32_HEAD_OFFSET = Configure::GetDiskClusterSize() - sizeof(uint64_t);
+  const uint32_t CachePage::CRC32_INDEX_OFFSET = (uint32_t)(Configure::GetCachePageSize() - sizeof(uint64_t));
+  const uint32_t CachePage::CRC32_HEAD_OFFSET = (uint32_t)(Configure::GetDiskClusterSize() - sizeof(uint64_t));
 
 	CachePage::CachePage(IndexTree* indexTree, uint64_t pageId) {
 		_indexTree = indexTree;
@@ -28,7 +28,7 @@ namespace storage {
 	}
 
 	bool CachePage::IsFileClosed() {
-		return _indexTree->IsFileClosed();
+		return _indexTree->IsClosed();
 	}
 
 	void CachePage::ReadPage() {
@@ -37,9 +37,9 @@ namespace storage {
 		PageFile* pageFile = _indexTree->ApplyPageFile();
 		if (_pageId != UINT64_MAX) {
 			pageFile->ReadPage(Configure::GetDiskClusterSize() + _pageId * Configure::GetCachePageSize(),
-				(char*)_bysPage, Configure::GetCachePageSize());
+				(char*)_bysPage, (uint32_t)Configure::GetCachePageSize());
 		} else {
-			pageFile->ReadPage(0, (char*)_bysPage, Configure::GetDiskClusterSize());
+			pageFile->ReadPage(0, (char*)_bysPage, (uint32_t)Configure::GetDiskClusterSize());
 		}
 		_indexTree->ReleasePageFile(pageFile);
 		_bDirty = false;
@@ -51,9 +51,9 @@ namespace storage {
 
 		if (_pageId != UINT64_MAX) {
 			pageFile->WritePage(Configure::GetDiskClusterSize() + _pageId * Configure::GetCachePageSize(),
-				(char*)_bysPage, Configure::GetCachePageSize());
+				(char*)_bysPage, (uint32_t)Configure::GetCachePageSize());
 		}	else {
-			pageFile->WritePage(0, (char*)_bysPage, Configure::GetDiskClusterSize());
+			pageFile->WritePage(0, (char*)_bysPage, (uint32_t)Configure::GetDiskClusterSize());
 		}
 		_indexTree->ReleasePageFile(pageFile);
 		_bDirty = false;

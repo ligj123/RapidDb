@@ -42,7 +42,10 @@ namespace storage {
     : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey), maxLength_(maxLength)
   {
     string str;
-    if (val.type() == typeid(int64_t)) str = move(to_string(std::any_cast<int64_t>(val)));
+    if (val.type() == typeid(std::string)) str = std::any_cast<std::string>(val);
+    else if (val.type() == typeid(const char*)) str = any_cast<const char*>(val);
+    else if (val.type() == typeid(char*)) str = any_cast<char*>(val);
+    else if (val.type() == typeid(int64_t)) str = move(to_string(std::any_cast<int64_t>(val)));
     else if (val.type() == typeid(int64_t)) str = move(to_string(std::any_cast<int64_t>(val)));
     else if (val.type() == typeid(int32_t)) str = move(to_string(std::any_cast<int32_t>(val)));
     else if (val.type() == typeid(int16_t)) str = move(to_string(std::any_cast<int16_t>(val)));
@@ -51,7 +54,6 @@ namespace storage {
     else if (val.type() == typeid(uint16_t)) str = move(to_string(std::any_cast<uint16_t>(val)));
     else if (val.type() == typeid(int8_t)) str = move(to_string(std::any_cast<int8_t>(val)));
     else if (val.type() == typeid(uint8_t)) str = move(to_string(std::any_cast<uint8_t>(val)));
-    else if (val.type() == typeid(std::string)) str = std::any_cast<std::string>(val);
     else throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT, { val.type().name(), "DataValueVarChar" });
 
     soleLength_ = (uint32_t)str.size() + 1;
@@ -114,43 +116,13 @@ namespace storage {
     }
   }
 
-  uint32_t DataValueVarChar::WriteData(Byte* buf, bool key)
+  uint32_t DataValueVarChar::WriteData(Byte* buf)
   {
-    assert(valType_ != ValueType::BYTES_VALUE);
-    if (key)
-    {
-      if (valType_ == ValueType::BYTES_VALUE)
-      {
-        std::memcpy(buf, byArray_, soleLength_);
-        return soleLength_;
-      }
-      else
-      {
-        return 0;
-      }
-    }
-    else
-    {
-      if (valType_ == ValueType::NULL_VALUE)
-      {
-        *buf = 0;
-        return 1;
-      }
-      else
-      {
-        *buf = 1;
-        buf++;
-        *((uint32_t*)buf) = soleLength_;
-        buf += sizeof(uint32_t);
-        std::memcpy(buf, soleValue_, soleLength_);
-        return (uint32_t)soleLength_ + sizeof(uint32_t) + 1;
-      }
-    }
+    return WriteData(buf, bKey_);
   }
 
   uint32_t DataValueVarChar::GetPersistenceLength(bool key) const
   {
-    assert(valType_ != ValueType::BYTES_VALUE);
     if (key)
     {
       return soleLength_;
@@ -168,24 +140,21 @@ namespace storage {
     }
   }
 
-  uint32_t DataValueVarChar::WriteData(Byte* buf)
+  uint32_t DataValueVarChar::WriteData(Byte* buf, bool key)
   {
     if (bKey_)
     {
+      assert(valType_ != ValueType::NULL_VALUE);
       if (valType_ == ValueType::BYTES_VALUE)
       {
         std::memcpy(buf, byArray_, soleLength_);
-        return soleLength_;
       }
       else if (valType_ == ValueType::SOLE_VALUE)
       {
         std::memcpy(buf, soleValue_, soleLength_);
-        return soleLength_;
       }
-      else
-      {
-        return 0;
-      }
+       
+      return soleLength_;
     }
     else
     {
@@ -219,20 +188,16 @@ namespace storage {
   {
     if (bKey_)
     {
-      if (len == 0)
-      {
-        valType_ = ValueType::NULL_VALUE;
-        return 0;
-      }
-
-      valType_ = ValueType::BYTES_VALUE;
-      byArray_ = buf;
+      assert(len > 0);
+      valType_ = ValueType::SOLE_VALUE;
+      soleValue_ = new char[len];
+      memcpy(soleValue_, buf, len);
       soleLength_ = len;
       return len;
     }
     else
     {
-      valType_ = (*buf ? ValueType::BYTES_VALUE : ValueType::NULL_VALUE);
+      valType_ = (*buf ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
       buf++;
 
       if (valType_ == ValueType::NULL_VALUE)
@@ -240,7 +205,8 @@ namespace storage {
 
       soleLength_ = *((uint32_t*)buf);
       buf += sizeof(uint32_t);
-      byArray_ = buf;
+      soleValue_ = new char[soleLength_];
+      memcpy(soleValue_, buf, soleLength_);
       return soleLength_ + sizeof(uint32_t) + 1;
     }
   }

@@ -160,8 +160,8 @@ namespace storage {
 		}
 	}
 
-	vector<LeafRecord*>& LeafPage::GetRecords(const RawKey& key) {
-		vector<LeafRecord*> vct(_recordNum);
+	vector<LeafRecord*>* LeafPage::GetRecords(const RawKey& key) {
+		vector<LeafRecord*>* vct = new vector<LeafRecord*>(_recordNum);
 		if (_recordNum == 0) return vct;
 
 		uint32_t pos = SearchKey(key, true);
@@ -169,10 +169,10 @@ namespace storage {
 			for (uint16_t i = pos; i < _recordNum; i++) {
 				uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + i * sizeof(uint16_t));
 				if (i == pos) {
-					vct.push_back(new LeafRecord(this, _bysPage + offset));
+					vct->push_back(new LeafRecord(this, _bysPage + offset));
 				}
 				else if (CompareTo(pos, key) == 0) {
-					vct.push_back(new LeafRecord(this, _bysPage + offset));
+					vct->push_back(new LeafRecord(this, _bysPage + offset));
 				}
 				else {
 					break;
@@ -183,10 +183,10 @@ namespace storage {
 			for (uint32_t i = pos; i < _vctRecord.size(); i++) {
 				LeafRecord* rr = ((LeafRecord*)_vctRecord[i])->ReferenceRecord();
 				if (i == pos) {
-					vct.push_back(rr);
+					vct->push_back(rr);
 				}
 				else if (rr->CompareKey(key) == 0) {
-					vct.push_back(rr);
+					vct->push_back(rr);
 				}
 				else {
 					rr->ReleaseRecord();
@@ -331,6 +331,27 @@ namespace storage {
 				}
 			}
 		}
+	}
+
+	LeafRecord* LeafPage::GetLastRecord() {
+		if (_recordNum == 0) return nullptr;
+		if (_vctRecord.size() > 0) {
+			return ((LeafRecord*)_vctRecord[_vctRecord.size()])->ReferenceRecord();
+		}
+		else {
+			uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + (_recordNum - 1) * sizeof(uint16_t));
+			return new LeafRecord(this, _bysPage + offset);
+		}
+	}
+
+	vector<LeafRecord*>* LeafPage::GetAllRecords() {
+		vector<LeafRecord*>* vct = new vector<LeafRecord*>(_recordNum);
+		if (_vctRecord.size() == 0) { LoadRecords(); }
+		for (RawRecord* rr : _vctRecord) {
+			vct->push_back(((LeafRecord*)rr)->ReferenceRecord());
+		}
+
+		return vct;
 	}
 
 	int LeafPage::CompareTo(uint32_t recPos, const RawKey& key) {

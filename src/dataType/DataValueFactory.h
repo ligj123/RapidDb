@@ -30,46 +30,46 @@ namespace storage {
     switch (type)
     {
     case DataType::CHAR:
-      pDv = new DataValueChar(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueChar(dfVal, bKey) : new DataValueChar(bKey);
       break;
     case DataType::SHORT:
-      pDv = new DataValueShort(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueShort(dfVal, bKey) : new DataValueShort(bKey);
       break;
     case DataType::INT:
-      pDv = new DataValueInt(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueInt(dfVal, bKey) : new DataValueInt(bKey);
       break;
     case DataType::LONG:
-      pDv = new DataValueLong(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueLong(dfVal, bKey) : new DataValueLong(bKey);
       break;
     case DataType::BYTE:
-      pDv = new DataValueByte(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueByte(dfVal, bKey) : new DataValueByte(bKey);
       break;
     case DataType::USHORT:
-      pDv = new DataValueUShort(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueUShort(dfVal, bKey) : new DataValueUShort(bKey);
       break;
     case DataType::UINT:
-      pDv = new DataValueUInt(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueUInt(dfVal, bKey) : new DataValueUInt(bKey);
       break;
     case DataType::ULONG:
-      pDv = new DataValueULong(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueULong(dfVal, bKey) : new DataValueULong(bKey);
       break;
     case DataType::FLOAT:
-      pDv = new DataValueFloat(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueFloat(dfVal, bKey) : new DataValueFloat(bKey);
       break;
     case DataType::DOUBLE:
-      pDv = new DataValueDouble(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueDouble(dfVal, bKey) : new DataValueDouble(bKey);
       break;
     case DataType::DATETIME:
-      pDv = new DataValueDate(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueDate(dfVal, bKey) : new DataValueDate(bKey);
       break;
     case DataType::BOOL:
-      pDv = new DataValueBool(dfVal, bKey);
+      pDv = dfVal.has_value() ? new DataValueBool(dfVal, bKey) : new DataValueBool(bKey);
       break;
     case DataType::FIXCHAR:
-      pDv = new DataValueFixChar(maxLen, bKey, dfVal);
+      pDv = dfVal.has_value() ? new DataValueFixChar(maxLen, bKey, dfVal) : new DataValueFixChar(maxLen, bKey);
       break;
     case DataType::VARCHAR:
-      pDv = new DataValueVarChar(maxLen, bKey, dfVal);
+      pDv = dfVal.has_value() ? new DataValueVarChar(maxLen, bKey, dfVal) : new DataValueVarChar(maxLen, bKey);
       break;
     case DataType::BLOB:
       pDv = new DataValueBlob(maxLen, bKey);
@@ -131,6 +131,59 @@ namespace storage {
       break;
     default:
       throw new ErrorMsg(DT_UNKNOWN_TYPE, { to_string((uint32_t)dv.dataType_) });
+    }
+
+    return os;
+  }
+
+  inline bool operator== (const IDataValue& dv1, const IDataValue& dv2) {
+    assert(dv1.GetDataType() == dv2.GetDataType());
+    switch (dv1.dataType_)
+    {
+    case DataType::CHAR:
+      return (const DataValueChar&)dv1 == (const DataValueChar&)dv2;
+      break;
+    case DataType::SHORT:
+      return (const DataValueShort&)dv1 == (const DataValueShort&)dv2;
+      break;
+    case DataType::INT:
+      return (const DataValueInt&)dv1 == (const DataValueInt&)dv2;
+      break;
+    case DataType::LONG:
+      return (const DataValueLong&)dv1 == (const DataValueLong&)dv2;
+      break;
+    case DataType::BYTE:
+      return (const DataValueByte&)dv1 == (const DataValueByte&)dv2;
+      break;
+    case DataType::USHORT:
+      return (const DataValueUShort&)dv1 == (const DataValueUShort&)dv2;
+      break;
+    case DataType::UINT:
+      return (const DataValueUInt&)dv1 == (const DataValueUInt&)dv2;
+      break;
+    case DataType::ULONG:
+      return (const DataValueULong&)dv1 == (const DataValueULong&)dv2;
+      break;
+    case DataType::FLOAT:
+      return (const DataValueFloat&)dv1 == (const DataValueFloat&)dv2;
+      break;
+    case DataType::DOUBLE:
+      return (const DataValueDouble&)dv1 == (const DataValueDouble&)dv2;
+      break;
+    case DataType::DATETIME:
+      return (const DataValueDate&)dv1 == (const DataValueDate&)dv2;
+      break;
+    case DataType::BOOL:
+      return (const DataValueBool&)dv1 == (const DataValueBool&)dv2;
+      break;
+    case DataType::FIXCHAR:
+      return (const DataValueFixChar&)dv1 == (const DataValueFixChar&)dv2;
+      break;
+    case DataType::VARCHAR:
+      return (const DataValueVarChar&)dv1 == (const DataValueVarChar&)dv2;
+      break;
+    default:
+      throw new ErrorMsg(DT_UNKNOWN_TYPE, { to_string((uint32_t)dv1.dataType_) });
     }
   }
 }

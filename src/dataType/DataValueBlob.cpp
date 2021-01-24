@@ -51,7 +51,7 @@ namespace storage {
     switch (valType_)
     {
     case ValueType::SOLE_VALUE:
-      soleValue_ = new char[strlen(src.soleValue_) + 1];
+      soleValue_ = new char[soleLength_];
       memcpy(soleValue_, src.soleValue_, soleLength_);
       break;
     case ValueType::BYTES_VALUE:
@@ -94,43 +94,13 @@ namespace storage {
     }
   }
 
-  uint32_t DataValueBlob::WriteData(Byte* buf, bool key)
+  uint32_t DataValueBlob::WriteData(Byte* buf)
   {
-    assert(valType_ != ValueType::BYTES_VALUE);
-    if (key)
-    {
-      if (valType_ == ValueType::SOLE_VALUE)
-      {
-        std::memcpy(buf, soleValue_, soleLength_);
-        return (uint32_t)soleLength_;
-      }
-      else
-      {
-        return 0;
-      }
-    }
-    else
-    {
-      if (valType_ == ValueType::NULL_VALUE)
-      {
-        *buf = 0;
-        return 1;
-      }
-      else
-      {
-        *buf = 1;
-        buf++;
-        *((uint32_t*)buf) = soleLength_;
-        buf += sizeof(uint32_t);
-        std::memcpy(buf, soleValue_, soleLength_);
-        return (uint32_t)soleLength_ + sizeof(uint32_t) + 1;
-      }
-    }
+    return WriteData(buf, bKey_);
   }
   
   uint32_t DataValueBlob::GetPersistenceLength(bool key) const 
   {
-    assert(valType_ != ValueType::BYTES_VALUE);
     if (key)
     {
       return soleLength_;
@@ -150,80 +120,50 @@ namespace storage {
     }
   }
 
-  uint32_t DataValueBlob::WriteData(Byte* buf)
+  uint32_t DataValueBlob::WriteData(Byte* buf, bool key)
   {
-    if (bKey_)
-    {
-      if (valType_ == ValueType::BYTES_VALUE)
-      {
-        std::memcpy(buf, byArray_, soleLength_);
-        return soleLength_;
-      }
-      else if (valType_ == ValueType::SOLE_VALUE)
-      {
-        std::memcpy(buf, soleValue_, soleLength_);
-        return (uint32_t)soleLength_;
-      }
-      else
-      {
-        return 0;
-      }
-    }
-    else
-    {
-      if (valType_ == ValueType::NULL_VALUE)
-      {
-        *buf = 0;
-        return 1;
-      }
-      else if (valType_ == ValueType::BYTES_VALUE)
-      {
-        *buf = 1;
-        buf++;
-        *((uint32_t*)buf) = soleLength_;
-        buf += sizeof(uint32_t);
-        std::memcpy(buf, byArray_, soleLength_);
-        return soleLength_ + sizeof(uint32_t) + 1;
-      }
-      else
-      {
-        *buf = 1;
-        buf++;
-        *((uint32_t*)buf) = soleLength_;
-        buf += sizeof(uint32_t);
-        std::memcpy(buf, soleValue_, soleLength_);
-        return (uint32_t)soleLength_ + sizeof(uint32_t) + 1;
-      }
-    }
-  }
-  uint32_t DataValueBlob::ReadData(Byte* buf, uint32_t len)
-  {
-    if (bKey_)
-    {
-      if (len == 0)
-      {
-        valType_ = ValueType::NULL_VALUE;
-        return 0;
-      }
+    assert(!bKey_);
 
-      valType_ = ValueType::BYTES_VALUE;
-      byArray_ = buf;
-      soleLength_ = len;
-      return len;
-    }
-    else
+    if (valType_ == ValueType::NULL_VALUE)
     {
-      valType_ = (*buf ? ValueType::BYTES_VALUE : ValueType::NULL_VALUE);
+      *buf = 0;
+      return 1;
+    }
+    else if (valType_ == ValueType::BYTES_VALUE)
+    {
+      *buf = 1;
       buf++;
-
-      if (valType_ == ValueType::NULL_VALUE)
-        return 1;
-
-      soleLength_ = *((uint32_t*)buf);
+      *((uint32_t*)buf) = soleLength_;
       buf += sizeof(uint32_t);
-      byArray_ = buf;
+      std::memcpy(buf, byArray_, soleLength_);
       return soleLength_ + sizeof(uint32_t) + 1;
     }
+    else
+    {
+      *buf = 1;
+      buf++;
+      *((uint32_t*)buf) = soleLength_;
+      buf += sizeof(uint32_t);
+      std::memcpy(buf, soleValue_, soleLength_);
+      return (uint32_t)soleLength_ + sizeof(uint32_t) + 1;
+    }
+  }
+
+  uint32_t DataValueBlob::ReadData(Byte* buf, uint32_t len)
+  {
+    assert(!bKey_);
+
+    valType_ = (*buf ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+    buf++;
+
+    if (valType_ == ValueType::NULL_VALUE)
+      return 1;
+
+    soleLength_ = *((uint32_t*)buf);
+    buf += sizeof(uint32_t);
+    soleValue_ = new char[soleLength_];
+    memcpy(soleValue_, buf, soleLength_);
+    return soleLength_ + sizeof(uint32_t) + 1;
   }
 
   uint32_t DataValueBlob::GetDataLength() const
@@ -351,6 +291,18 @@ namespace storage {
     }
 
     return *this;
+  }
+
+  bool DataValueBlob::operator == (const DataValueBlob& dv) const
+  {
+    if (valType_ == ValueType::NULL_VALUE) { return dv.valType_ == ValueType::NULL_VALUE; }
+    if (dv.valType_ == ValueType::NULL_VALUE) { return false; }
+
+    if (GetDataLength() != dv.GetDataLength()) return false;
+
+    const char* v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : (char*)byArray_);
+    const char* v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : (char*)dv.byArray_);
+    return memcmp(v1, v2, GetDataLength()) == 0;
   }
 
   std::ostream& operator<< (std::ostream& os, const DataValueBlob& dv)

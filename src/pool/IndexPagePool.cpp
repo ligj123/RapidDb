@@ -15,7 +15,7 @@ namespace storage {
 		_mapCache.insert(pair<uint64_t, IndexPage*>(page->HashCode(), page));
 	}
 
-	IndexPage* IndexPagePool::GetPage(long pageId) {
+	IndexPage* IndexPagePool::GetPage(uint64_t pageId) {
 		shared_lock<utils::SharedSpinMutex> lock(_rwLock);
 		auto iter = _mapCache.find(pageId);
 		if (iter != _mapCache.end()) {

@@ -287,7 +287,6 @@ namespace utils {
 	inline void Int8ToBytes(int8_t val, Byte* pArr, bool bkey = false)
 	{
 		if (bkey) val ^= 0x80;
-		Byte* buf = (Byte*)&val;
 		pArr[0] = val;
 	}
 

@@ -26,11 +26,11 @@ namespace storage {
 			return GetPage(CachePage::CalcHashCode(fileId, offset));
 		}
 
-		static IndexPage* GetPage(long pageId);
+		static IndexPage* GetPage(uint64_t pageId);
 		/**Only used for test to remove results from previous test cases*/
 		static void CleanPool();
 
-		static int getCacheSize() {	return _mapCache.size(); }
+		static uint64_t getCacheSize() {	return _mapCache.size(); }
 
 
 //		static int testCount = 0;

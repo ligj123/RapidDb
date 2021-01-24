@@ -18,10 +18,10 @@ namespace utils {
     }
 
     inline bool try_lock() noexcept {
-      return !_flag.load(std::memory_order_relaxed) &&
+      bool b =  !_flag.load(std::memory_order_relaxed) &&
         !_flag.exchange(true, std::memory_order_acquire);
-
-      _owner = thread_hasher(std::this_thread::get_id());
+      if (b) _owner = thread_hasher(std::this_thread::get_id());
+      return b;
     }
 
     inline void unlock() noexcept {
@@ -33,6 +33,8 @@ namespace utils {
     inline bool is_locked() {
       return _flag.load(std::memory_order_relaxed);
     }
+
+    inline size_t owner() { return _owner; }
 
   protected:
     std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
@@ -66,10 +68,10 @@ namespace utils {
           return false;
         }
 
+        _owner = thread_hasher(std::this_thread::get_id());
         return true;
       }
 
-      _owner = thread_hasher(std::this_thread::get_id());
       return false;
     }
 
@@ -105,6 +107,7 @@ namespace utils {
     }
 
     inline void unlock_shared() noexcept {
+      assert(_owner == 0);
       _readCount.fetch_sub(1, std::memory_order_relaxed);
     }
 
@@ -121,7 +124,7 @@ namespace utils {
         _readCount.load(std::memory_order_relaxed) > 0;
     }
   protected:
-    std::atomic<uint32_t> _readCount{ 0 };
+    std::atomic<int32_t> _readCount{ 0 };
     std::atomic<bool> _writeFlag{ false };
     size_t _owner = 0;
     std::hash<std::thread::id> thread_hasher;
@@ -137,31 +140,31 @@ namespace utils {
       size_t currId = thread_hasher(std::this_thread::get_id());
       if (_owner == currId)
       {
-        _rcvCount++;
+        _reenCount++;
         return;
       }
       while (_flag.exchange(true, std::memory_order_acquire))
       {
         std::this_thread::yield();
       }
-      assert(_rcvCount == 0);
+      assert(_reenCount == 0 && _owner == 0);
       _owner = currId;
-      _rcvCount = 1;
+      _reenCount = 1;
     }
 
     bool try_lock() noexcept {
       size_t currId = thread_hasher(std::this_thread::get_id());
       if (_owner == currId)
       {
-        _rcvCount++;
+        _reenCount++;
         return true;
       }
 
       if (!_flag.load(std::memory_order_relaxed) && !_flag.exchange(true, std::memory_order_acquire))
       {
-        assert(_rcvCount == 0);
+        assert(_reenCount == 0);
         _owner = currId;
-        _rcvCount = 1;
+        _reenCount = 1;
         return true;
       }
 
@@ -170,8 +173,8 @@ namespace utils {
 
     inline void unlock() noexcept {
       assert(_owner == thread_hasher(std::this_thread::get_id()));
-      _rcvCount--;
-      if (_rcvCount == 0)
+      _reenCount--;
+      if (_reenCount == 0)
       {
         _owner = 0;
         _flag.store(false, std::memory_order_release);
@@ -181,10 +184,12 @@ namespace utils {
     inline bool is_locked() {
       return _flag.load(std::memory_order_relaxed);
     }
+
+    inline int32_t reentrantCount() { return _reenCount; }
   protected:
     std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
     size_t _owner = 0;
-    int32_t _rcvCount = 0;
+    int32_t _reenCount = 0;
     std::hash<std::thread::id> thread_hasher;
   };
 
@@ -198,8 +203,8 @@ namespace utils {
       size_t currId = thread_hasher(std::this_thread::get_id());
       if (_owner == currId)
       {
-        assert(_rcvCount > 0);
-        _rcvCount++;
+        assert(_reenCount > 0);
+        _reenCount++;
         return;
       }
 
@@ -211,17 +216,17 @@ namespace utils {
         std::this_thread::yield();
       }
 
-      assert(_rcvCount == 0);
+      assert(_reenCount == 0);
       _owner = currId;
-      _rcvCount = 1;
+      _reenCount = 1;
     }
 
     inline bool try_lock() noexcept {
       size_t currId = thread_hasher(std::this_thread::get_id());
       if (_owner == currId)
       {
-        assert(_rcvCount > 0);
-        _rcvCount++;
+        assert(_reenCount > 0);
+        _reenCount++;
         return true;
       }
 
@@ -232,9 +237,9 @@ namespace utils {
           return false;
         }
 
-        assert(_rcvCount == 0);
+        assert(_reenCount == 0);
         _owner = currId;
-        _rcvCount = 1;
+        _reenCount = 1;
         return true;
       }
 
@@ -243,8 +248,8 @@ namespace utils {
 
     void unlock() noexcept {
       assert(_owner == thread_hasher(std::this_thread::get_id()));
-      _rcvCount--;
-      if (_rcvCount == 0)
+      _reenCount--;
+      if (_reenCount == 0)
       {
         _owner = 0;
         _writeFlag.store(false, std::memory_order_release);
@@ -292,11 +297,13 @@ namespace utils {
       return  _writeFlag.load(std::memory_order_relaxed) ||
         _readCount.load(std::memory_order_relaxed) > 0;
     }
+
+    inline int32_t reentrantCount() { return _reenCount; }
   protected:
-    std::atomic<uint32_t> _readCount{ 0 };
+    std::atomic<int32_t> _readCount{ 0 };
     std::atomic<bool> _writeFlag{ false };
     size_t _owner = 0;
-    int32_t _rcvCount = 0;
+    int32_t _reenCount = 0;
     std::hash<std::thread::id> thread_hasher;
   };
 }

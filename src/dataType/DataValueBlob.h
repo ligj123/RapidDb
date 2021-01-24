@@ -35,7 +35,7 @@ namespace storage {
     DataValueBlob& operator=(const char* val);
     void Put(uint32_t len, char* val);
     DataValueBlob& operator=(const DataValueBlob& src);
-
+    bool operator == (const DataValueBlob& dv) const;
     friend std::ostream& operator<< (std::ostream& os, const DataValueBlob& dv);
 
   protected:

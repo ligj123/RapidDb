@@ -1,11 +1,19 @@
 #define BOOST_TEST_MODULE RapidDb
 #include  <boost/test/unit_test.hpp>
 #include "../src/utils/log.h"
+#include <string>
+#include  <filesystem>
+
+namespace fs = std::filesystem;
+static const std::string ROOT_PATH = "./dbTest";
 
 struct GlobalFixTure {
   GlobalFixTure() {
     std::cout << "Start global fixture." << std::endl;
     utils::Logger::init();
+
+    fs::path path(ROOT_PATH);
+    if (!fs::exists(path)) fs::create_directories(path);
   };
  
   ~GlobalFixTure() {

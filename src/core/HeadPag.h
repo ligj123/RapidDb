@@ -208,7 +208,5 @@ namespace storage {
 			WriteShort(VALUE_VARIABLE_FIELD_COUNT, num);
 			_bDirty = true;
 		}
-
-		void Release() override {}
 	};
 }

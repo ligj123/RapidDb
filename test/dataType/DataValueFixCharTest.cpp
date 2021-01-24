@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test)
 
 		DataValueFixChar dv2(100, true);
 		BOOST_TEST(dv2.GetMaxLength() == 100);
-		BOOST_TEST(dv2.GetDataLength() == 0);
+		BOOST_TEST(dv2.GetDataLength() == 100);
 		BOOST_TEST(dv2.GetPersistenceLength() == 100);
 		DataValueFixChar dv3(100, true);
 		BOOST_TEST(dv1 == dv2);
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test)
 		BOOST_TEST(dv4.GetDataType() == DataType::FIXCHAR);
 		BOOST_TEST(dv4.GetValueType() == ValueType::SOLE_VALUE);
 		BOOST_TEST(!dv4.IsNull());
-		BOOST_TEST(dv4.GetDataLength() == 5);
+		BOOST_TEST(dv4.GetDataLength() == DEFAULT_MAX_LEN);
 		BOOST_TEST(dv4.GetMaxLength() == DEFAULT_MAX_LEN);
 		BOOST_TEST(dv4.GetPersistenceLength() == DEFAULT_MAX_LEN + 1);
 		BOOST_TEST(dv1 < dv4);
@@ -73,6 +73,15 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test)
 		dv10.WriteData(buf + 30);
 		dv3.ReadData(buf + 30);
 		BOOST_TEST(dv3 == dv10);
+
+		DataValueFixChar* pDv = dv10.CloneDataValue();
+		BOOST_TEST(pDv->GetValueType() == ValueType::NULL_VALUE);
+		delete pDv;
+
+		pDv = dv10.CloneDataValue(true);
+		BOOST_TEST(pDv->GetValueType() == ValueType::SOLE_VALUE);
+		BOOST_TEST((string)(*pDv) == pStr);
+		delete pDv;
 	}
 	BOOST_AUTO_TEST_SUITE_END()
 }

@@ -12,7 +12,7 @@ namespace storage {
 	class PageDividePool
 	{
 	public:
-		static const uint32_t MAX_QUEUE_SIZE;
+		static const uint64_t MAX_QUEUE_SIZE;
 		static const uint32_t BUFFER_FLUSH_INTEVAL_MS;
 		static const int SLEEP_INTEVAL_MS;
 		static const float PAGE_DIVIDE_LIMIT;

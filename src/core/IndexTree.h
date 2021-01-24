@@ -23,9 +23,10 @@ namespace storage {
 		void InsertRecord(LeafRecord* rr);
 		void UpdateRootPage(IndexPage* root);
 		LeafRecord* GetRecord(const RawKey& key);
-		vector<LeafRecord*>& GetRecords(const RawKey& key);
-		vector<LeafRecord*>& QueryRecord(RawKey* keyStart, RawKey* keyEnd,
+		vector<LeafRecord*>* GetRecords(const RawKey& key);
+		vector<LeafRecord*>* QueryRecord(RawKey* keyStart, RawKey* keyEnd,
 			bool bIncLeft, bool bIncRight);
+		IndexPage* AllocateNewPage(uint64_t parentId, Byte pageLevel);
 
 		uint64_t GetRecordsCount() { return _headPage->ReadTotalRecordNum(); }
 		string& GetFileName() { return _fileName; }
@@ -46,8 +47,8 @@ namespace storage {
 		HeadPage* GetHeadPage() { return _headPage; }
 		uint32_t IncreaseTasks() { return _tasksWaiting.fetch_add(1); }
 		uint32_t DecreaseTasks() { return _tasksWaiting.fetch_sub(1);	}
-		vector<IDataValue*>& CloneKeys();
-		vector<IDataValue*>& CloneValues();
+		vector<IDataValue*>* CloneKeys();
+		vector<IDataValue*>* CloneValues();
 		IndexPage* GetPage(uint64_t pageId, bool bLeafPage);
 	protected:
 		LeafPage* SearchRecursively(bool isEdit, const RawKey& key);

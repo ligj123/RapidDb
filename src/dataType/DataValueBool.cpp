@@ -79,54 +79,22 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueBool::WriteData(Byte* buf, bool key)
+	uint32_t DataValueBool::WriteData(Byte* buf)
 	{
-		assert(valType_ != ValueType::BYTES_VALUE);
-		if (key)
-		{
-			if (valType_ == ValueType::NULL_VALUE)
-			{
-				*buf = 0;
-			}
-			else if (valType_ == ValueType::SOLE_VALUE)
-			{
-				*buf = soleValue_;
-			}
-
-			return 1;
-		}
-		else
-		{
-			if (valType_ == ValueType::NULL_VALUE)
-			{
-				*buf = 0;
-				return 1;
-			}
-			else
-			{
-				*buf = 1;
-				buf++;
-				*buf = soleValue_;
-				return 2;
-			}
-		}
+		return WriteData(buf, bKey_);
 	}
 
 	uint32_t DataValueBool::GetPersistenceLength(bool key) const
 	{
-		assert(valType_ != ValueType::BYTES_VALUE);
 		return key ? 1 : (valType_ == ValueType::NULL_VALUE ? 1 : 2);
 	}
 
-	uint32_t DataValueBool::WriteData(Byte* buf)
+	uint32_t DataValueBool::WriteData(Byte* buf, bool key)
 	{
-		if (bKey_)
+		if (key)
 		{
-			if (valType_ == ValueType::NULL_VALUE)
-			{
-				*buf = 0;
-			}
-			else if (valType_ == ValueType::BYTES_VALUE)
+			assert(valType_ != ValueType::NULL_VALUE);
+			if (valType_ == ValueType::BYTES_VALUE)
 			{
 				*buf = *byArray_;
 			}
@@ -165,25 +133,19 @@ namespace storage {
 	{
 		if (bKey_)
 		{
-			if (len == -1)
-			{
-				valType_ = ValueType::NULL_VALUE;
-				return 1;
-			}
-
-			valType_ = ValueType::BYTES_VALUE;
-			byArray_ = buf;
+			valType_ = ValueType::SOLE_VALUE;
+			soleValue_ = *buf;
 			return 1;
 		}
 		else
 		{
-			valType_ = (*buf ? ValueType::BYTES_VALUE : ValueType::NULL_VALUE);
+			valType_ = (*buf ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
 
 			if (valType_ == ValueType::NULL_VALUE)
 				return 1;
 
 			buf++;
-			byArray_ = buf;
+			soleValue_ = *buf;
 			return 2;
 		}
 	}

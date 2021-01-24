@@ -71,54 +71,22 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueULong::WriteData(Byte* buf, bool key)
+	uint32_t DataValueULong::WriteData(Byte* buf)
 	{
-		assert(valType_ != ValueType::BYTES_VALUE);
-		if (key)
-		{
-			if (valType_ == ValueType::NULL_VALUE)
-			{
-				std::memset(buf, 0, sizeof(uint64_t));
-			}
-			else if (valType_ == ValueType::SOLE_VALUE)
-			{
-				utils::UInt64ToBytes(soleValue_, buf, bKey_);
-			}
-
-			return sizeof(uint64_t);
-		}
-		else
-		{
-			if (valType_ == ValueType::NULL_VALUE)
-			{
-				*buf = 0;
-				return 1;
-			}
-			else
-			{
-				*buf = 1;
-				buf++;
-				utils::UInt64ToBytes(soleValue_, buf, bKey_);
-				return sizeof(uint64_t) + 1;
-			}
-		}
+		return WriteData(buf, bKey_);
 	}
 
 	uint32_t DataValueULong::GetPersistenceLength(bool key) const
 	{
-		assert(valType_ != ValueType::BYTES_VALUE);
 		return key ? sizeof(uint64_t) : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(uint64_t));
 	}
 
-	uint32_t DataValueULong::WriteData(Byte* buf)
+	uint32_t DataValueULong::WriteData(Byte* buf, bool key)
 	{
-		if (bKey_)
+		if (key)
 		{
-			if (valType_ == ValueType::NULL_VALUE)
-			{
-				std::memset(buf, 0, sizeof(uint64_t));
-			}
-			else if (valType_ == ValueType::BYTES_VALUE)
+			assert(valType_ != ValueType::NULL_VALUE);
+			if (valType_ == ValueType::BYTES_VALUE)
 			{
 				std::memcpy(buf, byArray_, sizeof(uint64_t));
 			}
@@ -157,25 +125,19 @@ namespace storage {
 	{
 		if (bKey_)
 		{
-			if (len == -1)
-			{
-				valType_ = ValueType::NULL_VALUE;
-				return sizeof(uint64_t);
-			}
-
-			valType_ = ValueType::BYTES_VALUE;
-			byArray_ = buf;
+			valType_ = ValueType::SOLE_VALUE;
+			soleValue_ = utils::UInt64FromBytes(buf, bKey_);
 			return sizeof(uint64_t);
 		}
 		else
 		{
-			valType_ = (*buf ? ValueType::BYTES_VALUE : ValueType::NULL_VALUE);
+			valType_ = (*buf ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
 			buf++;
 
 			if (valType_ == ValueType::NULL_VALUE)
 				return 1;
 
-			byArray_ = buf;
+			soleValue_ = utils::UInt64FromBytes(buf, bKey_);
 			return sizeof(uint64_t) + 1;
 		}
 	}

@@ -78,21 +78,21 @@ namespace storage {
 			_fileQueue.pop();
 		}
 	}
-	vector<IDataValue*>& IndexTree::CloneKeys()
+	vector<IDataValue*>* IndexTree::CloneKeys()
 	{
-		vector<IDataValue*> vct(_vctKey.size());
+		vector<IDataValue*>* vct = new vector<IDataValue*>(_vctKey.size());
 		for (IDataValue* dv : _vctKey) {
-			vct.push_back(dv->CloneDataValue(false));
+			vct->push_back(dv->CloneDataValue(false));
 		}
 
 		return vct;
 	}
 
-	vector<IDataValue*>& IndexTree::CloneValues()
+	vector<IDataValue*>* IndexTree::CloneValues()
 	{
-		vector<IDataValue*> vct(_vctValue.size());
+		vector<IDataValue*>* vct = new vector<IDataValue*>(_vctValue.size());
 		for (IDataValue* dv : _vctValue) {
-			vct.push_back(dv->CloneDataValue(false));
+			vct->push_back(dv->CloneDataValue(false));
 		}
 
 		return vct;
@@ -153,7 +153,7 @@ namespace storage {
 
 		page->InsertRecord(rr);
 
-		if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 5) {
+		if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 5U) {
 			page->PageDivide();
 		}
 		page->WriteUnlock();
@@ -225,12 +225,13 @@ namespace storage {
 		return rr;
 	}
 
-	vector<LeafRecord*>& IndexTree::GetRecords(const RawKey& key) {
-		vector<LeafRecord*> vct;
+	vector<LeafRecord*>* IndexTree::GetRecords(const RawKey& key) {
+		vector<LeafRecord*>* vct = new vector<LeafRecord*>;
 		LeafPage* page = SearchRecursively(false, key);
 		while (true) {
-			vector<LeafRecord*> vctLr = page->GetRecords(key);
-			vct.insert(vct.end(), vctLr.begin(), vctLr.end());
+			vector<LeafRecord*>* vctLr = page->GetRecords(key);
+			vct->insert(vct->end(), vctLr->begin(), vctLr->end());
+			delete vctLr;
 
 			LeafRecord* lastLr = page->GetLastRecord();
 			if (lastLr != nullptr && lastLr->CompareKey(key) > 0) {
@@ -258,9 +259,9 @@ namespace storage {
 		return vct;
 	}
 
-	vector<LeafRecord*>& IndexTree::QueryRecord(RawKey* keyStart, RawKey* keyEnd,
+	vector<LeafRecord*>* IndexTree::QueryRecord(RawKey* keyStart, RawKey* keyEnd,
 		bool bIncLeft, bool bIncRight) {
-		vector<LeafRecord*> vctRt;
+		vector<LeafRecord*>* vctRt = new vector<LeafRecord*>;
 		LeafPage* page = nullptr;
 		uint32_t pos = 0;
 		if (keyStart == nullptr) {
@@ -275,20 +276,20 @@ namespace storage {
 
 		bool bStart = true;
 		while (true) {
-			vector<LeafRecord*>& vct = page->GetAllRecords();
-			for (int i = 0; i < pos; i++) {
-				vct[i]->ReleaseRecord();
+			vector<LeafRecord*>* vct = page->GetAllRecords();
+			for (uint32_t i = 0; i < pos; i++) {
+				(*vct)[i]->ReleaseRecord();
 			}
 
 			if (keyStart != nullptr && bStart && !bIncLeft) {
-				for (; pos < vct.size(); pos++) {
-					if (vct[pos]->CompareKey(*keyStart) != 0)
+				for (; pos < vct->size(); pos++) {
+					if ((*vct)[pos]->CompareKey(*keyStart) != 0)
 						break;
 
-					vct[pos]->ReleaseRecord();
+					(*vct)[pos]->ReleaseRecord();
 				}
 
-				if (pos >= vct.size()) {
+				if (pos >= vct->size()) {
 					uint64_t idNext = page->GetNextPageId();
 					if (idNext == HeadPage::NO_NEXT_PAGE_POINTER) {
 						break;
@@ -307,8 +308,8 @@ namespace storage {
 			}
 
 			int count = 0;
-			for (; pos < vct.size(); pos++) {
-				LeafRecord* rr = vct[pos];
+			for (; pos < vct->size(); pos++) {
+				LeafRecord* rr = (*vct)[pos];
 				if (keyEnd != nullptr) {
 					int hr = rr->CompareKey(*keyEnd);
 					if ((!bIncRight && hr >= 0) || hr > 0) {
@@ -317,17 +318,17 @@ namespace storage {
 				}
 
 				count++;
-				vctRt.push_back(rr);
+				vctRt->push_back(rr);
 			}
 
-			if (pos < vct.size()) {
-				for (; pos < vct.size(); pos++) {
-					vct[pos]->ReleaseRecord();
+			if (pos < vct->size()) {
+				for (; pos < vct->size(); pos++) {
+					(*vct)[pos]->ReleaseRecord();
 				}
 
 				break;
 			}
-
+			delete vct;
 			uint64_t nextId = page->GetNextPageId();
 			if (nextId == HeadPage::NO_PARENT_POINTER)
 				break;
@@ -343,6 +344,22 @@ namespace storage {
 		page->ReadUnlock();
 		page->DecRefCount();
 		return vctRt;
+	}
+
+	IndexPage* IndexTree::AllocateNewPage(uint64_t parentId, Byte pageLevel) {
+		uint64_t newPageId = _headPage->GetAndIncTotalPageNum();
+		IndexPage* page = nullptr;
+		if (0 != pageLevel) {
+			page = new BranchPage(this, newPageId, pageLevel, parentId);
+		}
+		else {
+			page = new LeafPage(this, newPageId, parentId);
+		}
+
+		page->IncRefCount();
+
+		LOG_DEBUG << "Allocate new CachePage, pageLevel=" << pageLevel << "  pageId=" << newPageId;
+		return page;
 	}
 
 	LeafPage* IndexTree::SearchRecursively(bool isEdit, const RawKey& key) {

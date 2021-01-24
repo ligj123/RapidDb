@@ -3,6 +3,25 @@
 #include "../utils/Log.h"
 
 namespace storage {
+	PageFile::PageFile(const string& path, bool overflowFile) {
+		_bOverflowFile = overflowFile;
+		_path = path;
+		_file.open(path, ios::in | ios::out | ios::binary);
+		if (!_file.is_open()) {
+			_file.open(path, ios::out);
+			if (!_file.is_open()) throw utils::ErrorMsg(FILE_OPEN_FAILED, { path });
+			_file.close();
+			_file.open(path, ios::in | ios::out | ios::binary);
+		}
+
+		if (_bOverflowFile) {
+			uint64_t len = Length();
+			len += Configure::GetDiskClusterSize() - 1;
+			len = len - len % Configure::GetDiskClusterSize();
+			_overFileLength.store(len);
+		}
+	}
+
 	uint32_t PageFile::ReadPage(uint64_t fileOffset, char* bys, uint32_t length) {
 		assert(fileOffset % Configure::GetDiskClusterSize() == 0);
 		assert(Length() > fileOffset);
@@ -69,7 +88,7 @@ namespace storage {
 
 			pos = 0;
 			for (size_t i = dvStart; i < vctDv.size(); i++) {
-				pos += vctDv[i]->ReadData(buf, -1);
+				pos += vctDv[i]->ReadData(buf + pos, -1);
 			}
 		}
 		else

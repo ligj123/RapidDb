@@ -8,7 +8,7 @@ namespace storage {
 	{
 	public:
 		DataValueBool(bool bKey = false);
-		DataValueBool(bool val, bool bKey = false);
+		DataValueBool(bool val, bool bKey);
 		DataValueBool(Byte* byArray, bool bKey = false);
 		DataValueBool(const DataValueBool& src);
 		DataValueBool(std::any val, bool bKey = false);

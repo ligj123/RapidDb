@@ -53,7 +53,7 @@ namespace storage {
     if (_bRecordUpdate) {
       Byte* tmp = _bysPage;
       _bysPage = CachePool::ApplyPage();
-      uint16_t pos = DATA_BEGIN_OFFSET + _recordNum * sizeof(uint16_t);
+      uint16_t pos = (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * sizeof(uint16_t));
 
       for (int i = 0; i < _vctRecord.size(); i++) {
         WriteShort(DATA_BEGIN_OFFSET + sizeof(uint16_t) * i, pos);

@@ -56,8 +56,8 @@ namespace storage {
 			throw utils::ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
 		}
 
-		uint16_t lenVal = (bPri ? 0 : valVarNum * sizeof(uint16_t));
-		uint16_t max_lenVal = Configure::GetMaxRecordLength() - lenKey - sizeof(uint16_t) * 3;
+		uint16_t lenVal = (uint16_t)(bPri ? 0 : valVarNum * sizeof(uint16_t));
+		uint16_t max_lenVal = (uint16_t)(Configure::GetMaxRecordLength() - lenKey - sizeof(uint16_t) * 3);
 		for (i = 0; i < vctVal.size(); i++) {
 			lenVal += vctVal[i]->GetPersistenceLength(!bPri);
 			if (lenVal > max_lenVal) {
@@ -73,8 +73,8 @@ namespace storage {
 				sizeOverflow += vctVal[i]->GetPersistenceLength(false);
 			}
 
-			sizeOverflow = (sizeOverflow + Configure::GetDiskClusterSize() - 1);
-			sizeOverflow = sizeOverflow - sizeOverflow % Configure::GetDiskClusterSize();
+			sizeOverflow = (uint32_t)(sizeOverflow + Configure::GetDiskClusterSize() - 1);
+			sizeOverflow = (uint16_t)(sizeOverflow - sizeOverflow % Configure::GetDiskClusterSize());
 			lenVal += sizeof(uint64_t) + sizeof(uint32_t);
 		}
 
@@ -100,7 +100,7 @@ namespace storage {
 		pos = (3 + valVarNum) * sizeof(uint16_t) + lenKey;
 		lenPos = 3 * sizeof(uint16_t) + lenKey;
 
-		uint16_t ovfStart = (indexOvfStart == UINT16_MAX ? vctVal.size() : indexOvfStart);
+		uint16_t ovfStart = (uint16_t)(indexOvfStart == UINT16_MAX ? vctVal.size() : indexOvfStart);
 		for (i = 0; i < ovfStart; i++) {
 			if (!bPri) {
 				int len = vctVal[i]->WriteData(_bysVal + pos, true);
@@ -149,41 +149,41 @@ namespace storage {
 		_undoRecords = old;
 	}
 
-	vector<IDataValue*>& LeafRecord::GetListKey() const {
-		vector<IDataValue*>& vctKey = _indexTree->CloneKeys();
+	vector<IDataValue*>* LeafRecord::GetListKey() const {
+		vector<IDataValue*>* vctKey = _indexTree->CloneKeys();
 		uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
 		uint16_t pos = (3 + keyVarNum) * sizeof(uint16_t);
 		uint16_t lenPos = 3 * sizeof(uint16_t);
 
-		for (uint16_t i = 0; i < vctKey.size(); i++) {
+		for (uint16_t i = 0; i < vctKey->size(); i++) {
 			uint16_t len = 0;
-			if (!vctKey[i]->IsFixLength()) {
+			if (!(*vctKey)[i]->IsFixLength()) {
 				len = *((uint16_t*)(_bysVal + lenPos));
 				lenPos += sizeof(uint16_t);
 			}
 
-			pos += vctKey[i]->ReadData(_bysVal + pos, len);
+			pos += (*vctKey)[i]->ReadData(_bysVal + pos, len);
 		}
 
 		return vctKey;
 	}
 
-	vector<IDataValue*>& LeafRecord::GetListValue() const {
-		vector<IDataValue*>& vctVal = _indexTree->CloneValues();
+	vector<IDataValue*>* LeafRecord::GetListValue() const {
+		vector<IDataValue*>* vctVal = _indexTree->CloneValues();
 		bool bPri = (_indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY);
 		uint16_t valVarNum = bPri ? 0 : _indexTree->GetHeadPage()->ReadValueVariableFieldCount();
 		uint16_t pos = GetKeyLength() + (3 + valVarNum) * sizeof(uint16_t);
 		uint16_t lenPos = 3 * sizeof(uint16_t) + GetKeyLength();
 
-		int fCount = (GetIndexOvfStart() != UINT16_MAX ? GetIndexOvfStart() : vctVal.size());
+		uint16_t fCount = (uint16_t)(GetIndexOvfStart() != UINT16_MAX ? GetIndexOvfStart() : vctVal->size());
 		for (uint16_t i = 0; i < fCount; i++) {
 			uint16_t len = 0;
-			if (!vctVal[i]->IsFixLength() && !bPri) {
+			if (!(*vctVal)[i]->IsFixLength() && !bPri) {
 				len = *((uint16_t*)(_bysVal + lenPos));
 				lenPos += sizeof(uint16_t);
 			}
 
-			pos += vctVal[i]->ReadData(_bysVal + pos, len);
+			pos += (*vctVal)[i]->ReadData(_bysVal + pos, len);
 		}
 
 		return vctVal;
@@ -236,19 +236,21 @@ namespace storage {
 	}
 
 	std::ostream& operator<< (std::ostream& os, const LeafRecord& lr) {
-		vector<IDataValue*>& vctKey = lr.GetListKey();
+		vector<IDataValue*>* vctKey = lr.GetListKey();
 		os << "TotalLen=" << lr.GetTotalLength() << "  Keys=";
-		for (IDataValue* dv : vctKey) {
+		for (IDataValue* dv : *vctKey) {
 			os << *dv << "; ";
 			delete dv;
 		}
+		delete vctKey;
 
-		vector<IDataValue*>& vctVal = lr.GetListValue();
+		vector<IDataValue*>* vctVal = lr.GetListValue();
 		os << "  Values=";
-		for (IDataValue* dv : vctVal) {
+		for (IDataValue* dv : *vctVal) {
 			os << *dv << "; ";
 			delete dv;
 		}
+		delete vctVal;
 
 		return os;
 	}

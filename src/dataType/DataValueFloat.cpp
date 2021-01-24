@@ -73,54 +73,22 @@ namespace storage {
 		}
 	}
 
-	uint32_t DataValueFloat::WriteData(Byte* buf, bool key)
+	uint32_t DataValueFloat::WriteData(Byte* buf)
 	{
-		assert(valType_ != ValueType::BYTES_VALUE);
-		if (key)
-		{
-			if (valType_ == ValueType::NULL_VALUE)
-			{
-				std::memset(buf, 0, sizeof(float));
-			}
-			else if (valType_ == ValueType::SOLE_VALUE)
-			{
-				utils::FloatToBytes(soleValue_, buf, bKey_);
-			}
-
-			return sizeof(float);
-		}
-		else
-		{
-			if (valType_ == ValueType::NULL_VALUE)
-			{
-				*buf = 0;
-				return 1;
-			}
-			else
-			{
-				*buf = 1;
-				buf++;
-				utils::FloatToBytes(soleValue_, buf, bKey_);
-				return sizeof(float) + 1;
-			}
-		}
+		return WriteData(buf, bKey_);
 	}
 
 	uint32_t DataValueFloat::GetPersistenceLength(bool key) const
 	{
-		assert(valType_ != ValueType::BYTES_VALUE);
 		return key ? sizeof(float) : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(float));
 	}
 
-	uint32_t DataValueFloat::WriteData(Byte* buf)
+	uint32_t DataValueFloat::WriteData(Byte* buf, bool key)
 	{
-		if (bKey_)
+		if (key)
 		{
-			if (valType_ == ValueType::NULL_VALUE)
-			{
-				std::memset(buf, 0, sizeof(float));
-			}
-			else if (valType_ == ValueType::BYTES_VALUE)
+			assert(valType_ != ValueType::NULL_VALUE);
+			if (valType_ == ValueType::BYTES_VALUE)
 			{
 				std::memcpy(buf, byArray_, sizeof(float));
 			}
@@ -159,25 +127,19 @@ namespace storage {
 	{
 		if (bKey_)
 		{
-			if (len == -1)
-			{
-				valType_ = ValueType::NULL_VALUE;
-				return sizeof(float);
-			}
-
-			valType_ = ValueType::BYTES_VALUE;
-			byArray_ = buf;
+			valType_ = ValueType::SOLE_VALUE;
+			soleValue_ = utils::FloatFromBytes(buf, bKey_);
 			return sizeof(float);
 		}
 		else
 		{
-			valType_ = (*buf ? ValueType::BYTES_VALUE : ValueType::NULL_VALUE);
+			valType_ = (*buf ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
 			buf++;
 
 			if (valType_ == ValueType::NULL_VALUE)
 				return 1;
 
-			byArray_ = buf;
+			soleValue_ = utils::FloatFromBytes(buf, bKey_);
 			return sizeof(float) + 1;
 		}
 	}

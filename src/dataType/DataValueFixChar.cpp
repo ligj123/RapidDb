@@ -41,7 +41,10 @@ namespace storage {
     : IDataValue(DataType::FIXCHAR, ValueType::SOLE_VALUE, bKey), maxLength_(maxLength)
   {
     string str;
-    if (val.type() == typeid(int64_t)) str = move(to_string(any_cast<int64_t>(val)));
+    if (val.type() == typeid(std::string)) str = std::any_cast<std::string>(val);
+    else if (val.type() == typeid(const char*)) str = any_cast<const char*>(val);
+    else if (val.type() == typeid(char*)) str = any_cast<char*>(val);
+    else if (val.type() == typeid(int64_t)) str = move(to_string(any_cast<int64_t>(val)));
     else if (val.type() == typeid(int64_t)) str = move(to_string(any_cast<int64_t>(val)));
     else if (val.type() == typeid(int32_t)) str = move(to_string(any_cast<int32_t>(val)));
     else if (val.type() == typeid(int16_t)) str = move(to_string(any_cast<int16_t>(val)));
@@ -50,7 +53,6 @@ namespace storage {
     else if (val.type() == typeid(uint16_t)) str = move(to_string(any_cast<uint16_t>(val)));
     else if (val.type() == typeid(int8_t)) str = move(to_string(any_cast<int8_t>(val)));
     else if (val.type() == typeid(uint8_t)) str = move(to_string(any_cast<uint8_t>(val)));
-    else if (val.type() == typeid(std::string)) str = move(any_cast<std::string>(val));
     else throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT, { val.type().name(), "DataValueFixChar" });
 
     soleLength_ = (uint32_t)str.size() + 1;
@@ -113,44 +115,13 @@ namespace storage {
     }
   }
 
-  uint32_t DataValueFixChar::WriteData(Byte* buf, bool key)
+  uint32_t DataValueFixChar::WriteData(Byte* buf)
   {
-    assert(valType_ != ValueType::BYTES_VALUE);
-    if (key)
-    {
-      if (valType_ == ValueType::BYTES_VALUE)
-      {
-        std::memcpy(buf, byArray_, maxLength_);
-        return maxLength_;
-      }
-      else
-      {
-        std::memset(buf, '\0', maxLength_);
-        return maxLength_;
-      }
-    }
-    else
-    {
-      if (valType_ == ValueType::NULL_VALUE)
-      {
-        *buf = 0;
-        return 1;
-      }
-      else
-      {
-        *buf = 1;
-        buf++;
-
-        std::memcpy(buf, soleValue_, soleLength_);
-        std::memset(buf + soleLength_, '\0', maxLength_ - soleLength_);
-        return maxLength_ + 1;
-      }
-    }
+    return WriteData(buf, bKey_);
   }
 
   uint32_t DataValueFixChar::GetPersistenceLength(bool key) const
   {
-    assert(valType_ != ValueType::BYTES_VALUE);
     if (key)
     {
       return maxLength_;
@@ -168,26 +139,22 @@ namespace storage {
     }
   }
 
-  uint32_t DataValueFixChar::WriteData(Byte* buf)
+  uint32_t DataValueFixChar::WriteData(Byte* buf, bool key)
   {
-    if (bKey_)
+    if (key)
     {
+      assert(valType_ != ValueType::NULL_VALUE);
       if (valType_ == ValueType::BYTES_VALUE)
       {
         std::memcpy(buf, byArray_, maxLength_);
-        return maxLength_;
       }
       else if (valType_ == ValueType::SOLE_VALUE)
       {
         std::memcpy(buf, soleValue_, strlen(soleValue_));
         std::memset(buf + strlen(soleValue_), '\0', maxLength_ - strlen(soleValue_));
-        return maxLength_;
       }
-      else
-      {
-        std::memset(buf, '\0', maxLength_);
-        return maxLength_;
-      }
+        
+      return maxLength_;
     }
     else
     {
@@ -218,21 +185,23 @@ namespace storage {
   {
     if (bKey_)
     {
-      valType_ = ValueType::BYTES_VALUE;
-      byArray_ = buf;
-      soleLength_ = (uint32_t)strlen((char*)buf) + 1;
+      valType_ = ValueType::SOLE_VALUE;
+      soleValue_ = new char[maxLength_];
+      memcpy(soleValue_, buf, maxLength_);
+      soleLength_ = maxLength_;
       return maxLength_;
     }
     else
     {
-      valType_ = (*buf ? ValueType::BYTES_VALUE : ValueType::NULL_VALUE);
+      valType_ = (*buf ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
       buf++;
 
       if (valType_ == ValueType::NULL_VALUE)
         return 1;
 
-      byArray_ = buf;
-      soleLength_ = (uint32_t)strlen((char*)buf) + 1;
+      soleValue_ = new char[maxLength_];
+      memcpy(soleValue_, buf, maxLength_);
+      soleLength_ = maxLength_;
       return maxLength_ + 1;
     }
   }

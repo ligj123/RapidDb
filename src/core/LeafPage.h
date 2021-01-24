@@ -19,31 +19,16 @@ namespace storage {
 		uint64_t GetPrevPageId() {	return _prevPageId;	}
 		void SetNextPageId(uint64_t id) {	_nextPageId = id;	}
 		uint64_t GetNextPageId() { return _nextPageId; }
-		LeafRecord* GetLastRecord() {
-			if (_recordNum == 0) return nullptr;
-			if (_vctRecord.size() > 0) {
-				return ((LeafRecord*)_vctRecord[_vctRecord.size()])->ReferenceRecord();
-			}
-			else {
-				uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + (_recordNum - 1) * sizeof(uint16_t));
-				return new LeafRecord(this, _bysPage + offset);
-			}
-		}
-		vector<LeafRecord*>& GetAllRecords() {
-			vector<LeafRecord*> vct(_recordNum);
-			if (_vctRecord.size() == 0) { LoadRecords(); }
-			for (RawRecord* rr : _vctRecord) {
-				vct.push_back(((LeafRecord*)rr)->ReferenceRecord());
-			}
-		}
-
+		
+		vector<LeafRecord*>* GetAllRecords();
+		LeafRecord* GetLastRecord();
 		void LoadRecords();
 		void CleanRecord();
 		bool SaveRecord();
 		void InsertRecord(LeafRecord* lr);
 		bool AddRecord(LeafRecord* record);
 		LeafRecord* GetRecord(const RawKey& key);
-		vector<LeafRecord*>& GetRecords(const RawKey& key);
+		vector<LeafRecord*>* GetRecords(const RawKey& key);
 		uint32_t SearchRecord(const LeafRecord& rr, bool bEqual);
 		uint32_t SearchKey(const RawKey& key, bool bEqual);
 		bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH; }

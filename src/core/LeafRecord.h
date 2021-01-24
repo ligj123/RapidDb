@@ -9,24 +9,6 @@ namespace storage {
   class LeafRecord : public RawRecord
   {
 	protected:
-		/** the byte array that save key and value's content */
-		Byte* _bysVal;
-		/** the parent page included this record */
-		LeafPage* _parentPage;
-		/**index tree*/
-		IndexTree* _indexTree;
-		/**Save old records for recover*/
-		LeafRecord* _undoRecords;
-		/**The transaction id if it is running in a transaction, or UINT64_MAX*/
-		uint64_t _tranId;
-		uint32_t _refCount;
-		/***/
-		ActionType _actionType;
-		/**In current transaction if this record has been executed.*/
-		bool _bTranFinished;
-		/**If this record' value is saved to solely buffer or branch page*/
-		bool _bSole;
-	protected:
 		~LeafRecord();
 	
 	public:
@@ -76,8 +58,8 @@ namespace storage {
 				return -1;
 		}
 
-		vector<IDataValue*>& GetListKey() const override;
-		vector<IDataValue*>& GetListValue() const override;
+		vector<IDataValue*>* GetListKey() const override;
+		vector<IDataValue*>* GetListValue() const override;
 		void GetListOverflow(vector<IDataValue*>& vctVal) const;
 
 		int CompareTo(const RawRecord& other) const override;
@@ -87,6 +69,24 @@ namespace storage {
 
 		void SaveData(Byte* bysPage) override { std::memcpy(bysPage, _bysVal, GetTotalLength()); }
 		friend std::ostream& operator<< (std::ostream& os, const LeafRecord& lr);
+	protected:
+		/** the byte array that save key and value's content */
+		Byte* _bysVal;
+		/** the parent page included this record */
+		LeafPage* _parentPage;
+		/**index tree*/
+		IndexTree* _indexTree;
+		/**Save old records for recover*/
+		LeafRecord* _undoRecords;
+		/**The transaction id if it is running in a transaction, or UINT64_MAX*/
+		uint64_t _tranId;
+		uint32_t _refCount;
+		/***/
+		ActionType _actionType;
+		/**In current transaction if this record has been executed.*/
+		bool _bTranFinished;
+		/**If this record' value is saved to solely buffer or branch page*/
+		bool _bSole;
 	};
 
 	std::ostream& operator<< (std::ostream& os, const LeafRecord& lr);

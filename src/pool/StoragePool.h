@@ -13,7 +13,7 @@ namespace storage {
 	{
 	protected:
 		static const uint32_t WRITE_DELAY_MS;
-		static const uint32_t MAX_QUEUE_SIZE;
+		static const uint64_t MAX_QUEUE_SIZE;
 		static utils::ThreadPool _threadReadPool;
 
 		static queue<CachePage*> _queueWrite;

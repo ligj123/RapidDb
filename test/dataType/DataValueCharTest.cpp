@@ -12,7 +12,7 @@ namespace storage {
 		BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
 		BOOST_TEST(dv1.IsFixLength());
 		BOOST_TEST(dv1.IsNull());
-		BOOST_TEST(dv1.GetMaxLength() == 2);
+		BOOST_TEST(dv1.GetMaxLength() == 1);
 		BOOST_TEST(dv1.GetDataLength() == 0);
 		BOOST_TEST(dv1.GetPersistenceLength() == 1);
 		BOOST_TEST(!dv1.GetValue().has_value());
@@ -28,7 +28,7 @@ namespace storage {
 		BOOST_TEST(dv3.GetValueType() == ValueType::SOLE_VALUE);
 		BOOST_TEST(!dv3.IsNull());
 		BOOST_TEST(dv3.GetDataLength() == 1);
-		BOOST_TEST(dv3.GetMaxLength() == 2);
+		BOOST_TEST(dv3.GetMaxLength() == 1);
 		BOOST_TEST(dv3.GetPersistenceLength() == 2);
 		BOOST_TEST(dv1 < dv3);
 		BOOST_TEST(dv1 <= dv3);
@@ -64,7 +64,7 @@ namespace storage {
 		dv1.SetMinValue();
 		BOOST_TEST((int8_t)dv1 == CHAR_MIN);
 
-		DataValueChar dv6(true);
+		DataValueChar dv6('a', true);
 		dv6.WriteData(buf);
 		dv2.ReadData(buf, -1);
 		BOOST_TEST(dv2 == dv6);

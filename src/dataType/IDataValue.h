@@ -51,6 +51,7 @@ namespace storage {
 		virtual void SetDefaultValue() = 0;
 
 		friend std::ostream& operator<< (std::ostream& os, const IDataValue& dv);
+		friend bool operator== (const IDataValue& dv1, const IDataValue& dv2);
 	public:
 		static void* operator new(size_t size)
 		{

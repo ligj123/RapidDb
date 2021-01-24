@@ -4,9 +4,9 @@
 
 namespace storage {
   const uint32_t StoragePool::WRITE_DELAY_MS = 1 * 1000;
-  const uint32_t StoragePool::MAX_QUEUE_SIZE = Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
+  const uint64_t StoragePool::MAX_QUEUE_SIZE = Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 
-  utils::ThreadPool StoragePool::_threadReadPool("StoragePool", MAX_QUEUE_SIZE, 1);
+  utils::ThreadPool StoragePool::_threadReadPool("StoragePool", (uint32_t)MAX_QUEUE_SIZE, 1);
 
   queue<CachePage*> StoragePool::_queueWrite;
   map<uint64_t, CachePage*> StoragePool::_mapWrite;

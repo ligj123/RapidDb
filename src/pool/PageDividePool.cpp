@@ -2,7 +2,7 @@
 #include "../config/Configure.h"
 
 namespace storage {
-  const uint32_t PageDividePool::MAX_QUEUE_SIZE = 
+  const uint64_t PageDividePool::MAX_QUEUE_SIZE = 
     Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
   const uint32_t PageDividePool::BUFFER_FLUSH_INTEVAL_MS = 1 * 1000;
   const int PageDividePool::SLEEP_INTEVAL_MS = 100;

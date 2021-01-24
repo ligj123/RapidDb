@@ -9,16 +9,6 @@ namespace storage {
 	public:
 		/**Page Id length*/
 		static const uint32_t PAGE_ID_LEN;
-	protected:
-		/** the byte array that save key and value's content */
-		Byte* _bysVal;
-		/** the parent page included this record */
-		BranchPage* _parentPage;
-		/**tree file*/
-		IndexTree* _indexTree;
-		uint32_t _refCount; 
-		/**If this record' value is saved to solely buffer or branch page*/
-		bool _bSole;
 
 	public:
 		BranchRecord(BranchPage* parentPage, Byte* bys) : _parentPage(parentPage), _bysVal(bys),
@@ -28,8 +18,8 @@ namespace storage {
 		BranchRecord(const BranchRecord& src);
 		~BranchRecord();
 		RawKey* GetKey() const override;
-		vector<IDataValue*>& GetListKey() const override;
-		vector<IDataValue*>& GetListValue() const override;
+		vector<IDataValue*>* GetListKey() const override;
+		vector<IDataValue*>* GetListValue() const override;
 		int CompareTo(const RawRecord& other) const override;
 		int CompareKey(const RawKey& key) const override;
 		int CompareKey(const RawRecord& other) const override;
@@ -41,7 +31,8 @@ namespace storage {
 		inline uint16_t GetTotalLength() const override { return *((uint16_t*)_bysVal); }
 		inline uint16_t GetKeyLength() const override {	return *((uint16_t*)(_bysVal + sizeof(uint16_t)));	}
 		inline uint16_t GetValueLength() const override {
-			return *((uint16_t*)_bysVal) - sizeof(uint16_t) * 2 - PAGE_ID_LEN	- *((uint16_t*)(_bysVal + sizeof(uint16_t)));
+			return (uint16_t)(*((uint16_t*)_bysVal) - sizeof(uint16_t) * 2 - PAGE_ID_LEN
+				- *((uint16_t*)(_bysVal + sizeof(uint16_t))));
 		}
 		inline IndexPage* GetParentPage() const override {	return _parentPage;	}
 		inline void SetParentPage(IndexPage* page) override { _parentPage = (BranchPage*)page; }
@@ -50,7 +41,17 @@ namespace storage {
 		inline void SaveData(Byte* bysPage) override { std::memcpy(bysPage, _bysVal, GetTotalLength()); }
 
 		friend std::ostream& operator<< (std::ostream& os, const BranchRecord& br);		
-  };
+	protected:
+		/** the byte array that save key and value's content */
+		Byte* _bysVal;
+		/** the parent page included this record */
+		BranchPage* _parentPage;
+		/**tree file*/
+		IndexTree* _indexTree;
+		uint32_t _refCount;
+		/**If this record' value is saved to solely buffer or branch page*/
+		bool _bSole;
+	};
 
 	std::ostream& operator<< (std::ostream& os, const BranchRecord& br);
 }

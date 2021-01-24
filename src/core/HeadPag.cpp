@@ -1,7 +1,7 @@
 #include "HeadPag.h"
 
 namespace storage {
-	const uint32_t HeadPage::HEAD_PAGE_LENGTH = Configure::GetDiskClusterSize();
+	const uint32_t HeadPage::HEAD_PAGE_LENGTH = (uint32_t)Configure::GetDiskClusterSize();
 	const uint16_t HeadPage::VERSION_OFFSET = 0;
 	const uint16_t HeadPage::INDEX_TYPE_OFFSET = 4;
 	const uint16_t HeadPage::TOTAL_PAGES_NUM_OFFSET = 8;

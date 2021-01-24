@@ -23,8 +23,8 @@ namespace storage {
 		virtual int CompareKey(const RawRecord& other) const = 0;
 		virtual void SetParentPage(IndexPage* page) = 0;
 		virtual IndexPage* GetParentPage() const = 0;
-		virtual vector<IDataValue*>& GetListKey() const = 0;
-		virtual vector<IDataValue*>& GetListValue() const = 0;
+		virtual vector<IDataValue*>* GetListKey() const = 0;
+		virtual vector<IDataValue*>* GetListValue() const = 0;
 		virtual void SaveData(Byte* bysPage) = 0;
 		virtual IndexTree* GetTreeeFile() const = 0;
 	public:

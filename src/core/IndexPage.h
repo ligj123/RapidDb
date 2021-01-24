@@ -25,7 +25,8 @@ namespace storage {
 	public:
 		IndexPage(IndexTree* indexTree, uint64_t pageId);
 		IndexPage(IndexTree* indexTree, uint64_t pageId, uint8_t pageLevel, uint64_t parentPageId);
-	
+		~IndexPage();
+
 		void LoadPage();
 		bool PageDivide();
 

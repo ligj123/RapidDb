@@ -1,6 +1,7 @@
 #include <boost/test/unit_test.hpp>
 #include "../../src/cache/CachePool.h"
 #include "../../src/cache/BufferPool.h"
+#include "../../src/dataType/DataValueLong.h"
 
 namespace storage {
 	BOOST_AUTO_TEST_SUITE(CachePoolTest)
@@ -121,6 +122,7 @@ namespace storage {
 		BOOST_TEST(2 == ((CachePoolEx*)CachePoolEx::_gCachePool)->_mapPool.size());
 		BOOST_TEST(2 == ((CachePoolEx*)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 
+		DataValueLong* pDv = new DataValueLong;
 	}
 
 	BOOST_AUTO_TEST_SUITE_END()

@@ -12,7 +12,7 @@ namespace storage {
 		BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
 		BOOST_TEST(dv1.IsFixLength());
 		BOOST_TEST(dv1.IsNull());
-		BOOST_TEST(dv1.GetMaxLength() == 9);
+		BOOST_TEST(dv1.GetMaxLength() == 8);
 		BOOST_TEST(dv1.GetDataLength() == 0);
 		BOOST_TEST(dv1.GetPersistenceLength() == 1);
 		BOOST_TEST(!dv1.GetValue().has_value());
@@ -28,7 +28,7 @@ namespace storage {
 		BOOST_TEST(dv3.GetValueType() == ValueType::SOLE_VALUE);
 		BOOST_TEST(!dv3.IsNull());
 		BOOST_TEST(dv3.GetDataLength() == 8);
-		BOOST_TEST(dv3.GetMaxLength() == 9);
+		BOOST_TEST(dv3.GetMaxLength() == 8);
 		BOOST_TEST(dv3.GetPersistenceLength() == 9);
 		BOOST_TEST(dv1 < dv3);
 		BOOST_TEST(dv1 <= dv3);
@@ -64,7 +64,7 @@ namespace storage {
 		dv1.SetMinValue();
 		BOOST_TEST((int64_t)dv1 == LLONG_MIN);
 
-		DataValueLong dv6(true);
+		DataValueLong dv6(0x1234567890, true);
 		dv6.WriteData(buf);
 		dv2.ReadData(buf, -1);
 		BOOST_TEST(dv2 == dv6);
@@ -92,6 +92,10 @@ namespace storage {
 
 		DataValueLong dv9(std::any(100));
 		BOOST_TEST((int64_t)dv9 == 100);
+
+		DataValueLong* pDv = dv9.CloneDataValue();
+		BOOST_TEST(dv9 == *pDv);
+		delete pDv;
 	}
 	BOOST_AUTO_TEST_SUITE_END()
 }
