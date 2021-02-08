@@ -1,8 +1,7 @@
 #pragma once
 #include "RawRecord.h"
 #include "LeafPage.h"
-#include <vector>
-#include "ActionType.h"
+#include "../dataType/IDataValue.h"
 
 namespace storage {
 	class LeafPage;
@@ -14,14 +13,13 @@ namespace storage {
 	public:
 		LeafRecord(LeafPage* indexPage, Byte* bys);
 		LeafRecord(IndexTree* indexTree, Byte* bys);
-		LeafRecord(const LeafRecord& src);
-		LeafRecord(IndexTree* indexTree, const vector<IDataValue*>& vctKey, const vector<IDataValue*>& vctVal);
-		LeafRecord(IndexTree* indexTree, const vector<IDataValue*>& vctKey, const vector<IDataValue*>& vctVal,
-			uint64_t offset, uint32_t oldSizeOverflow);
+		LeafRecord(const LeafRecord& src) = delete;
+		LeafRecord(IndexTree* indexTree, const VectorDataValue& vctKey, const VectorDataValue& vctVal,
+			uint64_t offset = UINT64_MAX, uint32_t oldSizeOverflow = UINT32_MAX);
 		void CleanUndoRecord();
+		void AddOldRecord(LeafRecord* old);
 		void ReleaseRecord() { _refCount--; if (_refCount == 0) delete this; }
 		LeafRecord* ReferenceRecord() { _refCount++; return this; }
-		void AddOldRecord(LeafRecord* old);
 		ActionType GetActionType() { return _actionType;	}
 		void SetActionType(ActionType type) { _actionType = type; }
 		bool IsTranFinished() { return _bTranFinished; }
@@ -29,20 +27,12 @@ namespace storage {
 
 		uint64_t GetTrasactionId() { return _tranId; }
 		void SetTransaction(uint64_t id) { _tranId = id; }
-		Byte* GetBysValue() const override { return _bysVal; }
-		uint16_t GetTotalLength() const override { return *((uint16_t*)_bysVal);}
-
-		uint16_t GetKeyLength() const override { return *((uint16_t*)(_bysVal + sizeof(uint16_t) * 2));	}
-
-		uint16_t GetValueLength() const override {
-			return *((uint16_t*)_bysVal) - *((uint16_t*)(_bysVal + sizeof(uint16_t) * 2));
+		
+		uint16_t GetValueLength() const {
+			return (*((uint16_t*)_bysVal) - *((uint16_t*)(_bysVal + sizeof(uint16_t))) - sizeof(uint16_t) * 3);
 		}
 
-		IndexPage* GetParentPage() const override { return _parentPage;	}
-		void SetParentPage(IndexPage* page) override { _parentPage = (LeafPage*)page;	}
-		IndexTree* GetTreeeFile() const override { return _indexTree;	}
-
-		uint16_t GetIndexOvfStart() const {	return *((uint16_t*)(_bysVal + sizeof(uint16_t))); }
+		uint16_t GetIndexOvfStart() const {	return *((uint16_t*)(_bysVal + sizeof(uint16_t) * 2)); }
 
 		uint64_t GetOvfOffset() const {
 			if (*((uint16_t*)(_bysVal + sizeof(uint16_t))) != UINT16_MAX)
@@ -58,37 +48,45 @@ namespace storage {
 				return -1;
 		}
 
-		vector<IDataValue*>* GetListKey() const override;
-		vector<IDataValue*>* GetListValue() const override;
+		void GetListKey(VectorDataValue& vct) const ;
+		void GetListValue(VectorDataValue& vct) const;
 		void GetListOverflow(vector<IDataValue*>& vctVal) const;
 
-		int CompareTo(const RawRecord& other) const override;
-		int CompareKey(const RawKey& key) const override;
-		int CompareKey(const RawRecord& other) const override;
+		int CompareTo(const LeafRecord& lr) const;
+		int CompareKey(const RawKey& key) const;
+		int CompareKey(const LeafRecord& lr) const;
 		RawKey* GetKey() const;
 
-		void SaveData(Byte* bysPage) override { std::memcpy(bysPage, _bysVal, GetTotalLength()); }
-		friend std::ostream& operator<< (std::ostream& os, const LeafRecord& lr);
+		uint16_t SaveData(Byte* bysPage) {
+			uint16_t len = GetTotalLength();
+			std::memcpy(bysPage, _bysVal, len);
+			return len;
+		}
+
 	protected:
-		/** the byte array that save key and value's content */
-		Byte* _bysVal;
-		/** the parent page included this record */
-		LeafPage* _parentPage;
-		/**index tree*/
-		IndexTree* _indexTree;
 		/**Save old records for recover*/
 		LeafRecord* _undoRecords;
 		/**The transaction id if it is running in a transaction, or UINT64_MAX*/
 		uint64_t _tranId;
-		uint32_t _refCount;
-		/***/
-		ActionType _actionType;
-		/**In current transaction if this record has been executed.*/
-		bool _bTranFinished;
-		/**If this record' value is saved to solely buffer or branch page*/
-		bool _bSole;
+
+		friend std::ostream& operator<< (std::ostream& os, const LeafRecord& lr);
 	};
 
 	std::ostream& operator<< (std::ostream& os, const LeafRecord& lr);
+	class VectorLeafRecord : public vector<LeafRecord*> {
+	public:
+		using vector::vector;
+		~VectorLeafRecord() {
+			for (auto iter = begin(); iter != end(); iter++) {
+				(*iter)->ReleaseRecord();
+			}
+		}
+
+		void clear() {
+			for (auto iter = begin(); iter != end(); iter++) {
+				(*iter)->ReleaseRecord();
+			}
+		}
+	};
 }
 

@@ -11,6 +11,7 @@ namespace storage {
   const uint64_t Configure::DEFAULT_MAX_COLUMN_LENGTH = 1024 * 1024 * 1024;
   const uint64_t Configure::DEFAULT_MAX_FREE_BUFFER_COUNT = 1000;
   const uint64_t Configure::MAX_PAGE_FILE_COUNT = 5;
+  const uint64_t Configure::MAX_OVERFLOW_CACHE_SIZE = 1024 * 1024;
   Configure* Configure::instance = []() {return new Configure; }();
   //const uint64_t WRITE_DELAY_MS = 10 * 1000;
   //const uint64_t MAX_QUEUE_SIZE = 10000;
@@ -30,5 +31,6 @@ namespace storage {
     _lenMaxColumn = DEFAULT_MAX_COLUMN_LENGTH;
     _countMaxFreeBuff = DEFAULT_MAX_FREE_BUFFER_COUNT;
     _countMaxPageFile = MAX_PAGE_FILE_COUNT;
+    _maxOverflowCache = MAX_OVERFLOW_CACHE_SIZE;
   }
 }

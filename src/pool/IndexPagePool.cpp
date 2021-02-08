@@ -68,7 +68,7 @@ namespace storage {
 					refPageCount += num;
 				}
 				else if (num < 0) {
-					LOG_ERROR << "Errr page ref count. Id=" << page->getPageId() << "\trefCount=" << num;
+					LOG_ERROR << "Errr page ref count. Id=" << page->GetPageId() << "\trefCount=" << num;
 				}
 
 				if (!page->Releaseable()) {

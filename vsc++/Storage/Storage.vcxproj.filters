@@ -1,0 +1,307 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\src\dataType\DataValueBlob.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueBool.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueByte.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueChar.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueDate.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueDouble.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueFixChar.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueFloat.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueInt.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueLong.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueShort.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueUInt.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueULong.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueUShort.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\CharsetConvert.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\ErrorMsg.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\Log.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\ThreadPool.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\cache\BufferPool.cpp">
+      <Filter>cache</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\cache\CachePool.cpp">
+      <Filter>cache</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\config\Configure.cpp">
+      <Filter>config</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\BranchPage.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\BranchRecord.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\CachePage.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\HeadPage.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\IndexPage.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\IndexTree.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\LeafPage.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\LeafRecord.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\RawKey.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\file\PageFile.cpp">
+      <Filter>file</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\pool\IndexPagePool.cpp">
+      <Filter>pool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\pool\PageDividePool.cpp">
+      <Filter>pool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\pool\StoragePool.cpp">
+      <Filter>pool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\table\Column.cpp">
+      <Filter>table</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\table\TableDesc.cpp">
+      <Filter>table</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\transaction\TranTask.cpp">
+      <Filter>transaction</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\header.h" />
+    <ClInclude Include="..\..\src\dataType\DataType.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueBlob.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueBool.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueByte.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueChar.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueDate.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueDouble.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueFactory.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueFixChar.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueFloat.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueInt.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueLong.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueShort.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueUInt.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueULong.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueUShort.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueVarChar.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\BytesConvert.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\CharsetConvert.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\ErrorMsg.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\ExceptionEx.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\Log.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\SpinMutex.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\ThreadPool.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\Utilitys.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\IDataValue.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\cache\BufferPool.h">
+      <Filter>cache</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\cache\CachePool.h">
+      <Filter>cache</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\config\Configure.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\config\ErrorID.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\config\FileVersion.h">
+      <Filter>config</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\ActionType.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\BranchPage.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\BranchRecord.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\CachePage.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\HeadPage.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\IndexPage.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\IndexTree.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\IndexType.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\LeafPage.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\LeafRecord.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\RawKey.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\RawRecord.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\file\PageFile.h">
+      <Filter>file</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pool\IndexPagePool.h">
+      <Filter>pool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pool\PageDividePool.h">
+      <Filter>pool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\pool\StoragePool.h">
+      <Filter>pool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\table\Column.h">
+      <Filter>table</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\table\TableDesc.h">
+      <Filter>table</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transaction\TranStatus.h">
+      <Filter>transaction</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transaction\TranTask.h">
+      <Filter>transaction</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\transaction\TranType.h">
+      <Filter>transaction</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="dataType">
+      <UniqueIdentifier>{db0822f2-0ccb-4ee6-9f5a-0814673ea12c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{f937fd7b-cbbd-4d21-96cb-8017474e13c0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cache">
+      <UniqueIdentifier>{e17f7ec8-17d7-481b-993a-41d36b43193d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="config">
+      <UniqueIdentifier>{b5465285-05c6-4d03-9bc2-f64ec5c30303}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core">
+      <UniqueIdentifier>{4408629a-ff68-49bb-ab4b-12c39c40a8cf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="file">
+      <UniqueIdentifier>{c4ea58d1-5ac3-4032-98fc-15ca50919607}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="pool">
+      <UniqueIdentifier>{b2958f59-8302-4c7d-b8a9-88b60388e873}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="table">
+      <UniqueIdentifier>{a4d87885-d8f9-4a42-b2d5-db827f025994}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="transaction">
+      <UniqueIdentifier>{ac13f1cc-9440-45fe-9061-101813ed2f32}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

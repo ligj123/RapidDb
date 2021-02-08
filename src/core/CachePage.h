@@ -37,25 +37,21 @@ namespace storage {
 	public:
 		CachePage(IndexTree* indexTree, uint64_t pageId);
 		virtual ~CachePage();
-		bool IsFileClosed();
+		bool IsFileClosed() const;
 
 		inline utils::SharedSpinMutex& GetLock() { return _rwLock; }
-		inline bool IsDirty() { return _bDirty; }
+		inline bool IsDirty() const { return _bDirty; }
 		inline void SetDirty(bool b) { _bDirty = b; }
-		inline bool IsLocked() { return _rwLock.is_locked(); }
-		inline uint64_t getPageId() {	return _pageId; }
+		inline bool IsLocked() const { return _rwLock.is_locked(); }
+		inline uint64_t GetPageId() const {	return _pageId; }
 		inline void UpdateAccessTime() { _dtPageLastAccess = GetMsFromEpoch();	}
-		inline uint64_t GetAccessTime() { return _dtPageLastAccess;	}
-		inline uint64_t HashCode() { return CalcHashCode(_fileId, _pageId); }
+		inline uint64_t GetAccessTime() const  { return _dtPageLastAccess;	}
+		inline uint64_t HashCode() const { return CalcHashCode(_fileId, _pageId); }
 		inline void UpdateWriteTime() { _dtPageLastWrite = GetMsFromEpoch(); }
-		inline uint64_t GetWriteTime() { return _dtPageLastWrite; }
-		inline uint64_t GetFileId() { return _fileId;	}
-		inline int32_t IncRefCount() { return _refCount.fetch_add(1); }
-		inline int32_t DecRefCount() { return _refCount.fetch_sub(1); }
-		inline int32_t GetRefCount() { return _refCount; }
-		inline IndexTree* GetIndexTree() { return _indexTree; }
-		inline Byte* GetBysPage() { return _bysPage; }
-		virtual bool Releaseable() { return _refCount == 0; }
+		inline uint64_t GetWriteTime() const { return _dtPageLastWrite; }
+		inline uint64_t GetFileId() const { return _fileId;	}
+		inline IndexTree* GetIndexTree() const { return _indexTree; }
+		inline Byte* GetBysPage() const { return _bysPage; }
 		virtual void ReadPage();
 		virtual void WritePage() ;
 
@@ -65,8 +61,11 @@ namespace storage {
 		inline void WriteLock() { _rwLock.lock();	}
 		inline bool WriteTryLock() { return _rwLock.try_lock();	}
 		inline void WriteUnlock() { _rwLock.unlock();	}
+		inline int32_t IncRefCount() { return ++_refCount; }
+		inline int32_t DecRefCount() { return --_refCount; }
+		inline int32_t GetRefCount() { return _refCount; }
 
-		inline Byte ReadByte(uint32_t pos) {
+		inline Byte ReadByte(uint32_t pos) const {
 			assert(Configure::GetCachePageSize() > sizeof(Byte) + pos);
 			return _bysPage[pos];
 		}
@@ -76,7 +75,7 @@ namespace storage {
 			_bysPage[pos] = value;
 		}
 
-		inline int16_t ReadShort(uint32_t pos) {
+		inline int16_t ReadShort(uint32_t pos) const {
 			assert(Configure::GetCachePageSize() > sizeof(int16_t) + pos);
 			return utils::Int16FromBytes(_bysPage + pos);
 		}
@@ -86,7 +85,7 @@ namespace storage {
 			utils::Int16ToBytes(value, _bysPage + pos);
 		}
 
-		inline int32_t ReadInt(uint32_t pos) {
+		inline int32_t ReadInt(uint32_t pos) const {
 			assert(Configure::GetCachePageSize() > sizeof(int32_t) + pos);
 			return utils::Int32FromBytes(_bysPage + pos);
 		}
@@ -96,7 +95,7 @@ namespace storage {
 			utils::Int32ToBytes(value, _bysPage + pos);
 		}
 
-		uint64_t ReadLong(uint32_t pos) {
+		uint64_t ReadLong(uint32_t pos) const {
 			assert(Configure::GetCachePageSize() > sizeof(int64_t) + pos);
 			return utils::Int64FromBytes(_bysPage + pos);
 		}
@@ -107,16 +106,17 @@ namespace storage {
 		}
 
 	protected:
-		Byte* _bysPage;
+		Byte* _bysPage = nullptr;
 		utils::SharedSpinMutex _rwLock;
-		uint64_t _dtPageLastWrite;
-		uint64_t _dtPageLastAccess;
-		uint64_t _pageId;
-		uint64_t _fileId;
-		IndexTree* _indexTree;
-		std::atomic<int32_t> _refCount;
-		bool _bDirty;
+		uint64_t _dtPageLastWrite = 0;
+		uint64_t _dtPageLastAccess = 0;
+		uint64_t _pageId = 0;
+		uint64_t _fileId = 0;
+		IndexTree* _indexTree = nullptr;
+
+		bool _bDirty = false;
 		bool _bRecordUpdate = false;
+		int32_t _refCount = 0;
   };
 }
 

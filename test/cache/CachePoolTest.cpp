@@ -14,25 +14,27 @@ namespace storage {
 			BufferEx(uint32_t eleSize) : Buffer(eleSize){}
 			uint32_t GetEleSize(){ return _eleSize; }
 			uint32_t GetMaxEle() { return _maxEle; }
-			queue<uint16_t> GetQueueFree() { return _queueFree; }
+			uint16_t GetFreeSize() { return _idxTail - _idxHead; }
 		};
 
-		uint32_t maxEle = (uint32_t)Configure::GetCacheBlockSize() / 32;
+		uint32_t maxEle = (uint32_t)Configure::GetCacheBlockSize() / 34;
 		BufferEx buff(32);
 		BOOST_TEST(true == buff.IsEmpty());
 		BOOST_TEST(false == buff.IsFull());
 
 		BOOST_TEST(32 == buff.GetEleSize());
 		BOOST_TEST(maxEle == buff.GetMaxEle());
-		BOOST_TEST(buff.GetBuf() == buff.Apply());
-		BOOST_TEST(buff.GetBuf() + 32 == buff.Apply());
+		BOOST_TEST(buff.GetBuf() + 2 * maxEle == buff.Apply());
+		BOOST_TEST(buff.GetBuf() + 2 * maxEle + 32 == buff.Apply());
 		BOOST_TEST(buff.GetBuf() == Buffer::CalcAddr(buff.Apply()));
-		BOOST_TEST(3 == buff.CalcPos(buff.Apply()));
-		BOOST_TEST(maxEle - 4 == buff.GetQueueFree().size());
+		BOOST_TEST(maxEle - 3 == buff.GetFreeSize());
 		
-		for (uint32_t i = 4; i < maxEle; i++)
+		for (uint32_t i = 3; i < maxEle; i++)
 		{
-			BOOST_TEST(buff.GetBuf() + i * 32 == buff.Apply());
+			Byte* p = buff.Apply();
+			if (i % 100 == 0) {
+				BOOST_TEST(buff.GetBuf() + 2 * maxEle + i * 32 == p);
+			}
 		}
 
 		BOOST_TEST(true == buff.IsFull());
@@ -46,7 +48,7 @@ namespace storage {
 		BOOST_TEST(true == buff.IsEmpty());
 
 		buff.Init(40);
-		maxEle = (uint32_t)Configure::GetCacheBlockSize() / 40;
+		maxEle = (uint32_t)Configure::GetCacheBlockSize() / 42;
 		BOOST_TEST(40 == buff.GetEleSize());
 		BOOST_TEST(maxEle == buff.GetMaxEle());
 	}
@@ -64,7 +66,7 @@ namespace storage {
 
 		BufferPoolEx pool(32);
 		BOOST_TEST(32 == pool.GetEleSize());
-		uint32_t maxEle = (uint32_t)Configure::GetCacheBlockSize() / 32;
+		uint32_t maxEle = (uint32_t)Configure::GetCacheBlockSize() / 34;
 		for (uint32_t i = 0; i < maxEle; i++)
 		{
 			pool.Apply();
@@ -82,7 +84,6 @@ namespace storage {
 		pool.Release(bys2);
 		BOOST_TEST(1 == pool.GetMapBuffer().size());
 		BOOST_TEST(0 == pool.GetMapFree().size());
-
 	}
 
 	BOOST_AUTO_TEST_CASE(CachePool_test)
@@ -96,7 +97,7 @@ namespace storage {
 		};
 
 		CachePoolEx::_gCachePool = new CachePoolEx();
-		uint32_t maxEle = (uint32_t)Configure::GetCacheBlockSize() / 32;
+		uint32_t maxEle = (uint32_t)Configure::GetCacheBlockSize() / 34;
 		for (uint32_t i = 0; i < maxEle; i++)
 		{
 			CachePoolEx::Apply(32);

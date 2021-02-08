@@ -12,7 +12,8 @@ namespace storage {
 	uint16_t IndexTree::_currFiledId = 0;
 	utils::SpinMutex IndexTree::_spinMutex;
 
-	IndexTree::IndexTree(const string& tableName, const string& fileName, vector<IDataValue*>& vctKey, vector<IDataValue*>& vctVal) {
+	IndexTree::IndexTree(const string& tableName, const string& fileName,
+		VectorDataValue& vctKey, VectorDataValue& vctVal) {
 		_tableName = tableName;
 		_fileName = fileName;
 		for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {
@@ -22,7 +23,7 @@ namespace storage {
 		{
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			while (true) {
-				if (_setFiledId.find(_currFiledId) != _setFiledId.end()) {
+				if (_setFiledId.find(_currFiledId) == _setFiledId.end()) {
 					_setFiledId.insert(_currFiledId);
 					_fileId = _currFiledId;
 					break;
@@ -37,10 +38,11 @@ namespace storage {
 		if (!bExist) {
 			{
 				unique_lock<utils::SharedSpinMutex> lock(_headPage->GetLock());
+				memset(_headPage->GetBysPage(), 0, Configure::GetDiskClusterSize());
 				_headPage->WriteFileVersion();
 				_headPage->WriteRootPagePointer(HeadPage::NO_PARENT_POINTER);
-				_headPage->WriteTotalPageNum(0);
-				_headPage->WriteTotalRecordNum(0);
+				_headPage->WriteTotalPageCount(0);
+				_headPage->WriteTotalRecordCount(0);
 				_headPage->WriteAutoPrimaryKey(0);
 			}
 
@@ -48,18 +50,19 @@ namespace storage {
 		}
 		else {
 			_headPage->ReadPage();
-			FileVersion& fv = _headPage->ReadFileVersion();
+			FileVersion&& fv = _headPage->ReadFileVersion();
 			if (!(fv == INDEX_FILE_VERSION)) {
 				throw ErrorMsg(TB_ERROR_INDEX_VERSION, { _fileName });
 			}
 		}
 
-		_vctKey = vctKey;
-		_vctValue = vctVal;
+		_vctKey.swap(vctKey);
+		_vctValue.swap(vctVal);
 		LOG_DEBUG << "Open index tree " << tableName;
 	}
 
 	IndexTree::~IndexTree() {
+		Close();
 		while (_queueMutex.size() > 0) {
 			delete _queueMutex.front();
 			_queueMutex.pop();
@@ -69,54 +72,50 @@ namespace storage {
 			delete iter->second;
 		}
 
-		for (IDataValue* dv : _vctKey) { delete dv; }
-		for (IDataValue* dv : _vctValue) { delete dv;	}
-
 		if (_ovfFile != nullptr) delete _ovfFile;
 		while (_fileQueue.size() > 0) {
 			delete _fileQueue.front();
 			_fileQueue.pop();
 		}
+
+		delete _headPage;
 	}
-	vector<IDataValue*>* IndexTree::CloneKeys()
+	
+	void IndexTree::CloneKeys(VectorDataValue& vct)
 	{
-		vector<IDataValue*>* vct = new vector<IDataValue*>(_vctKey.size());
+		vct.reserve(_vctKey.size());
 		for (IDataValue* dv : _vctKey) {
-			vct->push_back(dv->CloneDataValue(false));
+			vct.push_back(dv->CloneDataValue(false));
 		}
-
-		return vct;
 	}
 
-	vector<IDataValue*>* IndexTree::CloneValues()
+	void IndexTree::CloneValues(VectorDataValue& vct)
 	{
-		vector<IDataValue*>* vct = new vector<IDataValue*>(_vctValue.size());
+		vct.reserve(_vctValue.size());
 		for (IDataValue* dv : _vctValue) {
-			vct->push_back(dv->CloneDataValue(false));
+			vct.push_back(dv->CloneDataValue(false));
 		}
-
-		return vct;
 	}
 
 	void IndexTree::Close() {
 		_bClosed = true;
 
-			while (true) {
-				if (_tasksWaiting.load() == 0)
-					break;
-				this_thread::sleep_for(std::chrono::milliseconds(1));
-			}
+		while (true) {
+			if (_tasksWaiting.load() == 0)
+				break;
+			this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
 
-			if (_headPage->IsDirty()) {
-				StoragePool::WriteCachePage(_headPage);
-			}
+		if (_headPage->IsDirty()) {
+			StoragePool::WriteCachePage(_headPage);
+		}
 
-			while (true) {
-				if (_tasksWaiting.load() == 0)
-					break;
-				this_thread::sleep_for(std::chrono::milliseconds(1));
-			}
-		
+		while (true) {
+			if (_tasksWaiting.load() == 0)
+				break;
+			this_thread::sleep_for(std::chrono::milliseconds(1));
+		}
+
 
 		while (_fileQueue.size() > 0) {
 			PageFile* pf = _fileQueue.front();
@@ -161,7 +160,7 @@ namespace storage {
 	}
 
 	IndexPage* IndexTree::GetPage(uint64_t pageId, bool bLeafPage) {
-		assert(pageId < _headPage->ReadTotalPageNum());
+		assert(pageId < _headPage->ReadTotalPageCount());
 		IndexPage* page = IndexPagePool::GetPage(_fileId, pageId);
 		if (page != nullptr) return page;
 
@@ -210,7 +209,7 @@ namespace storage {
 	void IndexTree::UpdateRootPage(IndexPage* root) {
 		lock_guard<utils::SharedSpinMutex> lock(_rootSharedMutex);
 			_rootPage->DecRefCount();
-			_headPage->WriteRootPagePointer(root->getPageId());
+			_headPage->WriteRootPagePointer(root->GetPageId());
 			_rootPage = root;
 			root->IncRefCount();
 			StoragePool::WriteCachePage(_headPage);		
@@ -225,14 +224,13 @@ namespace storage {
 		return rr;
 	}
 
-	vector<LeafRecord*>* IndexTree::GetRecords(const RawKey& key) {
-		vector<LeafRecord*>* vct = new vector<LeafRecord*>;
+	void IndexTree::GetRecords(const RawKey& key, VectorLeafRecord& vct ) {
+		vct.reserve(256);
 		LeafPage* page = SearchRecursively(false, key);
 		while (true) {
-			vector<LeafRecord*>* vctLr = page->GetRecords(key);
-			vct->insert(vct->end(), vctLr->begin(), vctLr->end());
-			delete vctLr;
-
+			VectorLeafRecord&& vctLr = page->GetRecords(key);
+			vct.insert(vct.end(), vctLr.begin(), vctLr.end());
+			
 			LeafRecord* lastLr = page->GetLastRecord();
 			if (lastLr != nullptr && lastLr->CompareKey(key) > 0) {
 				lastLr->ReleaseRecord();
@@ -256,12 +254,11 @@ namespace storage {
 
 		page->ReadUnlock();
 		page->DecRefCount();
-		return vct;
 	}
 
-	vector<LeafRecord*>* IndexTree::QueryRecord(RawKey* keyStart, RawKey* keyEnd,
-		bool bIncLeft, bool bIncRight) {
-		vector<LeafRecord*>* vctRt = new vector<LeafRecord*>;
+	void IndexTree::QueryRecord(RawKey* keyStart, RawKey* keyEnd,
+		bool bIncLeft, bool bIncRight, VectorLeafRecord& vctRt) {
+		vctRt.reserve(256);
 		LeafPage* page = nullptr;
 		uint32_t pos = 0;
 		if (keyStart == nullptr) {
@@ -276,20 +273,20 @@ namespace storage {
 
 		bool bStart = true;
 		while (true) {
-			vector<LeafRecord*>* vct = page->GetAllRecords();
+			VectorLeafRecord&& vct = page->GetAllRecords();
 			for (uint32_t i = 0; i < pos; i++) {
-				(*vct)[i]->ReleaseRecord();
+				vct[i]->ReleaseRecord();
 			}
 
 			if (keyStart != nullptr && bStart && !bIncLeft) {
-				for (; pos < vct->size(); pos++) {
-					if ((*vct)[pos]->CompareKey(*keyStart) != 0)
+				for (; pos < vct.size(); pos++) {
+					if (vct[pos]->CompareKey(*keyStart) != 0)
 						break;
 
-					(*vct)[pos]->ReleaseRecord();
+					vct[pos]->ReleaseRecord();
 				}
 
-				if (pos >= vct->size()) {
+				if (pos >= vct.size()) {
 					uint64_t idNext = page->GetNextPageId();
 					if (idNext == HeadPage::NO_NEXT_PAGE_POINTER) {
 						break;
@@ -308,8 +305,8 @@ namespace storage {
 			}
 
 			int count = 0;
-			for (; pos < vct->size(); pos++) {
-				LeafRecord* rr = (*vct)[pos];
+			for (; pos < vct.size(); pos++) {
+				LeafRecord* rr = vct[pos];
 				if (keyEnd != nullptr) {
 					int hr = rr->CompareKey(*keyEnd);
 					if ((!bIncRight && hr >= 0) || hr > 0) {
@@ -318,17 +315,17 @@ namespace storage {
 				}
 
 				count++;
-				vctRt->push_back(rr);
+				vctRt.push_back(rr);
 			}
 
-			if (pos < vct->size()) {
-				for (; pos < vct->size(); pos++) {
-					(*vct)[pos]->ReleaseRecord();
+			if (pos < vct.size()) {
+				for (; pos < vct.size(); pos++) {
+					vct[pos]->ReleaseRecord();
 				}
 
 				break;
 			}
-			delete vct;
+
 			uint64_t nextId = page->GetNextPageId();
 			if (nextId == HeadPage::NO_PARENT_POINTER)
 				break;
@@ -343,11 +340,10 @@ namespace storage {
 
 		page->ReadUnlock();
 		page->DecRefCount();
-		return vctRt;
 	}
 
 	IndexPage* IndexTree::AllocateNewPage(uint64_t parentId, Byte pageLevel) {
-		uint64_t newPageId = _headPage->GetAndIncTotalPageNum();
+		uint64_t newPageId = _headPage->GetAndIncTotalPageCount();
 		IndexPage* page = nullptr;
 		if (0 != pageLevel) {
 			page = new BranchPage(this, newPageId, pageLevel, parentId);

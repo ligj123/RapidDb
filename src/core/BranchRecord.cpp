@@ -1,15 +1,17 @@
 #include "BranchRecord.h"
 #include "IndexTree.h"
+#include "BranchPage.h"
 #include <memory>
 
 namespace storage {
   const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(uint64_t);
 
-	BranchRecord::BranchRecord(IndexTree* indexTree, RawRecord* rec, long childPageId) {
-		_parentPage = nullptr;
-		_indexTree = indexTree;
-		_bSole = true;
+	BranchRecord::BranchRecord(BranchPage* parentPage, Byte* bys) :
+		RawRecord(parentPage->GetIndexTree(), parentPage, bys, false) {}
 
+	BranchRecord::BranchRecord(IndexTree* indexTree, RawRecord* rec, long childPageId) :
+		RawRecord(indexTree, nullptr, nullptr, true)
+ {
 		uint16_t lenKey = rec->GetKeyLength();
 		uint16_t lenVal = (_indexTree->GetHeadPage()->ReadIndexType() == IndexType::NON_UNIQUE ?
 			rec->GetValueLength() : 0);
@@ -19,21 +21,9 @@ namespace storage {
 		*((uint16_t*)_bysVal) = totalLen;
 		*((uint16_t*)(_bysVal + sizeof(uint16_t))) = lenKey;
 
-		uint16_t offset = (typeid(rec) == typeid(BranchRecord)) ? 2 * sizeof(uint16_t) : 3 * sizeof(uint16_t);
-		std::memcpy(rec->GetBysValue() + offset, _bysVal + 2 * sizeof(uint16_t), lenKey + lenVal);
+		uint16_t offset = (typeid(*rec) == typeid(BranchRecord)) ? 2 * sizeof(uint16_t) : 3 * sizeof(uint16_t);
+		std::memcpy(_bysVal + 2 * sizeof(uint16_t), rec->GetBysValue() + offset, lenKey + lenVal);
 		*((uint64_t*)(_bysVal + lenKey + lenVal + 2 * sizeof(uint16_t))) = childPageId;
-	}
-
-	BranchRecord::BranchRecord(const BranchRecord& src)
-	{
-		_bysVal = src._bysVal;
-		_parentPage = src._parentPage;
-		_indexTree = src._indexTree;
-		_bSole = src._bSole;
-	}
-
-	BranchRecord::~BranchRecord() {
-		if (_bSole) CachePool::ReleaseBys(_bysVal, GetTotalLength());
 	}
 
 	RawKey* BranchRecord::GetKey() const {
@@ -41,46 +31,42 @@ namespace storage {
 		return new RawKey(_bysVal + (2 + keyVarNum) * sizeof(uint16_t), GetKeyLength() - keyVarNum * sizeof(uint16_t));
 	}
 
-	vector<IDataValue*>* BranchRecord::GetListKey() const {
-		vector<IDataValue*>* vct = _indexTree->CloneKeys();
+	void BranchRecord::GetListKey(VectorDataValue& vct) const {
+		_indexTree->CloneKeys(vct);
 		uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
 		uint16_t pos = (2 + keyVarNum) * sizeof(uint16_t);
 		uint16_t lenPos = 2 * sizeof(uint16_t);
 
-		for (int i = 0; i < vct->size(); i++) {
+		for (int i = 0; i < vct.size(); i++) {
 			uint16_t len = 0;
-			if (!(*vct)[i]->IsFixLength((*vct)[i]->GetDataType())) {
+			if (!vct[i]->IsFixLength()) {
 				len = *(uint16_t*)(_bysVal + lenPos);
 				lenPos += sizeof(uint16_t);
 			}
 
-			pos += (*vct)[i]->ReadData(_bysVal + pos, len);
+			pos += vct[i]->ReadData(_bysVal + pos, len);
 		}
-
-		return vct;
 	}
 
-	vector<IDataValue*>* BranchRecord::GetListValue() const {
+	void BranchRecord::GetListValue(VectorDataValue& vct) const {
 		if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
-			return nullptr;
+			return;
 		}
 
-		vector<IDataValue*>* vct = _indexTree->CloneValues();
+		_indexTree->CloneValues(vct);
 		uint16_t valVarNum = _indexTree->GetHeadPage()->ReadValueVariableFieldCount();
 		uint16_t pos = GetKeyLength() + (2 + valVarNum) * sizeof(uint16_t);
 		uint16_t lenPos = 2 * sizeof(uint16_t) + GetKeyLength();
 
-		for (int i = 0; i < vct->size(); i++) {
+		for (int i = 0; i < vct.size(); i++) {
 			int len = 0;
-			if (!(*vct)[i]->IsFixLength((*vct)[i]->GetDataType())) {
+			if (!vct[i]->IsFixLength()) {
 				len = *(uint16_t*)(_bysVal + lenPos);
 				lenPos += sizeof(uint16_t);
 			}
 
-			pos += (*vct)[i]->ReadData(_bysVal + pos, len);
+			pos += vct[i]->ReadData(_bysVal + pos, len);
 		}
-
-		return vct;
 	}
 
 	int BranchRecord::CompareTo(const RawRecord& other) const {
@@ -120,23 +106,20 @@ namespace storage {
 	}
 
 	std::ostream& operator<< (std::ostream& os, const BranchRecord& br) {
-		vector<IDataValue*>* vctKey = br.GetListKey();
+		VectorDataValue vctKey;
+		br.GetListKey(vctKey);
 		os << "TotalLen=" << br.GetTotalLength() << "  Keys=";
-		for (IDataValue* dv : *vctKey) {
+		for (IDataValue* dv : vctKey) {
 			os << *dv << "; ";
-			delete dv;
 		}
-		delete vctKey;
 
 		if (br._indexTree->GetHeadPage()->ReadIndexType() == IndexType::NON_UNIQUE) {
-			vector<IDataValue*>* vctVal = br.GetListValue();
+			VectorDataValue vctVal;
+			br.GetListValue(vctVal);
 			os << "  Values=";
-			for (IDataValue* dv : *vctVal) {
+			for (IDataValue* dv : vctVal) {
 				os << *dv << "; ";
-				delete dv;
 			}
-
-			delete vctVal;
 		}
 
 		os << "  ChildPageId=" << br.GetChildPageId();

@@ -12,7 +12,7 @@ namespace storage {
     : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey), soleValue_(val),
       maxLength_(maxLength), soleLength_(len)
   {
-    if (soleLength_ >= maxLength_)
+    if (soleLength_ > maxLength_)
     {
       delete[] val;
       throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
@@ -23,7 +23,7 @@ namespace storage {
     : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey),
     maxLength_(maxLength), soleLength_(len)
   {
-    if (soleLength_ >= maxLength_)
+    if (soleLength_ > maxLength_)
     {
       throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH, { to_string(maxLength_), to_string(soleLength_) });
     }

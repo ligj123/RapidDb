@@ -10,13 +10,13 @@ namespace storage {
 
   queue<CachePage*> StoragePool::_queueWrite;
   map<uint64_t, CachePage*> StoragePool::_mapWrite;
-  thread StoragePool::_threadWrite = StoragePool::CreateWriteThread();
+	thread* StoragePool::_threadWrite = StoragePool::CreateWriteThread();
   bool StoragePool::_bWriteFlush = false;
   bool StoragePool::_bReadFirst = true;
 	utils::SpinMutex StoragePool::_spinMutex;
 
-	thread StoragePool::CreateWriteThread() {
-		thread t([]() {
+	thread* StoragePool::CreateWriteThread() {
+		thread* t = new thread([]() {
 			utils::ThreadPool::_threadName = "WriteThread";
 			while (true) {
 				try {

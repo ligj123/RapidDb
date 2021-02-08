@@ -25,7 +25,7 @@
     <ClCompile Include="..\..\src\core\BranchPage.cpp" />
     <ClCompile Include="..\..\src\core\BranchRecord.cpp" />
     <ClCompile Include="..\..\src\core\CachePage.cpp" />
-    <ClCompile Include="..\..\src\core\HeadPag.cpp" />
+    <ClCompile Include="..\..\src\core\HeadPage.cpp" />
     <ClCompile Include="..\..\src\core\IndexPage.cpp" />
     <ClCompile Include="..\..\src\core\IndexTree.cpp" />
     <ClCompile Include="..\..\src\core\LeafPage.cpp" />
@@ -68,7 +68,7 @@
     <ClInclude Include="..\..\src\core\BranchPage.h" />
     <ClInclude Include="..\..\src\core\BranchRecord.h" />
     <ClInclude Include="..\..\src\core\CachePage.h" />
-    <ClInclude Include="..\..\src\core\HeadPag.h" />
+    <ClInclude Include="..\..\src\core\HeadPage.h" />
     <ClInclude Include="..\..\src\core\IndexPage.h" />
     <ClInclude Include="..\..\src\core\IndexTree.h" />
     <ClInclude Include="..\..\src\core\IndexType.h" />
@@ -111,6 +111,7 @@
     <ClInclude Include="..\..\src\utils\Log.h" />
     <ClInclude Include="..\..\src\utils\SpinMutex.h" />
     <ClInclude Include="..\..\src\utils\ThreadPool.h" />
+    <ClInclude Include="..\..\src\utils\Utilitys.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

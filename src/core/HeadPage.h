@@ -2,23 +2,31 @@
 #include "CachePage.h"
 #include "IndexType.h"
 #include "../config/FileVersion.h"
+#include <vector>
 
 namespace storage {
 	class HeadPage : public CachePage {
 	public:
 		static const uint32_t HEAD_PAGE_LENGTH;
+		/**The max versions can be support at the same time in a table*/
+		static const uint16_t MAX_RECORD_VER_COUNT;
 		static const uint16_t VERSION_OFFSET;
 		static const uint16_t INDEX_TYPE_OFFSET;
-		static const uint16_t TOTAL_PAGES_NUM_OFFSET;
+		/**How much versions have been saved to this table*/
+		static const uint16_t RECORD_VER_COUNT_OFFSET;
+		static const uint16_t KEY_VARIABLE_FIELD_COUNT;
+		static const uint16_t VALUE_VARIABLE_FIELD_COUNT;
+
+		static const uint16_t TOTAL_PAGES_COUNT_OFFSET;
 		static const uint16_t ROOT_PAGE_OFFSET;
 		static const uint16_t BEGIN_LEAF_PAGE_OFFSET;
 		static const uint16_t END_LEAF_PAGE_OFFSET;
-		static const uint16_t TOTAL_RECORD_OFFSET;
+		static const uint16_t TOTAL_RECORD_COUNT_OFFSET;
 		static const uint16_t AUTO_PRIMARY_KEY;
-		static const uint16_t KEY_VARIABLE_FIELD_COUNT;
-		static const uint16_t VALUE_VARIABLE_FIELD_COUNT;
 		static const uint16_t AUTO_PRIMARY_KEY2;
 		static const uint16_t AUTO_PRIMARY_KEY3;
+		static const uint16_t RECORD_STAMP_OFFSET;
+		static const uint16_t RECORD_VERSION_STAMP_OFFSET;
 		static const uint16_t FREE_PAGE_OFFSET;
 
 		static const uint64_t NO_PARENT_POINTER;
@@ -28,15 +36,23 @@ namespace storage {
 	protected:
 		uint16_t _keyVariableFieldCount;
 		uint16_t _valueVariableFieldCount;
+		/**The versions that this table support in current time*/
+		uint8_t _recordVerCount;
 		IndexType _indexType;
-		uint64_t _totalPageNum;
+		uint64_t _totalPageCount;
 		uint64_t _rootPageId;
 		uint64_t _beginLeafPageId;
 		uint64_t _endLeafPageId;
-		uint64_t _totalRecordNum;
+		uint64_t _totalRecordCount;
+		/**In this table, any changes for a record will need a new record version stamp,
+		it start from 0, and will add one every time. This stamp will be used for log transport,
+		data snapshot etc.*/
+		uint64_t _recordStamp;
 		uint64_t _autoPrimaryKey1;
 		uint64_t _autoPrimaryKey2;
 		uint64_t _autoPrimaryKey3;
+		/***/
+		std::vector<uint64_t> _vctRecVer;
 		utils::SpinMutex _spinMutex;
 
 	public:
@@ -45,42 +61,81 @@ namespace storage {
 		void ReadPage() override;
 		void WritePage() override;
 		void WriteFileVersion();
-		FileVersion& ReadFileVersion();
+		FileVersion ReadFileVersion();
 
-		inline uint64_t GetAndIncTotalPageNum() {
+		inline Byte ReadRecordVersionCount() { return _recordVerCount; }
+
+		inline Byte AddNewRecordVersion(uint64_t ver) {
+			lock_guard<utils::SpinMutex> lock(_spinMutex);
+			uint64_t min = 1;
+			if (_recordVerCount > 0) min = _vctRecVer[_recordVerCount - 1] + 1;
+			assert(ver < min || ver > _recordStamp);
+
+			_vctRecVer.push_back(ver);
+			_recordVerCount++;
+			_bDirty = true;
+			return _recordVerCount;
+		}
+
+		inline uint64_t GetRecordVersionStamp(Byte ver) {
+			assert(ver < _recordVerCount);
+			return _vctRecVer[ver];
+		}
+
+		inline void RemoveRecordVersionStamp(Byte ver) {
+			assert(ver < _recordVerCount);
+			_vctRecVer.erase(_vctRecVer.begin() + ver);
+		}
+
+		inline uint64_t GetAndIncRecordStamp() {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			_bDirty = true;
-			return _totalPageNum++;
+			return _recordStamp++;
 		}
 
-		inline uint64_t ReadTotalPageNum() {
+		inline uint64_t ReadRecordStamp() {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
-			return _totalPageNum;
+			return _recordStamp;
 		}
 
-		void WriteTotalPageNum(uint64_t totalPage) {
+		void WriteRecordStamp(uint64_t recordStamp) {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
-			_totalPageNum = totalPage;
+			_recordStamp = recordStamp;
 			_bDirty = true;
 		}
 
-		inline uint64_t ReadTotalRecordNum() {
+		inline uint64_t GetAndIncTotalPageCount() {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
-			return _totalRecordNum;
+			_bDirty = true;
+			return _totalPageCount++;
 		}
 
-		inline void WriteTotalRecordNum(uint64_t totalRecNum) {
+		inline uint64_t ReadTotalPageCount() {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
-			_totalRecordNum = totalRecNum;
+			return _totalPageCount;
+		}
+
+		void WriteTotalPageCount(uint64_t totalPage) {
+			lock_guard<utils::SpinMutex> lock(_spinMutex);
+			_totalPageCount = totalPage;
 			_bDirty = true;
 		}
 
-		inline uint64_t GetAndAddTotalRecordNum(uint64_t delta) {
+		inline uint64_t ReadTotalRecordCount() {
+			lock_guard<utils::SpinMutex> lock(_spinMutex);
+			return _totalRecordCount;
+		}
+
+		inline void WriteTotalRecordCount(uint64_t totalRecNum) {
+			lock_guard<utils::SpinMutex> lock(_spinMutex);
+			_totalRecordCount = totalRecNum;
+			_bDirty = true;
+		}
+
+		inline uint64_t GetAndIncTotalRecordCount() {
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			_bDirty = true;
-			uint64_t tmp = _totalRecordNum;
-			_totalRecordNum += delta;
-			return tmp;
+			return _totalRecordCount++;
 		}
 		
 		inline void WriteRootPagePointer(uint64_t pointer) {

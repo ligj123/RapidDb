@@ -54,7 +54,7 @@ namespace storage {
       _patchVer = ver;
     }
 
-    bool operator==(FileVersion fv) {
+    bool operator ==(const FileVersion& fv) const {
       return _majorVer == fv._majorVer &&
         _minorVer == fv._minorVer &&
         _patchVer == fv._patchVer;
@@ -63,7 +63,14 @@ namespace storage {
     uint16_t _majorVer;
     uint8_t _minorVer;
     uint8_t _patchVer;
+
+    friend std::ostream& operator<< (std::ostream& os, const FileVersion& fv);
   };
 
+  inline std::ostream& operator<< (std::ostream& os, const FileVersion& fv) {
+    os << "MajerVer: " << fv._majorVer << "\tMinorVer: " << fv._minorVer
+      << "\tPatchVer:" << fv._patchVer;
+    return os;
+  }
   static FileVersion INDEX_FILE_VERSION = { 1, 1, 0 };
 }

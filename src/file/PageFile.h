@@ -29,11 +29,13 @@ namespace storage {
 		void ReadDataValue(vector<IDataValue*> vctDv, uint32_t dvStart, uint64_t offset, uint32_t totalLen);
 
 		uint64_t Length() {
+			unique_lock< utils::SpinMutex> lock;
 			_file.seekp(0, ios::end);
 			return _file.tellp();
 		}
 
 		uint64_t GetOffsetAddLength(uint32_t len) {
+			assert(_bOverflowFile);
 			return _overFileLength.fetch_add(len);
 		}
 

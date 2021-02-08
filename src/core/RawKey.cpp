@@ -2,21 +2,21 @@
 #include <iomanip>
 
 namespace storage {
-	 RawKey::RawKey(vector<IDataValue> vctKey) : _bSole(true) {
+	 RawKey::RawKey(VectorDataValue& vctKey) : _bSole(true) {
 		_length = 0;
 		for (size_t i = 0; i < vctKey.size(); i++) {
-			if (vctKey[i].IsNull()) {
-				vctKey[i].SetDefaultValue();
+			if (vctKey[i]->IsNull()) {
+				vctKey[i]->SetDefaultValue();
 			}
 
-			_length += vctKey[i].GetPersistenceLength(true);
+			_length += vctKey[i]->GetPersistenceLength(true);
 		}
 
 		_bysVal = CachePool::ApplyBys(_length);
 
 		int pos = 0;
 		for (int i = 0; i < vctKey.size(); i++) {
-			pos += vctKey[i].WriteData(_bysVal + pos, true);
+			pos += vctKey[i]->WriteData(_bysVal + pos, true);
 		}
 	}
 

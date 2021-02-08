@@ -1,8 +1,11 @@
 #pragma once
 #include "IndexPage.h"
+#include "RawKey.h"
 
 namespace storage {
 	class LeafRecord;
+	class VectorLeafRecord;
+
   class LeafPage : public IndexPage
   {
 	public:
@@ -14,25 +17,26 @@ namespace storage {
 	public:
 		LeafPage(IndexTree* indexTree, uint64_t pageId, uint64_t parentPageId);
 		LeafPage(IndexTree* indexTree, uint64_t pageId);
+		~LeafPage();
 
 		void SetPrevPageId(uint64_t id) {_prevPageId = id;	}
 		uint64_t GetPrevPageId() {	return _prevPageId;	}
 		void SetNextPageId(uint64_t id) {	_nextPageId = id;	}
 		uint64_t GetNextPageId() { return _nextPageId; }
 		
-		vector<LeafRecord*>* GetAllRecords();
+		VectorLeafRecord GetAllRecords();
 		LeafRecord* GetLastRecord();
 		void LoadRecords();
 		void CleanRecord();
-		bool SaveRecord();
+		bool SaveRecord() override;
 		void InsertRecord(LeafRecord* lr);
 		bool AddRecord(LeafRecord* record);
 		LeafRecord* GetRecord(const RawKey& key);
-		vector<LeafRecord*>* GetRecords(const RawKey& key);
+		VectorLeafRecord GetRecords(const RawKey& key);
 		uint32_t SearchRecord(const LeafRecord& rr, bool bEqual);
 		uint32_t SearchKey(const RawKey& key, bool bEqual);
 		bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH; }
-		uint16_t GetMaxDataLength() { return MAX_DATA_LENGTH; }
+		uint16_t GetMaxDataLength() const override { return MAX_DATA_LENGTH; }
 	protected:
 		int CompareTo(uint32_t recPos, const RawKey& key);
 		int CompareTo(uint32_t recPos, const LeafRecord& rr);

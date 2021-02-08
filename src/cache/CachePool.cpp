@@ -9,7 +9,7 @@ namespace storage {
     return new CachePool;
   }();
 
-  set<uint32_t> CachePool::_gSetBufSize = {10, 30, 100, 300, 1000, 2000, 4000, 16000};
+  set<uint32_t> CachePool::_gSetBufSize = { 30, 100, 300, 1000, 2000, 4000, 8000, 16000 };
 
   Byte* CachePool::ApplyPage() {
     CachePool* pool = GetInstance();
@@ -19,7 +19,7 @@ namespace storage {
       pool->_queueFreePage.pop();
       return bys;
     } else {
-      lock.release();
+      lock.unlock();
       return new Byte[Configure::GetCachePageSize()];
     }
   }
@@ -28,11 +28,31 @@ namespace storage {
     CachePool* pool = GetInstance();
     std::unique_lock< utils::SpinMutex> lock(pool->_spinMutexPage);
     if (pool->_queueFreePage.size() > Configure::GetMaxFreeBufferCount()) {
-      lock.release();
+      lock.unlock();
       delete[] page;
     } else {
       pool->_queueFreePage.push(page);
     }
+  }
+
+  Byte* CachePool::ApplyOverflowCache() {
+    CachePool* pool = GetInstance();
+    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutexOvf);
+    if (pool->_queueFreeOvf.size() > 0) {
+      Byte* bys = pool->_queueFreeOvf.front();
+      pool->_queueFreeOvf.pop();
+      return bys;
+    }
+    else {
+      lock.unlock();
+      return new Byte[Configure::GetMaxOverflowCache()];
+    }
+  }
+
+  void CachePool::ReleaseOverflowCache(Byte* pBuf) {
+    CachePool* pool = GetInstance();
+    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutexOvf);
+    pool->_queueFreeOvf.push(pBuf);
   }
 
   Byte* CachePool::ApplyBys(uint32_t bufSize)
@@ -53,15 +73,13 @@ namespace storage {
     auto iter = pool->_mapPool.find(eleSize);
     if (iter == pool->_mapPool.end())
     {
-      pool->_spinMutex.lock();
+      std::unique_lock< utils::SpinMutex> lock(pool->_spinMutex);
       iter = pool->_mapPool.find(eleSize);
       if (iter == pool->_mapPool.end())
       {
         pool->_mapPool.insert(pair<uint32_t, BufferPool*>(eleSize, new BufferPool(eleSize)));
         iter = pool->_mapPool.find(eleSize);
       }
-
-      pool->_spinMutex.unlock();
     }
 
     return iter->second->Apply();

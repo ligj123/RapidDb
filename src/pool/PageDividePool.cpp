@@ -10,9 +10,9 @@ namespace storage {
 
   unordered_map<uint64_t, IndexPage*> PageDividePool::_mapPage;
   queue<IndexPage*> PageDividePool::_queuePage;
-  thread PageDividePool::_treeDivideThread = PageDividePool::CreateThread();
+	thread PageDividePool::_treeDivideThread;// = PageDividePool::CreateThread();
   bool PageDividePool::_bSuspend = false;
-  utils::SpinMutex _spinMutex;
+  utils::SpinMutex PageDividePool::_spinMutex;
 
 	thread PageDividePool::CreateThread() {
 		thread t([]() {
@@ -37,7 +37,7 @@ namespace storage {
 					continue;
 				}
 
-				_mapPage.erase(page->getPageId());
+				_mapPage.erase(page->GetPageId());
 				_spinMutex.unlock();
 				bool bPassed = false;
 				if (page->GetTotalDataLength() >= page->GetMaxDataLength()) {
@@ -53,7 +53,7 @@ namespace storage {
 				else {
 					_spinMutex.lock();
 					_queuePage.push(page);
-					_mapPage.insert(pair<uint64_t, IndexPage*>(page->getPageId(), page));
+					_mapPage.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
 					_spinMutex.unlock();
 				}
 
@@ -64,13 +64,13 @@ namespace storage {
 
 	void PageDividePool::AddCachePage(IndexPage* page) {
 		lock_guard<utils::SpinMutex> lock(_spinMutex);
-		if (_mapPage.find(page->getPageId()) != _mapPage.end()) return;
+		if (_mapPage.find(page->GetPageId()) != _mapPage.end()) return;
 
 		page->SetPageLastUpdateTime();
 
 		page->GetIndexTree()->IncreaseTasks();
 		page->IncRefCount();
-		_mapPage.insert(pair<uint64_t, IndexPage*>(page->getPageId(), page));
+		_mapPage.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
 	}
 
 }

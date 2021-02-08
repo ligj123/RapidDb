@@ -26,6 +26,8 @@ namespace storage {
 		static const uint64_t DEFAULT_MAX_FREE_BUFFER_COUNT;
 		/**The max instances to open a index tree for reading or writing*/
 		static const uint64_t MAX_PAGE_FILE_COUNT;
+		/**The max size for overflow file cache*/
+		static const uint64_t MAX_OVERFLOW_CACHE_SIZE;
 		//static const uint64_t WRITE_DELAY_MS = 10 * 1000;
 		//static const uint64_t MAX_QUEUE_SIZE = 10000;
 		//static const uint64_t DEFAULT_DISK_CACHE_PAGE_SIZE = 1024 * 1024;
@@ -44,6 +46,7 @@ namespace storage {
 		static uint64_t GetMaxColumnLength() { return GetInstance()._lenMaxColumn; }
 		static uint64_t GetMaxFreeBufferCount() {	return GetInstance()._countMaxFreeBuff; }
 		static uint64_t GetMaxPageFileCount() {	return GetInstance()._countMaxPageFile;	}
+		static uint64_t GetMaxOverflowCache() { return GetInstance()._maxOverflowCache; }
 	protected:
 		static Configure& GetInstance() {
 			return *instance;
@@ -61,5 +64,6 @@ namespace storage {
 		uint64_t _lenMaxColumn;
 		uint64_t _countMaxFreeBuff;
 		uint64_t _countMaxPageFile;
+		uint64_t _maxOverflowCache;
 	};
 }

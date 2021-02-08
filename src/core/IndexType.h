@@ -28,5 +28,7 @@ namespace storage {
 			os << "UNKNOWN(" << (int)IndexType::UNKNOWN << ")";
 			break;
 		}
+
+		return os;
 	}
 }

@@ -67,4 +67,20 @@ namespace storage {
 		ValueType valType_;
 		bool bKey_;
 	};
+
+	class VectorDataValue : public vector<IDataValue*> {
+	public:
+		using vector::vector;
+		~VectorDataValue() {
+			for (auto iter = begin(); iter != end(); iter++) {
+				delete* iter;
+			}
+		}
+
+		void clear() {
+			for (auto iter = begin(); iter != end(); iter++) {
+				delete* iter;
+			}
+		}
+	};
 }

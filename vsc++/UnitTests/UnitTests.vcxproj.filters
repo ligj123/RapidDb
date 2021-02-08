@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\test\TestMain.cpp" />
+    <ClCompile Include="..\..\test\cache\CachePoolTest.cpp">
+      <Filter>cache</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueBlobTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueBoolTest .cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueByteTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueCharTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueDateTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueFixCharTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueIntTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueLongTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueShortTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueUIntTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueULongTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueUShortTest .cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\dataType\DataValueVarCharTest.cpp">
+      <Filter>dataType</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\core\BranchPageTest.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\core\BranchRecordTest.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\core\HeadPageTest.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\core\LeafRecordTest.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\utils\CharsetConvertTest.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\utils\ErrorMsgTest.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\utils\SpinMutexTest.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\utils\ThreadPoolTest.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\file\PageFileTest.cpp">
+      <Filter>file</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\pool\StoragePoolTest.cpp">
+      <Filter>pool</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\..\test\utils\ErrorMsg.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="cache">
+      <UniqueIdentifier>{4b329b50-eaf6-494d-9538-27317e0c2dae}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="core">
+      <UniqueIdentifier>{cd509f5d-4f7c-4d5b-929e-15c98a9c9c06}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dataType">
+      <UniqueIdentifier>{ff5f9d8f-c8a9-47bb-91ef-e119e078a987}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{467963ca-f4dd-49be-b490-6e0a96adebf4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="file">
+      <UniqueIdentifier>{63454fde-b72b-475c-8bff-5a45a35ee321}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="pool">
+      <UniqueIdentifier>{22179bc2-4780-4713-a462-ef4a1727bd30}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

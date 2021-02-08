@@ -1,7 +1,7 @@
 #include "LeafPage.h"
 #include "BranchPage.h"
 #include "IndexTree.h"
-#include "HeadPag.h"
+#include "HeadPage.h"
 #include "LeafRecord.h"
 #include "../pool/StoragePool.h"
 #include "../config/ErrorID.h"
@@ -25,6 +25,10 @@ namespace storage {
 
 	LeafPage::LeafPage(IndexTree* indexTree, uint64_t pageId) :
 		IndexPage(indexTree, pageId) { }
+
+	LeafPage::~LeafPage() {
+		CleanRecord();
+	}
 
 	void LeafPage::LoadRecords() {
 		CleanRecord();
@@ -63,8 +67,7 @@ namespace storage {
 					}
 
 					WriteShort(DATA_BEGIN_OFFSET + sizeof(uint16_t) * index, pos);
-					lr->SaveData(_bysPage + pos);
-					pos += lr->GetTotalLength();
+					pos += lr->SaveData(_bysPage + pos);
 					index++;
 				}
 
@@ -116,7 +119,7 @@ namespace storage {
 		_recordNum++;
 		_bDirty = true;
 		_bRecordUpdate = true;
-		_indexTree->GetHeadPage()->GetAndAddTotalRecordNum(1);
+		_indexTree->GetHeadPage()->GetAndIncTotalRecordCount();
 		PageDividePool::AddCachePage(this);
 	}
 
@@ -136,7 +139,7 @@ namespace storage {
 		_recordNum++;
 		_bDirty = true;
 		_bRecordUpdate = true;
-		_indexTree->GetHeadPage()->GetAndIncTotalPageNum();
+		_indexTree->GetHeadPage()->GetAndIncTotalPageCount();
 
 		return true;
 	}
@@ -146,7 +149,7 @@ namespace storage {
 			return nullptr;
 		}
 
-		uint32_t index = SearchKey(key, true);
+		int32_t index = SearchKey(key, true);
 		if (index >= _recordNum) {
 			return nullptr;
 		}
@@ -160,19 +163,20 @@ namespace storage {
 		}
 	}
 
-	vector<LeafRecord*>* LeafPage::GetRecords(const RawKey& key) {
-		vector<LeafRecord*>* vct = new vector<LeafRecord*>(_recordNum);
+	VectorLeafRecord LeafPage::GetRecords(const RawKey& key) {
+		VectorLeafRecord vct;
 		if (_recordNum == 0) return vct;
+		vct.reserve(_recordNum);
 
 		uint32_t pos = SearchKey(key, true);
 		if (_vctRecord.size() == 0) {
 			for (uint16_t i = pos; i < _recordNum; i++) {
 				uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + i * sizeof(uint16_t));
 				if (i == pos) {
-					vct->push_back(new LeafRecord(this, _bysPage + offset));
+					vct.push_back(new LeafRecord(this, _bysPage + offset));
 				}
 				else if (CompareTo(pos, key) == 0) {
-					vct->push_back(new LeafRecord(this, _bysPage + offset));
+					vct.push_back(new LeafRecord(this, _bysPage + offset));
 				}
 				else {
 					break;
@@ -183,10 +187,10 @@ namespace storage {
 			for (uint32_t i = pos; i < _vctRecord.size(); i++) {
 				LeafRecord* rr = ((LeafRecord*)_vctRecord[i])->ReferenceRecord();
 				if (i == pos) {
-					vct->push_back(rr);
+					vct.push_back(rr);
 				}
 				else if (rr->CompareKey(key) == 0) {
-					vct->push_back(rr);
+					vct.push_back(rr);
 				}
 				else {
 					rr->ReleaseRecord();
@@ -210,7 +214,7 @@ namespace storage {
 
 		uint32_t start = 0;
 		uint32_t end = (uint32_t)_vctRecord.size() - 1;
-		int hr = (_vctRecord.size() > 0 ? _vctRecord[end]->CompareTo(rr) : CompareTo(end, rr));
+		int hr = (_vctRecord.size() > 0 ? ((LeafRecord*)_vctRecord[end])->CompareTo(rr) : CompareTo(end, rr));
 		if (hr < 0) {
 			if (bEqual) {
 				return UINT32_MAX;
@@ -273,7 +277,7 @@ namespace storage {
 		if (bUnique) {
 			int hr = 0;
 			if (_vctRecord.size() > 0) {
-				hr = _vctRecord[end]->CompareKey(key);
+				hr = ((LeafRecord*)_vctRecord[end])->CompareKey(key);
 			}
 			else {
 				hr = CompareTo(end, key);
@@ -308,7 +312,7 @@ namespace storage {
 			uint32_t middle = (start + end) / 2;
 			int hr = 0;
 			if (_vctRecord.size() > 0) {
-				RawRecord* currRr = _vctRecord[middle];
+				LeafRecord* currRr = (LeafRecord*)_vctRecord[middle];
 				hr = currRr->CompareKey(key);
 			}
 			else {
@@ -323,7 +327,7 @@ namespace storage {
 			}
 			else {
 				if (!bUnique && middle > start && (_vctRecord.size() > 0 ?
-					_vctRecord[middle - 1]->CompareKey(key) == 0 : CompareTo(middle - 1, key) == 0)) {
+					((LeafRecord*)_vctRecord[middle - 1])->CompareKey(key) == 0 : CompareTo(middle - 1, key) == 0)) {
 					end = middle - 1;
 				}
 				else {
@@ -344,11 +348,12 @@ namespace storage {
 		}
 	}
 
-	vector<LeafRecord*>* LeafPage::GetAllRecords() {
-		vector<LeafRecord*>* vct = new vector<LeafRecord*>(_recordNum);
+	VectorLeafRecord LeafPage::GetAllRecords() {
+		VectorLeafRecord vct;
+		vct.reserve(_recordNum);
 		if (_vctRecord.size() == 0) { LoadRecords(); }
 		for (RawRecord* rr : _vctRecord) {
-			vct->push_back(((LeafRecord*)rr)->ReferenceRecord());
+			vct.push_back(((LeafRecord*)rr)->ReferenceRecord());
 		}
 
 		return vct;

@@ -51,16 +51,16 @@ namespace storage {
 		assert(offset % Configure::GetDiskClusterSize() == 0);
 		lock_guard<utils::SpinMutex> lock(_spinMutex);
 		_file.seekg(offset, ios::beg);
-		Byte* buf = CachePool::Apply((uint32_t)Configure::GetCacheBlockSize());
+		Byte* buf = CachePool::ApplyOverflowCache();
 
 		uint32_t pos = 0;
 		for (int i = dvStart; i < vctDv.size(); i++) {
 			uint32_t len = vctDv[i]->GetPersistenceLength(false);
-			if (pos + len > Configure::GetCacheBlockSize()) {
+			if (pos + len > Configure::GetMaxOverflowCache()) {
 				_file.write((char*)buf, pos);
 				pos = 0;
 
-				if (len > Configure::GetCacheBlockSize()) {
+				if (len > Configure::GetMaxOverflowCache()) {
 					vctDv[i]->WriteData(_file);
 					continue;
 				}
@@ -70,7 +70,7 @@ namespace storage {
 		}
 
 		_file.write((char*)buf, pos);
-		CachePool::Release(buf, (uint32_t)Configure::GetCacheBlockSize());
+		CachePool::ReleaseOverflowCache(buf);
 		LOG_DEBUG << "Write overflow data, offset=" << offset << "  name=" << _path;
 	}
 
@@ -78,8 +78,8 @@ namespace storage {
 		assert(Length() >= offset + totalLen);
 		lock_guard<utils::SpinMutex> lock(_spinMutex);
 		_file.seekg(offset, ios::beg);
-		Byte* buf = CachePool::Apply((uint32_t)Configure::GetCacheBlockSize());
-		if (totalLen < Configure::GetCacheBlockSize()) {
+		Byte* buf = CachePool::ApplyOverflowCache();
+		if (totalLen < Configure::GetMaxOverflowCache()) {
 			uint32_t pos = 0;
 			while (pos < totalLen) {
 				_file.read((char*)(buf + pos), totalLen - pos);
@@ -98,6 +98,7 @@ namespace storage {
 			}
 		}
 
+		CachePool::ReleaseOverflowCache(buf);
 		LOG_DEBUG << "Read overflow data, offset=" << offset << "  name=" << _path;
 	}
 }

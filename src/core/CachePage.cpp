@@ -27,7 +27,7 @@ namespace storage {
 		}
 	}
 
-	bool CachePage::IsFileClosed() {
+	bool CachePage::IsFileClosed() const{
 		return _indexTree->IsClosed();
 	}
 

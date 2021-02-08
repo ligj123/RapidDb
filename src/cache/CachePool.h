@@ -10,12 +10,22 @@ namespace storage {
   class CachePool
   {
   public:
+    /**Apply a menory block for an Index page*/
     static Byte* ApplyPage();
+    /**Release an memory block for an index page*/
     static void ReleasePage(Byte* page);
+    /**Apply a memory block with fixed size*/
     static Byte* Apply(uint32_t eleSize);
+    /**Release a memory block with fixed size*/
     static void Release(Byte* pBuf, uint32_t eleSize);
+    /**Apply a memory block with unfixed size*/
     static Byte* ApplyBys(uint32_t bufSize);
+    /**Release a memory block with unfixed size*/
     static void ReleaseBys(Byte* pBuf, uint32_t bufSize);
+    /**Apply a memory block for overflow file cache*/
+    static Byte* ApplyOverflowCache();
+    /**Release a memory block for overflow file cache*/
+    static void ReleaseOverflowCache(Byte* pBuf);
   public:
     CachePool();
     ~CachePool();
@@ -40,11 +50,15 @@ namespace storage {
     /**Mutex for block memory,used to create IDataValue etc. One block can create multi objects.*/
     utils::SpinMutex _spinMutex;
 
-    /**queue for cache page*/
+    /**queue for index page*/
     queue<Byte*> _queueFreePage;
-    /**Mutex for cache page */
+    /**Mutex for index page */
     utils::SpinMutex _spinMutexPage;
 
+    /**queue for overflow file cache*/
+    queue<Byte*> _queueFreeOvf;
+    /**Mutex for overflow file cache*/
+    utils::SpinMutex _spinMutexOvf;
     friend class BufferPool;
   };
 }

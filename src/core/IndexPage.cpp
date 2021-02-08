@@ -9,12 +9,11 @@ namespace storage {
 	 const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;
 	 const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
 
-	 IndexPage::IndexPage(IndexTree* indexTree, uint64_t pageId) : CachePage(indexTree, pageId) {
-	 }
+	 IndexPage::IndexPage(IndexTree* indexTree, uint64_t pageId) :
+		 CachePage(indexTree, pageId)	{ }
 
 	 IndexPage::IndexPage(IndexTree* indexTree, uint64_t pageId, uint8_t pageLevel, uint64_t parentPageId)
 		 : CachePage(indexTree, pageId) {
-		 ClearRecords();
 		 _recordNum = 0;
 		 _totalDataLength = 0;
 		 _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
@@ -23,24 +22,8 @@ namespace storage {
 	 }
 
 	 IndexPage::~IndexPage() {
-		 ClearRecords();
 	 }
-
-	 void IndexPage::ClearRecords() {
-		 for (RawRecord* rr : _vctRecord) {
-			 delete rr;
-		 }
-
-		 _vctRecord.clear();
-	 }
-	 void IndexPage::LoadPage() {
-		 ClearRecords();
-		 _recordNum = ReadShort(NUM_RECORD_OFFSET);
-		 _totalDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
-		 _parentPageId = ReadLong(PARENT_PAGE_POINTER_OFFSET);
-		 _dtPageLastUpdate = GetMsFromEpoch();
-	 }
-
+	
 	bool IndexPage::PageDivide() {
 //			if (recordRefCount.get() > 0) {
 //				return false;

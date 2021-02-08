@@ -1,9 +1,10 @@
 #pragma once
 #include "RawRecord.h"
-#include "BranchPage.h"
-#include "IndexType.h"
+#include "../dataType/IDataValue.h"
+#include "RawKey.h"
 
 namespace storage {
+	class BranchPage;
   class BranchRecord : public RawRecord
   {
 	public:
@@ -11,48 +12,53 @@ namespace storage {
 		static const uint32_t PAGE_ID_LEN;
 
 	public:
-		BranchRecord(BranchPage* parentPage, Byte* bys) : _parentPage(parentPage), _bysVal(bys),
-										_indexTree(parentPage->GetIndexTree()), _bSole(false) {	}
-
+		BranchRecord(BranchPage* parentPage, Byte* bys);
 		BranchRecord(IndexTree* indexTree, RawRecord* rec, long childPageId);
-		BranchRecord(const BranchRecord& src);
-		~BranchRecord();
-		RawKey* GetKey() const override;
-		vector<IDataValue*>* GetListKey() const override;
-		vector<IDataValue*>* GetListValue() const override;
-		int CompareTo(const RawRecord& other) const override;
-		int CompareKey(const RawKey& key) const override;
-		int CompareKey(const RawRecord& other) const override;
+		BranchRecord(const BranchRecord& src) = delete;
+
+		RawKey* GetKey() const;
+		void GetListKey(VectorDataValue& vct) const;
+		void GetListValue(VectorDataValue& vct) const;
+		int CompareTo(const RawRecord& other) const;
+		int CompareKey(const RawKey& key) const;
+		int CompareKey(const RawRecord& other) const;
 		bool EqualPageId(const BranchRecord& br) const;
 
 		inline void ReleaseRecord() { _refCount--; if (_refCount == 0) delete this; }
 		inline BranchRecord* ReferenceRecord() { _refCount++; return this; }
-		inline Byte* GetBysValue() const  override { return _bysVal; }
-		inline uint16_t GetTotalLength() const override { return *((uint16_t*)_bysVal); }
-		inline uint16_t GetKeyLength() const override {	return *((uint16_t*)(_bysVal + sizeof(uint16_t)));	}
-		inline uint16_t GetValueLength() const override {
+		uint16_t GetValueLength() const override {
 			return (uint16_t)(*((uint16_t*)_bysVal) - sizeof(uint16_t) * 2 - PAGE_ID_LEN
 				- *((uint16_t*)(_bysVal + sizeof(uint16_t))));
 		}
-		inline IndexPage* GetParentPage() const override {	return _parentPage;	}
-		inline void SetParentPage(IndexPage* page) override { _parentPage = (BranchPage*)page; }
-		inline uint64_t GetChildPageId() const { return *((uint64_t*)(_bysVal + GetTotalLength() - PAGE_ID_LEN)); }
-		inline IndexTree* GetTreeeFile() const override {	return _indexTree; }
-		inline void SaveData(Byte* bysPage) override { std::memcpy(bysPage, _bysVal, GetTotalLength()); }
 
-		friend std::ostream& operator<< (std::ostream& os, const BranchRecord& br);		
+		uint64_t GetChildPageId() const { return *((uint64_t*)(_bysVal + GetTotalLength() - PAGE_ID_LEN)); }
+		uint16_t SaveData(Byte* bysPage) {
+			uint16_t len = GetTotalLength();
+			std::memcpy(bysPage, _bysVal, len);
+			return  len;
+		}
+
+		friend std::ostream& operator<< (std::ostream& os, const BranchRecord& br);
 	protected:
-		/** the byte array that save key and value's content */
-		Byte* _bysVal;
-		/** the parent page included this record */
-		BranchPage* _parentPage;
-		/**tree file*/
-		IndexTree* _indexTree;
-		uint32_t _refCount;
-		/**If this record' value is saved to solely buffer or branch page*/
-		bool _bSole;
+		~BranchRecord() {	}
 	};
 
 	std::ostream& operator<< (std::ostream& os, const BranchRecord& br);
+
+	class VectorBranchRecord : public vector<BranchRecord*> {
+	public:
+		using vector::vector;
+		~VectorBranchRecord() {
+			for (auto iter = begin(); iter != end(); iter++) {
+				(*iter)->ReleaseRecord();
+			}
+		}
+
+		void clear() {
+			for (auto iter = begin(); iter != end(); iter++) {
+				(*iter)->ReleaseRecord();
+			}
+		}
+	};
 }
 

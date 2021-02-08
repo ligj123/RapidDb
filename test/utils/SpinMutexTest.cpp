@@ -120,16 +120,16 @@ namespace utils {
 		ReentrantSpinMutex sm;
 		BOOST_TEST(sm.try_lock());
 		BOOST_TEST(sm.is_locked());
-		BOOST_TEST(sm.reentrantCount() == 1);
+		BOOST_TEST(sm.reentrant_count() == 1);
 		sm.lock();
-		BOOST_TEST(sm.reentrantCount() == 2);
+		BOOST_TEST(sm.reentrant_count() == 2);
 		sm.unlock();
 		sm.unlock();
 
 		sm.lock();
 		BOOST_TEST(sm.is_locked());
 		BOOST_TEST(sm.try_lock());
-		BOOST_TEST(sm.reentrantCount() == 2);
+		BOOST_TEST(sm.reentrant_count() == 2);
 		sm.unlock();
 		BOOST_TEST(sm.is_locked());
 		sm.unlock();
@@ -176,7 +176,7 @@ namespace utils {
 		BOOST_TEST(!sm.try_lock_shared());
 		BOOST_TEST(sm.is_locked());
 		BOOST_TEST(sm.is_write_locked());
-		BOOST_TEST(sm.reentrantCount() == 1);
+		BOOST_TEST(sm.reentrant_count() == 1);
 		BOOST_TEST(sm.read_locked_count() == 0);
 		sm.unlock();
 
@@ -187,13 +187,13 @@ namespace utils {
 		BOOST_TEST(sm.read_locked_count() == 1);
 		sm.lock_shared();
 		BOOST_TEST(sm.read_locked_count() == 2);
-		BOOST_TEST(sm.reentrantCount() == 0);
+		BOOST_TEST(sm.reentrant_count() == 0);
 		sm.unlock_shared();
 		sm.unlock_shared();
 
 		sm.lock();
 		BOOST_TEST(sm.try_lock());
-		BOOST_TEST(sm.reentrantCount() == 2);
+		BOOST_TEST(sm.reentrant_count() == 2);
 		BOOST_TEST(!sm.try_lock_shared());
 		BOOST_TEST(sm.is_locked());
 		BOOST_TEST(sm.is_write_locked());
@@ -207,7 +207,7 @@ namespace utils {
 		BOOST_TEST(sm.is_locked());
 		BOOST_TEST(!sm.is_write_locked());
 		BOOST_TEST(sm.read_locked_count() == 2);
-		BOOST_TEST(sm.reentrantCount() == 0);
+		BOOST_TEST(sm.reentrant_count() == 0);
 		sm.unlock_shared();
 		sm.unlock_shared();
 

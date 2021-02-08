@@ -12,27 +12,23 @@
 namespace storage {
   Buffer::Buffer(uint32_t eleSize) : _eleSize(eleSize)
   {
-    _maxEle = (uint32_t)Configure::GetCacheBlockSize() / eleSize;
 #ifdef _MSVC_LANG
     _pBuf = (Byte*)_aligned_malloc(Configure::GetCacheBlockSize(), Configure::GetCacheBlockSize());
 #else
     _pBuf = (Byte*)std::aligned_alloc(Configure::GetCacheBlockSize(), Configure::GetCacheBlockSize());
 #endif // _MSVC_LANG
-
-    for (uint16_t i = 0; i < _maxEle; i++)
-    {
-      _queueFree.push(i);
-    }
+    Init(eleSize);
   }
 
   void Buffer::Init(uint32_t eleSize)
   {
-    while(_queueFree.size() > 0) _queueFree.pop();
     _eleSize = eleSize;
-    _maxEle = (uint32_t)Configure::GetCacheBlockSize() / eleSize;
+    _maxEle = (uint32_t)Configure::GetCacheBlockSize() / (eleSize + sizeof(uint16_t));
+    _idxHead = 0;
+    _idxTail = _maxEle;
     for (uint16_t i = 0; i < _maxEle; i++)
     {
-      _queueFree.push(i);
+      *((uint16_t*)&_pBuf[i * sizeof(uint16_t)]) = i;
     }
   }
 
@@ -47,16 +43,19 @@ namespace storage {
 
   Byte* Buffer::Apply()
   {
-    uint16_t index = _queueFree.front();
-    _queueFree.pop();
-    return &_pBuf[_eleSize * index];
+    assert(!IsFull());
+    uint16_t index = *((uint16_t*)&_pBuf[(_idxHead % _maxEle) * sizeof(uint16_t)]);
+    _idxHead++;
+    return &_pBuf[_eleSize * index + _maxEle * sizeof(uint16_t)];
   }
 
   void Buffer::Release(Byte* bys)
   {
-    _queueFree.push(CalcPos(bys));
+    uint32_t index = (uint32_t)((((uint64_t)bys & (Configure::GetCacheBlockSize()-1))
+          - _maxEle * sizeof(uint16_t)) / _eleSize);
+    *((uint16_t*)&_pBuf[(_idxTail % _maxEle) * sizeof(uint16_t)]) = index;
+    _idxTail++;
   }
-
 
   BufferPool::BufferPool(uint32_t eleSize) : _eleSize(eleSize)
   {
@@ -72,7 +71,7 @@ namespace storage {
 
   Byte* BufferPool::Apply()
   {
-    std::lock_guard<utils::SpinMutex> lock(_spinMutex);
+    std::unique_lock<utils::SpinMutex> lock(_spinMutex);
     if (_mapFreeBuffer.size() == 0)
     {
       Buffer* buff = CachePool::AllotBuffer(_eleSize);
@@ -95,7 +94,7 @@ namespace storage {
 
   void BufferPool::Release(Byte* bys)
   {
-    std::lock_guard<utils::SpinMutex> lock(_spinMutex);
+    std::unique_lock<utils::SpinMutex> lock(_spinMutex);
     Byte* buf = Buffer::CalcAddr(bys);
     auto iter = _mapBuffer.find(buf);
     iter->second->Release(bys);

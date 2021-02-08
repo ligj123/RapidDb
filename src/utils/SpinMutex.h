@@ -30,11 +30,11 @@ namespace utils {
       _owner = 0;
     }
 
-    inline bool is_locked() {
+    inline bool is_locked() const {
       return _flag.load(std::memory_order_relaxed);
     }
 
-    inline size_t owner() { return _owner; }
+    inline size_t owner() const { return _owner; }
 
   protected:
     std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
@@ -111,15 +111,15 @@ namespace utils {
       _readCount.fetch_sub(1, std::memory_order_relaxed);
     }
 
-    inline bool is_write_locked() {
+    inline bool is_write_locked() const {
       return _writeFlag.load(std::memory_order_relaxed);
     }
 
-    inline uint32_t read_locked_count() {
+    inline uint32_t read_locked_count() const {
       return _readCount.load(std::memory_order_relaxed);
     }
 
-    inline bool is_locked() {
+    inline bool is_locked() const {
       return  _writeFlag.load(std::memory_order_relaxed) ||
         _readCount.load(std::memory_order_relaxed) > 0;
     }
@@ -181,11 +181,11 @@ namespace utils {
       }
     }
 
-    inline bool is_locked() {
+    inline bool is_locked() const {
       return _flag.load(std::memory_order_relaxed);
     }
 
-    inline int32_t reentrantCount() { return _reenCount; }
+    inline int32_t reentrant_count() const { return _reenCount; }
   protected:
     std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
     size_t _owner = 0;
@@ -285,20 +285,20 @@ namespace utils {
       _readCount.fetch_sub(1, std::memory_order_relaxed);
     }
 
-    inline bool is_write_locked() {
+    inline bool is_write_locked() const {
       return _writeFlag.load(std::memory_order_relaxed);
     }
 
-    inline uint32_t read_locked_count() {
+    inline uint32_t read_locked_count() const {
       return _readCount.load(std::memory_order_relaxed);
     }
 
-    inline bool is_locked() {
+    inline bool is_locked() const {
       return  _writeFlag.load(std::memory_order_relaxed) ||
         _readCount.load(std::memory_order_relaxed) > 0;
     }
 
-    inline int32_t reentrantCount() { return _reenCount; }
+    inline int32_t reentrant_count() const { return _reenCount; }
   protected:
     std::atomic<int32_t> _readCount{ 0 };
     std::atomic<bool> _writeFlag{ false };
