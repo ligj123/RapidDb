@@ -28,6 +28,8 @@ namespace storage {
 
 		void ReadDataValue(vector<IDataValue*> vctDv, uint32_t dvStart, uint64_t offset, uint32_t totalLen);
 
+		void MoveOverflowData(uint64_t fileOffsetSrc, uint64_t fileOffsetDest, uint32_t length);
+
 		uint64_t Length() {
 			unique_lock< utils::SpinMutex> lock;
 			_file.seekp(0, ios::end);

@@ -21,7 +21,7 @@ namespace storage {
 		*((uint16_t*)_bysVal) = totalLen;
 		*((uint16_t*)(_bysVal + sizeof(uint16_t))) = lenKey;
 
-		uint16_t offset = (typeid(*rec) == typeid(BranchRecord)) ? 2 * sizeof(uint16_t) : 3 * sizeof(uint16_t);
+		uint16_t offset = 2 * sizeof(uint16_t);
 		std::memcpy(_bysVal + 2 * sizeof(uint16_t), rec->GetBysValue() + offset, lenKey + lenVal);
 		*((uint64_t*)(_bysVal + lenKey + lenVal + 2 * sizeof(uint16_t))) = childPageId;
 	}

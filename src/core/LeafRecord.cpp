@@ -6,19 +6,17 @@
 
 namespace storage {
 	LeafRecord::LeafRecord(LeafPage* parentPage, Byte* bys) :
-				RawRecord(parentPage->GetIndexTree(), parentPage, bys, false),				
-				_undoRecords(nullptr), _tranId(0) { }
+		RawRecord(parentPage->GetIndexTree(), parentPage, bys, false),
+		_undoRecords(nullptr), _tranId(0) { }
 
 	LeafRecord::LeafRecord(IndexTree* indexTree, Byte* bys) :
 		RawRecord(indexTree, nullptr, bys, false), _undoRecords(nullptr), _tranId(0) { }
 
-	LeafRecord::LeafRecord(IndexTree* indexTree, const VectorDataValue& vctKey, const VectorDataValue& vctVal,
-				uint64_t offset, uint32_t oldSizeOverflow) :
-				 RawRecord(indexTree, nullptr, nullptr, true), _undoRecords(nullptr), _tranId(0)
-	{		
-		bool bPri = (indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY);
+	LeafRecord::LeafRecord(IndexTree* indexTree, const VectorDataValue& vctKey, Byte* bysPri, uint32_t lenPri,
+		ActionType type, uint64_t tranId, LeafRecord* old) :
+		RawRecord(indexTree, nullptr, nullptr, true), _undoRecords(old), _tranId(tranId)	{
+		_actionType = type;
 		uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
-		uint16_t valVarNum = bPri ? 0 : _indexTree->GetHeadPage()->ReadValueVariableFieldCount();
 
 		int i;
 		uint16_t lenKey = keyVarNum * sizeof(uint16_t);
@@ -27,39 +25,16 @@ namespace storage {
 		}
 
 		if (lenKey > Configure::GetMaxKeyLength()) {
-			throw utils::ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
+			throw utils::ErrorMsg(CORE_EXCEED_KEY_LENGTH, { std::to_string(lenKey) });
 		}
 
-		uint16_t lenVal = (uint16_t)(bPri ? 0 : valVarNum * sizeof(uint16_t));
-		uint16_t max_lenVal = (uint16_t)(Configure::GetMaxRecordLength() - lenKey - sizeof(uint16_t) * 3);
-		for (i = 0; i < vctVal.size(); i++) {
-			lenVal += vctVal[i]->GetPersistenceLength(!bPri);
-			if (lenVal > max_lenVal) {
-				lenVal -= vctVal[i]->GetPersistenceLength(!bPri);
-				break;
-			}
-		}
-
-		uint16_t indexOvfStart = (i < vctVal.size() ? i : UINT16_MAX);
-		uint32_t sizeOverflow = 0;
-		if (i < vctVal.size()) {
-			for (; i < vctVal.size(); i++) {
-				sizeOverflow += vctVal[i]->GetPersistenceLength(false);
-			}
-
-			sizeOverflow = (uint32_t)(sizeOverflow + Configure::GetDiskClusterSize() - 1);
-			sizeOverflow = (uint16_t)(sizeOverflow - sizeOverflow % Configure::GetDiskClusterSize());
-			lenVal += sizeof(uint64_t) + sizeof(uint32_t);
-		}
-
-		int totalLen = lenKey + lenVal + sizeof(uint16_t) * 3;
+		int totalLen = lenKey + lenPri + sizeof(uint16_t) * 2;
 		_bysVal = CachePool::ApplyBys(totalLen);
 		*((uint16_t*)_bysVal) = totalLen;
 		*((uint16_t*)(_bysVal + sizeof(uint16_t))) = lenKey;
-		*((uint16_t*)(_bysVal + sizeof(uint16_t) * 2)) = indexOvfStart;
 
-		uint16_t pos = (3 + keyVarNum) * sizeof(uint16_t);
-		uint16_t lenPos = 3 * sizeof(uint16_t);
+		uint16_t pos = (2 + keyVarNum) * sizeof(uint16_t);
+		uint16_t lenPos = 2 * sizeof(uint16_t);
 
 		for (i = 0; i < vctKey.size(); i++) {
 			uint16_t len = vctKey[i]->WriteData(_bysVal + pos, true);
@@ -71,41 +46,211 @@ namespace storage {
 			pos += len;
 		}
 
-		pos = (3 + valVarNum) * sizeof(uint16_t) + lenKey;
-		lenPos = 3 * sizeof(uint16_t) + lenKey;
+		pos = 2 * sizeof(uint16_t) + lenKey;
+		std::memcpy(_bysVal + pos, bysPri, lenPri);
+	}
 
-		uint16_t ovfStart = (uint16_t)(indexOvfStart == UINT16_MAX ? vctVal.size() : indexOvfStart);
-		for (i = 0; i < ovfStart; i++) {
-			if (!bPri) {
-				int len = vctVal[i]->WriteData(_bysVal + pos, true);
-				if (!vctVal[i]->IsFixLength()) {
-					*((uint16_t*)(_bysVal + lenPos)) = len;
-					lenPos += sizeof(uint16_t);
-				}
-				pos += len;
-			}	else {
-				pos += vctVal[i]->WriteData(_bysVal + pos, false);
+	LeafRecord::LeafRecord(IndexTree* indexTree, const VectorDataValue& vctKey, const VectorDataValue& vctVal,
+		uint64_t recStamp, ActionType type, uint64_t tranId, LeafRecord* old) :
+		RawRecord(indexTree, nullptr, nullptr, true), _undoRecords(old), _tranId(tranId)
+	{
+		_actionType = type;
+		uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
+
+		int i;
+		uint16_t lenKey = keyVarNum * sizeof(uint16_t);
+		for (i = 0; i < vctKey.size(); i++) {
+			lenKey += vctKey[i]->GetPersistenceLength(true);
+		}
+
+		if (lenKey > Configure::GetMaxKeyLength()) {
+			throw utils::ErrorMsg(CORE_EXCEED_KEY_LENGTH, { std::to_string(lenKey) });
+		}
+
+		uint16_t lenVal = 0;
+		uint16_t max_lenVal = (uint16_t)(Configure::GetMaxRecordLength() - lenKey - sizeof(uint16_t) * 2);
+		for (i = 0; i < vctVal.size(); i++) {
+			lenVal += vctVal[i]->GetPersistenceLength(false);
+			if (lenVal > max_lenVal) {
+				lenVal -= vctVal[i]->GetPersistenceLength(false);
+				break;
 			}
 		}
 
-		if (indexOvfStart != UINT16_MAX) {
+		uint16_t indexOvfStart = (i < vctVal.size() ? i : (uint16_t)vctVal.size());
+		uint32_t sizeOverflow = 0;
+		if (i < vctVal.size()) {
+			for (; i < vctVal.size(); i++) {
+				sizeOverflow += vctVal[i]->GetPersistenceLength(false);
+			}
+		}
+
+		PriValStruct* oldValStru = (old == nullptr ? nullptr : old->GetPriValStruct());
+		uint32_t snapLen = (old == nullptr ? 0 : old->GetSnapshotLength());
+		uint64_t lver = _indexTree->GetHeadPage()->GetLastVersionStamp();
+		bool bOldAll = (oldValStru == nullptr || oldValStru->arrStamp[0] < lver);
+		Byte rsCount = (old == nullptr ? 1 : (oldValStru->verCount + (bOldAll ? 1 : 0)));
+
+		uint16_t lenAttr = 1 + sizeof(uint64_t) * rsCount;
+		if (sizeOverflow > 0 || lenVal + snapLen > max_lenVal) {
+			lenAttr += sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t) * rsCount;
+		}
+		else {
+			lenAttr += sizeof(uint16_t) * rsCount;
+		}
+
+		_priStru = new PriValStruct; 
+		_priStru->bLastOvf = (sizeOverflow > 0);
+		_priStru->bOvf = (sizeOverflow > 0 || (lenAttr + lenVal + snapLen > max_lenVal && snapLen > 0));
+		_priStru->verCount = rsCount;
+
+		int totalLen = lenKey + sizeof(uint16_t) * 2 + lenAttr + lenVal;
+		if (!_priStru->bOvf) totalLen += snapLen;
+
+		_bysVal = CachePool::ApplyBys(totalLen);
+		*((uint16_t*)_bysVal) = totalLen;
+		*((uint16_t*)(_bysVal + sizeof(uint16_t))) = lenKey;
+
+		uint16_t pos = (2 + keyVarNum) * sizeof(uint16_t);
+		uint16_t lenPos = 2 * sizeof(uint16_t);
+
+		for (i = 0; i < vctKey.size(); i++) {
+			uint16_t len = vctKey[i]->WriteData(_bysVal + pos, true);
+			if (!vctKey[i]->IsFixLength()) {
+				*((uint16_t*)(_bysVal + lenPos)) = len;
+				lenPos += sizeof(uint16_t);
+			}
+
+			pos += len;
+		}
+
+		_priStru->pageValOffset = pos + lenAttr;
+
+		_bysVal[pos] = (_priStru->bLastOvf ? LAST_RECORD_OVERFLOW : 0)
+			+ (_priStru->bOvf ? RECORD_OVERFLOW : 0) + _priStru->verCount;
+		pos++;
+
+		_priStru->arrStamp = (uint64_t*)&_bysVal[pos];
+		utils::UInt64ToBytes(recStamp, _bysVal + pos, false);
+		pos += sizeof(uint64_t) * rsCount;
+
+		if (rsCount > 1) {
+			std::memcpy(&_priStru->arrStamp[1], &oldValStru->arrStamp[bOldAll ? 0 : 1], sizeof(uint64_t) * (rsCount - 1));
+		}
+
+		if (!_priStru->bOvf) {
+			_priStru->arrPageLen = (uint16_t*)&_bysVal[pos];
+			_priStru->arrPageLen[0] = lenVal;
+
+			uint16_t oldStart = (bOldAll ? 0 : oldValStru->arrPageLen[0]);
+			int oldIndex = (bOldAll ? 0 : 1);
+			for (int i = 1; i < rsCount; i++) {
+				_priStru->arrPageLen[i] = _priStru->arrPageLen[i - 1] +
+					oldValStru->arrPageLen[oldIndex] - oldStart;
+				oldStart = oldValStru->arrPageLen[oldIndex];
+				oldIndex++;
+			}
+
+			pos += sizeof(uint16_t) * rsCount;
+
+			for (int i = 0; i < vctVal.size(); i++) {
+				pos += vctVal[i]->WriteData(_bysVal + pos, false);
+			}
+
+			oldStart = (bOldAll ? 0 : oldValStru->arrPageLen[0]);
+			oldIndex = (bOldAll ? 0 : 1);
+			for (int i = 1; i < rsCount; i++) {
+				std::memcpy(_bysVal + _priStru->pageValOffset + _priStru->arrPageLen[i - 1],
+					old->_bysVal + oldValStru->pageValOffset + oldStart,
+					_priStru->arrPageLen[i] - _priStru->arrPageLen[i - 1]);
+				oldStart = oldValStru->arrPageLen[oldIndex];
+				oldIndex++;
+			}
+		}
+		else {
+			_priStru->indexOvfStart = indexOvfStart;
+			_priStru->lenInPage = lenVal;
+			_priStru->arrOvfLen = (uint32_t*)&_bysVal[pos + sizeof(uint64_t) * 2];
+			_priStru->arrOvfLen[0] = sizeOverflow;
+
+			if (oldValStru != nullptr) {
+				if (oldValStru->bOvf) {
+					uint32_t oldStart = (bOldAll ? 0 : oldValStru->arrOvfLen[0]);
+					int oldIndex = (bOldAll ? 0 : 1);
+					for (int i = 1; i < rsCount; i++) {
+						_priStru->arrOvfLen[i] = _priStru->arrOvfLen[i - 1] +
+							oldValStru->arrOvfLen[oldIndex] - oldStart;
+						oldStart = oldValStru->arrOvfLen[oldIndex];
+						oldIndex++;
+					}
+				}
+				else {
+					uint32_t oldStart = (bOldAll ? 0 : oldValStru->arrPageLen[0]);
+					int oldIndex = (bOldAll ? 0 : 1);
+					for (int i = 1; i < rsCount; i++) {
+						_priStru->arrOvfLen[i] = _priStru->arrOvfLen[i - 1] +
+							oldValStru->arrPageLen[oldIndex] - oldStart;
+						oldStart = oldValStru->arrPageLen[oldIndex];
+						oldIndex++;
+					}
+				}
+			}
+
 			PageFile* ovf = indexTree->GetOverflowFile();
 
-			if (oldSizeOverflow == UINT32_MAX || oldSizeOverflow < sizeOverflow) {
-				offset = ovf->GetOffsetAddLength(sizeOverflow);
+			if (oldValStru == nullptr || !oldValStru->bOvf || oldValStru->ovfRange < sizeOverflow + snapLen) {
+				_priStru->ovfRange = sizeOverflow + snapLen + (uint32_t)Configure::GetDiskClusterSize();
+				_priStru->ovfRange -= _priStru->ovfRange % (uint32_t)Configure::GetDiskClusterSize();
+				_priStru->ovfOffset = ovf->GetOffsetAddLength(_priStru->ovfRange);
 			}
 			else {
-				sizeOverflow = oldSizeOverflow;
+				_priStru->ovfRange = oldValStru->ovfRange;
+				_priStru->ovfOffset = oldValStru->ovfOffset;
 			}
 
-			*((uint64_t*)(_bysVal + pos)) = offset;
-			*((uint32_t*)(_bysVal + pos + sizeof(uint64_t))) = sizeOverflow;
-			ovf->WriteDataValue(vctVal, indexOvfStart, offset);
+			utils::UInt64ToBytes(_priStru->ovfOffset, _bysVal + pos, false);
+			pos += sizeof(uint64_t);
+			utils::UInt32ToBytes(_priStru->ovfRange, _bysVal + pos, false);
+			pos += sizeof(uint32_t);
+			utils::UInt16ToBytes(indexOvfStart, _bysVal + pos, false);
+			pos += sizeof(uint16_t);
+			utils::UInt16ToBytes(lenVal, _bysVal + pos, false);
+			pos += sizeof(uint16_t);
+
+			pos += sizeof(uint32_t) * rsCount;
+
+			for (int i = 0; i < indexOvfStart; i++) {
+				pos += vctVal[i]->WriteData(_bysVal + pos, false);
+			}
+
+			ovf->WriteDataValue(vctVal, indexOvfStart, _priStru->ovfOffset);
+
+			if (rsCount > 1) {
+				if (!oldValStru->bOvf) {
+					uint32_t valStart = oldValStru->pageValOffset + (bOldAll ? 0 : oldValStru->arrPageLen[0]);
+					uint32_t valLen = oldValStru->pageValOffset + oldValStru->arrPageLen[oldValStru->verCount - 1] - valStart;
+					ovf->WritePage(_priStru->ovfOffset + sizeOverflow, (char*)(old->_bysVal + valStart), valLen);
+				}
+				else {
+					uint64_t offset = _priStru->ovfOffset + sizeOverflow;
+					if (bOldAll) {
+						ovf->WritePage(offset, (char*)(old->_bysVal + oldValStru->pageValOffset),
+							oldValStru->lenInPage);
+						offset += oldValStru->lenInPage;
+					}
+
+					uint64_t valStart = oldValStru->ovfOffset + bOldAll ? 0 : oldValStru->arrOvfLen[0];
+					uint64_t valLen = oldValStru->arrOvfLen[oldValStru->verCount - 1] - valStart;
+
+					ovf->MoveOverflowData(valStart, offset, (uint32_t)valLen);
+				}
+			}
 		}
 	}
 
 	LeafRecord::~LeafRecord() {
 		CleanUndoRecord();
+		if (_priStru != nullptr) delete _priStru;
 	}
 
 	void LeafRecord::CleanUndoRecord() {
@@ -116,20 +261,18 @@ namespace storage {
 			rec->ReleaseRecord();
 			rec = next;
 		}
-	}
 
-	void LeafRecord::AddOldRecord(LeafRecord* old) {
-		_undoRecords = old;
+		_undoRecords = nullptr;
 	}
 
 	void LeafRecord::GetListKey(VectorDataValue& vctKey) const {
 		_indexTree->CloneKeys(vctKey);
 		uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
-		uint16_t pos = (3 + keyVarNum) * sizeof(uint16_t);
-		uint16_t lenPos = 3 * sizeof(uint16_t);
+		uint16_t pos = (2 + keyVarNum) * sizeof(uint16_t);
+		uint16_t lenPos = 2 * sizeof(uint16_t);
+		uint16_t len = 0;
 
 		for (uint16_t i = 0; i < vctKey.size(); i++) {
-			uint16_t len = 0;
 			if (!vctKey[i]->IsFixLength()) {
 				len = *((uint16_t*)(_bysVal + lenPos));
 				lenPos += sizeof(uint16_t);
@@ -139,67 +282,135 @@ namespace storage {
 		}
 	}
 
-	void LeafRecord::GetListValue(VectorDataValue& vctVal) const {
+	void LeafRecord::GetListValue(VectorDataValue& vctVal, uint64_t verStamp) const {
 		_indexTree->CloneValues(vctVal);
 		bool bPri = (_indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY);
-		uint16_t valVarNum = bPri ? 0 : _indexTree->GetHeadPage()->ReadValueVariableFieldCount();
-		uint16_t pos = GetKeyLength() + (3 + valVarNum) * sizeof(uint16_t);
-		uint16_t lenPos = 3 * sizeof(uint16_t) + GetKeyLength();
-
-		uint16_t fCount = (uint16_t)(GetIndexOvfStart() != UINT16_MAX ? GetIndexOvfStart() : vctVal.size());
-		for (uint16_t i = 0; i < fCount; i++) {
+		if (!bPri) {
+			uint16_t valVarNum = _indexTree->GetHeadPage()->ReadValueVariableFieldCount();
+			uint16_t lenPos = 2 * sizeof(uint16_t) + GetKeyLength();
+			uint16_t pos = lenPos + valVarNum * sizeof(uint16_t);
 			uint16_t len = 0;
-			if (!vctVal[i]->IsFixLength() && !bPri) {
-				len = *((uint16_t*)(_bysVal + lenPos));
-				lenPos += sizeof(uint16_t);
+
+			for (uint16_t i = 0; i < vctVal.size(); i++) {
+				if (!vctVal[i]->IsFixLength() && !bPri) {
+					len = *((uint16_t*)(_bysVal + lenPos));
+					lenPos += sizeof(uint16_t);
+				}
+
+				pos += vctVal[i]->ReadData(_bysVal + pos, len);
 			}
 
-			pos += vctVal[i]->ReadData(_bysVal + pos, len);
+			return;
+		}
+
+		PriValStruct* priStru = GetPriValStruct();
+		Byte ver = 0;
+		for (; ver < priStru->verCount; ver++) {
+			if (priStru->arrStamp[ver] <= verStamp) {
+				break;
+			}
+		}
+		
+		if (ver >= priStru->verCount) {
+			return;
+		}
+
+		if (ver == 0 || !priStru->bOvf) {
+			int indexOvfStart = (int)vctVal.size();
+			int pos = 0;
+			int len = 0;
+			if (ver == 0) {
+				indexOvfStart = GetIndexOvfStart();
+				if (indexOvfStart > vctVal.size()) indexOvfStart = (int)vctVal.size();
+
+				pos = priStru->pageValOffset;
+				len = (priStru->bOvf ? priStru->lenInPage : priStru->arrPageLen[0]);
+			}
+			else {
+				pos = priStru->pageValOffset + priStru->arrPageLen[ver - 1];
+				len = priStru->arrPageLen[ver];
+			}
+			
+			if (len == 0) {
+				vctVal.RemoveAll();
+			}
+			else {
+				for (uint16_t i = 0; i < indexOvfStart; i++) {
+					pos += vctVal[i]->ReadData(_bysVal + pos, -1);
+				}
+			}
+		}
+		else {
+			uint64_t offset = priStru->ovfOffset + priStru->arrOvfLen[ver - 1];
+			uint32_t totalLen = priStru->arrOvfLen[ver] - priStru->arrOvfLen[ver - 1];
+
+			PageFile* ovf = _indexTree->GetOverflowFile();
+			ovf->ReadDataValue(vctVal, 0, offset, totalLen);
 		}
 	}
 
 	void LeafRecord::GetListOverflow(vector<IDataValue*>& vctVal) const {
 		uint16_t indexOvfStart = GetIndexOvfStart();
-		if (UINT16_MAX == indexOvfStart) return;
+		if (indexOvfStart >= vctVal.size()) return;
 
-		uint64_t offset = *((uint64_t*)(_bysVal + GetTotalLength() - 12));
-		uint32_t ovfLen = *((uint32_t*)(_bysVal + GetTotalLength() - 4));
-
+		PriValStruct* priStru = GetPriValStruct();
 		PageFile* ovf = _indexTree->GetOverflowFile();
-		ovf->ReadDataValue(vctVal, indexOvfStart, offset, ovfLen);
+		ovf->ReadDataValue(vctVal, indexOvfStart, priStru->ovfOffset, priStru->arrOvfLen[0]);
 	}
 
 	int LeafRecord::CompareTo(const LeafRecord& lr) const {
 		uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
-		int rt = utils::BytesCompare(_bysVal + (3 + keyVarNum) * sizeof(uint16_t), GetKeyLength() - keyVarNum * sizeof(uint16_t),
-			lr._bysVal + (3 + keyVarNum) * sizeof(uint16_t), lr.GetKeyLength() - keyVarNum * sizeof(uint16_t));
+		int rt = utils::BytesCompare(_bysVal + (2 + keyVarNum) * sizeof(uint16_t), GetKeyLength() - keyVarNum * sizeof(uint16_t),
+			lr._bysVal + (2 + keyVarNum) * sizeof(uint16_t), lr.GetKeyLength() - keyVarNum * sizeof(uint16_t));
 		if (rt != 0) {
 			return rt;
 		}
 
-		return utils::BytesCompare(_bysVal + GetKeyLength() + 3 * sizeof(uint16_t), GetValueLength(),
-			lr._bysVal + lr.GetKeyLength() + 3 * sizeof(uint16_t), lr.GetValueLength());
+		return utils::BytesCompare(_bysVal + GetKeyLength() + 2 * sizeof(uint16_t), GetValueLength(),
+			lr._bysVal + lr.GetKeyLength() + 2 * sizeof(uint16_t), lr.GetValueLength());
 	}
 
 	int LeafRecord::CompareKey(const RawKey& key) const {
 		int keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
 
-		return utils::BytesCompare(_bysVal + (3 + keyVarNum) * sizeof(uint16_t),
+		return utils::BytesCompare(_bysVal + (2 + keyVarNum) * sizeof(uint16_t),
 			GetKeyLength() - keyVarNum * sizeof(uint16_t),
 			key.GetBysVal(), key.GetLength());
 	}
 
 	int LeafRecord::CompareKey(const LeafRecord& lr) const {
 		int keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
-		return utils::BytesCompare(_bysVal + (3 + keyVarNum) * sizeof(uint16_t),
+		return utils::BytesCompare(_bysVal + (2 + keyVarNum) * sizeof(uint16_t),
 			GetKeyLength() - keyVarNum * sizeof(uint16_t),
-			lr.GetBysValue() + (3 + keyVarNum) * sizeof(uint16_t),
+			lr.GetBysValue() + (2 + keyVarNum) * sizeof(uint16_t),
 			lr.GetKeyLength() - keyVarNum * sizeof(uint16_t));
 	}
 
 	RawKey* LeafRecord::GetKey() const {
 		uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
-		return new RawKey(_bysVal + (3 + keyVarNum) * sizeof(uint16_t), GetKeyLength() - keyVarNum * sizeof(uint16_t));
+		return new RawKey(_bysVal + (2 + keyVarNum) * sizeof(uint16_t), GetKeyLength() - keyVarNum * sizeof(uint16_t));
+	}
+
+	uint32_t LeafRecord::GetSnapshotLength() const {
+		uint64_t lver = _indexTree->GetHeadPage()->GetLastVersionStamp();
+		PriValStruct* priStru = GetPriValStruct();
+		
+		if (priStru->arrStamp[0] <= lver) {
+			if (priStru->bOvf) {
+				return priStru->lenInPage + priStru->arrOvfLen[priStru->verCount - 1];
+			}
+			else {
+				return priStru->arrPageLen[priStru->verCount - 1];
+			}
+		}
+		else {
+			if (priStru->bOvf) {
+				return priStru->arrOvfLen[priStru->verCount - 1] - priStru->arrOvfLen[0];
+			}
+			else {
+				return priStru->arrPageLen[priStru->verCount - 1] - priStru->arrPageLen[0];
+			}
+		}
 	}
 
 	std::ostream& operator<< (std::ostream& os, const LeafRecord& lr) {
@@ -218,5 +429,5 @@ namespace storage {
 		}
 
 		return os;
-	}		
+	}
 }

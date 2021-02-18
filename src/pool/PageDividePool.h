@@ -19,11 +19,11 @@ namespace storage {
 
 		static unordered_map<uint64_t, IndexPage*> _mapPage;
 		static queue<IndexPage*> _queuePage;
-		static thread _treeDivideThread;
+		static thread* _treeDivideThread;
 		static bool _bSuspend;
 		static utils::SpinMutex _spinMutex;
 
-		static thread CreateThread();
+		static thread* CreateThread();
 		static void AddCachePage(IndexPage* page);
 		static void SetThreadStatus(bool bSuspend) { _bSuspend = bSuspend; }
 

@@ -28,10 +28,12 @@ namespace storage {
 		inline void SetPageLastUpdateTime() { _dtPageLastUpdate = GetMsFromEpoch(); }
 		inline uint32_t GetTotalDataLength() { return _totalDataLength; }
 		inline uint32_t GetRecordSize() { return _recordNum; }
-		inline bool Releaseable() { return _refCount == 0 && _recordCount == 0; }
-		inline int32_t IncRecordCount() { return ++_recordCount; }
-		inline int32_t DecRecordCount() { return --_recordCount; }
-		inline int32_t GetRecordCount() { return _recordCount; }
+		inline bool Releaseable() { return _refCount == 0 && _recordRefCount == 0; }
+		inline int32_t AddRecordRefCount(int32_t x) {
+			_recordRefCount += x;
+			return _recordRefCount;
+		}
+		inline int32_t GetRecordRefCount() { return _recordRefCount; }
 
 		virtual uint16_t GetMaxDataLength() const = 0;
 		virtual bool SaveRecord() = 0;
@@ -41,6 +43,6 @@ namespace storage {
 		uint64_t _dtPageLastUpdate = 0;
 		int32_t _totalDataLength = 0;
 		int32_t _recordNum = 0;
-		int32_t _recordCount = 0;
+		int32_t _recordRefCount = 0;
 	};
 }

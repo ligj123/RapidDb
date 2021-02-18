@@ -34,23 +34,23 @@ namespace storage {
 		static const uint64_t NO_NEXT_PAGE_POINTER;
 
 	protected:
-		uint16_t _keyVariableFieldCount;
-		uint16_t _valueVariableFieldCount;
+		uint16_t _keyVariableFieldCount = 0;
+		uint16_t _valueVariableFieldCount = 0;
 		/**The versions that this table support in current time*/
-		uint8_t _recordVerCount;
-		IndexType _indexType;
-		uint64_t _totalPageCount;
-		uint64_t _rootPageId;
-		uint64_t _beginLeafPageId;
-		uint64_t _endLeafPageId;
-		uint64_t _totalRecordCount;
+		uint8_t _recordVerCount = 0;
+		IndexType _indexType = IndexType::PRIMARY;
+		uint64_t _totalPageCount = 0;
+		uint64_t _rootPageId = 0;
+		uint64_t _beginLeafPageId = NO_PREV_PAGE_POINTER;
+		uint64_t _endLeafPageId = NO_NEXT_PAGE_POINTER;
+		uint64_t _totalRecordCount = 0;
 		/**In this table, any changes for a record will need a new record version stamp,
 		it start from 0, and will add one every time. This stamp will be used for log transport,
 		data snapshot etc.*/
-		uint64_t _recordStamp;
-		uint64_t _autoPrimaryKey1;
-		uint64_t _autoPrimaryKey2;
-		uint64_t _autoPrimaryKey3;
+		uint64_t _recordStamp = 0;
+		uint64_t _autoPrimaryKey1 = 0;
+		uint64_t _autoPrimaryKey2 = 0;
+		uint64_t _autoPrimaryKey3 = 0;
 		/***/
 		std::vector<uint64_t> _vctRecVer;
 		utils::SpinMutex _spinMutex;
@@ -85,6 +85,11 @@ namespace storage {
 		inline void RemoveRecordVersionStamp(Byte ver) {
 			assert(ver < _recordVerCount);
 			_vctRecVer.erase(_vctRecVer.begin() + ver);
+		}
+
+		inline uint64_t GetLastVersionStamp() {
+			if (_recordVerCount == 0) return 0;
+			return _vctRecVer[_recordVerCount - 1];
 		}
 
 		inline uint64_t GetAndIncRecordStamp() {
@@ -241,7 +246,7 @@ namespace storage {
 		}
 
 		inline uint16_t ReadKeyVariableFieldCount() {
-			lock_guard<utils::SpinMutex> lock(_spinMutex);
+			//lock_guard<utils::SpinMutex> lock(_spinMutex);
 			return _keyVariableFieldCount;
 		}
 
@@ -253,7 +258,7 @@ namespace storage {
 		}
 
 		inline uint16_t ReadValueVariableFieldCount() {
-			lock_guard<utils::SpinMutex> lock(_spinMutex); 
+			//lock_guard<utils::SpinMutex> lock(_spinMutex); 
 			return _valueVariableFieldCount;
 		}
 

@@ -10,12 +10,12 @@ namespace storage {
 	 const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
 
 	 IndexPage::IndexPage(IndexTree* indexTree, uint64_t pageId) :
-		 CachePage(indexTree, pageId)	{ }
+		 CachePage(indexTree, pageId)	{
+		 _dtPageLastUpdate = GetMsFromEpoch();
+	 }
 
 	 IndexPage::IndexPage(IndexTree* indexTree, uint64_t pageId, uint8_t pageLevel, uint64_t parentPageId)
 		 : CachePage(indexTree, pageId) {
-		 _recordNum = 0;
-		 _totalDataLength = 0;
 		 _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
 		 _dtPageLastUpdate = GetMsFromEpoch();
 		 _parentPageId = parentPageId;

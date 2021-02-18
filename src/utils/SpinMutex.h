@@ -4,33 +4,47 @@
 #include <cassert>
 
 namespace utils {
-  class SpinMutex {
+  static std::hash<std::thread::id> thread_hasher;
+  static thread_local size_t g_threadId = 0;
+  static inline size_t get_thread_hash() {
+    if (g_threadId == 0) g_threadId = thread_hasher(std::this_thread::get_id());
+    return g_threadId;
+  }
+
+  class SpinMutex
+  {
   public:
     SpinMutex() = default;
     SpinMutex(const SpinMutex&) = delete;
-    SpinMutex& operator= (const SpinMutex&) = delete;
-    inline void lock() noexcept {
-      while (_flag.exchange(true, std::memory_order_acquire)) {
+    SpinMutex& operator=(const SpinMutex&) = delete;
+    inline void lock() noexcept
+    {
+      while (_flag.exchange(true, std::memory_order_acquire))
+      {
         std::this_thread::yield();
       }
 
-      _owner = thread_hasher(std::this_thread::get_id());
+      _owner = get_thread_hash();
     }
 
-    inline bool try_lock() noexcept {
-      bool b =  !_flag.load(std::memory_order_relaxed) &&
+    inline bool try_lock() noexcept
+    {
+      bool b = !_flag.load(std::memory_order_relaxed) &&
         !_flag.exchange(true, std::memory_order_acquire);
-      if (b) _owner = thread_hasher(std::this_thread::get_id());
+      if (b)
+        _owner = get_thread_hash();
       return b;
     }
 
-    inline void unlock() noexcept {
-      assert(_owner == thread_hasher(std::this_thread::get_id()));
+    inline void unlock() noexcept
+    {
+      assert(_owner == get_thread_hash());
       _flag.store(false, std::memory_order_release);
       _owner = 0;
     }
 
-    inline bool is_locked() const {
+    inline bool is_locked() const
+    {
       return _flag.load(std::memory_order_relaxed);
     }
 
@@ -39,63 +53,75 @@ namespace utils {
   protected:
     std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
     size_t _owner = 0;
-    std::hash<std::thread::id> thread_hasher;
   };
 
-  class SharedSpinMutex {
+  class SharedSpinMutex
+  {
   public:
     SharedSpinMutex() = default;
     SharedSpinMutex(const SharedSpinMutex&) = delete;
-    SharedSpinMutex& operator= (const SharedSpinMutex&) = delete;
+    SharedSpinMutex& operator=(const SharedSpinMutex&) = delete;
 
-    inline void lock() noexcept {
-      while (_writeFlag.exchange(true, std::memory_order_acquire)) {
+    inline void lock() noexcept
+    {
+      while (_writeFlag.exchange(true, std::memory_order_acquire))
+      {
         std::this_thread::yield();
       }
 
-      while (_readCount.load(std::memory_order_relaxed) > 0) {
+      while (_readCount.load(std::memory_order_relaxed) > 0)
+      {
         std::this_thread::yield();
       }
 
-      _owner = thread_hasher(std::this_thread::get_id());
+      _owner = get_thread_hash();
     }
 
-    inline bool try_lock() noexcept {
+    inline bool try_lock() noexcept
+    {
       if (_readCount.load(std::memory_order_relaxed) == 0 &&
-        !_writeFlag.exchange(true, std::memory_order_acquire)) {
-        if (_readCount.load(std::memory_order_relaxed) > 0) {
+        !_writeFlag.exchange(true, std::memory_order_acquire))
+      {
+        if (_readCount.load(std::memory_order_relaxed) > 0)
+        {
           _writeFlag.store(false, std::memory_order_relaxed);
           return false;
         }
 
-        _owner = thread_hasher(std::this_thread::get_id());
+        _owner = get_thread_hash();
         return true;
       }
 
       return false;
     }
 
-    void unlock() noexcept {
-      assert(_owner == thread_hasher(std::this_thread::get_id()));
+    void unlock() noexcept
+    {
+      assert(_owner == get_thread_hash());
       _writeFlag.store(false, std::memory_order_release);
       _owner = 0;
     }
 
-    inline void lock_shared() noexcept {
+    inline void lock_shared() noexcept
+    {
       while (true)
       {
         _readCount.fetch_add(1, std::memory_order_acquire);
-        if (!_writeFlag.load(std::memory_order_relaxed)) break;
+        if (!_writeFlag.load(std::memory_order_relaxed))
+          break;
 
         _readCount.fetch_sub(1, std::memory_order_relaxed);
         std::this_thread::yield();
       }
     }
 
-    inline bool try_lock_shared() noexcept {
-      if (!_writeFlag.load(std::memory_order_relaxed)) {
+    inline bool try_lock_shared() noexcept
+    {
+      if (!_writeFlag.load(std::memory_order_relaxed))
+      {
         _readCount.fetch_add(1, std::memory_order_acquire);
-        if (_writeFlag.load(std::memory_order_relaxed)) {
+        if (_writeFlag.load(std::memory_order_relaxed))
+        {
           _readCount.fetch_sub(1, std::memory_order_relaxed);
           return false;
         }
@@ -106,54 +132,62 @@ namespace utils {
       return false;
     }
 
-    inline void unlock_shared() noexcept {
+    inline void unlock_shared() noexcept
+    {
       assert(_owner == 0);
       _readCount.fetch_sub(1, std::memory_order_relaxed);
     }
 
-    inline bool is_write_locked() const {
+    inline bool is_write_locked() const
+    {
       return _writeFlag.load(std::memory_order_relaxed);
     }
 
-    inline uint32_t read_locked_count() const {
+    inline uint32_t read_locked_count() const
+    {
       return _readCount.load(std::memory_order_relaxed);
     }
 
-    inline bool is_locked() const {
-      return  _writeFlag.load(std::memory_order_relaxed) ||
+    inline bool is_locked() const
+    {
+      return _writeFlag.load(std::memory_order_relaxed) ||
         _readCount.load(std::memory_order_relaxed) > 0;
     }
+
   protected:
     std::atomic<int32_t> _readCount{ 0 };
     std::atomic<bool> _writeFlag{ false };
     size_t _owner = 0;
-    std::hash<std::thread::id> thread_hasher;
   };
 
-  class ReentrantSpinMutex {
+  class ReentrantSpinMutex
+  {
   public:
     ReentrantSpinMutex() = default;
     ReentrantSpinMutex(const ReentrantSpinMutex&) = delete;
-    ReentrantSpinMutex& operator= (const ReentrantSpinMutex&) = delete;
+    ReentrantSpinMutex& operator=(const ReentrantSpinMutex&) = delete;
 
-    inline void lock() noexcept {
-      size_t currId = thread_hasher(std::this_thread::get_id());
-      if (_owner == currId)
+    inline void lock() noexcept
+    {
+      if (_owner == get_thread_hash())
       {
         _reenCount++;
         return;
       }
+      
       while (_flag.exchange(true, std::memory_order_acquire))
       {
         std::this_thread::yield();
       }
+      
       assert(_reenCount == 0 && _owner == 0);
-      _owner = currId;
+      _owner = get_thread_hash();
       _reenCount = 1;
     }
 
-    bool try_lock() noexcept {
-      size_t currId = thread_hasher(std::this_thread::get_id());
+    bool try_lock() noexcept
+    {
+      size_t currId = get_thread_hash();
       if (_owner == currId)
       {
         _reenCount++;
@@ -171,8 +205,9 @@ namespace utils {
       return false;
     }
 
-    inline void unlock() noexcept {
-      assert(_owner == thread_hasher(std::this_thread::get_id()));
+    inline void unlock() noexcept
+    {
+      assert(_owner == get_thread_hash());
       _reenCount--;
       if (_reenCount == 0)
       {
@@ -181,26 +216,29 @@ namespace utils {
       }
     }
 
-    inline bool is_locked() const {
+    inline bool is_locked() const
+    {
       return _flag.load(std::memory_order_relaxed);
     }
 
     inline int32_t reentrant_count() const { return _reenCount; }
+
   protected:
     std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
     size_t _owner = 0;
     int32_t _reenCount = 0;
-    std::hash<std::thread::id> thread_hasher;
   };
 
-  class ReentrantSharedSpinMutex {
+  class ReentrantSharedSpinMutex
+  {
   public:
     ReentrantSharedSpinMutex() = default;
     ReentrantSharedSpinMutex(const ReentrantSharedSpinMutex&) = delete;
-    ReentrantSharedSpinMutex& operator= (const ReentrantSharedSpinMutex&) = delete;
+    ReentrantSharedSpinMutex& operator=(const ReentrantSharedSpinMutex&) = delete;
 
-    inline void lock() noexcept {
-      size_t currId = thread_hasher(std::this_thread::get_id());
+    inline void lock() noexcept
+    {
+      size_t currId = get_thread_hash();
       if (_owner == currId)
       {
         assert(_reenCount > 0);
@@ -208,11 +246,13 @@ namespace utils {
         return;
       }
 
-      while (_writeFlag.exchange(true, std::memory_order_acquire)) {
+      while (_writeFlag.exchange(true, std::memory_order_acquire))
+      {
         std::this_thread::yield();
       }
 
-      while (_readCount.load(std::memory_order_relaxed) > 0) {
+      while (_readCount.load(std::memory_order_relaxed) > 0)
+      {
         std::this_thread::yield();
       }
 
@@ -221,8 +261,9 @@ namespace utils {
       _reenCount = 1;
     }
 
-    inline bool try_lock() noexcept {
-      size_t currId = thread_hasher(std::this_thread::get_id());
+    inline bool try_lock() noexcept
+    {
+      size_t currId = get_thread_hash();
       if (_owner == currId)
       {
         assert(_reenCount > 0);
@@ -231,8 +272,10 @@ namespace utils {
       }
 
       if (_readCount.load(std::memory_order_relaxed) == 0 &&
-        !_writeFlag.exchange(true, std::memory_order_acquire)) {
-        if (_readCount.load(std::memory_order_relaxed) > 0) {
+        !_writeFlag.exchange(true, std::memory_order_acquire))
+      {
+        if (_readCount.load(std::memory_order_relaxed) > 0)
+        {
           _writeFlag.store(false, std::memory_order_relaxed);
           return false;
         }
@@ -246,8 +289,9 @@ namespace utils {
       return false;
     }
 
-    void unlock() noexcept {
-      assert(_owner == thread_hasher(std::this_thread::get_id()));
+    void unlock() noexcept
+    {
+      assert(_owner == get_thread_hash());
       _reenCount--;
       if (_reenCount == 0)
       {
@@ -256,21 +300,26 @@ namespace utils {
       }
     }
 
-    inline void lock_shared() noexcept {
+    inline void lock_shared() noexcept
+    {
       while (true)
       {
         _readCount.fetch_add(1, std::memory_order_acquire);
-        if (!_writeFlag.load(std::memory_order_relaxed)) break;
+        if (!_writeFlag.load(std::memory_order_relaxed))
+          break;
 
         _readCount.fetch_sub(1, std::memory_order_relaxed);
         std::this_thread::yield();
       }
     }
 
-    inline bool try_lock_shared() noexcept {
-      if (!_writeFlag.load(std::memory_order_relaxed)) {
+    inline bool try_lock_shared() noexcept
+    {
+      if (!_writeFlag.load(std::memory_order_relaxed))
+      {
         _readCount.fetch_add(1, std::memory_order_acquire);
-        if (_writeFlag.load(std::memory_order_relaxed)) {
+        if (_writeFlag.load(std::memory_order_relaxed))
+        {
           _readCount.fetch_sub(1, std::memory_order_relaxed);
           return false;
         }
@@ -281,29 +330,33 @@ namespace utils {
       return false;
     }
 
-    inline void unlock_shared() noexcept {
+    inline void unlock_shared() noexcept
+    {
       _readCount.fetch_sub(1, std::memory_order_relaxed);
     }
 
-    inline bool is_write_locked() const {
+    inline bool is_write_locked() const
+    {
       return _writeFlag.load(std::memory_order_relaxed);
     }
 
-    inline uint32_t read_locked_count() const {
+    inline uint32_t read_locked_count() const
+    {
       return _readCount.load(std::memory_order_relaxed);
     }
 
-    inline bool is_locked() const {
-      return  _writeFlag.load(std::memory_order_relaxed) ||
+    inline bool is_locked() const
+    {
+      return _writeFlag.load(std::memory_order_relaxed) ||
         _readCount.load(std::memory_order_relaxed) > 0;
     }
 
     inline int32_t reentrant_count() const { return _reenCount; }
+
   protected:
     std::atomic<int32_t> _readCount{ 0 };
     std::atomic<bool> _writeFlag{ false };
     size_t _owner = 0;
     int32_t _reenCount = 0;
-    std::hash<std::thread::id> thread_hasher;
   };
 }

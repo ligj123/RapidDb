@@ -8,11 +8,6 @@
 namespace storage {
   class RawKey
   {
-	protected:
-		Byte* _bysVal;
-		uint32_t _length;
-		bool _bSole;
-
 	public:
 		RawKey() : _bysVal(nullptr), _length(0), _bSole(false) { }
 		RawKey(VectorDataValue& vctKey);
@@ -40,6 +35,11 @@ namespace storage {
 		bool operator != (const RawKey& key) const;
 		int CompareTo(const RawKey& key) const;
 		
+	protected:
+		Byte* _bysVal;
+		uint32_t _length;
+		bool _bSole;
+
 		friend std::ostream& operator<< (std::ostream& os, const RawKey& key);
   };
 

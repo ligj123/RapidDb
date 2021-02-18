@@ -10,17 +10,18 @@ namespace storage {
 
   unordered_map<uint64_t, IndexPage*> PageDividePool::_mapPage;
   queue<IndexPage*> PageDividePool::_queuePage;
-	thread PageDividePool::_treeDivideThread;// = PageDividePool::CreateThread();
+	thread* PageDividePool::_treeDivideThread = PageDividePool::CreateThread();
   bool PageDividePool::_bSuspend = false;
   utils::SpinMutex PageDividePool::_spinMutex;
 
-	thread PageDividePool::CreateThread() {
-		thread t([]() {
+	thread* PageDividePool::CreateThread() {
+		thread* t = new thread([]() {
 			utils::ThreadPool::_threadName = "PageDividePool";
 
 			while (true) {
 				if (_queuePage.size() == 0) {
 					this_thread::sleep_for(std::chrono::milliseconds(1));
+					continue;
 				}
 
 				if (_bSuspend) {
@@ -56,7 +57,6 @@ namespace storage {
 					_mapPage.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
 					_spinMutex.unlock();
 				}
-
 			}
 			});
 		return t;
@@ -71,6 +71,7 @@ namespace storage {
 		page->GetIndexTree()->IncreaseTasks();
 		page->IncRefCount();
 		_mapPage.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
+		_queuePage.push(page);
 	}
 
 }

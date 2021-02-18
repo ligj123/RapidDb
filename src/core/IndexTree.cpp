@@ -83,6 +83,7 @@ namespace storage {
 	
 	void IndexTree::CloneKeys(VectorDataValue& vct)
 	{
+		vct.RemoveAll();
 		vct.reserve(_vctKey.size());
 		for (IDataValue* dv : _vctKey) {
 			vct.push_back(dv->CloneDataValue(false));
@@ -91,6 +92,7 @@ namespace storage {
 
 	void IndexTree::CloneValues(VectorDataValue& vct)
 	{
+		vct.RemoveAll();
 		vct.reserve(_vctValue.size());
 		for (IDataValue* dv : _vctValue) {
 			vct.push_back(dv->CloneDataValue(false));
@@ -228,7 +230,8 @@ namespace storage {
 		vct.reserve(256);
 		LeafPage* page = SearchRecursively(false, key);
 		while (true) {
-			VectorLeafRecord&& vctLr = page->GetRecords(key);
+			VectorLeafRecord vctLr;
+			page->GetRecords(key, vctLr);
 			vct.insert(vct.end(), vctLr.begin(), vctLr.end());
 			
 			LeafRecord* lastLr = page->GetLastRecord();
@@ -268,7 +271,8 @@ namespace storage {
 		}
 		else {
 			page = SearchRecursively(false, *keyStart);
-			pos = page->SearchKey(*keyStart, false);
+			bool bFind;
+			pos = page->SearchKey(*keyStart, bFind);
 		}
 
 		bool bStart = true;
@@ -390,7 +394,8 @@ namespace storage {
 			uint64_t pageId = UINT64_MAX;
 			if (bNonunique) {
 				BranchPage* bPage = (BranchPage*)page;
-				uint32_t pos = bPage->SearchKey(key);
+				bool bFind;
+				uint32_t pos = bPage->SearchKey(key, bFind);
 				BranchRecord* br = bPage->GetRecordByPos(pos);
 				if (isEdit) {
 					if (br->CompareKey(key) == 0 || pos == 0) {
@@ -421,7 +426,8 @@ namespace storage {
 			}
 			else {
 				BranchPage* bPage = (BranchPage*)page;
-				uint32_t pos = bPage->SearchKey(key);
+				bool bFind;
+				uint32_t pos = bPage->SearchKey(key, bFind);
 				BranchRecord* br = bPage->GetRecordByPos(pos);
 				pageId = ((BranchRecord*)br)->GetChildPageId();
 				br->ReleaseRecord();

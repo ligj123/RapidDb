@@ -114,9 +114,9 @@ namespace storage {
 		uint64_t _fileId = 0;
 		IndexTree* _indexTree = nullptr;
 
+		int32_t _refCount = 0;
 		bool _bDirty = false;
 		bool _bRecordUpdate = false;
-		int32_t _refCount = 0;
   };
 }
 

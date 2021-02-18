@@ -77,10 +77,12 @@ namespace storage {
 			}
 		}
 
-		void clear() {
+		void RemoveAll() {
 			for (auto iter = begin(); iter != end(); iter++) {
 				delete* iter;
 			}
+
+			clear();
 		}
 	};
 }

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -23,6 +23,7 @@
     <ClCompile Include="..\..\test\core\BranchPageTest.cpp" />
     <ClCompile Include="..\..\test\core\BranchRecordTest.cpp" />
     <ClCompile Include="..\..\test\core\HeadPageTest.cpp" />
+    <ClCompile Include="..\..\test\core\LeafPageTest.cpp" />
     <ClCompile Include="..\..\test\core\LeafRecordTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueBlobTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueBoolTest .cpp" />

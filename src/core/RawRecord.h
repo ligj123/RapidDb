@@ -13,8 +13,7 @@ namespace storage {
   {
   public:
 		RawRecord(IndexTree* indexTree, IndexPage* parentPage, Byte* bys, bool bSole)	:
-			_parentPage(parentPage), _bysVal(bys), _indexTree(indexTree),
-			_actionType(ActionType::UNKNOWN), _refCount(1), _bSole(bSole), _bTranFinished(false) {}
+			_parentPage(parentPage), _bysVal(bys), _indexTree(indexTree), _bSole(bSole) {}
 		RawRecord(const RawRecord& src) = delete;
 		
 		inline Byte* GetBysValue() const { return _bysVal; }
@@ -38,7 +37,7 @@ namespace storage {
 		}
 	protected:
 		virtual ~RawRecord() {
-			if (_bSole) CachePool::ReleaseBys(_bysVal, GetTotalLength());
+			if (_bSole && _bysVal != nullptr) CachePool::ReleaseBys(_bysVal, GetTotalLength());
 		}
 	protected:
 		/** the byte array that save key and value's content */
@@ -48,14 +47,14 @@ namespace storage {
 		/**index tree*/
 		IndexTree* _indexTree;
 		/**How many times this record is referenced*/
-		int32_t _refCount;
+		int32_t _refCount = 1;
 		/**If this record' value is saved to solely buffer or branch page*/
 		bool _bSole;
 		/**Below variables only used for LeafRecord, put here to save 8 bytes memory*/
 		/**Normal time its value is unknown, in transaction time, it is the actual action*/
-		ActionType _actionType;
+		ActionType _actionType = ActionType::UNKNOWN;
 		/**In current transaction if this record has been executed.*/
-		bool _bTranFinished;
+		bool _bTranFinished = false;
   };
 }
 

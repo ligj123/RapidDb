@@ -22,42 +22,24 @@ namespace storage {
   }
 
   void BranchPage::ReadPage() {
+    CleanRecords();
     CachePage::ReadPage();
 
-    CleanRecords();
     _recordNum = ReadShort(NUM_RECORD_OFFSET);
     _totalDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
     _parentPageId = ReadLong(PARENT_PAGE_POINTER_OFFSET);
     _dtPageLastUpdate = GetMsFromEpoch();
   }
 
-  void BranchPage::WritePage() {
-    CachePage::WritePage();
-  }
-
   void BranchPage::LoadRecords() {
-    CleanRecords();
-    uint16_t pos = DATA_BEGIN_OFFSET;
+    if (_vctRecord.size() > 0) CleanRecords();
 
+    uint16_t pos = DATA_BEGIN_OFFSET;
     for (uint16_t i = 0; i < _recordNum; i++) {
       BranchRecord* rr = new BranchRecord(this, _bysPage + *((uint16_t*)(_bysPage + pos)));
       _vctRecord.push_back(rr);
       pos += sizeof(uint16_t);
     }
-  }
-
-  BranchRecord* BranchPage::DeleteRecord(uint16_t index) {
-    assert(index >= 0 && index < _recordNum);
-    if (_vctRecord.size() == 0) {
-      LoadRecords();
-    }
-    BranchRecord* br = (BranchRecord*) _vctRecord[index];
-    _vctRecord.erase(_vctRecord.begin() + index);
-    _totalDataLength -= br->GetTotalLength();
-    _recordNum--;
-    _bRecordUpdate = true;
-    _bDirty = true;
-    return br;
   }
 
   bool BranchPage::SaveRecord() {
@@ -91,10 +73,42 @@ namespace storage {
     return true;
   }
 
+  BranchRecord* BranchPage::DeleteRecord(uint16_t index) {
+    assert(index >= 0 && index < _recordNum);
+    if (_vctRecord.size() == 0) {
+      LoadRecords();
+    }
+    BranchRecord* br = (BranchRecord*)_vctRecord[index];
+    _vctRecord.erase(_vctRecord.begin() + index);
+    _totalDataLength -= br->GetTotalLength();
+    _recordNum--;
+    _bRecordUpdate = true;
+    _bDirty = true;
+    return br;
+  }
+
+  BranchRecord* BranchPage::DeleteRecord(const BranchRecord& rr) {
+    if (_vctRecord.size() == 0) {
+      LoadRecords();
+    }
+
+    bool bFind;
+    uint32_t index = SearchRecord(rr, bFind);
+    assert(bFind);
+    BranchRecord* br = (BranchRecord*)_vctRecord[index];
+    _vctRecord.erase(_vctRecord.begin() + index);
+    _totalDataLength -= br->GetTotalLength();
+    _recordNum--;
+    _bRecordUpdate = true;
+    _bDirty = true;
+    return br;
+  }
+
   void BranchPage::InsertRecord(BranchRecord*& rr, int32_t pos) {
     if (_recordNum > 0 && _vctRecord.size() == 0) LoadRecords();
     if (pos < 0) {
-      pos = SearchRecord(*rr);
+      bool bFind;
+      pos = SearchRecord(*rr, bFind);
     }
     else if (pos > _recordNum) {
       pos = _recordNum;
@@ -107,21 +121,6 @@ namespace storage {
     _bDirty = true;
     _bRecordUpdate = true;
     rr = nullptr;
-  }
-
-  BranchRecord* BranchPage::DeleteRecord(const BranchRecord& rr) {
-    if (_vctRecord.size() == 0) {
-      LoadRecords();
-    }
-
-    uint32_t index = SearchRecord(rr);
-    BranchRecord* br = (BranchRecord*)_vctRecord[index];
-    _vctRecord.erase(_vctRecord.begin() + index);
-    _totalDataLength -= br->GetTotalLength();
-    _recordNum--;
-    _bRecordUpdate = true;
-    _bDirty = true;
-    return br;
   }
 
   bool BranchPage::AddRecord(BranchRecord*& rr) {
@@ -146,73 +145,95 @@ namespace storage {
       return false;
     }
 
-    int pos = SearchKey(key);
-    if (pos >= _recordNum) {
-      return false;
-    }
-
-    return (_vctRecord.size() > 0 ? ((BranchRecord*)_vctRecord[pos])->CompareKey(key) == 0
-      : CompareTo(pos, key) == 0);
+    bool bFind;
+    SearchKey(key, bFind);
+    return bFind;
   }
 
-  uint32_t BranchPage::SearchRecord(const BranchRecord& rr) const {
-    if (_recordNum == 0) return 0;
+  int32_t BranchPage::SearchRecord(const BranchRecord& rr, bool& bFind) const {
+    if (_recordNum == 0) {
+      bFind = false;
+      return 0;
+    }
 
+    bFind = true;
     int32_t start = 0;
     int32_t end = _recordNum - 1;
-    int hr = (_vctRecord.size() > 0 ? ((BranchRecord*)_vctRecord[end])->CompareTo(rr) : CompareTo(end, rr));
+    int hr = (_vctRecord.size() > 0 ? GetVctRecord(end)->CompareTo(rr) : CompareTo(end, rr));
     if (hr == 0) return end;
-    else if (hr < 0) return end + 1;
+    else if (hr < 0) {
+      bFind = false;
+      return end + 1;
+    }
 
     end--;
     while (true) {
-      if (start > end) { return start; }
+      if (start > end) {
+        bFind = false;
+        return start;
+      }
 
       int middle = (start + end) / 2;
-      hr = (_vctRecord.size() > 0 ? ((BranchRecord*)_vctRecord[middle])->CompareTo(rr) : CompareTo(middle, rr));
-      if (hr < 0) { start = middle + 1; }
-      else if (hr > 0) { end = middle - 1; }
-      else { return middle; }
+      hr = (_vctRecord.size() > 0 ? GetVctRecord(middle)->CompareTo(rr) : CompareTo(middle, rr));
+      if (hr < 0) {
+        start = middle + 1;
+      }
+      else if (hr > 0) {
+        end = middle - 1;
+      }
+      else {
+        return middle;
+      }
     }
   }
 
-  uint32_t BranchPage::SearchKey(const RawKey& key) const {
-    	if (_recordNum == 0) return 0;
-
-    	bool bUnique = (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
-      int32_t start = 0;
-      int32_t end = _recordNum - 1;
-    	int hr = (_vctRecord.size() > 0 ? ((BranchRecord*)_vctRecord[end])->CompareKey(key) : CompareTo(end, key));
-    	if (hr < 0 || (hr == 0 && bUnique)) {
-    		return end;
-    	}
-
-    	end--;
-
-    	while (true) {
-    		if (start > end) {
-    			return start;
-    		}
-
-        int32_t middle = (start + end) / 2;
-    		hr = (_vctRecord.size() > 0 ? ((BranchRecord*)_vctRecord[middle])->CompareKey(key) : CompareTo(middle, key));
-    		if (hr < 0) {
-    			start = middle + 1;
-    		}
-    		else if (hr > 0) {
-    			end = middle - 1;
-    		}
-    		else {
-    			if (!bUnique && middle > start && (_vctRecord.size() > 0 ? 
-              ((BranchRecord*)_vctRecord[middle - 1])->CompareKey(key) == 0	: CompareTo(middle - 1, key) == 0)) {
-    				end = middle - 1;
-    			}
-    			else {
-    				return middle;
-    			}
-    		}
-    	}
+  int32_t BranchPage::SearchKey(const RawKey& key, bool& bFind) const {
+    if (_recordNum == 0) {
+      bFind = false;
+      return 0;
     }
+
+    bool bUnique = (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
+    int32_t start = 0;
+    int32_t end = _recordNum - 1;
+    int hr = (_vctRecord.size() > 0 ? GetVctRecord(end)->CompareKey(key) : CompareTo(end, key));
+    if (hr < 0) {
+      bFind = false;
+      return end + 1;
+    }
+    if (hr == 0 && bUnique) {
+      bFind = true;
+      return end;
+    }
+
+    end--;
+    bFind = true;
+
+    while (true) {
+      if (start > end) {
+        bFind = false;
+        return start;
+      }
+
+      int32_t middle = (start + end) / 2;
+      hr = (_vctRecord.size() > 0 ? GetVctRecord(middle)->CompareKey(key) : CompareTo(middle, key));
+      if (hr < 0) {
+        start = middle + 1;
+      }
+      else if (hr > 0) {
+        end = middle - 1;
+      }
+      else {
+        if (!bUnique && middle > start && (_vctRecord.size() > 0 ?
+          GetVctRecord(middle - 1)->CompareKey(key) == 0 : CompareTo(middle - 1, key) == 0)) {
+          end = middle - 1;
+        }
+        else {
+          return middle;
+        }
+      }
+    }
+  }
 
   int BranchPage::CompareTo(uint32_t recPos, const BranchRecord& rr) const {
     uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
@@ -258,7 +279,7 @@ namespace storage {
       return new BranchRecord(this, _bysPage + offset);
     }
     else {
-      return ((BranchRecord*)_vctRecord[pos])->ReferenceRecord();
+      return GetVctRecord(pos)->ReferenceRecord();
     }
   }
 }

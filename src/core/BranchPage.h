@@ -19,26 +19,29 @@ namespace storage {
 			IndexPage(indexTree, pageId) {}
 		~BranchPage();
 
-		void CleanRecords();
+		bool SaveRecord() override;
 		void ReadPage() override;
-		void WritePage() override;
+
+		void CleanRecords();
 		void LoadRecords();
 		BranchRecord* DeleteRecord(uint16_t index);
-		bool SaveRecord() override;
+		BranchRecord* DeleteRecord(const BranchRecord& record);
 
 		void InsertRecord(BranchRecord*& record, int32_t pos = -1);
-		BranchRecord* DeleteRecord(const BranchRecord& record);
+		bool AddRecord(BranchRecord*& record);
 		bool RecordExist(const RawKey& key) const;
 
-		bool AddRecord(BranchRecord*& record);
-		bool IsPageFull() const { return _totalDataLength >= MAX_DATA_LENGTH;	}
+		int32_t SearchRecord(const BranchRecord& rr, bool& bFind) const;
+		int32_t SearchKey(const RawKey& key, bool& bFind) const;
+		BranchRecord* GetRecordByPos(int32_t pos);
 
+		bool IsPageFull() const { return _totalDataLength >= MAX_DATA_LENGTH;	}
 		uint16_t GetMaxDataLength() const override {	return MAX_DATA_LENGTH;	}
 
-		uint32_t SearchRecord(const BranchRecord& rr) const;
-		uint32_t SearchKey(const RawKey& key) const;
-		BranchRecord* GetRecordByPos(int32_t pos);
 	protected:
+		inline BranchRecord* GetVctRecord(int pos) const {
+			return (BranchRecord*)_vctRecord[pos];
+		}
 		int CompareTo(uint32_t recPos, const BranchRecord& rr) const;
 		int CompareTo(uint32_t recPos, const RawKey& key) const;
   };

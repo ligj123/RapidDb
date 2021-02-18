@@ -23,7 +23,7 @@ namespace storage {
 	}
 
 	uint32_t PageFile::ReadPage(uint64_t fileOffset, char* bys, uint32_t length) {
-		assert(fileOffset % Configure::GetDiskClusterSize() == 0);
+		//assert(fileOffset % Configure::GetDiskClusterSize() == 0);
 		assert(Length() > fileOffset);
 		uint32_t len = 0;
 		{
@@ -37,7 +37,7 @@ namespace storage {
 	}
 
 	void PageFile::WritePage(uint64_t fileOffset, char* bys, uint32_t length) {
-		assert(fileOffset % Configure::GetDiskClusterSize() == 0);
+		//assert(fileOffset % Configure::GetDiskClusterSize() == 0);
 		{
 			lock_guard<utils::SpinMutex> lock(_spinMutex);
 			_file.seekp(fileOffset, ios::beg);
@@ -48,7 +48,7 @@ namespace storage {
 	}
 
 	void PageFile::WriteDataValue(vector<IDataValue*> vctDv, uint32_t dvStart, uint64_t offset) {
-		assert(offset % Configure::GetDiskClusterSize() == 0);
+		//assert(offset % Configure::GetDiskClusterSize() == 0);
 		lock_guard<utils::SpinMutex> lock(_spinMutex);
 		_file.seekg(offset, ios::beg);
 		Byte* buf = CachePool::ApplyOverflowCache();
@@ -75,7 +75,7 @@ namespace storage {
 	}
 
 	void PageFile::ReadDataValue(vector<IDataValue*> vctDv, uint32_t dvStart, uint64_t offset, uint32_t totalLen) {
-		assert(Length() >= offset + totalLen);
+		//assert(Length() >= offset + totalLen);
 		lock_guard<utils::SpinMutex> lock(_spinMutex);
 		_file.seekg(offset, ios::beg);
 		Byte* buf = CachePool::ApplyOverflowCache();
@@ -100,5 +100,26 @@ namespace storage {
 
 		CachePool::ReleaseOverflowCache(buf);
 		LOG_DEBUG << "Read overflow data, offset=" << offset << "  name=" << _path;
+	}
+
+	void PageFile::MoveOverflowData(uint64_t fileOffsetSrc, uint64_t fileOffsetDest, uint32_t length) {
+		lock_guard<utils::SpinMutex> lock(_spinMutex);
+		Byte* buf = CachePool::ApplyOverflowCache();
+
+		while (length > 0) {
+			_file.seekg(fileOffsetSrc, ios::beg);
+			_file.read((char*)buf, Configure::GetMaxOverflowCache() > length ? length : Configure::GetMaxOverflowCache());
+			uint64_t n = _file.gcount();
+
+			_file.seekg(fileOffsetDest, ios::beg);
+			_file.write((char*)buf, n);
+
+			fileOffsetSrc += n;
+			fileOffsetDest += n;
+			length -= (uint32_t)n;
+		}
+
+		CachePool::ReleaseOverflowCache(buf);
+		LOG_DEBUG << "Mov overflow data, offsetSrc=" << fileOffsetSrc << "  offsetDesc" << fileOffsetDest << "  name=" << _path;
 	}
 }

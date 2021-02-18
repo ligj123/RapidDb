@@ -34,7 +34,7 @@ namespace storage {
 		for (int i = 0; i < ROW_COUNT; i++) {
 			*((DataValueLong*)vctKey[0]) = i;
 			*((DataValueLong*)vctVal[0]) = i + 100;
-			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal);
+			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 			BranchRecord* rr = new BranchRecord(indexTree, lr, i + 100);
 			bp->InsertRecord(rr);
 			lr->ReleaseRecord();
@@ -44,7 +44,7 @@ namespace storage {
 
 		*((DataValueLong*)vctKey[0]) = 0;
 		*((DataValueLong*)vctVal[0]) = 100;
-		LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal);
+		LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 		BranchRecord* rr = new BranchRecord(indexTree, lr, 100);
 		BranchRecord* first = bp->GetRecordByPos(0);
 		BOOST_TEST(rr->CompareTo(*first) == 0);
@@ -54,7 +54,7 @@ namespace storage {
 
 		*((DataValueLong*)vctKey[0]) = ROW_COUNT - 1;
 		*((DataValueLong*)vctVal[0]) = ROW_COUNT + 99;
-		lr = new LeafRecord(indexTree, vctKey, vctVal);
+		lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 		rr = new BranchRecord(indexTree, lr, ROW_COUNT + 99);
 		BranchRecord* last = bp->GetRecordByPos(ROW_COUNT - 1);
 		BOOST_TEST(rr->CompareTo(*last) == 0);
@@ -64,7 +64,7 @@ namespace storage {
 
 		*((DataValueLong*)vctKey[0]) = ROW_COUNT / 2;
 		*((DataValueLong*)vctVal[0]) = ROW_COUNT / 2 + 100;
-		lr = new LeafRecord(indexTree, vctKey, vctVal);
+		lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 		rr = new BranchRecord(indexTree, lr, ROW_COUNT / 2 + 100);
 		BranchRecord* mid = bp->GetRecordByPos(ROW_COUNT / 2);
 		BOOST_TEST(rr->CompareTo(*mid) == 0);
@@ -101,7 +101,7 @@ namespace storage {
 		for (int i = 0; i < ROW_COUNT; i++) {
 			*((DataValueLong*)vctKey[0]) = i;
 			*((DataValueLong*)vctVal[0]) = i + 100;
-			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal);
+			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 			BranchRecord* rr = new BranchRecord(indexTree, lr, i);
 			bp->InsertRecord(rr);
 			lr->ReleaseRecord();
@@ -112,9 +112,10 @@ namespace storage {
 		for (int i = 0; i < ROW_COUNT; i++) {
 			*((DataValueLong*)vctKey[0]) = i;
 			*((DataValueLong*)vctVal[0]) = i + 100;
-			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal);
+			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 			BranchRecord* rr = new BranchRecord(indexTree, lr, i);
-			uint32_t index = bp->SearchRecord(*rr);
+			bool bFind;
+			uint32_t index = bp->SearchRecord(*rr, bFind);
 			BranchRecord* br = bp->GetRecordByPos(index);
 			BOOST_TEST(br->CompareTo(*rr) == 0);
 
@@ -139,7 +140,7 @@ namespace storage {
 		const int ROW_COUNT = 100;
 
 		DataValueLong* dvKey = new DataValueLong(100, true);
-		DataValueLong* dvVal = new DataValueLong(200, false);
+		DataValueLong* dvVal = new DataValueLong(200, true);
 		VectorDataValue vctKey = { dvKey->CloneDataValue() };
 		VectorDataValue vctVal = { dvVal->CloneDataValue() };
 		IndexTree* indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
@@ -152,7 +153,7 @@ namespace storage {
 		for (int i = 0; i < ROW_COUNT; i++) {
 			*((DataValueLong*)vctKey[0]) = i;
 			*((DataValueLong*)vctVal[0]) = i + 100;
-			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal);
+			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 			BranchRecord* rr = new BranchRecord(indexTree, lr, i + 100);
 			bp->InsertRecord(rr);
 			lr->ReleaseRecord();
@@ -206,19 +207,20 @@ namespace storage {
 			string str = "testString" + to_string(arLong[i]);
 			*((DataValueVarChar*)vctKey[0]) = str.c_str();
 			*((DataValueLong*)vctVal[0]) = i + 100;
-			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal);
+			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 			BranchRecord* rr = new BranchRecord(indexTree, lr, i + 100);
 			bp->InsertRecord(rr);
 			lr->ReleaseRecord();
 		}
 
 		uint64_t arKey[] = { 0, 20, 135, 70, 999 };
-		int arPos[] = { 0, 2, 2, 3, 4 };
+		int arPos[] = { 0, 2, 2, 3, 5 };
 		for (int i = 0; i < 5; i++) {
 			string str = "testString" + to_string(arKey[i]);
 			*((DataValueVarChar*)vctKey[0]) = str.c_str();
 			RawKey key(vctKey);
-			BOOST_TEST(arPos[i] == bp->SearchKey(key));
+			bool bFind;
+			BOOST_TEST(arPos[i] == bp->SearchKey(key, bFind));
 		}
 
 		delete indexTree;

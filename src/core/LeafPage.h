@@ -19,25 +19,32 @@ namespace storage {
 		LeafPage(IndexTree* indexTree, uint64_t pageId);
 		~LeafPage();
 
-		void SetPrevPageId(uint64_t id) {_prevPageId = id;	}
-		uint64_t GetPrevPageId() {	return _prevPageId;	}
-		void SetNextPageId(uint64_t id) {	_nextPageId = id;	}
-		uint64_t GetNextPageId() { return _nextPageId; }
+		inline void SetPrevPageId(uint64_t id) {_prevPageId = id;	}
+		inline uint64_t GetPrevPageId() {	return _prevPageId;	}
+		inline void SetNextPageId(uint64_t id) {	_nextPageId = id;	}
+		inline uint64_t GetNextPageId() { return _nextPageId; }
+		inline bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH; }
 		
-		VectorLeafRecord GetAllRecords();
-		LeafRecord* GetLastRecord();
 		void LoadRecords();
 		void CleanRecord();
 		bool SaveRecord() override;
-		void InsertRecord(LeafRecord* lr);
+		/**Insert a leaf record to this page, if pos < 0, use SearchRecord to find the position,
+		if pos>=0, insert the position or add to edn*/
+		void InsertRecord(LeafRecord* lr, int32_t pos = -1);
 		bool AddRecord(LeafRecord* record);
+		void DeleteRecord(int32_t pos);
+		void UpdateRecord(int32_t pos);
+		void GetAllRecords(VectorLeafRecord& vct);
+		LeafRecord* GetLastRecord();
 		LeafRecord* GetRecord(const RawKey& key);
-		VectorLeafRecord GetRecords(const RawKey& key);
-		uint32_t SearchRecord(const LeafRecord& rr, bool bEqual);
-		uint32_t SearchKey(const RawKey& key, bool bEqual);
-		bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH; }
+		void GetRecords(const RawKey& key, VectorLeafRecord& vct);
+		int32_t SearchRecord(const LeafRecord& rr, bool& bFind);
+		int32_t SearchKey(const RawKey& key, bool& bFind);
 		uint16_t GetMaxDataLength() const override { return MAX_DATA_LENGTH; }
 	protected:
+		inline LeafRecord* GetVctRecord(int pos) const {
+			return (LeafRecord*)_vctRecord[pos];
+		}
 		int CompareTo(uint32_t recPos, const RawKey& key);
 		int CompareTo(uint32_t recPos, const LeafRecord& rr);
 	protected:
