@@ -1,38 +1,66 @@
-#include "IndexPagePool.h"
+#include "PageBufferPool.h"
 #include <shared_mutex>
 #include "../core/IndexTree.h"
 #include "../utils/Log.h"
+#include "PageDividePool.h"
+#include "StoragePool.h"
 
 namespace storage {
-	unordered_map<uint64_t, IndexPage*> IndexPagePool::_mapCache;
-	utils::SharedSpinMutex IndexPagePool::_rwLock;
-	uint64_t IndexPagePool::_maxCacheSize = 10000;
-	thread IndexPagePool::_tIndexPageManager;
-	uint64_t IndexPagePool::_prevDelNum = 100;
+	unordered_map<uint64_t, IndexPage*> PageBufferPool::_mapCache;
+	utils::SharedSpinMutex PageBufferPool::_rwLock;
+	uint64_t PageBufferPool::_maxCacheSize = Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
+	thread PageBufferPool::_tIndexPageManager;
+	uint64_t PageBufferPool::_prevDelNum = 100;
+	thread* PageBufferPool::_pageBufferThread = PageBufferPool::CreateThread();
 
-	void IndexPagePool::AddPage(IndexPage* page) {
+	void PageBufferPool::AddPage(IndexPage* page) {
 		unique_lock<utils::SharedSpinMutex> lock(_rwLock);
 		_mapCache.insert(pair<uint64_t, IndexPage*>(page->HashCode(), page));
 	}
 
-	IndexPage* IndexPagePool::GetPage(uint64_t pageId) {
+	IndexPage* PageBufferPool::GetPage(uint64_t pageId) {
 		shared_lock<utils::SharedSpinMutex> lock(_rwLock);
 		auto iter = _mapCache.find(pageId);
 		if (iter != _mapCache.end()) {
 			iter->second->UpdateAccessTime();
 			iter->second->IncRefCount();
+			iter->second->GetIndexTree()->IncTask();
 			return iter->second;
 		}
 		
 		return nullptr;
 	}
 
-	void IndexPagePool::CleanPool() {
+	void PageBufferPool::ClearPool() {
 		unique_lock<utils::SharedSpinMutex> lock(_rwLock);
+		for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
+			IndexPage* page = iter->second;
+			while (!page->Releaseable()) {
+				this_thread::sleep_for(std::chrono::microseconds(10));
+			}
+
+			page->GetIndexTree()->DecPages();
+			delete page;
+		}
 		_mapCache.clear();
 	}
 
-	void IndexPagePool::PoolManage() {
+	thread* PageBufferPool::CreateThread() {
+		thread* t = new thread([]() {
+			while (true) {
+				this_thread::sleep_for(std::chrono::milliseconds(1000 * 5));
+				try {
+					PoolManage();
+				}
+				catch (...) {
+					LOG_ERROR << "Catch unknown exception!";
+				}
+			}
+			});
+		return t;
+	}
+
+	void PageBufferPool::PoolManage() {
 		uint64_t numDel = _mapCache.size() - _maxCacheSize;
 			if (numDel <= 0) {
 				return;
@@ -52,15 +80,14 @@ namespace storage {
 
 			_prevDelNum = numDel;
 			_rwLock.lock_shared();
-			auto iter = _mapCache.begin();
-
-			auto cmp = [](IndexPage* left, IndexPage* right) { return left->GetAccessTime() < right->GetAccessTime(); };
+			static auto cmp = [](IndexPage* left, IndexPage* right) { return left->GetAccessTime() < right->GetAccessTime(); };
 			priority_queue<IndexPage*, vector<IndexPage*>, decltype(cmp)> queue(cmp);
 
 			int refCountPage = 0;
 			int refPageCount = 0;
+			
 
-			while (iter != _mapCache.end()) {
+			for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
 				IndexPage* page = iter->second;
 				int num = page->GetRefCount();
 				if (num > 0) {
@@ -96,9 +123,15 @@ namespace storage {
 				}
 
 				_mapCache.erase(page->HashCode());
+				page->GetIndexTree()->DecPages();
 				delete page;
 				delCount++;
 			}
 			_rwLock.unlock();
+
+			LOG_DEBUG << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()
+				<< "\tPageDividePool=" << PageDividePool::GetQueuePageSize();
+			LOG_DEBUG << "Removed page:" << delCount << "\tWaitWriteQueue:" << StoragePool::GetWaitingWriteTaskCount()
+				<< "\nRefCountPage=" + refCountPage << "\tRefPageCount=" << refPageCount;
 		}
 }

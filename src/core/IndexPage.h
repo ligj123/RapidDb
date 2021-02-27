@@ -34,6 +34,7 @@ namespace storage {
 			return _recordRefCount;
 		}
 		inline int32_t GetRecordRefCount() { return _recordRefCount; }
+		inline int32_t GetRecordNum() { return _recordNum; }
 
 		virtual uint16_t GetMaxDataLength() const = 0;
 		virtual bool SaveRecord() = 0;

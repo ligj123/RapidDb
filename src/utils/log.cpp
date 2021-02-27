@@ -24,12 +24,13 @@ namespace utils {
 
   src::severity_logger< severity_level > Logger::slg_;
 
-  void Logger::init()
+  void Logger::init(severity_level filterLevel)
   {
     logging::formatter formatter = expr::stream << expr::format_date_time(log_timestamp, "%Y-%m-%d %H:%M:%S")
       << " [" << log_severity << "] " << expr::message;
 
     auto console_sink = logging::add_console_log(std::clog, keywords::format = formatter);
+
     std::filesystem::path logPath = std::filesystem::current_path();
     logPath += "/log";
     if (!std::filesystem::exists(logPath)) std::filesystem::create_directories(logPath);
@@ -43,6 +44,7 @@ namespace utils {
     );
 
     file_sink->locked_backend()->auto_flush(true);
+    file_sink->set_filter(log_severity >= filterLevel);
 
     logging::add_common_attributes();
     logging::core::get()->add_sink(console_sink);

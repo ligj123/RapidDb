@@ -2,6 +2,7 @@
 #include "RawRecord.h"
 #include "../dataType/IDataValue.h"
 #include "RawKey.h"
+#include <cstring>
 
 namespace storage {
 	class BranchPage;
@@ -13,8 +14,9 @@ namespace storage {
 
 	public:
 		BranchRecord(BranchPage* parentPage, Byte* bys);
-		BranchRecord(IndexTree* indexTree, RawRecord* rec, long childPageId);
+		BranchRecord(IndexTree* indexTree, RawRecord* rec, uint64_t childPageId);
 		BranchRecord(const BranchRecord& src) = delete;
+		~BranchRecord() {	}
 
 		RawKey* GetKey() const;
 		void GetListKey(VectorDataValue& vct) const;
@@ -39,8 +41,6 @@ namespace storage {
 		}
 
 		friend std::ostream& operator<< (std::ostream& os, const BranchRecord& br);
-	protected:
-		~BranchRecord() {	}
 	};
 
 	std::ostream& operator<< (std::ostream& os, const BranchRecord& br);

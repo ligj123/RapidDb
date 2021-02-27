@@ -2,6 +2,7 @@
 #include <stdexcept>
 #include "../utils/ErrorMsg.h"
 #include "../config/ErrorID.h"
+#include <cstring>
 
 namespace storage {
   DataValueBlob::DataValueBlob(uint32_t maxLength, bool bKey)

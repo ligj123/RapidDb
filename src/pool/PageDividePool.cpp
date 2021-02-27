@@ -47,11 +47,7 @@ namespace storage {
 				else {
 					bPassed = page->SaveRecord();
 				}
-				if (bPassed) {
-					page->GetIndexTree()->DecreaseTasks();
-					page->DecRefCount();
-				}
-				else {
+				if (!bPassed) {
 					_spinMutex.lock();
 					_queuePage.push(page);
 					_mapPage.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
@@ -67,11 +63,7 @@ namespace storage {
 		if (_mapPage.find(page->GetPageId()) != _mapPage.end()) return;
 
 		page->SetPageLastUpdateTime();
-
-		page->GetIndexTree()->IncreaseTasks();
-		page->IncRefCount();
 		_mapPage.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
 		_queuePage.push(page);
 	}
-
 }

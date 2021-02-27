@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <boost/locale/encoding.hpp>
 #include <iostream>
+#include <cstring>
 
 namespace utils {
   using namespace std;

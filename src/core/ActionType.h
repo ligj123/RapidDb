@@ -32,5 +32,7 @@ namespace storage {
 			os << "UNKNOWN(" << (int)ActionType::UNKNOWN << ")";
 			break;
 		}
+
+		return os;
 	}
 }

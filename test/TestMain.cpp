@@ -10,7 +10,7 @@ static const std::string ROOT_PATH = "./dbTest";
 struct GlobalFixTure {
   GlobalFixTure() {
     std::cout << "Start global fixture." << std::endl;
-    utils::Logger::init();
+    utils::Logger::init(utils::DEBUG);
 
     fs::path path(ROOT_PATH);
     if (!fs::exists(path)) fs::create_directories(path);

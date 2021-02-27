@@ -123,7 +123,6 @@ namespace storage {
 		BOOST_TEST(2 == ((CachePoolEx*)CachePoolEx::_gCachePool)->_mapPool.size());
 		BOOST_TEST(2 == ((CachePoolEx*)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 
-		DataValueLong* pDv = new DataValueLong;
 	}
 
 	BOOST_AUTO_TEST_SUITE_END()

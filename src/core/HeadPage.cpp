@@ -26,9 +26,9 @@ namespace storage {
 	const uint64_t HeadPage::NO_NEXT_PAGE_POINTER = UINT64_MAX;
 
 	void HeadPage::ReadPage() {
+		lock_guard<utils::SpinMutex> lock(_spinMutex);
 		CachePage::ReadPage();
 
-		lock_guard<utils::SpinMutex> lock(_spinMutex);
 		_indexType = (IndexType)ReadByte(INDEX_TYPE_OFFSET);
 		_recordVerCount = ReadByte(RECORD_VER_COUNT_OFFSET);
 		_keyVariableFieldCount = ReadShort(KEY_VARIABLE_FIELD_COUNT);

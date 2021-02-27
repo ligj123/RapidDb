@@ -6,6 +6,7 @@
 #include "../../src/core/IndexTree.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/core/BranchPage.h"
+#include "../../src/pool/PageBufferPool.h"
 
 namespace storage {
 	BOOST_AUTO_TEST_SUITE(CoreTest)
@@ -55,14 +56,14 @@ namespace storage {
 		rr2->GetListKey(vctKey);
 		BOOST_TEST(*dvKey == *vctKey[0]);
 		BOOST_TEST(300 == rr2->GetChildPageId());
-
-		delete bp;
+				
 		delete dvKey;
 		delete dvVal;
 		rr->ReleaseRecord();
 		rr->ReleaseRecord();
-		delete indexTree;
-
+		bp->DecRefCount();
+		indexTree->Close(true);
+		PageBufferPool::ClearPool();
 		std::filesystem::remove(std::filesystem::path(FILE_NAME));
 	}
 
@@ -154,9 +155,12 @@ namespace storage {
 		rr2->ReleaseRecord();
 		rr3->ReleaseRecord(); 
 		rr4->ReleaseRecord(); 
-		delete indexTree;
 		delete dvKey;
 		delete dvVal;
+
+		bp->DecRefCount();
+		indexTree->Close(true);
+		PageBufferPool::ClearPool();
 
 		std::filesystem::remove(std::filesystem::path(FILE_NAME));
 	}

@@ -5,6 +5,7 @@
 #include "../../src/dataType/DataValueLong.h"
 #include "../../src/core/IndexTree.h"
 #include "../../src/pool/StoragePool.h"
+#include "../../src/pool/PageBufferPool.h"
 
 namespace storage {
 	namespace fs = std::filesystem;
@@ -47,12 +48,10 @@ namespace storage {
 		headPage->WriteAutoPrimaryKey3(100);
 		BOOST_TEST(100 == headPage->GetAndAddAutoPrimaryKey3(3));
 
-		StoragePool::WriteCachePage(headPage);
-		StoragePool::FlushWriteCachePage();
-		delete indexTree;
+		headPage->WritePage();
 
-		indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-		headPage = indexTree->GetHeadPage();
+		headPage = new HeadPage(indexTree);
+		headPage->ReadPage();
 		FileVersion fv = headPage->ReadFileVersion();
 		BOOST_TEST(fv == INDEX_FILE_VERSION);
 
@@ -74,7 +73,9 @@ namespace storage {
 		BOOST_TEST(103 == headPage->ReadAutoPrimaryKey2());
 		BOOST_TEST(103 == headPage->ReadAutoPrimaryKey3());
 		
-		delete indexTree;
+		delete headPage;
+		indexTree->Close(true);
+		PageBufferPool::ClearPool();
 		fs::remove(fs::path(FILE_NAME));
 	}
 	BOOST_AUTO_TEST_SUITE_END()

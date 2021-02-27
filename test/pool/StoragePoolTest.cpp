@@ -3,6 +3,7 @@
 #include "../../src/pool/StoragePool.h"
 #include "../../src/core/IndexTree.h"
 #include "../../src/utils/Utilitys.h"
+#include <cstring>
 
 namespace storage {
 	namespace fs = std::filesystem;
@@ -29,12 +30,13 @@ namespace storage {
 			memcpy(page->GetBysPage() + 4, pStrTest, size);
 			memcpy(page->GetBysPage() + Configure::GetCachePageSize() - size, pStrTest, size);
 			page->SetDirty(true);
+			page->IncRefCount();
 			StoragePool::WriteCachePage(page);
 			vctPage.push_back(page);
 		}
 
 		StoragePool::FlushWriteCachePage();
-		delete indexTree;
+		indexTree->Close(true);
 
 		indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
 		for (int i = 0; i < NUM; i++) {
@@ -50,7 +52,8 @@ namespace storage {
 		for (CachePage* page : vctPage) {
 			delete page;
 		}
-		delete indexTree;
+		
+		indexTree->Close(true);
 		fs::remove(fs::path(FILE_NAME));
 	}
 	BOOST_AUTO_TEST_SUITE_END()

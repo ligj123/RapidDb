@@ -4,6 +4,7 @@
 #include "../utils/ErrorMsg.h"
 #include "../utils/BytesConvert.h"
 #include "../config/ErrorID.h"
+#include <cstring>
 
 namespace storage {
 	DataValueChar::DataValueChar(bool bKey)

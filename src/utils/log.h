@@ -45,22 +45,7 @@ namespace utils {
 
   class Logger {
   public:
-    static void init();
-   // template <class ... Args>
-  //  static void Write(severity_level level, Args... args)
-  //  {
-  //    std::stringstream ss;
-  //    int a[] = { (ToString(ss, args), 0)... };
-
-  //    BOOST_LOG_SEV(slg_, level) << "<" << ThreadPool::GetThreadName() << ">  " << ss.str();
-  //  }
-
-  //protected:
-  //  template <class T>
-  //  static void ToString(std::stringstream& ss, T arg)
-  //  {
-  //    ss << arg;
-  //  }
+    static void init(severity_level filterLevel);
   public:
     static src::severity_logger< severity_level > slg_;
   };

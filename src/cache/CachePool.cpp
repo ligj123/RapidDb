@@ -13,7 +13,7 @@ namespace storage {
 
   Byte* CachePool::ApplyPage() {
     CachePool* pool = GetInstance();
-    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutexPage);
+    std::unique_lock<utils::SpinMutex> lock(pool->_spinMutexPage);
     if (pool->_queueFreePage.size() > 0) {
       Byte* bys = pool->_queueFreePage.front();
       pool->_queueFreePage.pop();
@@ -51,7 +51,7 @@ namespace storage {
 
   void CachePool::ReleaseOverflowCache(Byte* pBuf) {
     CachePool* pool = GetInstance();
-    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutexOvf);
+    std::unique_lock<utils::SpinMutex> lock(pool->_spinMutexOvf);
     pool->_queueFreeOvf.push(pBuf);
   }
 
@@ -89,10 +89,7 @@ namespace storage {
   {
     CachePool* pool = GetInstance();
     auto iter = pool->_mapPool.find(eleSize);
-    if (iter == pool->_mapPool.end())
-    {
-      throw utils::ErrorMsg(CM_FAILED_FIND_SIZE, { std::to_string(eleSize) });
-    }
+    assert(iter != pool->_mapPool.end());
 
     iter->second->Release(pBuf);
   }
@@ -110,10 +107,10 @@ namespace storage {
       return buf;
     }
 
-    if (pool->_szMemUsed >= Configure::GetTotalCacheSize())
-    {
-      throw utils::ErrorMsg(CM_EXCEED_LIMIT, {});
-    }
+    //if (pool->_szMemUsed >= Configure::GetTotalCacheSize())
+    //{
+    //  throw utils::ErrorMsg(CM_EXCEED_LIMIT, {});
+    //}
 
     pool->_szMemUsed += Configure::GetCacheBlockSize();
     return new Buffer(eleLen);

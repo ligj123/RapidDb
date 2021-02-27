@@ -2,6 +2,7 @@
 #include "RawRecord.h"
 #include "LeafPage.h"
 #include "../dataType/IDataValue.h"
+#include <cstring>
 
 namespace storage {
 	static const Byte LAST_RECORD_OVERFLOW = 0x80;
@@ -15,6 +16,7 @@ namespace storage {
 		}
 
 		PriValStruct(Byte* bys) {
+			std::memset(this, 0, sizeof(PriValStruct));
 			uint16_t pos = sizeof(uint16_t) * 2 + *(uint16_t*)&bys[sizeof(uint16_t)];
 			bLastOvf = bys[pos] & LAST_RECORD_OVERFLOW;
 			bOvf = bys[pos] & RECORD_OVERFLOW;

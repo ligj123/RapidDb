@@ -3,7 +3,7 @@
 #include "../utils/Log.h"
 #include "BranchRecord.h"
 #include "BranchPage.h"
-#include "../pool/IndexPagePool.h"
+#include "../pool/PageBufferPool.h"
 #include "IndexPage.h"
 #include <shared_mutex>
 
@@ -40,13 +40,14 @@ namespace storage {
 				unique_lock<utils::SharedSpinMutex> lock(_headPage->GetLock());
 				memset(_headPage->GetBysPage(), 0, Configure::GetDiskClusterSize());
 				_headPage->WriteFileVersion();
-				_headPage->WriteRootPagePointer(HeadPage::NO_PARENT_POINTER);
+				_headPage->WriteRootPagePointer(0);
 				_headPage->WriteTotalPageCount(0);
 				_headPage->WriteTotalRecordCount(0);
 				_headPage->WriteAutoPrimaryKey(0);
 			}
 
 			StoragePool::WriteCachePage(_headPage);
+			_rootPage = AllocateNewPage(0, 0);
 		}
 		else {
 			_headPage->ReadPage();
@@ -54,6 +55,9 @@ namespace storage {
 			if (!(fv == INDEX_FILE_VERSION)) {
 				throw ErrorMsg(TB_ERROR_INDEX_VERSION, { _fileName });
 			}
+
+			uint64_t rootId = _headPage->ReadRootPagePointer();
+			_rootPage = GetPage(rootId, rootId == 0);
 		}
 
 		_vctKey.swap(vctKey);
@@ -62,7 +66,11 @@ namespace storage {
 	}
 
 	IndexTree::~IndexTree() {
-		Close();
+		unique_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
+		if (_headPage->IsDirty()) {
+			_headPage->WritePage();
+		}
+
 		while (_queueMutex.size() > 0) {
 			delete _queueMutex.front();
 			_queueMutex.pop();
@@ -80,7 +88,38 @@ namespace storage {
 
 		delete _headPage;
 	}
-	
+
+	void IndexTree::Close(bool bWait) {
+		unique_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
+		_bClosed = true;
+		_rootPage->DecRefCount();
+		if (!bWait) return;
+
+		while (_taskWaiting.load() > 0) {
+			this_thread::sleep_for(chrono::milliseconds(1));
+		}
+
+		if (_headPage->IsDirty()) {
+			_headPage->WritePage();
+		}
+
+		while (_queueMutex.size() > 0) {
+			delete _queueMutex.front();
+			_queueMutex.pop();
+		}
+		
+		for (auto iter = _mapMutex.begin(); iter != _mapMutex.end(); iter++) {
+			delete iter->second;
+		}
+		_mapMutex.clear();
+
+		if (_ovfFile != nullptr) delete _ovfFile;
+		while (_fileQueue.size() > 0) {
+			delete _fileQueue.front();
+			_fileQueue.pop();
+		}
+	}
+
 	void IndexTree::CloneKeys(VectorDataValue& vct)
 	{
 		vct.RemoveAll();
@@ -97,35 +136,6 @@ namespace storage {
 		for (IDataValue* dv : _vctValue) {
 			vct.push_back(dv->CloneDataValue(false));
 		}
-	}
-
-	void IndexTree::Close() {
-		_bClosed = true;
-
-		while (true) {
-			if (_tasksWaiting.load() == 0)
-				break;
-			this_thread::sleep_for(std::chrono::milliseconds(1));
-		}
-
-		if (_headPage->IsDirty()) {
-			StoragePool::WriteCachePage(_headPage);
-		}
-
-		while (true) {
-			if (_tasksWaiting.load() == 0)
-				break;
-			this_thread::sleep_for(std::chrono::milliseconds(1));
-		}
-
-
-		while (_fileQueue.size() > 0) {
-			PageFile* pf = _fileQueue.front();
-			_fileQueue.pop();
-			delete pf;
-		}
-
-		LOG_DEBUG << "Close index treee " + _fileName;
 	}
 
 	PageFile* IndexTree::ApplyPageFile() {
@@ -163,7 +173,7 @@ namespace storage {
 
 	IndexPage* IndexTree::GetPage(uint64_t pageId, bool bLeafPage) {
 		assert(pageId < _headPage->ReadTotalPageCount());
-		IndexPage* page = IndexPagePool::GetPage(_fileId, pageId);
+		IndexPage* page = PageBufferPool::GetPage(_fileId, pageId);
 		if (page != nullptr) return page;
 
 		_pageMutex.lock();
@@ -181,40 +191,39 @@ namespace storage {
 		_pageMutex.unlock();
 		lockPage->lock();
 
-		page = IndexPagePool::GetPage(_fileId, pageId);
-		if (page != nullptr) {
-			lockPage->unlock();
-			return page;
-		}
-		if (bLeafPage) {
-			page = new LeafPage(this, pageId);
-		}
-		else {
-			page = new BranchPage(this, pageId);
-		}
+		page = PageBufferPool::GetPage(_fileId, pageId);
+		if (page == nullptr) {
+			if (bLeafPage) {
+				page = new LeafPage(this, pageId);
+			}
+			else {
+				page = new BranchPage(this, pageId);
+			}
 
-		std::future<int> fut = StoragePool::ReadCachePage(page);
-		fut.get();
+			std::future<int> fut = StoragePool::ReadCachePage(page);
+			fut.get();
 
-		IndexPagePool::AddPage(page);
-		page->IncRefCount();
+			PageBufferPool::AddPage(page);
+			page->IncRefCount();
+			IncPages();
+		}
 
 		_pageMutex.lock();
 		_queueMutex.push(lockPage);
 		_mapMutex.erase(pageId);
-
 		lockPage->unlock();
 		_pageMutex.unlock();
+
 		return page;
 	}
 
 	void IndexTree::UpdateRootPage(IndexPage* root) {
-		lock_guard<utils::SharedSpinMutex> lock(_rootSharedMutex);
-			_rootPage->DecRefCount();
-			_headPage->WriteRootPagePointer(root->GetPageId());
-			_rootPage = root;
-			root->IncRefCount();
-			StoragePool::WriteCachePage(_headPage);		
+		unique_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
+		_rootPage->DecRefCount();
+		_headPage->WriteRootPagePointer(root->GetPageId());
+		_rootPage = root;
+		root->IncRefCount();
+		StoragePool::WriteCachePage(_headPage);
 	}
 
 	LeafRecord* IndexTree::GetRecord(const RawKey& key) {
@@ -277,7 +286,8 @@ namespace storage {
 
 		bool bStart = true;
 		while (true) {
-			VectorLeafRecord&& vct = page->GetAllRecords();
+			VectorLeafRecord vct;
+			page->GetAllRecords(vct);
 			for (uint32_t i = 0; i < pos; i++) {
 				vct[i]->ReleaseRecord();
 			}
@@ -356,7 +366,9 @@ namespace storage {
 			page = new LeafPage(this, newPageId, parentId);
 		}
 
+		PageBufferPool::AddPage(page);
 		page->IncRefCount();
+		IncPages();
 
 		LOG_DEBUG << "Allocate new CachePage, pageLevel=" << pageLevel << "  pageId=" << newPageId;
 		return page;

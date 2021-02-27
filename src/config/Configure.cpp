@@ -2,7 +2,7 @@
 
 namespace storage {
   const uint64_t Configure::DEFULT_DISK_CLUSTER_SIZE = 4 * 1024;
-  const uint64_t Configure::DEFAULT_CACHE_PAGE_SIZE = Configure::DEFULT_DISK_CLUSTER_SIZE * 4;
+  const uint64_t Configure::DEFAULT_CACHE_PAGE_SIZE = 1024 * 4 * 4;
   const uint64_t Configure::DEFAULT_TOTAL_CACHE_SIZE = 8 * 1024 * 1024 * 1024LL;
   const uint64_t Configure::DEFAULT_CACHE_BLOCK_SIZE = 128 * 1024;
   const uint64_t Configure::DEFAULT_MAX_BUFFER_SIZE = 1024 * 1024 * 1024;

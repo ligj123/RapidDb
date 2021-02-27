@@ -9,7 +9,7 @@ namespace storage {
 	BranchRecord::BranchRecord(BranchPage* parentPage, Byte* bys) :
 		RawRecord(parentPage->GetIndexTree(), parentPage, bys, false) {}
 
-	BranchRecord::BranchRecord(IndexTree* indexTree, RawRecord* rec, long childPageId) :
+	BranchRecord::BranchRecord(IndexTree* indexTree, RawRecord* rec, uint64_t childPageId) :
 		RawRecord(indexTree, nullptr, nullptr, true)
  {
 		uint16_t lenKey = rec->GetKeyLength();

@@ -17,7 +17,7 @@ namespace storage {
 		static const uint32_t CRC32_INDEX_OFFSET;
 		static const uint32_t CRC32_HEAD_OFFSET;
 		inline static uint64_t CalcHashCode(uint64_t fileId, uint64_t pageId) {
-			return (fileId << 32) + pageId;
+			return (fileId << 48) + (pageId & 0xffffffffffffLL);
 		}
 		inline static uint64_t GetMsFromEpoch() {
 			return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -61,8 +61,8 @@ namespace storage {
 		inline void WriteLock() { _rwLock.lock();	}
 		inline bool WriteTryLock() { return _rwLock.try_lock();	}
 		inline void WriteUnlock() { _rwLock.unlock();	}
-		inline int32_t IncRefCount() { return ++_refCount; }
-		inline int32_t DecRefCount() { return --_refCount; }
+		void IncRefCount();
+		void DecRefCount();
 		inline int32_t GetRefCount() { return _refCount; }
 
 		inline Byte ReadByte(uint32_t pos) const {
@@ -114,7 +114,7 @@ namespace storage {
 		uint64_t _fileId = 0;
 		IndexTree* _indexTree = nullptr;
 
-		int32_t _refCount = 0;
+		atomic<int32_t> _refCount = 0;
 		bool _bDirty = false;
 		bool _bRecordUpdate = false;
   };

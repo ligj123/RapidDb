@@ -1,337 +1,218 @@
 #include "IndexPage.h"
 #include "BranchPage.h"
+#include "IndexTree.h"
+#include "../pool/PageDividePool.h"
+#include "../pool/StoragePool.h"
+#include "BranchRecord.h"
 
 namespace storage {
-	 const float IndexPage::LOAD_FACTOR = 0.8f;
-	 const uint16_t IndexPage::PAGE_LEVEL_OFFSET = 0;
-	 const uint16_t IndexPage::PAGE_REFERENCE_COUNT = 2;
-	 const uint16_t IndexPage::NUM_RECORD_OFFSET = 4;
-	 const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;
-	 const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
+	const float IndexPage::LOAD_FACTOR = 0.8f;
+	const uint16_t IndexPage::PAGE_LEVEL_OFFSET = 0;
+	const uint16_t IndexPage::PAGE_REFERENCE_COUNT = 2;
+	const uint16_t IndexPage::NUM_RECORD_OFFSET = 4;
+	const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;
+	const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
 
-	 IndexPage::IndexPage(IndexTree* indexTree, uint64_t pageId) :
-		 CachePage(indexTree, pageId)	{
-		 _dtPageLastUpdate = GetMsFromEpoch();
-	 }
+	IndexPage::IndexPage(IndexTree* indexTree, uint64_t pageId) :
+		CachePage(indexTree, pageId) {
+		_dtPageLastUpdate = GetMsFromEpoch();
+	}
 
-	 IndexPage::IndexPage(IndexTree* indexTree, uint64_t pageId, uint8_t pageLevel, uint64_t parentPageId)
-		 : CachePage(indexTree, pageId) {
-		 _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
-		 _dtPageLastUpdate = GetMsFromEpoch();
-		 _parentPageId = parentPageId;
-	 }
+	IndexPage::IndexPage(IndexTree* indexTree, uint64_t pageId, uint8_t pageLevel, uint64_t parentPageId)
+		: CachePage(indexTree, pageId) {
+		_bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
+		_dtPageLastUpdate = GetMsFromEpoch();
+		_parentPageId = parentPageId;
+	}
 
-	 IndexPage::~IndexPage() {
-	 }
-	
+	IndexPage::~IndexPage() {
+	}
+
 	bool IndexPage::PageDivide() {
-//			if (recordRefCount.get() > 0) {
-//				return false;
-//			}
-//			if (treeFile.isClosed()/* || totalDataLength > getMaxDataLength() * TreeDividePool.PAGE_DIVIDE_LIMIT */) {
-//				writeLock();
-//			}
-//	 else {
-//	if (!writeTryLock())
-//		return false;
-//}
-//
-//if (recordRefCount.get() > 0) {
-//	writeUnlock();
-//	return false;
-//}
-//
-//BranchPage parentPage = getParentPage();
-//BranchRecord brParentOld = null;
-//
-//if (parentPage == null) {
-//	parentPage = (BranchPage)treeFile.getMemoryTree().allocateNewPage(null, (byte)(getPageLevel() + 1));
-//	parentPage.writeLock();
-//	parentPage.setParentPage(null, -1);
-//
-//	setParentPage(parentPage, 0);
-//	treeFile.getMemoryTree().updateRootPage(parentPage);
-//}
-//else {
-//if (!parentPage.writeTryLock()) {
-//	writeUnlock();
-//	return false;
-//}
-//
-//if (getParentPage() != parentPage) {
-//	parentPage.writeUnlock();
-//	writeUnlock();
-//	return false;
-//}
-//
-//parentPage.addRefCount();
-//brParentOld = parentPage.deleteRecord(indexInParent);
-//}
-//
-//// System.out.println("pageDivide");
-//try {
-//	// Calc this page's records
-//	int maxLen = (int)(getMaxDataLength() * LOAD_FACTOR);
-//	int pos = 0;
-//	int len = 0;
-//	for (; pos < lstRecord.size(); pos++) {
-//		RawRecord rr = lstRecord.get(pos);
-//		len += rr.getTotalLength() + Short.BYTES;
-//
-//		if (len > maxLen) {
-//			if (len > getMaxDataLength()) {
-//				len -= rr.getTotalLength() + Short.BYTES;
-//			}
-//else {
-//pos++;
-//}
-//
-//break;
-//}
-//}
-//
-//	// Split the surplus records to following page
-//	totalDataLength = len;
-//	recordNum = pos;
-//	ArrayList<IndexPage> lstPage = new ArrayList<>();
-//	IndexPage newPage = null;
-//
-//	len = 0;
-//	int startPos = pos;
-//	byte level = getPageLevel();
-//
-//	for (int i = pos; i < lstRecord.size(); i++) {
-//		RawRecord rr = lstRecord.get(i);
-//
-//		len += rr.getTotalLength() + Short.BYTES;
-//		if (len > maxLen) {
-//			if (len > getMaxDataLength()) {
-//				len -= lstRecord.get(i).getTotalLength() + Short.BYTES;
-//				i--;
-//			}
-//
-//			newPage = treeFile.getMemoryTree().allocateNewPage(parentPage, level);
-//			newPage.setDirty(true);
-//			newPage.writeLock();
-//			newPage.lstRecord.addAll(lstRecord.subList(startPos, i + 1));
-//			if (level > 0) {
-//				((BranchPage)newPage).lstPageChildren
-//						.addAll(((BranchPage)this).lstPageChildren.subList(startPos, i + 1));
-//			}
-//
-//			newPage.totalDataLength = len;
-//
-//			for (int k = 0; k < newPage.lstRecord.size(); k++) {
-//				newPage.lstRecord.get(k).setParentPage(newPage);
-//				if (level > 0) {
-//					IndexPage child = ((BranchPage)newPage).lstPageChildren.get(k);
-//					if (child == null && level == 1) {
-//						child = treeFile.getMemoryTree().getLeafPage(
-//								((BranchRecord)newPage.lstRecord.get(k)).getChildPageId());
-//					}
-//else {
-//child.addRefCount();
-//}
-//
-//((BranchPage)newPage).lstPageChildren.set(k, child);
-//child.setParentPage((BranchPage)newPage, k);
-//TreeDividePool.addCachePage(child);
-//child.releaseRefCount();
-//}
-//}
-//
-//newPage.recordNum = newPage.lstRecord.size();
-//lstPage.add(newPage);
-//len = 0;
-//startPos = i + 1;
-//continue;
-//}
-//}
-//
-//if (startPos < lstRecord.size()) {
-//	newPage = treeFile.getMemoryTree().allocateNewPage(parentPage, level);
-//	newPage.setDirty(true);
-//	newPage.writeLock();
-//	newPage.lstRecord.addAll(lstRecord.subList(startPos, lstRecord.size()));
-//	if (level > 0) {
-//		((BranchPage)newPage).lstPageChildren
-//				.addAll(((BranchPage)this).lstPageChildren.subList(startPos, lstRecord.size()));
-//	}
-//	newPage.totalDataLength = len;
-//
-//	for (int k = 0; k < newPage.lstRecord.size(); k++) {
-//		newPage.lstRecord.get(k).setParentPage(newPage);
-//		if (level > 0) {
-//			IndexPage child = ((BranchPage)newPage).lstPageChildren.get(k);
-//			if (child == null && level == 1) {
-//				child = treeFile.getMemoryTree().getLeafPage(
-//						((BranchRecord)newPage.lstRecord.get(k)).getChildPageId());
-//			}
-//else {
-//child.addRefCount();
-//}
-//
-//((BranchPage)newPage).lstPageChildren.set(k, child);
-//child.setParentPage((BranchPage)newPage, k);
-//TreeDividePool.addCachePage(child);
-//child.releaseRefCount();
-//}
-//}
-//
-//newPage.recordNum = newPage.lstRecord.size();
-//lstPage.add(newPage);
-//}
-//
-//lstRecord.subList(pos, lstRecord.size()).clear();
-//if (level > 0) {
-//	((BranchPage)this).lstPageChildren.subList(pos, ((BranchPage)this).lstPageChildren.size()).clear();
-//}
-//
-//if (level == 0) {
-//	// if is leaf page, set left and right page
-//	long lastPointer = ((LeafPage)this).nextPagePointer;
-//
-//	((LeafPage)this).nextPagePointer = lstPage.get(0).getPageId();
-//	long prevPointer = getPageId();
-//
-//	for (int i = 0; i < lstPage.size() - 1; i++) {
-//		((LeafPage)lstPage.get(i)).prevPagePointer = prevPointer;
-//		((LeafPage)lstPage.get(i)).nextPagePointer = lstPage.get(i + 1).getPageId();
-//		prevPointer = lstPage.get(i).getPageId();
-//	}
-//
-//	((LeafPage)lstPage.get(lstPage.size() - 1)).prevPagePointer = prevPointer;
-//	((LeafPage)lstPage.get(lstPage.size() - 1)).nextPagePointer = lastPointer;
-//
-//	if (lastPointer == HeadPage.NO_NEXT_PAGE_POINTER) {
-//		treeFile.getHeadPage()
-//				.writeEndLeafPagePointer(((LeafPage)lstPage.get(lstPage.size() - 1)).getPageId());
-//	}
-//else {
-//LeafPage lastPage = treeFile.getMemoryTree().getLeafPage(lastPointer);
-//lastPage.prevPagePointer = ((LeafPage)lstPage.get(lstPage.size() - 1)).getPageId();
-//lastPage.setDirty(true);
-//TreeDividePool.addCachePage(lastPage);
-//lastPage.releaseRefCount();
-//}
-//}
-//
-//// Insert this page' key and id to parent page
-//RawRecord last = lstRecord.get(lstRecord.size() - 1);
-//BranchRecord rec = BranchRecord.init(treeFile, last, getPageId());
-//parentPage.insertRecord(indexInParent, rec, this);
-//
-//// Insert new page' key and id to parent page
-//for (int i = 0; i < lstPage.size(); i++) {
-//	IndexPage indexPage = lstPage.get(i);
-//	indexPage.setParentPage(parentPage, indexInParent + i + 1);
-//	last = indexPage.lstRecord.get(indexPage.lstRecord.size() - 1);
-//
-//	rec = null;
-//	RawKey key = last.getKey();
-//	if (i == lstPage.size() - 1 && brParentOld != null && brParentOld.compareTo(key) > 0) {
-//		rec = BranchRecord.init(treeFile, brParentOld, indexPage.getPageId());
-//	}
-//else {
-//rec = BranchRecord.init(treeFile, last, indexPage.getPageId());
-//}
-//
-//parentPage.insertRecord(indexInParent + i + 1, rec, indexPage);
-//key.release();
-//
-//indexPage.bRecordUpdate = true;
-//indexPage.saveRecord();
-//indexPage.writeUnlock();
-//indexPage.releaseRefCount();
-//}
-//
-//if (brParentOld != null) {
-//	brParentOld.release(true, false);
-//}
-//
-//for (int i = indexInParent + lstPage.size() + 1; i < parentPage.lstPageChildren.size(); i++) {
-//	IndexPage inp = parentPage.lstPageChildren.get(i);
-//	if (inp != null) {
-//		inp.setIndexInParent(i);
-//	}
-//}
-//
-//////////test
-////			if (parentPage.recordNum == 0) {
-////				System.out.println("error recordNum");
-////			}
-////			if (parentPage.lstRecord.size() != parentPage.lstPageChildren.size()) {
-////				System.out.println("error size");
-////			}
-////
-////			for (int i = 0; i < parentPage.lstRecord.size(); i++) {
-////				IndexPage idp = parentPage.lstPageChildren.get(i);
-////				if (idp == null) {
-////					continue;
-////				}
-////				if (((BranchRecord) parentPage.lstRecord.get(i)).getChildPageId() != idp.getPageId()) {
-////					System.out.println("error parentPage");
-////				}
-////
-////				if (idp.indexInParent != i) {
-////					System.out.println("error indexInParent");
-////				}
-////			}
-////
-////			if (level > 0) {
-////				for (int i = 0; i < lstRecord.size(); i++) {
-////					IndexPage idp = ((BranchPage) this).lstPageChildren.get(i);
-////					if (idp == null) {
-////						continue;
-////					}
-////					if (((BranchRecord) lstRecord.get(i)).getChildPageId() != idp.getPageId()) {
-////						System.out.println("error this");
-////					}
-////
-////					if (idp.indexInParent != i) {
-////						System.out.println("error indexInParent");
-////					}
-////					
-////					if (idp.pageParent.pageId != idp.parentPointer) {
-////						System.out.println("error Parent");
-////					}
-////				}
-////				
-////				for (IndexPage dp : lstPage) {
-////					for (int i = 0; i < dp.lstRecord.size(); i++) {
-////						IndexPage idp = ((BranchPage) dp).lstPageChildren.get(i);
-////						if (idp == null) {
-////							continue;
-////						}
-////						if (((BranchRecord) dp.lstRecord.get(i)).getChildPageId() != idp.getPageId()) {
-////							System.out.println("error this");
-////						}
-////
-////						if (idp.indexInParent != i) {
-////							System.out.println("error indexInParent");
-////						}
-////						if (idp.pageParent.pageId != idp.parentPointer) {
-////							System.out.println("error Parent");
-////						}
-////					}
-////				}
-////			}
-//			//////////////
-//
-//			bRecordUpdate = true;
-//			saveRecord();
-//			TreeDividePool.addCachePage(parentPage);
-//			StoragePool.writeCachePage(treeFile.getHeadPage());
-//
-//			return true;
-//		}
-// finally {
-//parentPage.writeUnlock();
-//parentPage.releaseRefCount();
-//writeUnlock();
-//// releaseRefCount();
+		if (_recordRefCount > 0) {
+			return false;
+		}
+		if (_indexTree->IsClosed() || _totalDataLength > GetMaxDataLength() * PageDividePool::PAGE_DIVIDE_LIMIT) {
+			WriteLock();
+		}
+		else {
+			if (!WriteTryLock())
+				return false;
+		}
 
-return false;
-}
+		if (_recordRefCount > 0) {
+			WriteUnlock();
+			return false;
+		}
+				
+		BranchRecord* brParentOld = nullptr;
+		BranchPage* parentPage = nullptr;
+		int posInParent = 0;
+		if (_parentPageId == HeadPage::NO_PARENT_POINTER) {
+			parentPage = (BranchPage*)_indexTree->AllocateNewPage(HeadPage::NO_PARENT_POINTER, GetPageLevel() + 1);
+			parentPage->WriteLock();
+			_parentPageId = parentPage->GetPageId();
+			_indexTree->UpdateRootPage(parentPage);
+		}
+		else {
+			parentPage = (BranchPage*)_indexTree->GetPage(_parentPageId, false);
+			if (!parentPage->WriteTryLock()) {
+				WriteUnlock();
+				return false;
+			}
+
+			BranchRecord br(_indexTree, _vctRecord[_recordNum - 1], GetPageId());
+			bool bFind;
+			int posInParent = parentPage->SearchRecord(br, bFind);
+			if (!bFind) posInParent = parentPage->GetRecordNum();
+			brParentOld = parentPage->DeleteRecord(posInParent);
+		}
 		
+		// System.out.println("pageDivide");
+		try {
+			// Calc this page's records
+			int maxLen = (int)(GetMaxDataLength() * LOAD_FACTOR);
+			int pos = 0;
+			int len = 0;
+			for (; pos < _vctRecord.size(); pos++) {
+				RawRecord* rr = _vctRecord[pos];
+				len += rr->GetTotalLength() + sizeof(uint16_t);
+
+				if (len > maxLen) {
+					if (len > GetMaxDataLength()) {
+						len -= rr->GetTotalLength() + sizeof(uint16_t);
+					}
+					else {
+						pos++;
+					}
+
+					break;
+				}
+			}
+
+			// Split the surplus records to following page
+			_totalDataLength = len;
+			_recordNum = pos;
+			vector<IndexPage*> vctPage;
+			IndexPage* newPage = nullptr;
+
+			len = 0;
+			int startPos = pos;
+			Byte level = GetPageLevel();
+
+			for (int i = pos; i < _vctRecord.size(); i++) {
+				RawRecord* rr = _vctRecord[i];
+
+				len += rr->GetTotalLength() + sizeof(uint16_t);
+				if (len > maxLen) {
+					if (len > GetMaxDataLength()) {
+						len -= rr->GetTotalLength() + sizeof(uint16_t);
+						i--;
+					}
+
+					newPage = _indexTree->AllocateNewPage(parentPage->GetPageId(), level);
+					newPage->SetDirty(true);
+					newPage->WriteLock();
+					newPage->_vctRecord.insert(newPage->_vctRecord.end(),
+						_vctRecord.begin() + startPos, _vctRecord.begin() + i + 1);
+
+					newPage->_totalDataLength = len;
+					newPage->_recordNum = (int32_t)newPage->_vctRecord.size();
+					vctPage.push_back(newPage);
+					len = 0;
+					startPos = i + 1;
+					continue;
+				}
+			}
+
+			if (startPos < _vctRecord.size()) {
+				newPage = _indexTree->AllocateNewPage(parentPage->GetPageId(), level);
+				newPage->SetDirty(true);
+				newPage->WriteLock();
+				newPage->_vctRecord.insert(newPage->_vctRecord.end(),
+					_vctRecord.begin() + startPos, _vctRecord.end());
+
+				newPage->_totalDataLength = len;
+				newPage->_recordNum = (int32_t)newPage->_vctRecord.size();
+				vctPage.push_back(newPage);
+			}
+
+			_vctRecord.erase(_vctRecord.begin() + pos, _vctRecord.end());
+
+			if (level == 0) {
+				// if is leaf page, set left and right page
+				uint64_t lastPointer = ((LeafPage*)this)->GetNextPageId();
+
+				((LeafPage*)this)->SetNextPageId(vctPage[0]->GetPageId());
+				uint64_t prevPointer = GetPageId();
+
+				for (int i = 0; i < vctPage.size() - 1; i++) {
+					((LeafPage*)vctPage[i])->SetPrevPageId(prevPointer);
+					((LeafPage*)vctPage[i])->SetNextPageId(vctPage[i + 1]->GetPageId());
+					prevPointer = vctPage[i]->GetPageId();
+				}
+
+				((LeafPage*)vctPage[vctPage.size() - 1])->SetPrevPageId(prevPointer);
+				((LeafPage*)vctPage[vctPage.size() - 1])->SetNextPageId(lastPointer);
+
+				if (lastPointer == HeadPage::NO_NEXT_PAGE_POINTER) {
+					_indexTree->GetHeadPage()->WriteEndLeafPagePointer(((LeafPage*)vctPage[vctPage.size() - 1])->GetPageId());
+				}
+				else {
+					LeafPage* lastPage = (LeafPage*)_indexTree->GetPage(lastPointer, true);
+					lastPage->SetPrevPageId(((LeafPage*)vctPage[vctPage.size() - 1])->GetPageId());
+					lastPage->SetDirty(true);
+					PageDividePool::AddCachePage(lastPage);
+					lastPage->DecRefCount();
+				}
+			}
+
+			// Insert this page' key and id to parent page
+			RawRecord* last = _vctRecord[_vctRecord.size() - 1];
+			BranchRecord* rec = new BranchRecord(_indexTree, last, GetPageId());
+			parentPage->InsertRecord(rec, posInParent);
+			posInParent++;
+
+			// Insert new page' key and id to parent page
+			for (int i = 0; i < vctPage.size(); i++) {
+				IndexPage* indexPage = vctPage[i];
+				last = indexPage->_vctRecord[indexPage->_recordNum - 1];
+
+				rec = nullptr;
+				if (i == vctPage.size() - 1 && brParentOld != nullptr && brParentOld->CompareKey(*last) > 0) {
+					rec = new BranchRecord(_indexTree, brParentOld, indexPage->GetPageId());
+				}
+				else {
+					rec = new BranchRecord(_indexTree, last, indexPage->GetPageId());
+				}
+
+				parentPage->InsertRecord(rec, posInParent + i);
+
+				indexPage->_bRecordUpdate = true;
+				indexPage->SaveRecord();
+				indexPage->WriteUnlock();
+				indexPage->DecRefCount();
+			}
+
+			if (brParentOld != nullptr) {
+				brParentOld->ReleaseRecord();
+			}
+			
+			_bRecordUpdate = true;
+			SaveRecord();
+			PageDividePool::AddCachePage(parentPage);
+			StoragePool::WriteCachePage(_indexTree->GetHeadPage());
+
+			parentPage->WriteUnlock();
+			parentPage->DecRefCount();
+			WriteUnlock();
+			return true;
+		}
+		catch (...) {
+			parentPage->WriteUnlock();
+			parentPage->DecRefCount();
+			WriteUnlock();
+			return false;
+		}
+	}
 }

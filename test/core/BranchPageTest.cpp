@@ -23,11 +23,10 @@ namespace storage {
 		VectorDataValue vctVal = { dvVal->CloneDataValue() };
 		IndexTree* indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
 		indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-		LeafPage* lp = (LeafPage*)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
 		BranchPage* bp = (BranchPage*)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
 
-		vctKey.push_back(new DataValueLong(0LL, true));
-		vctVal.push_back(new DataValueLong(0LL, true));
+		vctKey.push_back(new DataValueLong(1LL, true));
+		vctVal.push_back(new DataValueLong(1LL, true));
 		RawKey key(vctKey);
 		BOOST_TEST(!bp->RecordExist(key));
 
@@ -72,11 +71,9 @@ namespace storage {
 		rr->ReleaseRecord();
 		mid->ReleaseRecord();
 
-		delete indexTree;
+		indexTree->Close(true);
 		delete dvKey;
 		delete dvVal;
-		delete lp;
-		delete bp;
 
 		std::filesystem::remove(std::filesystem::path(FILE_NAME));
 	}
@@ -93,7 +90,6 @@ namespace storage {
 		VectorDataValue vctVal = { dvVal->CloneDataValue() };
 		IndexTree* indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
 		indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-		LeafPage* lp = (LeafPage*)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
 		BranchPage* bp = (BranchPage*)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
 
 		vctKey.push_back(dvKey->CloneDataValue(true));
@@ -124,11 +120,9 @@ namespace storage {
 			rr->ReleaseRecord();
 		}
 
-		delete indexTree;
+		indexTree->Close(true);
 		delete dvKey;
 		delete dvVal;
-		delete lp;
-		delete bp;
 
 		std::filesystem::remove(std::filesystem::path(FILE_NAME));
 	}
@@ -145,7 +139,6 @@ namespace storage {
 		VectorDataValue vctVal = { dvVal->CloneDataValue() };
 		IndexTree* indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
 		indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-		LeafPage* lp = (LeafPage*)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
 		BranchPage* bp = (BranchPage*)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
 
 		vctKey.push_back(dvKey->CloneDataValue(true));
@@ -176,11 +169,9 @@ namespace storage {
 			BOOST_TEST((i % 2 != 1) == bp->RecordExist(key));
 		}
 
-		delete indexTree;
+		indexTree->Close(true);
 		delete dvKey;
 		delete dvVal;
-		delete lp;
-		delete bp;
 
 		std::filesystem::remove(std::filesystem::path(FILE_NAME));
 	}
@@ -197,7 +188,6 @@ namespace storage {
 		IndexTree* indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
 		indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
 		indexTree->GetHeadPage()->WriteKeyVariableFieldCount((short)1);
-		LeafPage* lp = (LeafPage*)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
 		BranchPage* bp = (BranchPage*)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
 
 		vctKey.push_back(dvKey->CloneDataValue(true));
@@ -223,11 +213,10 @@ namespace storage {
 			BOOST_TEST(arPos[i] == bp->SearchKey(key, bFind));
 		}
 
-		delete indexTree;
+		bp->DecRefCount();
+		indexTree->Close(true);
 		delete dvKey;
 		delete dvVal;
-		delete lp;
-		delete bp;
 
 		std::filesystem::remove(std::filesystem::path(FILE_NAME));
 	}

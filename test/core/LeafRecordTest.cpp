@@ -91,7 +91,7 @@ namespace storage {
 		BOOST_TEST(*dvVal == *vctVal3[0]);
 		
 		lr->ReleaseRecord();
-		delete indexTree;
+		indexTree->Close(true);
 		delete dvKey;
 		delete dvVal;
 
@@ -222,10 +222,10 @@ namespace storage {
 		BOOST_TEST(0 == key2->CompareTo(*key));
 
 		delete key2;
-		delete lp;
-		delete indexTree;
 		delete dvKey;
 		delete dvVal;
+		lp->DecRefCount();
+		indexTree->Close(true);
 		fs::remove(fs::path(FILE_NAME));
 	}
 
@@ -275,7 +275,6 @@ namespace storage {
 		uint64_t lenOvf4 = ovf->Length();
 		BOOST_TEST(lenOvf3 < lenOvf4);
 
-		delete indexTree;
 		delete dvKey;
 		delete dvVal1;
 		delete dvVal2;
@@ -283,6 +282,7 @@ namespace storage {
 		rr2->ReleaseRecord();
 		rr3->ReleaseRecord();
 		rr4->ReleaseRecord();
+		indexTree->Close(true);
 
 		fs::remove(fs::path(FILE_NAME));
 		string name = FILE_NAME.substr(0, FILE_NAME.find_last_of('/')) + "/overfile.dat";
@@ -401,7 +401,6 @@ namespace storage {
 			assert((char)i == p[i]);
 		}
 
-		delete indexTree;
 		delete dvKey;
 		delete dvVal1;
 		delete dvVal2;
@@ -409,6 +408,7 @@ namespace storage {
 		rr2->ReleaseRecord();
 		rr3->ReleaseRecord();
 		rr4->ReleaseRecord();
+		indexTree->Close(true);
 
 		fs::remove(fs::path(FILE_NAME));
 		string name = FILE_NAME.substr(0, FILE_NAME.find_last_of('/')) + "/overfile.dat";

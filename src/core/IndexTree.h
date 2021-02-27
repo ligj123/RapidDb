@@ -18,8 +18,6 @@ namespace storage {
   {
 	public:
 		IndexTree(const string& tableName, const string& fileName, VectorDataValue& vctKey, VectorDataValue& vctVal);
-		~IndexTree();
-		void Close();
 		void InsertRecord(LeafRecord* rr);
 		void UpdateRootPage(IndexPage* root);
 		LeafRecord* GetRecord(const RawKey& key);
@@ -27,20 +25,24 @@ namespace storage {
 		void QueryRecord(RawKey* keyStart, RawKey* keyEnd,
 			bool bIncLeft, bool bIncRight, VectorLeafRecord& vct);
 		IndexPage* AllocateNewPage(uint64_t parentId, Byte pageLevel);
-
-		uint64_t GetRecordsCount() { return _headPage->ReadTotalRecordCount(); }
-		string& GetFileName() { return _fileName; }
-		uint64_t GetFileId() { return _fileId; }
-		bool IsClosed() { return _bClosed; }
-		void setClosed() { _bClosed = true;	}
+		void CloneKeys(VectorDataValue& vct);
+		void CloneValues(VectorDataValue& vct);
+		IndexPage* GetPage(uint64_t pageId, bool bLeafPage);
 		PageFile* ApplyPageFile();
-		void ReleasePageFile(PageFile* rpf) {
+
+		inline uint64_t GetRecordsCount() { return _headPage->ReadTotalRecordCount(); }
+		inline string& GetFileName() { return _fileName; }
+		inline uint64_t GetFileId() { return _fileId; }
+		inline bool IsClosed() { return _bClosed; }
+		inline void SetClose() { _bClosed = true; }
+		void Close(bool bWait);
+		inline void ReleasePageFile(PageFile* rpf) {
 			lock_guard<utils::SpinMutex> lock(_fileMutex);
 			_fileQueue.push(rpf);
 		}
-		PageFile* GetOverflowFile() {
+		inline PageFile* GetOverflowFile() {
 			if (_ovfFile == nullptr) {
-				unique_lock< utils::SpinMutex> lock(_pageMutex);
+				unique_lock< utils::SpinMutex> lock(_fileMutex);
 				if (_ovfFile == nullptr) {
 					string name = _fileName.substr(0, _fileName.find_last_of('.')) + "_ovf.dat";
 					_ovfFile = new PageFile(name, true);
@@ -48,13 +50,21 @@ namespace storage {
 			}
 			return _ovfFile;
 		}
-		HeadPage* GetHeadPage() { return _headPage; }
-		uint32_t IncreaseTasks() { return _tasksWaiting.fetch_add(1); }
-		uint32_t DecreaseTasks() { return _tasksWaiting.fetch_sub(1);	}
-		void CloneKeys(VectorDataValue& vct);
-		void CloneValues(VectorDataValue& vct);
-		IndexPage* GetPage(uint64_t pageId, bool bLeafPage);
+		inline HeadPage* GetHeadPage() { return _headPage; }
+		inline void IncPages() { ++_pageCountInPool; }
+		inline void DecPages() {
+			{
+				unique_lock<utils::SpinMutex> lock(_pageMutex);
+				--_pageCountInPool;
+			}
+
+			if (_pageCountInPool == 0) delete this;
+		}
+		inline void IncTask() { _taskWaiting.fetch_add(1); }
+		inline void DecTask() { _taskWaiting.fetch_sub(1); }
+		inline uint64_t GetTaskWaiting() { return _taskWaiting.load(); }
 	protected:
+		~IndexTree();
 		LeafPage* SearchRecursively(bool isEdit, const RawKey& key);
 	protected:
 		static std::atomic<uint32_t> _atomicFileId;
@@ -62,16 +72,18 @@ namespace storage {
 		std::string _fileName;
 		std::queue<PageFile*> _fileQueue;
 		utils::SpinMutex _fileMutex;
-		/**How much page files have been opened for this index tree*/
-		uint32_t _rpfCount;
+		/**How much page files were opened for this index tree*/
+		uint32_t _rpfCount = 0;
 		uint64_t _fileId;
-		PageFile* _ovfFile;
-		bool _bClosed;
+		PageFile* _ovfFile = nullptr;
+		bool _bClosed = false;
 		/** Head page */
-		HeadPage* _headPage;
+		HeadPage* _headPage = nullptr;
 		
-		/** To record how much pages are waiting to read or write */
-		std::atomic<uint32_t> _tasksWaiting;
+		/** To record how much pages are in index page pool */
+		uint64_t _pageCountInPool = 0;
+		/** How much pages are waiting to read or write */
+		atomic<uint64_t> _taskWaiting = 0;
 		
 		VectorDataValue _vctKey;
 		VectorDataValue _vctValue;
@@ -80,7 +92,7 @@ namespace storage {
 		queue<utils::SpinMutex*> _queueMutex;
 		/**To lock for root page*/
 		utils::SharedSpinMutex _rootSharedMutex;
-		IndexPage* _rootPage;
+		IndexPage* _rootPage = nullptr;
 	protected:
 		static unordered_set<uint16_t> _setFiledId;
 		static uint16_t _currFiledId;

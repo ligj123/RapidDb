@@ -27,6 +27,6 @@ namespace storage {
 		static void AddCachePage(IndexPage* page);
 		static void SetThreadStatus(bool bSuspend) { _bSuspend = bSuspend; }
 
-		static size_t FetQueuePageSize() {return _queuePage.size();	}
+		static size_t GetQueuePageSize() {return _queuePage.size();	}
 	};
 }

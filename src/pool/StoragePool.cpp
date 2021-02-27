@@ -37,8 +37,7 @@ namespace storage {
 					CachePage* page = _queueWrite.front();
 					_queueWrite.pop();
 					if (!page->IsDirty()) {
-						_mapWrite.erase(page->HashCode());
-						page->GetIndexTree()->DecreaseTasks();
+						_mapWrite.erase(page->HashCode());						
 						page->DecRefCount();
 						_spinMutex.unlock();
 						continue;
@@ -54,7 +53,6 @@ namespace storage {
 					_mapWrite.erase(page->HashCode());
 					_spinMutex.unlock();
 					page->WritePage();
-					page->GetIndexTree()->DecreaseTasks();
 					page->DecRefCount();
 				}
 				catch (...)
@@ -72,11 +70,12 @@ namespace storage {
 			if (_mapWrite.find(page->HashCode()) != _mapWrite.end())
 				return;
 
-			page->GetIndexTree()->IncreaseTasks();
+			if (dynamic_cast<HeadPage*>(page) != nullptr) {
+				page->GetIndexTree()->IncTask();
+			}
 			page->UpdateWriteTime();
 			_mapWrite.insert(pair<uint64_t, CachePage*>(page->HashCode(), page));
 			_queueWrite.push(page);
-			page->IncRefCount();
 		}
 
 		while (_mapWrite.size() > MAX_QUEUE_SIZE * 2) {
@@ -85,13 +84,8 @@ namespace storage {
 	}
 
 	future<int> StoragePool::ReadCachePage(CachePage* page) {
-			page->GetIndexTree()->IncreaseTasks();
-			page->IncRefCount();
 			future<int> fut = _threadReadPool.AddTask([page]() {
 					page->ReadPage();
-					page->GetIndexTree()->DecreaseTasks();
-					page->DecRefCount();
-
 					return 1;				
 			});
 

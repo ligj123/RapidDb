@@ -22,7 +22,7 @@ namespace utils {
     ThreadPool(const ThreadPool&) = delete;
     ThreadPool& operator=(const ThreadPool&) = delete;
 
-    template <typename F, typename... Args, std::enable_if_t<std::is_invocable_v<F&&, Args &&...>, int> = 0>
+    template <typename F, typename ...Args>
     auto AddTask(F&&, Args &&...);
     void Stop() { _stopThreads = true; }
     uint32_t GetTaskCount() { return (uint32_t)_tasks.size(); }
@@ -40,7 +40,7 @@ namespace utils {
     };
     using _task_ptr = std::unique_ptr<_task_container_base>;
 
-    template <typename F, std::enable_if_t<std::is_invocable_v<F&&>, int> = 0>
+    template <typename F>
     class _task_container : public _task_container_base {
     public:
       _task_container(F&& func) : _f(std::forward<F>(func)) {}
@@ -51,7 +51,15 @@ namespace utils {
       F _f;
     };
 
-    template <typename F> _task_container(F)->_task_container<std::decay<F>>;
+    template <typename _Func>
+    static _task_ptr allocate_task_container(_Func&& f) {
+      //in the construction of the _task_container, f must be std::forward'ed because
+      //  it may not be CopyConstructible - the only requirement for an instantiation
+      //  of a _task_container is that the parameter is of a MoveConstructible type.
+      return _task_ptr(
+        new _task_container<_Func>(std::forward<_Func>(f))
+        );
+    }
 
     vector<std::thread> _threads;
     queue<_task_ptr> _tasks;
@@ -62,7 +70,7 @@ namespace utils {
     uint32_t _maxQueueSize;    
   };
 
-  template <typename F, typename... Args, std::enable_if_t<std::is_invocable_v<F&&, Args &&...>, int>>
+  template <typename F, typename... Args>
   auto ThreadPool::AddTask(F&& function, Args &&...args)
   {
     std::unique_lock<std::mutex> queue_lock(_task_mutex, std::defer_lock);

@@ -5,7 +5,7 @@
 
 namespace storage {
 	using namespace std;
-  class IndexPagePool
+  class PageBufferPool
   {
 	protected:
 		static unordered_map<uint64_t, IndexPage*> _mapCache;
@@ -13,9 +13,10 @@ namespace storage {
 		static uint64_t _maxCacheSize;
 		static thread _tIndexPageManager;
 		static uint64_t _prevDelNum;
-
+		static thread* _pageBufferThread;
 	protected:
 		static void PoolManage();
+		static thread* CreateThread();
 	public:
 		static uint64_t GetMaxCacheSize() {	return _maxCacheSize;	}
 		static void SetMaxCacheSzie(uint64_t size) { _maxCacheSize = (int)size;	}
@@ -28,25 +29,8 @@ namespace storage {
 
 		static IndexPage* GetPage(uint64_t pageId);
 		/**Only used for test to remove results from previous test cases*/
-		static void CleanPool();
+		static void ClearPool();
 
-		static uint64_t getCacheSize() {	return _mapCache.size(); }
-
-
-//		static int testCount = 0;
-//		static {
-//			Runnable r = new Runnable(){
-//				public void run() {
-//					try {
-//						cacheManage();
-//					}
-//	 catch (Exception ex) {
-//	log.error("Error for cache manage", ex);
-//}
-//}
-//			};
-//			cachePoolManager.scheduleAtFixedRate(r, 5, 5, TimeUnit.SECONDS);
-//		}
-
+		static uint64_t GetCacheSize() {	return _mapCache.size(); }
   };
 }

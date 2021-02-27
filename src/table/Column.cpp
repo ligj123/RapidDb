@@ -3,6 +3,7 @@
 #include "../dataType/DataValueLong.h"
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/DataValueFixChar.h"
+#include <cstring>
 
 namespace storage {
   TableColumn::TableColumn(const std::string& name, uint32_t pos, DataType dataType, const string& comments, bool bNullable,

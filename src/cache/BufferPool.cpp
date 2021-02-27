@@ -15,7 +15,7 @@ namespace storage {
 #ifdef _MSVC_LANG
     _pBuf = (Byte*)_aligned_malloc(Configure::GetCacheBlockSize(), Configure::GetCacheBlockSize());
 #else
-    _pBuf = (Byte*)std::aligned_alloc(Configure::GetCacheBlockSize(), Configure::GetCacheBlockSize());
+    _pBuf = (Byte*)aligned_alloc(Configure::GetCacheBlockSize(), Configure::GetCacheBlockSize());
 #endif // _MSVC_LANG
     Init(eleSize);
   }
