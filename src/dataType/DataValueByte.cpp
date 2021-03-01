@@ -3,6 +3,7 @@
 #include <string>
 #include "../utils/ErrorMsg.h"
 #include "../utils/BytesConvert.h"
+#include <limits.h>
 
 namespace storage {
 	DataValueByte::DataValueByte(bool bKey)

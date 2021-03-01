@@ -4,6 +4,7 @@
 #include "../cache/CachePool.h"
 #include <vector>
 #include <cstdint>
+#include <cstring>
 
 namespace storage {
   class RawKey

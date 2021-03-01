@@ -1,6 +1,6 @@
 #define BOOST_TEST_MODULE RapidDb
 #include  <boost/test/unit_test.hpp>
-#include "../src/utils/log.h"
+#include "../src/utils/Log.h"
 #include <string>
 #include  <filesystem>
 
@@ -20,5 +20,5 @@ struct GlobalFixTure {
     std::cout << "Stop global fixture." << std::endl;
   }
 };
-// 定义全局夹具
+// 瀹氫箟鍏ㄥ眬澶瑰叿
 BOOST_GLOBAL_FIXTURE(GlobalFixTure);

@@ -259,7 +259,7 @@ namespace storage {
     if (valType_ == ValueType::SOLE_VALUE) delete[] soleValue_;
 
     valType_ = ValueType::SOLE_VALUE;
-    soleValue_ = new char[] { "\\uff\\uff\\uff"};
+    soleValue_ = new char[4] { -1, -1, -1, 0 };
     soleLength_ = 4;
   }
 

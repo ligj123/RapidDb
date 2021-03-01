@@ -5,6 +5,7 @@
 #include "../utils/BytesConvert.h"
 #include "../config/ErrorID.h"
 #include <cstring>
+#include <limits.h>
 
 namespace storage {
 	DataValueUInt::DataValueUInt(bool bKey)

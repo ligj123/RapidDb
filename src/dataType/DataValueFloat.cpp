@@ -5,6 +5,7 @@
 #include "../utils/BytesConvert.h"
 #include "../config/ErrorID.h"
 #include <cstring>
+#include <float.h> 
 
 namespace storage {
 	DataValueFloat::DataValueFloat(bool bKey)

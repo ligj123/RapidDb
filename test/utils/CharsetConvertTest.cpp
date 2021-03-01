@@ -10,8 +10,8 @@ namespace utils {
 
 	BOOST_AUTO_TEST_CASE(CharsetConvert_test)
 	{
-		const char* pAsc = "中国你好HelloChina!!@";
-		const char* pUtf8 = u8"中国你好HelloChina!!@";
+		const char* pAsc = "涓浗浣犲ソHelloChina!!@";
+		const char* pUtf8 = u8"涓浗浣犲ソHelloChina!!@";
 
 		char tmp[100];
 		int len = 100;
@@ -39,7 +39,7 @@ namespace utils {
 		BOOST_TEST(len == 10);
 		BOOST_TEST(tmp[len] != '\0');
 
-		const wchar_t* pUncode = L"中国你好HelloChina!!@";
+		const wchar_t* pUncode = L"涓浗浣犲ソHelloChina!!@";
 		wchar_t tmp2[100];
 		len = 100;
 		rt = CodeConvert::MultiCharToWideChar(pAsc, (int)std::strlen(pAsc), tmp2, len, Charsets::GBK, true);

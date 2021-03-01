@@ -36,7 +36,8 @@ namespace storage {
 		else if (val.type() == typeid(uint8_t)) soleValue_ = (bool)std::any_cast<uint8_t>(val);
 		else if (val.type() == typeid(std::string)) {
 			string str = std::any_cast<std::string>(val);
-			transform(str.begin(), str.end(), str.begin(), std::tolower);
+			transform(str.begin(), str.end(), str.begin(),
+				[](unsigned char c) -> unsigned char { return std::tolower(c); });
 			if (str.find("true")) soleValue_ = true;
 			else if (str.find("false")) soleValue_ = false;
 			else soleValue_ = (bool)std::stoi(str);

@@ -3,6 +3,7 @@
 #include "DataType.h"
 #include "../cache/CachePool.h"
 #include <cassert>
+#include <cstring>
 
 namespace storage {
 	class IDataValue {

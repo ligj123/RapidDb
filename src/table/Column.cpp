@@ -1,4 +1,3 @@
-#pragma once
 #include "Column.h"
 #include "../dataType/DataValueLong.h"
 #include "../dataType/DataValueVarChar.h"

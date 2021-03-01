@@ -21,10 +21,10 @@ target_link_libraries(UnitTest
   )
 
 # avoid undefined reference to "main" in test.cpp
-target_compile_definitions(UnitTest
-  PRIVATE
-    BOOST_TEST_DYN_LINK
-  )
+#target_compile_definitions(UnitTest
+#  PRIVATE
+#    BOOST_TEST_DYN_LINK
+#  )
 
 enable_testing()
 
