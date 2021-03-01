@@ -30,6 +30,11 @@ namespace storage {
 		CleanRecord();
 	}
 
+	void LeafPage::Init() {
+		IndexPage::Init();
+		_prevPageId = ReadLong(PREV_PAGE_POINTER_OFFSET);
+		_nextPageId = ReadLong(NEXT_PAGE_POINTER_OFFSET);
+	}
 	void LeafPage::LoadRecords() {
 		CleanRecord();
 
@@ -50,7 +55,7 @@ namespace storage {
 	}
 
 	bool LeafPage::SaveRecord() {
-		unique_lock<utils::SharedSpinMutex> lock(_rwLock);
+		unique_lock<utils::ReentrantSharedSpinMutex> lock(_rwLock);
 		if (_totalDataLength > MAX_DATA_LENGTH) return false;
 
 		if (_bRecordUpdate) {
@@ -265,8 +270,8 @@ namespace storage {
 				return 0;
 		}
 
-		uint32_t start = 0;
-		uint32_t end = _recordNum - 1;
+		int32_t start = 0;
+		int32_t end = _recordNum - 1;
 		bFind = true;
 		bool bUnique = (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
 		if (bUnique) {
@@ -292,11 +297,11 @@ namespace storage {
 
 		while (true) {
 			if (start > end) {
-				bFind = true;
-					return start;
+				bFind = false;
+				return start;
 			}
 
-			uint32_t middle = (start + end) / 2;
+			int32_t middle = (start + end) / 2;
 			int hr = 0;
 			if (_vctRecord.size() > 0) {
 				hr = GetVctRecord(middle)->CompareKey(key);

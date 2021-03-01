@@ -43,7 +43,7 @@ namespace storage {
   }
 
   bool BranchPage::SaveRecord() {
-    shared_lock<utils::SharedSpinMutex> lock(_rwLock);
+    unique_lock<utils::ReentrantSharedSpinMutex> lock(_rwLock);
 
     if (_totalDataLength > MAX_DATA_LENGTH) return false;
 

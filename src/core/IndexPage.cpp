@@ -28,6 +28,15 @@ namespace storage {
 	IndexPage::~IndexPage() {
 	}
 
+	void IndexPage::Init() {
+		_vctRecord.clear();
+		_recordRefCount = 0;
+		_recordNum = ReadShort(NUM_RECORD_OFFSET);
+		_totalDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
+		_parentPageId = ReadLong(PARENT_PAGE_POINTER_OFFSET);
+		_dtPageLastUpdate = GetMsFromEpoch();
+	}
+
 	bool IndexPage::PageDivide() {
 		if (_recordRefCount > 0) {
 			return false;
@@ -191,7 +200,6 @@ namespace storage {
 				indexPage->_bRecordUpdate = true;
 				indexPage->SaveRecord();
 				indexPage->WriteUnlock();
-				indexPage->DecRefCount();
 			}
 
 			if (brParentOld != nullptr) {
@@ -203,8 +211,8 @@ namespace storage {
 			PageDividePool::AddCachePage(parentPage);
 			StoragePool::WriteCachePage(_indexTree->GetHeadPage());
 
+			parentPage->SaveRecord();
 			parentPage->WriteUnlock();
-			parentPage->DecRefCount();
 			WriteUnlock();
 			return true;
 		}

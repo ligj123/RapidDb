@@ -14,6 +14,7 @@ namespace storage {
 		static thread _tIndexPageManager;
 		static uint64_t _prevDelNum;
 		static thread* _pageBufferThread;
+		static bool _bSuspend;
 	protected:
 		static void PoolManage();
 		static thread* CreateThread();
@@ -32,5 +33,6 @@ namespace storage {
 		static void ClearPool();
 
 		static uint64_t GetCacheSize() {	return _mapCache.size(); }
+		static void SetSuspend(bool b) { _bSuspend = true; }
   };
 }

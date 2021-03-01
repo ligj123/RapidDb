@@ -41,6 +41,7 @@ namespace storage {
 		int32_t SearchRecord(const LeafRecord& rr, bool& bFind);
 		int32_t SearchKey(const RawKey& key, bool& bFind);
 		uint16_t GetMaxDataLength() const override { return MAX_DATA_LENGTH; }
+		void Init() override;
 	protected:
 		inline LeafRecord* GetVctRecord(int pos) const {
 			return (LeafRecord*)_vctRecord[pos];

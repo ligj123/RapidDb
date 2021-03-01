@@ -37,7 +37,7 @@ namespace storage {
 		_headPage = new HeadPage(this);
 		if (!bExist) {
 			{
-				unique_lock<utils::SharedSpinMutex> lock(_headPage->GetLock());
+				unique_lock<utils::ReentrantSharedSpinMutex> lock(_headPage->GetLock());
 				memset(_headPage->GetBysPage(), 0, Configure::GetDiskClusterSize());
 				_headPage->WriteFileVersion();
 				_headPage->WriteRootPagePointer(0);
@@ -47,7 +47,7 @@ namespace storage {
 			}
 
 			StoragePool::WriteCachePage(_headPage);
-			_rootPage = AllocateNewPage(0, 0);
+			_rootPage = AllocateNewPage(HeadPage::NO_PARENT_POINTER, 0);
 		}
 		else {
 			_headPage->ReadPage();
@@ -203,6 +203,7 @@ namespace storage {
 			std::future<int> fut = StoragePool::ReadCachePage(page);
 			fut.get();
 
+			page->Init();
 			PageBufferPool::AddPage(page);
 			page->IncRefCount();
 			IncPages();
@@ -370,7 +371,7 @@ namespace storage {
 		page->IncRefCount();
 		IncPages();
 
-		LOG_DEBUG << "Allocate new CachePage, pageLevel=" << pageLevel << "  pageId=" << newPageId;
+		LOG_DEBUG << "Allocate new CachePage, pageLevel=" << (int)pageLevel << "  pageId=" << newPageId;
 		return page;
 	}
 

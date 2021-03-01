@@ -14,13 +14,14 @@ namespace storage {
   bool StoragePool::_bWriteFlush = false;
   bool StoragePool::_bReadFirst = true;
 	utils::SpinMutex StoragePool::_spinMutex;
+	bool StoragePool::_bWriteSuspend = false;
 
 	thread* StoragePool::CreateWriteThread() {
 		thread* t = new thread([]() {
 			utils::ThreadPool::_threadName = "WriteThread";
 			while (true) {
 				try {
-					if ((_bReadFirst && _threadReadPool.GetTaskCount() > 0) || _queueWrite.size() == 0) {
+					if ((_bReadFirst && _threadReadPool.GetTaskCount() > 0) || _queueWrite.size() == 0 || _bWriteSuspend) {
 						if (_queueWrite.size() == 0) _bWriteFlush = false;
 
 						this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -67,8 +68,10 @@ namespace storage {
 	void StoragePool::WriteCachePage(CachePage* page) {
 		{
 			lock_guard< utils::SpinMutex> lock(_spinMutex);
-			if (_mapWrite.find(page->HashCode()) != _mapWrite.end())
+			if (_mapWrite.find(page->HashCode()) != _mapWrite.end()) {
+				page->DecRefCount();
 				return;
+			}
 
 			if (dynamic_cast<HeadPage*>(page) != nullptr) {
 				page->GetIndexTree()->IncTask();

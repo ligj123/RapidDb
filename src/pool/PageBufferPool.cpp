@@ -12,6 +12,7 @@ namespace storage {
 	thread PageBufferPool::_tIndexPageManager;
 	uint64_t PageBufferPool::_prevDelNum = 100;
 	thread* PageBufferPool::_pageBufferThread = PageBufferPool::CreateThread();
+	bool PageBufferPool::_bSuspend = false;
 
 	void PageBufferPool::AddPage(IndexPage* page) {
 		unique_lock<utils::SharedSpinMutex> lock(_rwLock);
@@ -24,7 +25,6 @@ namespace storage {
 		if (iter != _mapCache.end()) {
 			iter->second->UpdateAccessTime();
 			iter->second->IncRefCount();
-			iter->second->GetIndexTree()->IncTask();
 			return iter->second;
 		}
 		
@@ -49,6 +49,7 @@ namespace storage {
 		thread* t = new thread([]() {
 			while (true) {
 				this_thread::sleep_for(std::chrono::milliseconds(1000 * 5));
+				if (_bSuspend) continue;
 				try {
 					PoolManage();
 				}
@@ -61,7 +62,7 @@ namespace storage {
 	}
 
 	void PageBufferPool::PoolManage() {
-		uint64_t numDel = _mapCache.size() - _maxCacheSize;
+		int64_t numDel = _mapCache.size() - _maxCacheSize;
 			if (numDel <= 0) {
 				return;
 			}
@@ -86,7 +87,6 @@ namespace storage {
 			int refCountPage = 0;
 			int refPageCount = 0;
 			
-
 			for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
 				IndexPage* page = iter->second;
 				int num = page->GetRefCount();

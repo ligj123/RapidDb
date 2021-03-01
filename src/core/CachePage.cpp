@@ -42,7 +42,7 @@ namespace storage {
 	}
 
 	void CachePage::ReadPage() {
-		std::lock_guard<utils::SharedSpinMutex> lock(_rwLock);
+		std::unique_lock<utils::ReentrantSharedSpinMutex> lock(_rwLock);
 		
 		PageFile* pageFile = _indexTree->ApplyPageFile();
 		if (_pageId != UINT64_MAX) {
@@ -57,7 +57,7 @@ namespace storage {
 
 	void CachePage::WritePage() {
 		PageFile* pageFile = _indexTree->ApplyPageFile();
-		std::lock_guard<utils::SharedSpinMutex> lock(_rwLock);
+		std::unique_lock<utils::ReentrantSharedSpinMutex> lock(_rwLock);
 
 		if (_pageId != UINT64_MAX) {
 			pageFile->WritePage(Configure::GetDiskClusterSize() + _pageId * Configure::GetCachePageSize(),

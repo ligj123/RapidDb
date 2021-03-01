@@ -20,7 +20,6 @@ namespace storage {
 		~IndexPage();
 
 		bool PageDivide();
-
 		inline void SetParentPageID(uint64_t parentPageId) { _parentPageId = parentPageId; }
 		inline uint64_t GetParentPageId() { return _parentPageId; }
 		inline Byte GetPageLevel() { return _bysPage[PAGE_LEVEL_OFFSET]; }
@@ -36,6 +35,7 @@ namespace storage {
 		inline int32_t GetRecordRefCount() { return _recordRefCount; }
 		inline int32_t GetRecordNum() { return _recordNum; }
 
+		virtual void Init();
 		virtual uint16_t GetMaxDataLength() const = 0;
 		virtual bool SaveRecord() = 0;
 	protected:

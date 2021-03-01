@@ -39,7 +39,7 @@ namespace storage {
 		virtual ~CachePage();
 		bool IsFileClosed() const;
 
-		inline utils::SharedSpinMutex& GetLock() { return _rwLock; }
+		inline utils::ReentrantSharedSpinMutex& GetLock() { return _rwLock; }
 		inline bool IsDirty() const { return _bDirty; }
 		inline void SetDirty(bool b) { _bDirty = b; }
 		inline bool IsLocked() const { return _rwLock.is_locked(); }
@@ -107,7 +107,7 @@ namespace storage {
 
 	protected:
 		Byte* _bysPage = nullptr;
-		utils::SharedSpinMutex _rwLock;
+		utils::ReentrantSharedSpinMutex _rwLock;
 		uint64_t _dtPageLastWrite = 0;
 		uint64_t _dtPageLastAccess = 0;
 		uint64_t _pageId = 0;

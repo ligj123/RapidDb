@@ -60,7 +60,10 @@ namespace storage {
 
 	void PageDividePool::AddCachePage(IndexPage* page) {
 		lock_guard<utils::SpinMutex> lock(_spinMutex);
-		if (_mapPage.find(page->GetPageId()) != _mapPage.end()) return;
+		if (_mapPage.find(page->GetPageId()) != _mapPage.end()) {
+			page->DecRefCount();
+			return;
+		}
 
 		page->SetPageLastUpdateTime();
 		_mapPage.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));

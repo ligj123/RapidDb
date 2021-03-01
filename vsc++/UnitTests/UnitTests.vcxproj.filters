@@ -77,6 +77,9 @@
     <ClCompile Include="..\..\test\core\LeafPageTest.cpp">
       <Filter>core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\test\core\IndexTreeTest.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\..\test\utils\ErrorMsg.txt" />

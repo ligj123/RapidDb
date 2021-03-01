@@ -15,6 +15,7 @@ namespace storage {
 		static void WriteCachePage(CachePage* page);
 		static future<int> ReadCachePage(CachePage* page);
 		static void FlushWriteCachePage() { _bWriteFlush = true; }
+		static void SetWriteSuspend(bool b) { _bWriteSuspend = b; }
 		static uint32_t GetWaitingWriteTaskCount() { return (uint32_t)_queueWrite.size(); }
 	protected:
 		static thread* CreateWriteThread();
@@ -29,6 +30,6 @@ namespace storage {
 		static bool _bWriteFlush;
 		static bool _bReadFirst;
 		static utils::SpinMutex _spinMutex;
-
+		static bool _bWriteSuspend;
 	};
 }

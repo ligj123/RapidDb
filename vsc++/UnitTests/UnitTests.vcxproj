@@ -23,6 +23,7 @@
     <ClCompile Include="..\..\test\core\BranchPageTest.cpp" />
     <ClCompile Include="..\..\test\core\BranchRecordTest.cpp" />
     <ClCompile Include="..\..\test\core\HeadPageTest.cpp" />
+    <ClCompile Include="..\..\test\core\IndexTreeTest.cpp" />
     <ClCompile Include="..\..\test\core\LeafPageTest.cpp" />
     <ClCompile Include="..\..\test\core\LeafRecordTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueBlobTest.cpp" />

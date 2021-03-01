@@ -53,16 +53,12 @@ namespace storage {
 		inline HeadPage* GetHeadPage() { return _headPage; }
 		inline void IncPages() { ++_pageCountInPool; }
 		inline void DecPages() {
-			{
-				unique_lock<utils::SpinMutex> lock(_pageMutex);
 				--_pageCountInPool;
-			}
-
-			if (_pageCountInPool == 0) delete this;
+			if (_pageCountInPool.load() == 0) delete this;
 		}
 		inline void IncTask() { _taskWaiting.fetch_add(1); }
 		inline void DecTask() { _taskWaiting.fetch_sub(1); }
-		inline uint64_t GetTaskWaiting() { return _taskWaiting.load(); }
+		inline int64_t GetTaskWaiting() { return _taskWaiting.load(); }
 	protected:
 		~IndexTree();
 		LeafPage* SearchRecursively(bool isEdit, const RawKey& key);
@@ -81,9 +77,9 @@ namespace storage {
 		HeadPage* _headPage = nullptr;
 		
 		/** To record how much pages are in index page pool */
-		uint64_t _pageCountInPool = 0;
+		atomic<int64_t> _pageCountInPool = 0;
 		/** How much pages are waiting to read or write */
-		atomic<uint64_t> _taskWaiting = 0;
+		atomic<int64_t> _taskWaiting = 0;
 		
 		VectorDataValue _vctKey;
 		VectorDataValue _vctValue;
