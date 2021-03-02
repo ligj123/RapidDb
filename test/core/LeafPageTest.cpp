@@ -20,6 +20,7 @@ namespace storage {
 		const string TABLE_NAME = "testTable";
 		const int ROW_COUNT = 100;
 
+		StoragePool::SetWriteSuspend(true);
 		DataValueLong* dvKey = new DataValueLong(100, true);
 		DataValueLong* dvVal = new DataValueLong(200, false);
 		VectorDataValue vctKey = { dvKey->CloneDataValue() };
@@ -43,6 +44,7 @@ namespace storage {
 			*((DataValueLong*)vctKey[0]) = i;
 			*((DataValueLong*)vctVal[0]) = i + 100LL;
 			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+			lp->IncRefCount();
 			lp->InsertRecord(lr, (i % 2 == 0 ? -1 : i));
 		}
 		lp->WriteUnlock();
@@ -107,6 +109,7 @@ namespace storage {
 
 		delete dvKey;
 		delete dvVal;
+		StoragePool::SetWriteSuspend(false);
 		indexTree->Close(true);
 
 		std::filesystem::remove(std::filesystem::path(FILE_NAME));
@@ -133,6 +136,7 @@ namespace storage {
 			*((DataValueLong*)vctKey[0]) = i;
 			*((DataValueLong*)vctVal[0]) = i + 100LL;
 			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+			lp->IncRefCount();
 			lp->InsertRecord(lr, (i % 2 == 0 ? -1 : i));
 		}
 		lp->WriteUnlock();

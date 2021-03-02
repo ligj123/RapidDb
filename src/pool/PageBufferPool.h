@@ -10,9 +10,9 @@ namespace storage {
 	protected:
 		static unordered_map<uint64_t, IndexPage*> _mapCache;
 		static utils::SharedSpinMutex _rwLock;
-		static uint64_t _maxCacheSize;
+		static int64_t _maxCacheSize;
 		static thread _tIndexPageManager;
-		static uint64_t _prevDelNum;
+		static int64_t _prevDelNum;
 		static thread* _pageBufferThread;
 		static bool _bSuspend;
 	protected:

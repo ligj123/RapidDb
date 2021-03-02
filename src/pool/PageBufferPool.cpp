@@ -8,9 +8,9 @@
 namespace storage {
 	unordered_map<uint64_t, IndexPage*> PageBufferPool::_mapCache;
 	utils::SharedSpinMutex PageBufferPool::_rwLock;
-	uint64_t PageBufferPool::_maxCacheSize = Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
+	int64_t PageBufferPool::_maxCacheSize = Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 	thread PageBufferPool::_tIndexPageManager;
-	uint64_t PageBufferPool::_prevDelNum = 100;
+	int64_t PageBufferPool::_prevDelNum = 100;
 	thread* PageBufferPool::_pageBufferThread = PageBufferPool::CreateThread();
 	bool PageBufferPool::_bSuspend = false;
 

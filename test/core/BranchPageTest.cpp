@@ -152,6 +152,7 @@ namespace storage {
 			lr->ReleaseRecord();
 		}
 
+		bp->IncRefCount();
 		bp->SaveRecord();
 		for (int i = ROW_COUNT - 1; i >= 0; i--) {
 			if (i % 2 == 1) {

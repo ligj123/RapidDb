@@ -1,4 +1,3 @@
-
 #include <boost/test/unit_test.hpp>
 #include <string>
 #include "../../src/utils/CharsetConvert.h"
