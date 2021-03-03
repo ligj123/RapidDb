@@ -69,13 +69,10 @@ namespace storage {
 		{
 			lock_guard< utils::SpinMutex> lock(_spinMutex);
 			if (_mapWrite.find(page->HashCode()) != _mapWrite.end()) {
-				page->DecRefCount();
 				return;
 			}
 
-			if (dynamic_cast<HeadPage*>(page) != nullptr) {
-				page->GetIndexTree()->IncTask();
-			}
+			page->IncRefCount();
 			page->UpdateWriteTime();
 			_mapWrite.insert(pair<uint64_t, CachePage*>(page->HashCode(), page));
 			_queueWrite.push(page);

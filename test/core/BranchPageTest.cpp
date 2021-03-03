@@ -7,6 +7,7 @@
 #include "../../src/core/IndexTree.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/core/BranchPage.h"
+#include "../../src/pool/PageBufferPool.h"
 
 namespace storage {
 	BOOST_AUTO_TEST_SUITE(CoreTest)
@@ -71,7 +72,9 @@ namespace storage {
 		rr->ReleaseRecord();
 		mid->ReleaseRecord();
 
+		bp->DecRefCount();
 		indexTree->Close(true);
+		PageBufferPool::ClearPool();
 		delete dvKey;
 		delete dvVal;
 
@@ -120,7 +123,9 @@ namespace storage {
 			rr->ReleaseRecord();
 		}
 
+		bp->DecRefCount();
 		indexTree->Close(true);
+		PageBufferPool::ClearPool();
 		delete dvKey;
 		delete dvVal;
 
@@ -152,7 +157,6 @@ namespace storage {
 			lr->ReleaseRecord();
 		}
 
-		bp->IncRefCount();
 		bp->SaveRecord();
 		for (int i = ROW_COUNT - 1; i >= 0; i--) {
 			if (i % 2 == 1) {
@@ -170,7 +174,9 @@ namespace storage {
 			BOOST_TEST((i % 2 != 1) == bp->RecordExist(key));
 		}
 
+		bp->DecRefCount();
 		indexTree->Close(true);
+		PageBufferPool::ClearPool();
 		delete dvKey;
 		delete dvVal;
 
@@ -216,6 +222,7 @@ namespace storage {
 
 		bp->DecRefCount();
 		indexTree->Close(true);
+		PageBufferPool::ClearPool();
 		delete dvKey;
 		delete dvVal;
 

@@ -30,7 +30,6 @@ namespace storage {
 			memcpy(page->GetBysPage() + 4, pStrTest, size);
 			memcpy(page->GetBysPage() + Configure::GetCachePageSize() - size, pStrTest, size);
 			page->SetDirty(true);
-			page->IncRefCount();
 			StoragePool::WriteCachePage(page);
 			vctPage.push_back(page);
 		}

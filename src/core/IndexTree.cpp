@@ -67,23 +67,25 @@ namespace storage {
 
 	IndexTree::~IndexTree() {
 		unique_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
-		if (_headPage->IsDirty()) {
-			_headPage->WritePage();
-		}
+		if (!_bClosed) {
+			if (_headPage->IsDirty()) {
+				_headPage->WritePage();
+			}
 
-		while (_queueMutex.size() > 0) {
-			delete _queueMutex.front();
-			_queueMutex.pop();
-		}
+			while (_queueMutex.size() > 0) {
+				delete _queueMutex.front();
+				_queueMutex.pop();
+			}
 
-		for (auto iter = _mapMutex.begin(); iter != _mapMutex.end(); iter++) {
-			delete iter->second;
-		}
+			for (auto iter = _mapMutex.begin(); iter != _mapMutex.end(); iter++) {
+				delete iter->second;
+			}
 
-		if (_ovfFile != nullptr) delete _ovfFile;
-		while (_fileQueue.size() > 0) {
-			delete _fileQueue.front();
-			_fileQueue.pop();
+			if (_ovfFile != nullptr) delete _ovfFile;
+			while (_fileQueue.size() > 0) {
+				delete _fileQueue.front();
+				_fileQueue.pop();
+			}
 		}
 
 		delete _headPage;
@@ -168,7 +170,6 @@ namespace storage {
 			page->PageDivide();
 		}
 		page->WriteUnlock();
-		page->DecRefCount();
 	}
 
 	IndexPage* IndexTree::GetPage(uint64_t pageId, bool bLeafPage) {

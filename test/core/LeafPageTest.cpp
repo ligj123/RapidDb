@@ -44,7 +44,6 @@ namespace storage {
 			*((DataValueLong*)vctKey[0]) = i;
 			*((DataValueLong*)vctVal[0]) = i + 100LL;
 			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
-			lp->IncRefCount();
 			lp->InsertRecord(lr, (i % 2 == 0 ? -1 : i));
 		}
 		lp->WriteUnlock();
@@ -110,8 +109,9 @@ namespace storage {
 		delete dvKey;
 		delete dvVal;
 		StoragePool::SetWriteSuspend(false);
+		lp->DecRefCount();
 		indexTree->Close(true);
-
+		PageBufferPool::ClearPool();
 		std::filesystem::remove(std::filesystem::path(FILE_NAME));
 	}
 
@@ -136,7 +136,6 @@ namespace storage {
 			*((DataValueLong*)vctKey[0]) = i;
 			*((DataValueLong*)vctVal[0]) = i + 100LL;
 			LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
-			lp->IncRefCount();
 			lp->InsertRecord(lr, (i % 2 == 0 ? -1 : i));
 		}
 		lp->WriteUnlock();
@@ -153,7 +152,9 @@ namespace storage {
 			BOOST_TEST(pos == i);
 		}
 
+		lp->DecRefCount();
 		indexTree->Close(true);
+		PageBufferPool::ClearPool();
 		delete dvKey;
 		delete dvVal;
 		
@@ -167,7 +168,7 @@ namespace storage {
 		const int ROW_COUNT = LeafPage::MAX_DATA_LENGTH;
 
 		PageDividePool::SetThreadStatus(true);
-		//StoragePool::SetWriteSuspend(true);
+		StoragePool::SetWriteSuspend(true);
 
 		DataValueLong* dvKey = new DataValueLong(100, true);
 		DataValueLong* dvVal = new DataValueLong(200, false);
@@ -185,7 +186,6 @@ namespace storage {
 			*((DataValueLong*)vctKey[0]) = i;
 			*((DataValueLong*)vctVal[0]) = i + 100LL;
 			LeafRecord* rr = new LeafRecord(indexTree, vctKey, vctVal, hp->GetAndIncRecordStamp());
-			lp->IncRefCount();
 			lp->InsertRecord(rr);
 		}
 
@@ -195,7 +195,7 @@ namespace storage {
 		LeafPage* lpNext = nullptr;
 		VectorLeafRecord vlr;
 		int count = ROW_COUNT * 9;
-		
+
 		while (lp != nullptr) {
 			//LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" << lp->GetRecordNum()
 			//	<< "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" << lp->GetNextPageId();
@@ -212,6 +212,7 @@ namespace storage {
 			}
 
 			uint64_t lNext = lp->GetNextPageId();
+			lp->DecRefCount();
 			if (lNext == HeadPage::NO_NEXT_PAGE_POINTER) {
 				break;
 			}
@@ -220,54 +221,53 @@ namespace storage {
 			int rn = lpNext->GetRecordNum();
 			BOOST_TEST(rn > 0);
 
-			lp->DecRefCount();
 			lp = lpNext;
 		}
 
 		BOOST_TEST(ROW_COUNT * 10 == count);
 
-		//lp = (LeafPage*)indexTree->GetPage(0, true);
+		lp = (LeafPage*)indexTree->GetPage(0, true);
 
-		//for (int i = 0; i < ROW_COUNT * 9; i++) {
-		//	*((DataValueLong*)vctKey[0]) = i;
-		//	*((DataValueLong*)vctVal[0]) = i + 100LL;
-		//	LeafRecord* rr = new LeafRecord(indexTree, vctKey, vctVal, hp->GetAndIncRecordStamp());
-		//	lp->InsertRecord(rr);
-		//}
+		for (int i = 0; i < ROW_COUNT * 9; i++) {
+			*((DataValueLong*)vctKey[0]) = i;
+			*((DataValueLong*)vctVal[0]) = i + 100LL;
+			LeafRecord* rr = new LeafRecord(indexTree, vctKey, vctVal, hp->GetAndIncRecordStamp());
+			lp->InsertRecord(rr);
+		}
 
-		//b = lp->PageDivide();
-		//BOOST_TEST(true == b);
+		b = lp->PageDivide();
+		BOOST_TEST(true == b);
 
-		//count = 0;
-		//while (lp != nullptr) {
-		//	LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" << lp->GetRecordNum()
-		//		<< "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" << lp->GetNextPageId();
-		//	lp->GetAllRecords(vlr);
+		count = 0;
+		while (lp != nullptr) {
+			//LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" << lp->GetRecordNum()
+			//	<< "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" << lp->GetNextPageId();
+			lp->GetAllRecords(vlr);
 
-		//	for (LeafRecord* lr : vlr) {
-		//		VectorDataValue vKey, vVal;
-		//		lr->GetListKey(vKey);
-		//		lr->GetListValue(vVal);
+			for (LeafRecord* lr : vlr) {
+				VectorDataValue vKey, vVal;
+				lr->GetListKey(vKey);
+				lr->GetListValue(vVal);
 
-		//		int64_t val = (int64_t)(*(DataValueLong*)vKey[0]);
-		//		BOOST_TEST(count == (int64_t)(*(DataValueLong*)vKey[0]));
-		//		BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong*)vVal[0]));
-		//		count++;
-		//	}
+				int64_t val = (int64_t)(*(DataValueLong*)vKey[0]);
+				BOOST_TEST(count == (int64_t)(*(DataValueLong*)vKey[0]));
+				BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong*)vVal[0]));
+				count++;
+			}
 
-		//	uint64_t lNext = lp->GetNextPageId();
-		//	if (lNext == HeadPage::NO_NEXT_PAGE_POINTER) {
-		//		break;
-		//	}
+			uint64_t lNext = lp->GetNextPageId();
+			lp->DecRefCount();
+			if (lNext == HeadPage::NO_NEXT_PAGE_POINTER) {
+				break;
+			}
 
-		//	lpNext = (LeafPage*)indexTree->GetPage(lNext, true);
-		//	BOOST_TEST(lpNext->GetRecordNum() > 0);
-		//	
-		//	lp->DecRefCount();
-		//	lp = lpNext;
-		//}
+			lpNext = (LeafPage*)indexTree->GetPage(lNext, true);
+			BOOST_TEST(lpNext->GetRecordNum() > 0);
+			
+			lp = lpNext;
+		}
 
-		//BOOST_TEST(ROW_COUNT * 10 == count);
+		BOOST_TEST(ROW_COUNT * 10 == count);
 
 		PageDividePool::SetThreadStatus(false);
 		StoragePool::SetWriteSuspend(false);
