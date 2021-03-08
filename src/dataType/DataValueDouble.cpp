@@ -108,7 +108,7 @@ namespace storage {
 				*buf = 0;
 				return 1;
 			}
-			else if (valType_ == ValueType::BYTES_VALUE)
+			else if (valType_ == ValueType:: )
 			{
 				*buf = 1;
 				buf++;

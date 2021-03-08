@@ -11,6 +11,7 @@
 #include "LeafRecord.h"
 #include <unordered_map>
 #include "RawKey.h"
+#include "../utils/ErrorMsg.h"
 
 namespace storage {
 	using namespace std;
@@ -18,7 +19,7 @@ namespace storage {
   {
 	public:
 		IndexTree(const string& tableName, const string& fileName, VectorDataValue& vctKey, VectorDataValue& vctVal);
-		void InsertRecord(LeafRecord* rr);
+		utils::ErrorMsg* InsertRecord(LeafRecord* rr);
 		void UpdateRootPage(IndexPage* root);
 		LeafRecord* GetRecord(const RawKey& key);
 		void GetRecords(const RawKey& key, VectorLeafRecord& vct);
@@ -61,7 +62,8 @@ namespace storage {
 		inline int64_t GetTaskWaiting() { return _taskWaiting.load(); }
 	protected:
 		~IndexTree();
-		LeafPage* SearchRecursively(bool isEdit, const RawKey& key);
+		LeafPage* SearchRecursively(const RawKey& key);
+		LeafPage* SearchRecursively(const LeafRecord& lr);
 	protected:
 		static std::atomic<uint32_t> _atomicFileId;
 		std::string _tableName;

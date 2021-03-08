@@ -67,25 +67,23 @@ namespace storage {
 
 	IndexTree::~IndexTree() {
 		unique_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
-		if (!_bClosed) {
-			if (_headPage->IsDirty()) {
-				_headPage->WritePage();
-			}
+		if (_headPage->IsDirty()) {
+			_headPage->WritePage();
+		}
 
-			while (_queueMutex.size() > 0) {
-				delete _queueMutex.front();
-				_queueMutex.pop();
-			}
+		while (_queueMutex.size() > 0) {
+			delete _queueMutex.front();
+			_queueMutex.pop();
+		}
 
-			for (auto iter = _mapMutex.begin(); iter != _mapMutex.end(); iter++) {
-				delete iter->second;
-			}
+		for (auto iter = _mapMutex.begin(); iter != _mapMutex.end(); iter++) {
+			delete iter->second;
+		}
 
-			if (_ovfFile != nullptr) delete _ovfFile;
-			while (_fileQueue.size() > 0) {
-				delete _fileQueue.front();
-				_fileQueue.pop();
-			}
+		if (_ovfFile != nullptr) delete _ovfFile;
+		while (_fileQueue.size() > 0) {
+			delete _fileQueue.front();
+			_fileQueue.pop();
 		}
 
 		delete _headPage;
@@ -159,17 +157,17 @@ namespace storage {
 		}
 	}
 
-	void IndexTree::InsertRecord(LeafRecord* rr) {
-		RawKey* key = rr->GetKey();
-		LeafPage* page = SearchRecursively(true, *key);
-		delete key;
-
-		page->InsertRecord(rr);
+	utils::ErrorMsg* IndexTree::InsertRecord(LeafRecord* rr) {
+		LeafPage* page = SearchRecursively(*rr);
+		utils::ErrorMsg* err = page->InsertRecord(rr);
 
 		if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 5U) {
 			page->PageDivide();
 		}
+
 		page->WriteUnlock();
+		page->DecRefCount();
+		return err;
 	}
 
 	IndexPage* IndexTree::GetPage(uint64_t pageId, bool bLeafPage) {
@@ -229,7 +227,7 @@ namespace storage {
 	}
 
 	LeafRecord* IndexTree::GetRecord(const RawKey& key) {
-		LeafPage* page = SearchRecursively(false, key);
+		LeafPage* page = SearchRecursively(key);
 		LeafRecord* rr = page->GetRecord(key);
 
 		page->ReadUnlock();
@@ -239,7 +237,7 @@ namespace storage {
 
 	void IndexTree::GetRecords(const RawKey& key, VectorLeafRecord& vct ) {
 		vct.reserve(256);
-		LeafPage* page = SearchRecursively(false, key);
+		LeafPage* page = SearchRecursively(key);
 		while (true) {
 			VectorLeafRecord vctLr;
 			page->GetRecords(key, vctLr);
@@ -281,7 +279,7 @@ namespace storage {
 			page->ReadLock();
 		}
 		else {
-			page = SearchRecursively(false, *keyStart);
+			page = SearchRecursively(*keyStart);
 			bool bFind;
 			pos = page->SearchKey(*keyStart, bFind);
 		}
@@ -376,13 +374,54 @@ namespace storage {
 		return page;
 	}
 
-	LeafPage* IndexTree::SearchRecursively(bool isEdit, const RawKey& key) {
+	LeafPage* IndexTree::SearchRecursively(const RawKey& key) {
+		IndexPage* page = nullptr;
+		while (true) {
+			{
+				std::shared_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
+				bool b = _rootPage->ReadTryLock();
+				
+				if (b) {
+					page = _rootPage;
+					page->IncRefCount();
+					
+					if (typeid(*page) == typeid(LeafPage)) return (LeafPage*)page;
+					else break;
+				}
+			}
+
+			this_thread::sleep_for(std::chrono::microseconds(1));
+		}
+
+		while (true) {
+			if (typeid(*page) == typeid(LeafPage)) {
+				return (LeafPage*)page;
+			}
+
+			BranchPage* bPage = (BranchPage*)page;
+			bool bFind;
+			uint32_t pos = bPage->SearchKey(key, bFind);
+			BranchRecord* br = bPage->GetRecordByPos(pos, true);
+			uint64_t pageId = ((BranchRecord*)br)->GetChildPageId();
+			br->ReleaseRecord();
+
+			IndexPage* childPage = (IndexPage*)GetPage(pageId, page->GetPageLevel() == 1);
+			assert(childPage != nullptr);
+
+			childPage->ReadLock();
+			page->ReadUnlock();
+			page->DecRefCount();
+			page = childPage;
+		}
+	}
+
+	LeafPage* IndexTree::SearchRecursively(const LeafRecord& lr) {
 		IndexPage* page = nullptr;
 		while (true) {
 			{
 				std::shared_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
 				bool b = false;
-				if (isEdit && _rootPage->GetPageLevel() == 0) {
+				if (typeid(*_rootPage) == typeid(LeafPage)) {
 					b = _rootPage->WriteTryLock();
 				}
 				else {
@@ -392,68 +431,31 @@ namespace storage {
 				if (b) {
 					page = _rootPage;
 					page->IncRefCount();
-					break;
+					if (typeid(*page) == typeid(LeafPage)) return (LeafPage*)page;
+					else break;
 				}
 			}
 
 			this_thread::sleep_for(std::chrono::microseconds(1));
 		}
 
-		bool bNonunique = (_headPage->ReadIndexType() == IndexType::NON_UNIQUE);
+		BranchRecord br(this, (RawRecord*)&lr, 0);
 		while (true) {
-			if (page->GetPageLevel() == 0) {
+			if (typeid(*page) == typeid(LeafPage)) {
 				return (LeafPage*)page;
 			}
-
-			uint64_t pageId = UINT64_MAX;
-			if (bNonunique) {
-				BranchPage* bPage = (BranchPage*)page;
-				bool bFind;
-				uint32_t pos = bPage->SearchKey(key, bFind);
-				BranchRecord* br = bPage->GetRecordByPos(pos);
-				if (isEdit) {
-					if (br->CompareKey(key) == 0 || pos == 0) {
-						pageId = br->GetChildPageId();
-					}
-					else {
-						BranchRecord* br2 = bPage->GetRecordByPos(pos + 1);
-						if (br2 != nullptr && br->CompareKey(*br2) == 0) {
-							pageId = bPage->GetRecordByPos(pos - 1)->GetChildPageId();
-						}
-						else {
-							pageId = br->GetChildPageId();
-						}
-						if (br2 != nullptr)	br2->ReleaseRecord();
-					}
-				}
-				else {
-					BranchRecord* br2 = bPage->GetRecordByPos(pos + 1);
-					if (br2 != nullptr && br->CompareKey(*br2) == 0) {
-						pageId = bPage->GetRecordByPos(pos - 1)->GetChildPageId();
-					}
-					else {
-						pageId = br->GetChildPageId();
-					}
-				}
-
-				br->ReleaseRecord();
-			}
-			else {
-				BranchPage* bPage = (BranchPage*)page;
-				bool bFind;
-				uint32_t pos = bPage->SearchKey(key, bFind);
-				BranchRecord* br = bPage->GetRecordByPos(pos);
-				pageId = ((BranchRecord*)br)->GetChildPageId();
-				br->ReleaseRecord();
-			}
+					
+			BranchPage* bPage = (BranchPage*)page;
+			bool bFind;
+			uint32_t pos = bPage->SearchRecord(br, bFind);
+			BranchRecord* br = bPage->GetRecordByPos(pos, true);
+			uint64_t pageId = ((BranchRecord*)br)->GetChildPageId();
+			br->ReleaseRecord();			
 
 			IndexPage* childPage = (IndexPage*)GetPage(pageId, page->GetPageLevel() == 1);
-			if (childPage == nullptr) {
-				page->ReadUnlock();
-				return nullptr;
-			}
+			assert(childPage != nullptr);
 
-			if (isEdit && typeid(childPage) == typeid(LeafPage)) {
+			if (typeid(*childPage) == typeid(LeafPage)) {
 				childPage->WriteLock();
 			}
 			else {

@@ -42,10 +42,11 @@ namespace storage {
     }
   }
 
-  bool BranchPage::SaveRecord() {
-    unique_lock<utils::ReentrantSharedSpinMutex> lock(_rwLock);
-
+  bool BranchPage::SaveRecords() {
     if (_totalDataLength > MAX_DATA_LENGTH) return false;
+
+    unique_lock<SpinMutex> lock(_pageLock, try_to_lock);
+    if (!lock.owns_lock()) return false;
 
     if (_bRecordUpdate) {
       Byte* tmp = _bysPage;
@@ -67,17 +68,17 @@ namespace storage {
     WriteLong(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
     WriteShort(TOTAL_DATA_LENGTH_OFFSET, _totalDataLength);
     WriteShort(NUM_RECORD_OFFSET, _recordNum);
-    StoragePool::WriteCachePage(this);
     _bRecordUpdate = false;
-    _bDirty = false;
+    _bDirty = true;
+
+    StoragePool::WriteCachePage(this);
     return true;
   }
 
   BranchRecord* BranchPage::DeleteRecord(uint16_t index) {
     assert(index >= 0 && index < _recordNum);
-    if (_vctRecord.size() == 0) {
-      LoadRecords();
-    }
+    if (_vctRecord.size() == 0) LoadRecords();
+
     BranchRecord* br = (BranchRecord*)_vctRecord[index];
     _vctRecord.erase(_vctRecord.begin() + index);
     _totalDataLength -= br->GetTotalLength();
@@ -269,9 +270,11 @@ namespace storage {
       key.GetBysVal(), key.GetLength());
   }
 
-  BranchRecord* BranchPage::GetRecordByPos(int32_t pos) {
-    if (pos < 0 || pos >= _recordNum) {
-      return nullptr;
+  BranchRecord* BranchPage::GetRecordByPos(int32_t pos, bool bAutoLast) {
+    assert(_recordNum > 0 && pos >= 0);
+    assert(bAutoLast || pos < _recordNum);
+    if (bAutoLast && pos >= _recordNum) {
+      pos = _recordNum - 1;
     }
 
     if (_vctRecord.size() == 0) {

@@ -47,7 +47,7 @@ namespace storage {
 			lp->InsertRecord(lr, (i % 2 == 0 ? -1 : i));
 		}
 		lp->WriteUnlock();
-		lp->SaveRecord();
+		lp->SaveRecords();
 
 		*((DataValueLong*)vctKey[0]) = 0;
 		*((DataValueLong*)vctVal[0]) = 100LL;
@@ -140,7 +140,7 @@ namespace storage {
 		}
 		lp->WriteUnlock();
 
-		lp->SaveRecord();
+		lp->SaveRecords();
 
 		lp->LoadRecords();
 		for (int i = 0; i < ROW_COUNT; i++) {

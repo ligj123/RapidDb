@@ -108,6 +108,7 @@ namespace storage {
 	protected:
 		Byte* _bysPage = nullptr;
 		utils::ReentrantSharedSpinMutex _rwLock;
+		utils::SpinMutex _pageLock;
 		uint64_t _dtPageLastWrite = 0;
 		uint64_t _dtPageLastAccess = 0;
 		uint64_t _pageId = 0;

@@ -19,7 +19,7 @@ namespace storage {
 			IndexPage(indexTree, pageId) {}
 		~BranchPage();
 
-		bool SaveRecord() override;
+		bool SaveRecords() override;
 		void ReadPage() override;
 
 		void CleanRecords();
@@ -33,7 +33,7 @@ namespace storage {
 
 		int32_t SearchRecord(const BranchRecord& rr, bool& bFind) const;
 		int32_t SearchKey(const RawKey& key, bool& bFind) const;
-		BranchRecord* GetRecordByPos(int32_t pos);
+		BranchRecord* GetRecordByPos(int32_t pos, bool bAutoLast);
 
 		bool IsPageFull() const { return _totalDataLength >= MAX_DATA_LENGTH;	}
 		uint16_t GetMaxDataLength() const override {	return MAX_DATA_LENGTH;	}

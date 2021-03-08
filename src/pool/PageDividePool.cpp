@@ -6,8 +6,7 @@ namespace storage {
     Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
   const uint32_t PageDividePool::BUFFER_FLUSH_INTEVAL_MS = 1 * 1000;
   const int PageDividePool::SLEEP_INTEVAL_MS = 100;
-  const float PageDividePool::PAGE_DIVIDE_LIMIT = 1.5f;
-
+  
   unordered_map<uint64_t, IndexPage*> PageDividePool::_mapPage;
   queue<IndexPage*> PageDividePool::_queuePage;
 	thread* PageDividePool::_treeDivideThread = PageDividePool::CreateThread();
@@ -32,7 +31,17 @@ namespace storage {
 				_spinMutex.lock();
 				IndexPage* page = _queuePage.front();
 				_queuePage.pop();
-				if (CachePage::GetMsFromEpoch() - page->GetPageLastUpdateTime() < BUFFER_FLUSH_INTEVAL_MS) {
+				
+				if (page->GetRecordRefCount() > 0 || (!page->IsOverTime(BUFFER_FLUSH_INTEVAL_MS) && !page->IsOverlength())) {
+					_queuePage.push(page);
+					_spinMutex.unlock();
+					continue;
+				}
+
+				bool b = page->WriteTryLock();
+				if (!b || page->GetRecordRefCount() > 0) {
+					if (b) page->WriteUnlock();
+
 					_queuePage.push(page);
 					_spinMutex.unlock();
 					continue;
@@ -41,12 +50,14 @@ namespace storage {
 				_mapPage.erase(page->GetPageId());
 				_spinMutex.unlock();
 				bool bPassed = false;
-				if (page->GetTotalDataLength() >= page->GetMaxDataLength()) {
+				if (page->GetTotalDataLength() > page->GetMaxDataLength()) {
 					bPassed = page->PageDivide();
 				}
 				else {
-					bPassed = page->SaveRecord();
+					bPassed = page->SaveRecords();
 				}
+
+				page->WriteUnlock();
 				if (!bPassed) {
 					_spinMutex.lock();
 					_queuePage.push(page);

@@ -54,9 +54,11 @@ namespace storage {
 		_vctRecord.clear();
 	}
 
-	bool LeafPage::SaveRecord() {
-		unique_lock<utils::ReentrantSharedSpinMutex> lock(_rwLock);
+	bool LeafPage::SaveRecords() {
 		if (_totalDataLength > MAX_DATA_LENGTH) return false;
+
+		unique_lock<SpinMutex> lock(_pageLock, try_to_lock);
+		if (!lock.owns_lock()) return false;
 
 		if (_bRecordUpdate) {
 			Byte* tmp = _bysPage;
@@ -86,12 +88,14 @@ namespace storage {
 		WriteLong(PREV_PAGE_POINTER_OFFSET, _prevPageId);
 		WriteLong(NEXT_PAGE_POINTER_OFFSET, _nextPageId);
 		WriteShort(NUM_RECORD_OFFSET, _recordNum);
-		StoragePool::WriteCachePage(this);
 		_bRecordUpdate = false;
+		_bDirty = true;
+
+		StoragePool::WriteCachePage(this);
 		return true;
 	}
 
-	void LeafPage::InsertRecord(LeafRecord* lr, int32_t pos) {
+	utils::ErrorMsg* LeafPage::InsertRecord(LeafRecord* lr, int32_t pos) {
 		if (_recordNum > 0 && _vctRecord.size() == 0) {
 			LoadRecords();
 		}
@@ -109,7 +113,7 @@ namespace storage {
 			}
 
 			if (bFind) {
-				throw utils::ErrorMsg(CORE_REPEATED_RECORD, {});
+				return new utils::ErrorMsg(CORE_REPEATED_RECORD, {});
 			}
 		}
 		else if (pos > _recordNum) {
@@ -124,6 +128,8 @@ namespace storage {
 		_bRecordUpdate = true;
 		_indexTree->GetHeadPage()->GetAndIncTotalRecordCount();
 		PageDividePool::AddCachePage(this);
+
+		return nullptr;
 	}
 
 	bool LeafPage::AddRecord(LeafRecord* lr) {

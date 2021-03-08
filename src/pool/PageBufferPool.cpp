@@ -102,7 +102,7 @@ namespace storage {
 					continue;
 				}
 
-				if (queue.size() < numDel) {
+				if ((int64_t)queue.size() < numDel) {
 					queue.push(page);
 				}
 				else if (page->GetAccessTime() < queue.top()->GetAccessTime()) {

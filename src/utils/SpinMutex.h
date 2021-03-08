@@ -39,8 +39,8 @@ namespace utils {
     inline void unlock() noexcept
     {
       assert(_owner == get_thread_hash());
-      _flag.store(false, std::memory_order_release);
       _owner = 0;
+      _flag.store(false, std::memory_order_release);
     }
 
     inline bool is_locked() const
@@ -98,8 +98,8 @@ namespace utils {
     void unlock() noexcept
     {
       assert(_owner == get_thread_hash());
-      _writeFlag.store(false, std::memory_order_release);
       _owner = 0;
+      _writeFlag.store(false, std::memory_order_release);
     }
 
     inline void lock_shared() noexcept

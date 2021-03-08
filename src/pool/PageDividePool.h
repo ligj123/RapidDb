@@ -15,8 +15,7 @@ namespace storage {
 		static const uint64_t MAX_QUEUE_SIZE;
 		static const uint32_t BUFFER_FLUSH_INTEVAL_MS;
 		static const int SLEEP_INTEVAL_MS;
-		static const float PAGE_DIVIDE_LIMIT;
-
+		
 		static unordered_map<uint64_t, IndexPage*> _mapPage;
 		static queue<IndexPage*> _queuePage;
 		static thread* _treeDivideThread;

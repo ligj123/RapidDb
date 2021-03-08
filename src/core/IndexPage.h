@@ -20,9 +20,13 @@ namespace storage {
 		~IndexPage();
 
 		bool PageDivide();
+		inline bool IsOverlength() { return _totalDataLength > Configure::GetCachePageSize() * 3; }
 		inline void SetParentPageID(uint64_t parentPageId) { _parentPageId = parentPageId; }
 		inline uint64_t GetParentPageId() { return _parentPageId; }
 		inline Byte GetPageLevel() { return _bysPage[PAGE_LEVEL_OFFSET]; }
+		inline bool IsOverTime(uint64_t ms) {
+			return GetMsFromEpoch() - GetPageLastUpdateTime() > ms;
+		}
 		inline uint64_t GetPageLastUpdateTime() { return _dtPageLastUpdate; }
 		inline void SetPageLastUpdateTime() { _dtPageLastUpdate = GetMsFromEpoch(); }
 		inline uint32_t GetTotalDataLength() { return _totalDataLength; }
@@ -37,7 +41,7 @@ namespace storage {
 
 		virtual void Init();
 		virtual uint16_t GetMaxDataLength() const = 0;
-		virtual bool SaveRecord() = 0;
+		virtual bool SaveRecords() = 0;
 	protected:
 		vector<RawRecord*> _vctRecord;
 		uint64_t _parentPageId = 0;

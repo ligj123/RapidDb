@@ -1,6 +1,7 @@
 #pragma once
 #include "IndexPage.h"
 #include "RawKey.h"
+#include "../utils/ErrorMsg.h"
 
 namespace storage {
 	class LeafRecord;
@@ -27,10 +28,11 @@ namespace storage {
 		
 		void LoadRecords();
 		void CleanRecord();
-		bool SaveRecord() override;
+		bool SaveRecords() override;
 		/**Insert a leaf record to this page, if pos < 0, use SearchRecord to find the position,
-		if pos>=0, insert the position or add to edn*/
-		void InsertRecord(LeafRecord* lr, int32_t pos = -1);
+		if pos>=0, insert the position or add to end;
+		If passed to insert record to this page, return nullptr, else return error massage.*/
+		utils::ErrorMsg* InsertRecord(LeafRecord* lr, int32_t pos = -1);
 		bool AddRecord(LeafRecord* record);
 		void DeleteRecord(int32_t pos);
 		void UpdateRecord(int32_t pos);

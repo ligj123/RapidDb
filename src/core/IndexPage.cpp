@@ -38,22 +38,6 @@ namespace storage {
 	}
 
 	bool IndexPage::PageDivide() {
-		if (_recordRefCount > 0) {
-			return false;
-		}
-		if (_indexTree->IsClosed() || _totalDataLength > GetMaxDataLength() * PageDividePool::PAGE_DIVIDE_LIMIT) {
-			WriteLock();
-		}
-		else {
-			if (!WriteTryLock())
-				return false;
-		}
-
-		if (_recordRefCount > 0) {
-			WriteUnlock();
-			return false;
-		}
-				
 		BranchRecord* brParentOld = nullptr;
 		BranchPage* parentPage = nullptr;
 		int posInParent = 0;
@@ -66,14 +50,14 @@ namespace storage {
 		else {
 			parentPage = (BranchPage*)_indexTree->GetPage(_parentPageId, false);
 			if (!parentPage->WriteTryLock()) {
-				WriteUnlock();
+				parentPage->DecRefCount();
 				return false;
 			}
 
 			BranchRecord br(_indexTree, _vctRecord[_recordNum - 1], GetPageId());
 			bool bFind;
-			int posInParent = parentPage->SearchRecord(br, bFind);
-			if (!bFind) posInParent = parentPage->GetRecordNum();
+			posInParent = parentPage->SearchRecord(br, bFind);
+			if (!bFind) posInParent = parentPage->GetRecordNum() - 1;
 			brParentOld = parentPage->DeleteRecord(posInParent);
 		}
 		
@@ -198,7 +182,7 @@ namespace storage {
 				parentPage->InsertRecord(rec, posInParent + i);
 
 				indexPage->_bRecordUpdate = true;
-				indexPage->SaveRecord();
+				indexPage->SaveRecords();
 				indexPage->WriteUnlock();
 				indexPage->DecRefCount();
 			}
@@ -208,19 +192,17 @@ namespace storage {
 			}
 			
 			_bRecordUpdate = true;
-			SaveRecord();
+			SaveRecords();
 			PageDividePool::AddCachePage(parentPage);
 			StoragePool::WriteCachePage(_indexTree->GetHeadPage());
 
 			parentPage->WriteUnlock();
 			parentPage->DecRefCount();
-			WriteUnlock();
 			return true;
 		}
 		catch (...) {
 			parentPage->WriteUnlock();
 			parentPage->DecRefCount();
-			WriteUnlock();
 			return false;
 		}
 	}

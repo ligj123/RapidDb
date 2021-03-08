@@ -40,13 +40,13 @@ namespace storage {
 			lr->ReleaseRecord();
 		}
 
-		bp->SaveRecord();
+		bp->SaveRecords();
 
 		*((DataValueLong*)vctKey[0]) = 0;
 		*((DataValueLong*)vctVal[0]) = 100;
 		LeafRecord* lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 		BranchRecord* rr = new BranchRecord(indexTree, lr, 100);
-		BranchRecord* first = bp->GetRecordByPos(0);
+		BranchRecord* first = bp->GetRecordByPos(0, true);
 		BOOST_TEST(rr->CompareTo(*first) == 0);
 		lr->ReleaseRecord();
 		rr->ReleaseRecord();
@@ -56,7 +56,7 @@ namespace storage {
 		*((DataValueLong*)vctVal[0]) = ROW_COUNT + 99;
 		lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 		rr = new BranchRecord(indexTree, lr, ROW_COUNT + 99);
-		BranchRecord* last = bp->GetRecordByPos(ROW_COUNT - 1);
+		BranchRecord* last = bp->GetRecordByPos(ROW_COUNT - 1, false);
 		BOOST_TEST(rr->CompareTo(*last) == 0);
 		lr->ReleaseRecord();
 		rr->ReleaseRecord();
@@ -66,7 +66,7 @@ namespace storage {
 		*((DataValueLong*)vctVal[0]) = ROW_COUNT / 2 + 100;
 		lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
 		rr = new BranchRecord(indexTree, lr, ROW_COUNT / 2 + 100);
-		BranchRecord* mid = bp->GetRecordByPos(ROW_COUNT / 2);
+		BranchRecord* mid = bp->GetRecordByPos(ROW_COUNT / 2, false);
 		BOOST_TEST(rr->CompareTo(*mid) == 0);
 		lr->ReleaseRecord();
 		rr->ReleaseRecord();
@@ -106,7 +106,7 @@ namespace storage {
 			lr->ReleaseRecord();
 		}
 
-		bp->SaveRecord();
+		bp->SaveRecords();
 
 		for (int i = 0; i < ROW_COUNT; i++) {
 			*((DataValueLong*)vctKey[0]) = i;
@@ -115,7 +115,7 @@ namespace storage {
 			BranchRecord* rr = new BranchRecord(indexTree, lr, i);
 			bool bFind;
 			uint32_t index = bp->SearchRecord(*rr, bFind);
-			BranchRecord* br = bp->GetRecordByPos(index);
+			BranchRecord* br = bp->GetRecordByPos(index, false);
 			BOOST_TEST(br->CompareTo(*rr) == 0);
 
 			lr->ReleaseRecord();
@@ -157,14 +157,14 @@ namespace storage {
 			lr->ReleaseRecord();
 		}
 
-		bp->SaveRecord();
+		bp->SaveRecords();
 		for (int i = ROW_COUNT - 1; i >= 0; i--) {
 			if (i % 2 == 1) {
 				bp->DeleteRecord(i);
 			}
 		}
 
-		bp->SaveRecord();
+		bp->SaveRecords();
 		BOOST_TEST(ROW_COUNT / 2 == bp->GetRecordSize());
 
 		for (int i = 0; i < ROW_COUNT; i++) {

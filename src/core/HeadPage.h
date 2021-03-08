@@ -41,8 +41,8 @@ namespace storage {
 		IndexType _indexType = IndexType::PRIMARY;
 		uint64_t _totalPageCount = 0;
 		uint64_t _rootPageId = 0;
-		uint64_t _beginLeafPageId = NO_PREV_PAGE_POINTER;
-		uint64_t _endLeafPageId = NO_NEXT_PAGE_POINTER;
+		uint64_t _beginLeafPageId = 0;
+		uint64_t _endLeafPageId = 0;
 		uint64_t _totalRecordCount = 0;
 		/**In this table, any changes for a record will need a new record version stamp,
 		it start from 0, and will add one every time. This stamp will be used for log transport,
