@@ -2,26 +2,31 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <mutex>
+#include <regex>
 
 namespace utils {
 
-  unordered_map<int, string> ErrorMsg::_mapErrorMsg;
-  once_flag ErrorMsg::_flag;
-
-  void ErrorMsg::LoadErrorMsg()
+  unordered_map<int, string> ErrorMsg::_mapErrorMsg = ErrorMsg::LoadErrorMsg();
+  
+  unordered_map<int, string> ErrorMsg::LoadErrorMsg()
   {
     ifstream ifs("ErrorMsg.txt");
     string line;
+    std::regex rgx("^\\d+(\t| {2,})");
+    unordered_map<int, string> map;
+
     while (getline(ifs, line))
     {
       if (line.size() < 4) continue;
-      size_t pos = line.find('\t');
-      if (pos == string::npos) continue;
+      std::smatch sm;
+      if (!std::regex_search(line, sm, rgx))
+        continue;
 
-      int id = std::atoi(line.c_str());
-      string msg = line.substr(pos + 1);
-      _mapErrorMsg.insert({ id, msg });
+      int id = std::atoi(sm[0].str().c_str());
+      string msg = sm.suffix().str();
+      map.insert({ id, msg });
     }
+
+    return map;
   }
 }

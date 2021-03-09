@@ -13,12 +13,11 @@ namespace utils {
   public:
     ErrorMsg(int id, vector<string> paras = {})
     {
-      std::call_once(_flag, LoadErrorMsg);
       _errId = id;
       auto iter = _mapErrorMsg.find(id);
       if (iter == _mapErrorMsg.end())
       {
-        _errMsg = "Failed to find error id " + to_string(id);
+        _errMsg = "Failed to find the error id, id=" + to_string(id);
       }
       else
       {
@@ -37,10 +36,9 @@ namespace utils {
     }
     int getErrId() { return _errId; }
   protected:
-    static void LoadErrorMsg();
+    static unordered_map<int, string> LoadErrorMsg();
   protected:
     static unordered_map<int, string> _mapErrorMsg;
-    static once_flag _flag;
     int _errId;
     string _errMsg;
   };
