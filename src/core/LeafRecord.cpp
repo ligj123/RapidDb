@@ -351,7 +351,7 @@ namespace storage {
     return true;
   }
 
-  void LeafRecord::GetListOverflow(vector<IDataValue*>& vctVal) const {
+  void LeafRecord::GetListOverflow(VectorDataValue& vctVal) const {
     uint16_t indexOvfStart = GetIndexOvfStart();
     if (indexOvfStart >= vctVal.size()) return;
 

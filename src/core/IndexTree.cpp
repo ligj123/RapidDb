@@ -468,4 +468,68 @@ namespace storage {
       page = childPage;
     }
   }
+
+  bool IndexTree::ReadRecord(const RawKey& key, uint64_t verStamp, VectorDataValue& vctVal, bool bOvf) {
+    LeafPage* page = SearchRecursively(key);
+    LeafRecord* rr = page->GetRecord(key);
+    bool b = false;
+    if (rr != nullptr) {
+      b = rr->GetListValue(vctVal, verStamp);
+      if (bOvf) {
+        rr->GetListOverflow(vctVal);
+      }
+      rr->ReleaseRecord();
+    }
+
+    page->ReadUnlock();
+    page->DecRefCount();
+    return b;
+  }
+
+  bool IndexTree::ReadRecordOverflow(const RawKey& key, VectorDataValue& vctVal) {
+    LeafPage* page = SearchRecursively(key);
+    LeafRecord* rr = page->GetRecord(key);
+    bool b = false;
+    if (rr != nullptr) {
+      rr->GetListOverflow(vctVal);
+      b = true;
+    }
+    page->ReadUnlock();
+    page->DecRefCount();
+    return true;
+  }
+
+  //bool IndexTree::ReadPriKeys(const RawKey& key, VectorRawKey& vctKey) {
+  //  vctKey.reserve(256);
+  //  LeafPage* page = SearchRecursively(key);
+  //  while (true) {
+  //    VectorLeafRecord vctLr;
+  //    page->GetRecords(key, vctLr);
+  //    vct.insert(vct.end(), vctLr.begin(), vctLr.end());
+
+  //    LeafRecord* lastLr = page->GetLastRecord();
+  //    if (lastLr != nullptr && lastLr->CompareKey(key) > 0) {
+  //      lastLr->ReleaseRecord();
+  //      break;
+  //    }
+
+  //    if (lastLr != nullptr) {
+  //      lastLr->ReleaseRecord();
+  //    }
+
+  //    uint64_t nextId = page->GetNextPageId();
+  //    if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)
+  //      break;
+
+  //    LeafPage* nextPage = (LeafPage*)GetPage(nextId, true);
+  //    nextPage->ReadLock();
+  //    page->ReadUnlock();
+  //    page->DecRefCount();
+  //    page = nextPage;
+  //  }
+
+  //  page->ReadUnlock();
+  //  page->DecRefCount();
+  //}
+
 }

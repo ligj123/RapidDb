@@ -70,9 +70,7 @@ namespace storage {
         uint32_t* arrOvfLen;
       };
     };
-
   };
-
 
   class LeafPage;
   class LeafRecord : public RawRecord
@@ -108,7 +106,7 @@ namespace storage {
     void GetListKey(VectorDataValue& vct) const;
     /**If passed to get values, return true, or false*/
     bool GetListValue(VectorDataValue& vct, uint64_t verStamp = UINT64_MAX) const;
-    void GetListOverflow(vector<IDataValue*>& vctVal) const;
+    void GetListOverflow(VectorDataValue& vctVal) const;
 
     int CompareTo(const LeafRecord& lr) const;
     int CompareKey(const RawKey& key) const;
