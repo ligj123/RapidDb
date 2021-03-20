@@ -3,6 +3,7 @@
 #include "LeafPage.h"
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
+#include "../dataType/DataValueFactory.h"
 
 namespace storage {
   LeafRecord::LeafRecord(LeafPage* parentPage, Byte* bys) :
@@ -282,7 +283,7 @@ namespace storage {
     }
   }
 
-  bool LeafRecord::GetListValue(VectorDataValue& vctVal, uint64_t verStamp) const {
+  int LeafRecord::GetListValue(VectorDataValue& vctVal, uint64_t verStamp) const {
     _indexTree->CloneValues(vctVal);
     bool bPri = (_indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY);
     if (!bPri) {
@@ -300,7 +301,7 @@ namespace storage {
         pos += vctVal[i]->ReadData(_bysVal + pos, len);
       }
 
-      return true;
+      return 0;
     }
 
     PriValStruct* priStru = GetPriValStruct();
@@ -312,17 +313,22 @@ namespace storage {
     }
 
     if (ver >= priStru->verCount) {
-      return false;
+      return -1;
     }
 
+    int hr = 0;
     if (ver == 0 || !priStru->bOvf) {
       int indexOvfStart = (int)vctVal.size();
       int pos = 0;
       int len = 0;
       if (ver == 0) {
         indexOvfStart = GetIndexOvfStart();
-        if (indexOvfStart > vctVal.size()) indexOvfStart = (int)vctVal.size();
-
+        if (indexOvfStart >= vctVal.size()) {
+          indexOvfStart = (int)vctVal.size();
+        }
+        else {
+          hr = 1;
+        }
         pos = priStru->pageValOffset;
         len = (priStru->bOvf ? priStru->lenInPage : priStru->arrPageLen[0]);
       }
@@ -348,7 +354,7 @@ namespace storage {
       ovf->ReadDataValue(vctVal, 0, offset, totalLen);
     }
 
-    return true;
+    return hr;
   }
 
   void LeafRecord::GetListOverflow(VectorDataValue& vctVal) const {
@@ -391,6 +397,15 @@ namespace storage {
   RawKey* LeafRecord::GetKey() const {
     uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
     return new RawKey(_bysVal + (2 + keyVarNum) * sizeof(uint16_t), GetKeyLength() - keyVarNum * sizeof(uint16_t));
+  }
+
+  RawKey* LeafRecord::GetPrimayKey() const {
+    uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadValueVariableFieldCount();
+    int start = GetKeyLength() + sizeof(uint16_t) * (2 + keyVarNum);
+    int len = GetTotalLength() - start;
+    Byte* buf = CachePool::ApplyBys(len);
+    memcpy(buf, _bysVal + start, len);
+    return new RawKey(buf, len, true);
   }
 
   uint32_t LeafRecord::GetSnapshotLength() const {

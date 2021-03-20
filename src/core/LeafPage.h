@@ -2,6 +2,7 @@
 #include "IndexPage.h"
 #include "RawKey.h"
 #include "../utils/ErrorMsg.h"
+#include "HeadPage.h"
 
 namespace storage {
   class LeafRecord;
@@ -16,6 +17,11 @@ namespace storage {
     static uint16_t MAX_DATA_LENGTH;
 
   public:
+    void clear() {
+      CleanRecord();
+      _recordNum = 0;
+      _totalDataLength = 0;
+    }
     LeafPage(IndexTree* indexTree, uint64_t pageId, uint64_t parentPageId);
     LeafPage(IndexTree* indexTree, uint64_t pageId);
     ~LeafPage();
@@ -25,6 +31,7 @@ namespace storage {
     inline void SetNextPageId(uint64_t id) { _nextPageId = id; }
     inline uint64_t GetNextPageId() { return _nextPageId; }
     inline bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH; }
+    inline bool IsLastPage() { return _nextPageId == HeadPage::NO_NEXT_PAGE_POINTER; }
 
     void LoadRecords();
     void CleanRecord();
@@ -45,7 +52,8 @@ namespace storage {
       const bool bIncLeft, const bool bIncRight, VectorLeafRecord& vct);
     LeafRecord* GetLastRecord();
     LeafRecord* GetRecord(const RawKey& key);
-    void GetRecords(const RawKey& key, VectorLeafRecord& vct);
+    /**If include the last record, return true, or false*/
+    bool GetRecords(const RawKey& key, VectorLeafRecord& vct, bool bFromZero = false);
     int32_t SearchRecord(const LeafRecord& rr, bool& bFind,
       bool bInc = true, int32_t start = 0, int32_t end = INT32_MAX);
     int32_t SearchKey(const RawKey& key, bool& bFind,

@@ -1,4 +1,4 @@
-#include "Configure.h"
+﻿#include "Configure.h"
 
 namespace storage {
   const uint64_t Configure::DEFULT_DISK_CLUSTER_SIZE = 4 * 1024;
@@ -12,7 +12,7 @@ namespace storage {
   const uint64_t Configure::DEFAULT_MAX_FREE_BUFFER_COUNT = 1000;
   const uint64_t Configure::MAX_PAGE_FILE_COUNT = 5;
   const uint64_t Configure::MAX_OVERFLOW_CACHE_SIZE = 1024 * 1024;
-  Configure* Configure::instance = []() {return new Configure; }();
+  Configure* Configure::instance = nullptr;
   //const uint64_t WRITE_DELAY_MS = 10 * 1000;
   //const uint64_t MAX_QUEUE_SIZE = 10000;
   //const uint64_t DEFAULT_DISK_CACHE_PAGE_SIZE = 1024 * 1024;

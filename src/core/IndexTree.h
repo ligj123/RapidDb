@@ -39,7 +39,7 @@ namespace storage {
     /**Only to read overflow fileds for the last stamp version */
     bool ReadRecordOverflow(const RawKey& key, VectorDataValue& vctVal);
     /**Read the primary keys by secondary key from secondary index record*/
-    bool ReadPriKeys(const RawKey& key, VectorRawKey& vctKey);
+    bool ReadPrimaryKeys(const RawKey& key, VectorRawKey& vctKey);
     /**
     * @brief To query a secondary index from start key to end key.
     * @param keyStart The start key.
@@ -49,8 +49,8 @@ namespace storage {
     * @param vctKey
     * @return Return if find the record and record stamp is right
     */
-    void QueryIndex(RawKey* keyStart, RawKey* keyEnd,
-      bool bIncLeft, bool bIncRight, VectorRawKey vctKey);
+    void QueryIndex(const RawKey* keyStart, const RawKey* keyEnd,
+      bool bIncLeft, bool bIncRight, VectorRawKey& vctKey);
     /**
    * @brief To query a primary index from start key to end key.
    * @param keyStart The start key.
@@ -60,8 +60,8 @@ namespace storage {
    * @param vctKey
    * @return Return if find the record and record stamp is right
    */
-    void QueryIndex(RawKey* keyStart, RawKey* keyEnd,
-      bool bIncLeft, bool bIncRight, vector<VectorDataValue> vctRow);
+    void QueryIndex(const RawKey* keyStart, const RawKey* keyEnd,
+      bool bIncLeft, bool bIncRight, VectorRow& vctRow);
 
     LeafRecord* GetRecord(const RawKey& key);
     void GetRecords(const RawKey& key, VectorLeafRecord& vct);

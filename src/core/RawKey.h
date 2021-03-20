@@ -12,7 +12,7 @@ namespace storage {
   public:
     RawKey() : _bysVal(nullptr), _length(0), _bSole(false) { }
     RawKey(VectorDataValue& vctKey);
-    RawKey(Byte* bys, uint32_t len);
+    RawKey(Byte* bys, uint32_t len, bool sole = false);
     ~RawKey();
 
     Byte* GetBysVal() const { return _bysVal; }

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <iostream>
 #include <string>
 #include <sstream>
@@ -45,7 +45,7 @@ namespace utils {
 
   class Logger {
   public:
-    static void init(severity_level filterLevel);
+    static void init(severity_level filterFile = ERROR, severity_level filterConsole = WARN);
   public:
     static src::severity_logger< severity_level > slg_;
   };

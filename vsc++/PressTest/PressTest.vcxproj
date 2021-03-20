@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -18,49 +18,11 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\test\cache\CachePoolTest.cpp" />
-    <ClCompile Include="..\..\test\core\BranchPageTest.cpp" />
-    <ClCompile Include="..\..\test\core\BranchRecordTest.cpp" />
-    <ClCompile Include="..\..\test\core\HeadPageTest.cpp" />
-    <ClCompile Include="..\..\test\core\IndexTreeTest.cpp" />
-    <ClCompile Include="..\..\test\core\LeafPageTest.cpp" />
-    <ClCompile Include="..\..\test\core\LeafRecordTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueBlobTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueBoolTest .cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueByteTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueCharTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueDateTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueFixCharTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueIntTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueLongTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueShortTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueUIntTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueULongTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueUShortTest .cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueVarCharTest.cpp" />
-    <ClCompile Include="..\..\test\file\PageFileTest.cpp" />
-    <ClCompile Include="..\..\test\pool\StoragePoolTest.cpp" />
-    <ClCompile Include="..\..\test\presstest\InsertSpeedTest.cpp" />
-    <ClCompile Include="..\..\test\TestMain.cpp" />
-    <ClCompile Include="..\..\test\utils\CharsetConvertTest.cpp" />
-    <ClCompile Include="..\..\test\utils\ErrorMsgTest.cpp" />
-    <ClCompile Include="..\..\test\utils\SpinMutexTest.cpp" />
-    <ClCompile Include="..\..\test\utils\ThreadPoolTest.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Storage\Storage.vcxproj">
-      <Project>{ce4feb1f-2237-4fc0-90c1-e2b458a3856b}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="..\..\test\utils\ErrorMsg.txt" />
-  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{f4f1f541-ba60-4c98-b908-dbde8a81183e}</ProjectGuid>
-    <RootNamespace>UnitTests</RootNamespace>
+    <ProjectGuid>{1b94d755-76fc-4210-a787-22b5a9a7788b}</ProjectGuid>
+    <RootNamespace>PressTest</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -159,7 +121,6 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
@@ -185,6 +146,18 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\presstest\InsertSpeedTest.cpp" />
+    <ClCompile Include="..\..\presstest\PressTest.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\presstest\PressTest.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Storage\Storage.vcxproj">
+      <Project>{ce4feb1f-2237-4fc0-90c1-e2b458a3856b}</Project>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

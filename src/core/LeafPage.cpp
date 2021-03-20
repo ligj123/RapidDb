@@ -19,12 +19,16 @@ namespace storage {
   LeafPage::LeafPage(IndexTree* indexTree, uint64_t pageId, uint64_t parentPageId) :
     IndexPage(indexTree, pageId, 0, parentPageId),
     _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
-    _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) { }
+    _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
+    _vctRecord.reserve(1500);
+  }
 
   LeafPage::LeafPage(IndexTree* indexTree, uint64_t pageId) :
     IndexPage(indexTree, pageId),
     _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
-    _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) { }
+    _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
+    _vctRecord.reserve(1500);
+  }
 
   LeafPage::~LeafPage() {
     CleanRecord();
@@ -127,7 +131,7 @@ namespace storage {
     _bDirty = true;
     _bRecordUpdate = true;
     _indexTree->GetHeadPage()->GetAndIncTotalRecordCount();
-    PageDividePool::AddCachePage(this);
+    //PageDividePool::AddCachePage(this);
 
     return nullptr;
   }
@@ -183,44 +187,34 @@ namespace storage {
     }
   }
 
-  void LeafPage::GetRecords(const RawKey& key, VectorLeafRecord& vct) {
+  bool LeafPage::GetRecords(const RawKey& key, VectorLeafRecord& vct, bool bFromZero) {
     if (vct.size() > 0) vct.RemoveAll();
-    if (_recordNum == 0) return;
+    if (_recordNum == 0) return true;
 
     bool bFind;
-    uint32_t pos = SearchKey(key, bFind);
-    if (!bFind) return;
-    vct.reserve(_recordNum);
+    uint32_t pos = 0;
+    if (!bFromZero) {
+      pos = SearchKey(key, bFind);
+      if (!bFind) return false;
+    }
+
+    uint32_t end = SearchKey(key, bFind, false, pos);
+    vct.reserve(end - pos);
 
     if (_vctRecord.size() == 0) {
-      for (uint16_t i = pos; i < _recordNum; i++) {
+      for (uint16_t i = pos; i < end; i++) {
         uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + i * sizeof(uint16_t));
-        if (i == pos) {
-          vct.push_back(new LeafRecord(this, _bysPage + offset));
-        }
-        else if (CompareTo(i, key) == 0) {
-          vct.push_back(new LeafRecord(this, _bysPage + offset));
-        }
-        else {
-          break;
-        }
+        vct.push_back(new LeafRecord(this, _bysPage + offset));
       }
     }
     else {
-      for (uint32_t i = pos; i < _vctRecord.size(); i++) {
+      for (uint32_t i = pos; i < end; i++) {
         LeafRecord* rr = ((LeafRecord*)_vctRecord[i])->ReferenceRecord();
-        if (i == pos) {
-          vct.push_back(rr);
-        }
-        else if (rr->CompareKey(key) == 0) {
-          vct.push_back(rr);
-        }
-        else {
-          rr->ReleaseRecord();
-          break;
-        }
+        vct.push_back(rr);
       }
     }
+
+    return (end == _recordNum);
   }
 
   int32_t LeafPage::SearchRecord(const LeafRecord& rr, bool& bFind, bool bInc, int32_t start, int32_t end) {
@@ -343,13 +337,6 @@ namespace storage {
               return middle + 1;
             }
           }
-        }
-        if (!bUnique && middle > start && (_vctRecord.size() > 0 ?
-          GetVctRecord(middle - 1)->CompareKey(key) == 0 : CompareTo(middle - 1, key) == 0)) {
-          end = middle - 1;
-        }
-        else {
-          return middle;
         }
       }
     }

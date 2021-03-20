@@ -80,6 +80,9 @@
     <ClCompile Include="..\..\test\core\IndexTreeTest.cpp">
       <Filter>core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\test\presstest\InsertSpeedTest.cpp">
+      <Filter>presstest</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="..\..\test\utils\ErrorMsg.txt" />
@@ -102,6 +105,9 @@
     </Filter>
     <Filter Include="pool">
       <UniqueIdentifier>{22179bc2-4780-4713-a462-ef4a1727bd30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="presstest">
+      <UniqueIdentifier>{e1c9de2f-0294-46d1-84bd-3d7f9a0c8407}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

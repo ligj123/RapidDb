@@ -282,7 +282,7 @@ namespace storage {
   BOOST_AUTO_TEST_CASE(LeafPageSearchKey_test) {
     const string FILE_NAME = "./dbTest/testLeafPageSearchKey" + utils::StrMSTime() + ".dat";
     const string TABLE_NAME = "testTable";
-    const int ROW_COUNT = LeafPage::MAX_DATA_LENGTH / 34;
+    const int ROW_COUNT = 300;
 
     DataValueLong* dvKey = new DataValueLong(100, true);
     VectorDataValue vctKey = { dvKey->CloneDataValue() };
@@ -302,16 +302,40 @@ namespace storage {
       lp->InsertRecord(lr);
     }
 
+    utils::Int64ToBytes(0, buff, true);
+    RawKey key(buff, 8);
+    bool bFind;
+    int pos = lp->SearchKey(key, bFind, true);
+    BOOST_TEST(pos == 0);
 
+    pos = lp->SearchKey(key, bFind, false);
+    BOOST_TEST(pos == 3);
 
-    for (int i = 0; i < ROW_COUNT; i++) {
-      *((DataValueLong*)vctKey[0]) = i;
-      RawKey key(vctKey);
-      bool bFind;
-      int pos = lp->SearchKey(key, bFind);
-      BOOST_TEST(bFind);
-      BOOST_TEST(pos == i);
-    }
+    pos = lp->SearchKey(key, bFind, true, 10);
+    BOOST_TEST(pos == 10);
+
+    pos = lp->SearchKey(key, bFind, false, 10);
+    BOOST_TEST(pos == 10);
+
+    utils::Int64ToBytes(99, buff, true);
+    pos = lp->SearchKey(key, bFind, true);
+    BOOST_TEST(pos == 297);
+
+    pos = lp->SearchKey(key, bFind, false);
+    BOOST_TEST(pos == 300);
+
+    pos = lp->SearchKey(key, bFind, true, 0, 200);
+    BOOST_TEST(pos == 201);
+
+    pos = lp->SearchKey(key, bFind, false, 0, 200);
+    BOOST_TEST(pos == 201);
+
+    utils::Int64ToBytes(50, buff, true);
+    pos = lp->SearchKey(key, bFind, true);
+    BOOST_TEST(pos == 150);
+
+    pos = lp->SearchKey(key, bFind, false);
+    BOOST_TEST(pos == 153);
 
     lp->DecRefCount();
     indexTree->Close(true);

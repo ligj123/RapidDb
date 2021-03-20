@@ -161,8 +161,9 @@ namespace storage {
     LeafPage* page = SearchRecursively(*rr);
     utils::ErrorMsg* err = page->InsertRecord(rr);
 
-    if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 5U) {
-      page->PageDivide();
+    if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 3U) {
+      //page->PageDivide();
+      page->clear();
     }
 
     page->WriteUnlock();
@@ -337,9 +338,11 @@ namespace storage {
           vct[pos]->ReleaseRecord();
         }
 
+        vct.clear();
         break;
       }
 
+      vct.clear();
       uint64_t nextId = page->GetNextPageId();
       if (nextId == HeadPage::NO_PARENT_POINTER)
         break;
@@ -350,7 +353,6 @@ namespace storage {
       page->DecRefCount();
       page = nextPage;
       pos = 0;
-      vct.clear();
     }
 
     page->ReadUnlock();
@@ -470,12 +472,13 @@ namespace storage {
   }
 
   bool IndexTree::ReadRecord(const RawKey& key, uint64_t verStamp, VectorDataValue& vctVal, bool bOvf) {
+    assert(_headPage->ReadIndexType() == IndexType::PRIMARY);
     LeafPage* page = SearchRecursively(key);
     LeafRecord* rr = page->GetRecord(key);
     bool b = false;
     if (rr != nullptr) {
-      b = rr->GetListValue(vctVal, verStamp);
-      if (bOvf) {
+      int hr = rr->GetListValue(vctVal, verStamp);
+      if (bOvf && hr > 0) {
         rr->GetListOverflow(vctVal);
       }
       rr->ReleaseRecord();
@@ -487,6 +490,7 @@ namespace storage {
   }
 
   bool IndexTree::ReadRecordOverflow(const RawKey& key, VectorDataValue& vctVal) {
+    assert(_headPage->ReadIndexType() == IndexType::PRIMARY);
     LeafPage* page = SearchRecursively(key);
     LeafRecord* rr = page->GetRecord(key);
     bool b = false;
@@ -499,37 +503,125 @@ namespace storage {
     return true;
   }
 
-  //bool IndexTree::ReadPriKeys(const RawKey& key, VectorRawKey& vctKey) {
-  //  vctKey.reserve(256);
-  //  LeafPage* page = SearchRecursively(key);
-  //  while (true) {
-  //    VectorLeafRecord vctLr;
-  //    page->GetRecords(key, vctLr);
-  //    vct.insert(vct.end(), vctLr.begin(), vctLr.end());
+  bool IndexTree::ReadPrimaryKeys(const RawKey& key, VectorRawKey& vctKey) {
+    assert(_headPage->ReadIndexType() != IndexType::PRIMARY);
+    if (vctKey.size() > 0) vctKey.RemoveAll();
+    vctKey.reserve(256);
+    LeafPage* page = SearchRecursively(key);
+    VectorLeafRecord vctLr;
+    bool bLast = page->GetRecords(key, vctLr);
 
-  //    LeafRecord* lastLr = page->GetLastRecord();
-  //    if (lastLr != nullptr && lastLr->CompareKey(key) > 0) {
-  //      lastLr->ReleaseRecord();
-  //      break;
-  //    }
+    while (true) {
+      for (LeafRecord* lr : vctLr) {
+        vctKey.push_back(lr->GetPrimayKey());
+        lr->ReleaseRecord();
+      }
 
-  //    if (lastLr != nullptr) {
-  //      lastLr->ReleaseRecord();
-  //    }
+      if (!bLast || _headPage->ReadIndexType() != IndexType::NON_UNIQUE) break;
 
-  //    uint64_t nextId = page->GetNextPageId();
-  //    if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)
-  //      break;
+      uint64_t nextId = page->GetNextPageId();
+      if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)
+        break;
 
-  //    LeafPage* nextPage = (LeafPage*)GetPage(nextId, true);
-  //    nextPage->ReadLock();
-  //    page->ReadUnlock();
-  //    page->DecRefCount();
-  //    page = nextPage;
-  //  }
+      LeafPage* nextPage = (LeafPage*)GetPage(nextId, true);
+      nextPage->ReadLock();
+      page->ReadUnlock();
+      page->DecRefCount();
+      page = nextPage;
+      bLast = page->GetRecords(key, vctLr, true);
+    }
+    page->ReadUnlock();
+    page->DecRefCount();
 
-  //  page->ReadUnlock();
-  //  page->DecRefCount();
-  //}
+    return true;
+  }
 
+  void IndexTree::QueryIndex(const RawKey* keyStart, const RawKey* keyEnd,
+    bool bIncLeft, bool bIncRight, VectorRawKey& vctKey) {
+    vctKey.clear();
+    vctKey.reserve(1024);
+    LeafPage* page = nullptr;
+    uint32_t pos = 0;
+    if (keyStart == nullptr) {
+      uint64_t id = _headPage->ReadBeginLeafPagePointer();
+      page = (LeafPage*)GetPage(id, true);
+      page->ReadLock();
+    }
+    else {
+      page = SearchRecursively(*keyStart);
+    }
+
+    VectorLeafRecord vctLr;
+    bool bLast = page->FetchRecords(keyStart, keyEnd, bIncLeft, bIncRight, vctLr);
+
+    while (true) {
+      for (LeafRecord* lr : vctLr) {
+        vctKey.push_back(lr->GetPrimayKey());
+      }
+      vctLr.RemoveAll();
+      if (!bLast) break;
+
+      uint64_t nextId = page->GetNextPageId();
+      if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)
+        break;
+
+      LeafPage* nextPage = (LeafPage*)GetPage(nextId, true);
+      nextPage->ReadLock();
+      page->ReadUnlock();
+      page->DecRefCount();
+      page = nextPage;
+
+      bLast = page->FetchRecords((vctKey.size() == 0 ? keyStart : nullptr), keyEnd,
+        bIncLeft, bIncRight, vctLr);
+    }
+
+    page->ReadUnlock();
+    page->DecRefCount();
+  }
+
+  void IndexTree::QueryIndex(const RawKey* keyStart, const RawKey* keyEnd,
+    bool bIncLeft, bool bIncRight, VectorRow& vctRow) {
+    vctRow.clear();
+    vctRow.reserve(1024);
+    LeafPage* page = nullptr;
+    uint32_t pos = 0;
+    if (keyStart == nullptr) {
+      uint64_t id = _headPage->ReadBeginLeafPagePointer();
+      page = (LeafPage*)GetPage(id, true);
+      page->ReadLock();
+    }
+    else {
+      page = SearchRecursively(*keyStart);
+    }
+
+    VectorLeafRecord vctLr;
+    bool bLast = page->FetchRecords(keyStart, keyEnd, bIncLeft, bIncRight, vctLr);
+
+    while (true) {
+      for (LeafRecord* lr : vctLr) {
+        VectorDataValue* vctDv = new VectorDataValue;
+        lr->GetListValue(*vctDv);
+        vctRow.push_back(vctDv);
+      }
+
+      vctLr.RemoveAll();
+      if (!bLast) break;
+
+      uint64_t nextId = page->GetNextPageId();
+      if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)
+        break;
+
+      LeafPage* nextPage = (LeafPage*)GetPage(nextId, true);
+      nextPage->ReadLock();
+      page->ReadUnlock();
+      page->DecRefCount();
+      page = nextPage;
+
+      bLast = page->FetchRecords((vctRow.size() == 0 ? keyStart : nullptr), keyEnd,
+        bIncLeft, bIncRight, vctLr);
+    }
+
+    page->ReadUnlock();
+    page->DecRefCount();
+  }
 }

@@ -104,14 +104,23 @@ namespace storage {
     inline void SetTranFinished(bool bFinished) { _bTranFinished = bFinished; }
 
     void GetListKey(VectorDataValue& vct) const;
-    /**If passed to get values, return true, or false*/
-    bool GetListValue(VectorDataValue& vct, uint64_t verStamp = UINT64_MAX) const;
+    /**
+    * @brief Read the value to data value list
+    * @param vct The vector to save the data values.
+    * @param verStamp The version stamp for primary index.If not primary, not to use.
+    * @return -1: Failed to read values due to no right version stamp for primary;
+    *         0: Passed to read values with all fields.
+    *         1: Passed to read part of values due to same of fields saved in overflow file.
+    */
+    int GetListValue(VectorDataValue& vct, uint64_t verStamp = UINT64_MAX) const;
     void GetListOverflow(VectorDataValue& vctVal) const;
 
     int CompareTo(const LeafRecord& lr) const;
     int CompareKey(const RawKey& key) const;
     int CompareKey(const LeafRecord& lr) const;
     RawKey* GetKey() const;
+    /**Only for secondary index, Get the value as primary key*/
+    RawKey* GetPrimayKey() const;
 
     inline uint16_t GetValueLength() const override {
       return (*((uint16_t*)_bysVal) - *((uint16_t*)(_bysVal + sizeof(uint16_t))) - sizeof(uint16_t) * 2);
