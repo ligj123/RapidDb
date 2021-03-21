@@ -108,6 +108,8 @@ namespace storage {
         else 
           pDefaultVal_ = new DataValueFixChar((char*)p, maxLength_);
         p += maxLength_;
+      default:
+        break;
       }
     }
 

@@ -46,7 +46,7 @@ namespace storage {
 
       if (i % 1000000 == 0) {
         uint64_t dt = utils::MSTime();
-        cout << "i=" << i << "\tTotal Time=" << (dt - dtStart) << "\tGap Time=" + (dt - dtPrev) << endl;
+        cout << "i=" << i << "\tTotal Time=" << (dt - dtStart) << "\tGap Time=" << (dt - dtPrev) << endl;
         dtPrev = dt;
       }
     }

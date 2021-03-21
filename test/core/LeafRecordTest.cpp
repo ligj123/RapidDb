@@ -6,6 +6,7 @@
 #include "../../src/core/IndexTree.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/dataType/DataValueBlob.h"
+#include "../../src/dataType/DataValueFactory.h"
 
 namespace storage {
 	namespace fs = std::filesystem;

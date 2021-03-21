@@ -2,6 +2,7 @@
 #include "IndexTree.h"
 #include "BranchPage.h"
 #include <memory>
+#include "../dataType/DataValueFactory.h"
 
 namespace storage {
   const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(uint64_t);

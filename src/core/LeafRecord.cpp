@@ -240,7 +240,7 @@ namespace storage {
             offset += oldValStru->lenInPage;
           }
 
-          uint64_t valStart = oldValStru->ovfOffset + bOldAll ? 0 : oldValStru->arrOvfLen[0];
+          uint64_t valStart = oldValStru->ovfOffset + (bOldAll ? 0 : oldValStru->arrOvfLen[0]);
           uint64_t valLen = oldValStru->arrOvfLen[oldValStru->verCount - 1] - valStart;
 
           ovf->MoveOverflowData(valStart, offset, (uint32_t)valLen);

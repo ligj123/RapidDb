@@ -21,8 +21,6 @@ int main(int argc, char* argv[])
 {
   std::cout << "Initialize press test.\n";
   utils::Logger::init(utils::ERROR);
-  LOG_DEBUG << "aaa";
-  LOG_ERROR << "bbb";
   fs::path path(ROOT_PATH);
   if (!fs::exists(path)) fs::create_directories(path);
 
@@ -30,7 +28,11 @@ int main(int argc, char* argv[])
   std::string str(argv[1]);
   transform(str.begin(), str.end(), str.begin(),
     [](unsigned char c) -> unsigned char { return std::tolower(c); });
-  if (str == "11" || str.compare("insertspeed") == 0) {
+
+  if (str == "0") {
+    storage::ArrayTest();
+  }
+  else if (str == "11" || str.compare("insertspeed") == 0) {
     storage::InsertSpeedTest(argc >= 3 ? atol(argv[2]) : 0);
   }
   else {

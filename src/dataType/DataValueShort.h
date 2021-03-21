@@ -19,7 +19,7 @@ namespace storage {
 		uint32_t GetPersistenceLength(bool key) const override;
 
 		std::any GetValue() const override;
-		uint32_t WriteData(Byte* buf);
+		uint32_t WriteData(Byte* buf) override;
 		uint32_t ReadData(Byte* buf, uint32_t len = 0) override;
 		uint32_t GetDataLength() const override;
 		uint32_t GetMaxLength() const override;

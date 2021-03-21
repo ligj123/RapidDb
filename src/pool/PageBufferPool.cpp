@@ -132,6 +132,6 @@ namespace storage {
     LOG_DEBUG << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()
       << "\tPageDividePool=" << PageDividePool::GetQueuePageSize();
     LOG_DEBUG << "Removed page:" << delCount << "\tWaitWriteQueue:" << StoragePool::GetWaitingWriteTaskCount()
-      << "\nRefCountPage=" + refCountPage << "\tRefPageCount=" << refPageCount;
+      << "\nRefCountPage=" << refCountPage << "\tRefPageCount=" << refPageCount;
   }
 }

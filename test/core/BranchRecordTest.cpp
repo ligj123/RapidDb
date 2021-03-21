@@ -7,6 +7,7 @@
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/core/BranchPage.h"
 #include "../../src/pool/PageBufferPool.h"
+#include "../../src/dataType/DataValueFactory.h"
 
 namespace storage {
 	BOOST_AUTO_TEST_SUITE(CoreTest)

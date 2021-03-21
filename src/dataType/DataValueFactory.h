@@ -20,6 +20,7 @@
 #include "DataValueVarChar.h"
 #include "DataValueBlob.h"
 #include "../config/ErrorID.h"
+#include "../utils/ErrorMsg.h"
 
 namespace storage {
   using namespace std;

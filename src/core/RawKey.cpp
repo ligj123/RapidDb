@@ -1,5 +1,6 @@
 ﻿#include "RawKey.h"
 #include <iomanip>
+#include "../utils/BytesConvert.h"
 
 namespace storage {
   RawKey::RawKey(VectorDataValue& vctKey) : _bSole(true) {
@@ -30,50 +31,36 @@ namespace storage {
 
   bool RawKey::operator > (const RawKey& key) const
   {
-    int hr = std::memcmp(_bysVal, key._bysVal, std::min(_length, key._length));
-    if (hr != 0) return hr > 0;
-    return (_length > key._length);
+    return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) > 0;
   }
   bool RawKey::operator < (const RawKey& key) const
   {
-    int hr = std::memcmp(_bysVal, key._bysVal, std::min(_length, key._length));
-    if (hr != 0) return hr < 0;
-    return (_length < key._length);
+    return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) < 0;
   }
 
   bool RawKey::operator >= (const RawKey& key) const
   {
-    int hr = std::memcmp(_bysVal, key._bysVal, std::min(_length, key._length));
-    if (hr != 0) return hr >= 0;
-    return (_length >= key._length);
+    return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) >= 0;
   }
 
   bool RawKey::operator <= (const RawKey& key) const
   {
-    int hr = std::memcmp(_bysVal, key._bysVal, std::min(_length, key._length));
-    if (hr != 0) return hr < 0;
-    return (_length <= key._length);
+    return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) <= 0;
   }
 
   bool RawKey::operator == (const RawKey& key) const
   {
-    int hr = std::memcmp(_bysVal, key._bysVal, std::min(_length, key._length));
-    if (hr != 0) return false;
-    return (_length == key._length);
+    return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) == 0;
   }
 
   bool RawKey::operator != (const RawKey& key) const
   {
-    int hr = std::memcmp(_bysVal, key._bysVal, std::min(_length, key._length));
-    if (hr != 0) return true;
-    return (_length != key._length);
+    return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) != 0;
   }
 
   int RawKey::CompareTo(const RawKey& key) const
   {
-    int hr = std::memcmp(_bysVal, key._bysVal, std::min(_length, key._length));
-    if (hr != 0) return hr;
-    return (_length - key._length);
+    return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length);
   }
 
   std::ostream& operator<< (std::ostream& os, const RawKey& key)
