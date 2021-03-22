@@ -17,22 +17,22 @@ static int64_t times = 10000000;
 static int map_size = 1000;
 
 int BytesCompare(char *bys1, uint32_t len1, char *bys2, uint32_t len2) {
-  int minLen = min(len1, len2);
+  // int minLen = min(len1, len2);
 
-  for (int i = 0; i < minLen; i++) {
-    int a = (unsigned char)bys1[i];
-    int b = (unsigned char)bys2[i];
-    if (a != b) {
-      return a - b;
-    }
-  }
+  // for (int i = 0; i < minLen; i++) {
+  //   int a = (unsigned char)bys1[i];
+  //   int b = (unsigned char)bys2[i];
+  //   if (a != b) {
+  //     return a - b;
+  //   }
+  // }
 
-  return len1 - len2;
-
-  // int hr = memcmp(bys1, bys2, std::min(len1, len2));
-  // if (hr != 0)
-  //   return hr;
   // return len1 - len2;
+
+  int hr = memcmp(bys1, bys2, std::min(len1, len2));
+  if (hr != 0)
+    return hr;
+  return len1 - len2;
 }
 
 void Int64ToBytes(int64_t val, char *pArr, bool bkey = false) {

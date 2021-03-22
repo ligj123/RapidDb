@@ -28,13 +28,13 @@ CachePage::~CachePage() {
 }
 
 void CachePage::IncRefCount() {
-  // _indexTree->IncTask();
-  // _refCount.fetch_add(1);
+  _indexTree->IncTask();
+  _refCount.fetch_add(1);
 }
 
 void CachePage::DecRefCount() {
-  // _indexTree->DecTask();
-  // _refCount.fetch_sub(1);
+  _indexTree->DecTask();
+  _refCount.fetch_sub(1);
 }
 
 bool CachePage::IsFileClosed() const { return _indexTree->IsClosed(); }

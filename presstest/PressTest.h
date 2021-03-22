@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 namespace storage {
-  void ArrayTest();
-  void InsertSpeedTest(uint64_t row_count);
-}
+void ArrayTest();
+void InsertSpeedPrimaryTest(uint64_t row_count);
+void InsertSpeedUniqueTest(uint64_t row_count);
+} // namespace storage
