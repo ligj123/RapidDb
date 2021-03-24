@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <exception>
 #include <unordered_map>
 #include <vector>
@@ -30,7 +30,8 @@ namespace utils {
         }
       }
     }
-    virtual const char* what()
+
+    char const* what() const override
     {
       return _errMsg.c_str();
     }

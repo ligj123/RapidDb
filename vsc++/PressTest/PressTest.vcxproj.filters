@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\presstest\InsertSpeedTest.cpp" />
     <ClCompile Include="..\..\presstest\PressTest.cpp" />
+    <ClCompile Include="..\..\presstest\ArrayTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\presstest\PressTest.h" />

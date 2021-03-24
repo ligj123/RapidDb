@@ -1,146 +1,138 @@
-#include "CachePool.h"
+﻿#include "CachePool.h"
 #include "../utils/ErrorMsg.h"
 #include "../config/Configure.h"
 #include "../config/ErrorID.h"
 #include <string>
 
 namespace storage {
-  CachePool* CachePool::_gCachePool = []() {
-    return new CachePool;
-  }();
+CachePool* CachePool::_gCachePool = []() {
+  return new CachePool;
+}();
 
-  set<uint32_t> CachePool::_gSetBufSize = { 30, 100, 300, 1000, 2000, 4000, 8000, 16000 };
+set<uint32_t> CachePool::_gSetBufSize = { 32, 128, 512, 1024, 4096, 16384 };
 
-  Byte* CachePool::ApplyPage() {
-    CachePool* pool = GetInstance();
-    std::unique_lock<utils::SpinMutex> lock(pool->_spinMutexPage);
-    if (pool->_queueFreePage.size() > 0) {
-      Byte* bys = pool->_queueFreePage.front();
-      pool->_queueFreePage.pop();
-      return bys;
-    } else {
-      lock.unlock();
-      return new Byte[Configure::GetCachePageSize()];
-    }
+thread_local LocalMap CachePool::_localMap;
+
+LocalMap::~LocalMap() {
+  for (auto iter = _map.begin(); iter != _map.end(); iter++) {
+    CachePool::BatchRelease(iter->first, iter->second, true);
+  }
+}
+
+void LocalMap::Push(Byte* pBuf, uint32_t eleSize) {
+  assert(eleSize % 8 == 0);
+
+  auto iter = _map.find(eleSize);
+  assert(iter != _map.end());
+
+  iter->second.push_back(pBuf);
+  if (iter->second.size() >= iter->second.capacity() - 1) {
+    CachePool::BatchRelease(iter->first, iter->second, false);
+  }
+}
+
+Byte* LocalMap::Pop(uint32_t eleSize) {
+  assert(eleSize % 8 == 0);
+  auto iter = _map.find(eleSize);
+  if (iter == _map.end()) {
+    _map.insert(pair<uint32_t, vector<Byte*>>(eleSize, vector<Byte*>()));
+    iter = _map.find(eleSize);
+    iter->second.reserve(eleSize <= 512 ? 400 : 20);
   }
 
-  void CachePool::ReleasePage(Byte* page) {
-    CachePool* pool = GetInstance();
-    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutexPage);
-    if (pool->_queueFreePage.size() > Configure::GetMaxFreeBufferCount()) {
-      lock.unlock();
-      delete[] page;
-    } else {
-      pool->_queueFreePage.push(page);
-    }
+  if (iter->second.size() == 0) {
+    CachePool::BatchApply(eleSize, iter->second);
   }
 
-  Byte* CachePool::ApplyOverflowCache() {
-    CachePool* pool = GetInstance();
-    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutexOvf);
-    if (pool->_queueFreeOvf.size() > 0) {
-      Byte* bys = pool->_queueFreeOvf.front();
-      pool->_queueFreeOvf.pop();
-      return bys;
-    }
-    else {
-      lock.unlock();
-      return new Byte[Configure::GetMaxOverflowCache()];
-    }
-  }
+  Byte* buf = iter->second[iter->second.size() - 1];
+  iter->second.erase(iter->second.end() - 1);
+  return buf;
+}
 
-  void CachePool::ReleaseOverflowCache(Byte* pBuf) {
-    CachePool* pool = GetInstance();
-    std::unique_lock<utils::SpinMutex> lock(pool->_spinMutexOvf);
-    pool->_queueFreeOvf.push(pBuf);
-  }
+Byte* CachePool::ApplyPage() {
+  CachePool* pool = GetInstance();
+  return pool->_localMap.Pop((uint32_t)Configure::GetCachePageSize());
+}
 
-  Byte* CachePool::ApplyBys(uint32_t bufSize)
+void CachePool::ReleasePage(Byte* page) {
+  CachePool* pool = GetInstance();
+  pool->_localMap.Push(page, (uint32_t)Configure::GetCachePageSize());
+}
+
+Byte* CachePool::Apply(uint32_t eleSize)
+{
+  CachePool* pool = GetInstance();
+  return pool->_localMap.Pop(eleSize);
+}
+
+void CachePool::BatchApply(uint32_t bufSize, vector<Byte*>& vct) {
+  CachePool* pool = GetInstance();
+  auto iter = pool->_mapPool.find(bufSize);
+  if (iter == pool->_mapPool.end())
   {
-    uint32_t sz = *_gSetBufSize.lower_bound(bufSize);
-    return Apply(sz);
-  }
-
-  void CachePool::ReleaseBys(Byte* pBuf, uint32_t bufSize)
-  {
-    uint32_t sz = *_gSetBufSize.lower_bound(bufSize);
-    return Release(pBuf, sz);
-  }
-
-  Byte* CachePool::Apply(uint32_t eleSize)
-  {    
-    CachePool* pool = GetInstance();
-    auto iter = pool->_mapPool.find(eleSize);
+    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutex);
+    iter = pool->_mapPool.find(bufSize);
     if (iter == pool->_mapPool.end())
     {
-      std::unique_lock< utils::SpinMutex> lock(pool->_spinMutex);
-      iter = pool->_mapPool.find(eleSize);
-      if (iter == pool->_mapPool.end())
-      {
-        pool->_mapPool.insert(pair<uint32_t, BufferPool*>(eleSize, new BufferPool(eleSize)));
-        iter = pool->_mapPool.find(eleSize);
-      }
-    }
-
-    return iter->second->Apply();
-  }
-
-  void CachePool::Release(Byte* pBuf, uint32_t eleSize)
-  {
-    CachePool* pool = GetInstance();
-    auto iter = pool->_mapPool.find(eleSize);
-    assert(iter != pool->_mapPool.end());
-
-    iter->second->Release(pBuf);
-  }
-
-  Buffer* CachePool::AllotBuffer(uint32_t eleLen)
-  {
-    CachePool* pool = GetInstance();
-    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutex);
-
-    if (pool->_queueFreeBuf.size() > 0) 
-    {
-      Buffer* buf = GetInstance()->_queueFreeBuf.front();
-      buf->Init(eleLen);
-      GetInstance()->_queueFreeBuf.pop();
-      return buf;
-    }
-
-    //if (pool->_szMemUsed >= Configure::GetTotalCacheSize())
-    //{
-    //  throw utils::ErrorMsg(CM_EXCEED_LIMIT, {});
-    //}
-
-    pool->_szMemUsed += Configure::GetCacheBlockSize();
-    return new Buffer(eleLen);
-  }
-  
-  void CachePool::RecycleBuffer(Buffer* buf)
-  {
-    CachePool* pool = GetInstance();
-    std::unique_lock< utils::SpinMutex> lock(pool->_spinMutex);
-    if (pool->_queueFreeBuf.size() > Configure::GetMaxFreeBufferCount())
-    {
-      delete buf;
-    }
-    else
-    {
-      pool->_queueFreeBuf.push(buf);
+      pool->_mapPool.insert(pair<uint32_t, BufferPool*>(bufSize, new BufferPool(bufSize)));
+      iter = pool->_mapPool.find(bufSize);
     }
   }
 
-  CachePool::CachePool() : _szMemUsed(0), _mapPool(500)
-  {
+  iter->second->Apply(vct);
+}
 
+void CachePool::BatchRelease(uint32_t bufSize, vector<Byte*>& vct, bool bAll) {
+  CachePool* pool = GetInstance();
+  auto iter = pool->_mapPool.find(bufSize);
+  assert(iter != pool->_mapPool.end());
+
+  iter->second->Release(vct, bAll);
+}
+
+void CachePool::Release(Byte* pBuf, uint32_t eleSize)
+{
+  CachePool* pool = GetInstance();
+  pool->_localMap.Push(pBuf, eleSize);
+}
+
+Buffer* CachePool::AllocateBuffer(uint32_t eleLen)
+{
+  CachePool* pool = GetInstance();
+  std::unique_lock< utils::SpinMutex> lock(pool->_spinMutex);
+
+  if (pool->_queueFreeBuf.size() > 0)
+  {
+    Buffer* buf = GetInstance()->_queueFreeBuf.front();
+    buf->Init(eleLen);
+    GetInstance()->_queueFreeBuf.pop();
+    return buf;
   }
 
-  CachePool::~CachePool()
-  {
-    while (_queueFreeBuf.size() > 0)
-    {
-      free(_queueFreeBuf.front());
-      _queueFreeBuf.pop();
-    }
+  pool->_szMemUsed += Configure::GetCacheBlockSize();
+  return new Buffer(eleLen);
+}
+
+void CachePool::RecycleBuffer(Buffer* buf)
+{
+  CachePool* pool = GetInstance();
+  std::unique_lock< utils::SpinMutex> lock(pool->_spinMutex);
+  if (pool->_queueFreeBuf.size() > Configure::GetMaxFreeBufferCount()) {
+    delete buf;
+  } else {
+    pool->_queueFreeBuf.push(buf);
   }
+}
+
+CachePool::CachePool() : _szMemUsed(0), _mapPool(500)
+{}
+
+CachePool::~CachePool()
+{
+  while (_queueFreeBuf.size() > 0)
+  {
+    free(_queueFreeBuf.front());
+    _queueFreeBuf.pop();
+  }
+}
 }

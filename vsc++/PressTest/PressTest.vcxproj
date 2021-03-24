@@ -147,6 +147,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\presstest\ArrayTest.cpp" />
     <ClCompile Include="..\..\presstest\InsertSpeedTest.cpp" />
     <ClCompile Include="..\..\presstest\PressTest.cpp" />
   </ItemGroup>
