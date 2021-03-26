@@ -29,11 +29,10 @@ thread* StoragePool::CreateWriteThread() {
 
         for (auto iter = _mapTmp2.begin(); iter != _mapTmp2.end(); iter++) {
           if (_mapWrite.find(iter->first) != _mapWrite.end()) {
+            iter->second->DecRefCount();
             continue;
           }
 
-          iter->second->IncRefCount();
-          iter->second->UpdateWriteTime();
           _mapWrite.insert({ iter->first, iter->second });
         }
 
@@ -54,8 +53,8 @@ thread* StoragePool::CreateWriteThread() {
         }
 
         for (auto iter = _mapWrite.begin(); iter != _mapWrite.end();) {
-          auto iter2 = iter;
-          CachePage* page = iter->second;
+          auto iter2 = iter++;
+          CachePage* page = iter2->second;
           if (!_bWriteFlush && (_mapWrite.size() < MAX_QUEUE_SIZE / 2) && !page->IsFileClosed()
             && (CachePage::GetMsFromEpoch() - page->GetWriteTime() < WRITE_DELAY_MS)) {
             continue;
@@ -66,6 +65,7 @@ thread* StoragePool::CreateWriteThread() {
           }
 
           page->DecRefCount();
+          _mapWrite.erase(iter2);
         }
       } catch (...)
       {
@@ -83,6 +83,8 @@ void StoragePool::WriteCachePage(CachePage* page) {
       return;
     }
 
+    page->IncRefCount();
+    page->UpdateWriteTime();
     _mapTmp1.insert({ page->HashCode(), page });
   }
 

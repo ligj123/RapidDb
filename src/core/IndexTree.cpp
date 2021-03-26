@@ -6,6 +6,7 @@
 #include "BranchRecord.h"
 #include "IndexPage.h"
 #include <shared_mutex>
+#include "LeafPage.h"
 
 namespace storage {
 unordered_set<uint16_t> IndexTree::_setFiledId;
@@ -49,6 +50,7 @@ IndexTree::IndexTree(const string& tableName, const string& fileName,
 
     StoragePool::WriteCachePage(_headPage);
     _rootPage = AllocateNewPage(HeadPage::NO_PARENT_POINTER, 0);
+    StoragePool::WriteCachePage(_rootPage);
   } else {
     _headPage->ReadPage();
     FileVersion&& fv = _headPage->ReadFileVersion();
@@ -62,6 +64,12 @@ IndexTree::IndexTree(const string& tableName, const string& fileName,
 
   _vctKey.swap(vctKey);
   _vctValue.swap(vctVal);
+
+  _keyVarLen = _headPage->ReadKeyVariableFieldCount() * sizeof(uint16_t);
+  _valVarLen = _headPage->ReadValueVariableFieldCount() * sizeof(uint16_t);
+  _keyOffset = _keyVarLen + sizeof(uint16_t) * 2;
+  _valOffset = _valVarLen + sizeof(uint16_t) * 2;
+
   LOG_DEBUG << "Open index tree " << tableName;
 }
 
@@ -162,8 +170,8 @@ utils::ErrorMsg* IndexTree::InsertRecord(LeafRecord* rr) {
   utils::ErrorMsg* err = page->InsertRecord(rr);
 
   if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 3U) {
-    //page->PageDivide();
-    page->clear();
+    page->PageDivide();
+    //page->clear();
   }
 
   page->WriteUnlock();
@@ -179,17 +187,24 @@ IndexPage* IndexTree::GetPage(uint64_t pageId, bool bLeafPage) {
 
   _pageMutex.lock();
 
-  utils::SpinMutex* lockPage = nullptr;
+  PageLock* lockPage = nullptr;
   auto iter = _mapMutex.find(pageId);
   if (iter != _mapMutex.end()) {
     lockPage = iter->second;
+    lockPage->_refCount++;
   } else {
-    lockPage = new utils::SpinMutex;
-    _mapMutex.insert(pair<uint64_t, utils::SpinMutex*>(pageId, lockPage));
+    if (_queueMutex.size() > 0) {
+      lockPage = _queueMutex.front();
+      _queueMutex.pop();
+    } else {
+      lockPage = new PageLock;
+    }
+    lockPage->_refCount++;
+    _mapMutex.insert({ pageId, lockPage });
   }
 
   _pageMutex.unlock();
-  lockPage->lock();
+  lockPage->_sm->lock();
 
   page = PageBufferPool::GetPage(_fileId, pageId);
   if (page == nullptr) {
@@ -209,9 +224,9 @@ IndexPage* IndexTree::GetPage(uint64_t pageId, bool bLeafPage) {
   }
 
   _pageMutex.lock();
-  _queueMutex.push(lockPage);
   _mapMutex.erase(pageId);
-  lockPage->unlock();
+  lockPage->_sm->unlock();
+  if (lockPage->_refCount == 0)  _queueMutex.push(lockPage);
   _pageMutex.unlock();
 
   return page;
@@ -392,7 +407,7 @@ LeafPage* IndexTree::SearchRecursively(const RawKey& key) {
       }
     }
 
-    this_thread::sleep_for(std::chrono::microseconds(1));
+    std::this_thread::yield();
   }
 
   while (true) {
@@ -440,7 +455,7 @@ LeafPage* IndexTree::SearchRecursively(const LeafRecord& lr) {
       }
     }
 
-    this_thread::sleep_for(std::chrono::microseconds(1));
+    std::this_thread::yield();
   }
 
   BranchRecord br(this, (RawRecord*)&lr, 0);
@@ -453,11 +468,11 @@ LeafPage* IndexTree::SearchRecursively(const LeafRecord& lr) {
     bool bFind;
     uint32_t pos = bPage->SearchRecord(br, bFind);
     BranchRecord* br = bPage->GetRecordByPos(pos, true);
-    uint64_t pageId = ((BranchRecord*)br)->GetChildPageId();
+    uint64_t pageId = br->GetChildPageId();
     br->ReleaseRecord();
 
     IndexPage* childPage =
-      (IndexPage*)GetPage(pageId, page->GetPageLevel() == 1);
+      (IndexPage*)GetPage(pageId, page->GetPageLevel() == 0);
     assert(childPage != nullptr);
 
     if (typeid(*childPage) == typeid(LeafPage)) {

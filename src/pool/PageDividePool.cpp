@@ -31,11 +31,10 @@ thread* PageDividePool::CreateThread() {
 
       for (auto iter = _mapTmp2.cbegin(); iter != _mapTmp2.cend(); iter++) {
         if (_mapPage.find(iter->first) != _mapPage.end()) {
+          iter->second->DecRefCount();
           continue;
         }
 
-        iter->second->IncRefCount();
-        iter->second->SetPageLastUpdateTime();
         _mapPage.insert(pair<uint64_t, IndexPage*>(iter->first, iter->second));
       }
 
@@ -66,6 +65,7 @@ thread* PageDividePool::CreateThread() {
         page->WriteUnlock();
         if (bPassed) {
           page->DecRefCount();
+          _mapPage.erase(iter2);
         }
       }
     }
@@ -79,6 +79,8 @@ void PageDividePool::AddCachePage(IndexPage* page) {
     return;
   }
 
+  page->IncRefCount();
+  page->SetPageLastUpdateTime();
   _mapTmp1.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
 }
 }

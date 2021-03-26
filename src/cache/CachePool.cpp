@@ -23,7 +23,11 @@ void LocalMap::Push(Byte* pBuf, uint32_t eleSize) {
   assert(eleSize % 8 == 0);
 
   auto iter = _map.find(eleSize);
-  assert(iter != _map.end());
+  if (iter == _map.end()) {
+    _map.insert({ eleSize, vector<Byte*>() });
+    iter = _map.find(eleSize);
+    iter->second.reserve(eleSize <= 512 ? 1024 : 20);
+  }
 
   iter->second.push_back(pBuf);
   if (iter->second.size() >= iter->second.capacity() - 1) {
@@ -35,7 +39,7 @@ Byte* LocalMap::Pop(uint32_t eleSize) {
   assert(eleSize % 8 == 0);
   auto iter = _map.find(eleSize);
   if (iter == _map.end()) {
-    _map.insert(pair<uint32_t, vector<Byte*>>(eleSize, vector<Byte*>()));
+    _map.insert({ eleSize, vector<Byte*>() });
     iter = _map.find(eleSize);
     iter->second.reserve(eleSize <= 512 ? 400 : 20);
   }
