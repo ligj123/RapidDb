@@ -27,6 +27,8 @@ protected:
 class PageFile
 {
 public:
+  static thread_local OvfBuffer _ovfBuff;
+
   PageFile(const string& path, bool overflowFile = false);
 
   ~PageFile() {
@@ -62,6 +64,5 @@ protected:
   fstream _file;
   utils::SpinMutex _spinMutex;
   atomic<uint64_t> _overFileLength;
-  static thread_local OvfBuffer _ovfBuff;
 };
 }

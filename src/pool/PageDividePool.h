@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 #include <unordered_map>
+#include <map>
 #include "../core/IndexPage.h"
 #include <thread>
 #include "../utils/SpinMutex.h"
@@ -7,25 +8,28 @@
 #include "../utils/ThreadPool.h"
 
 namespace storage {
-	using namespace std;
+using namespace std;
 
-	class PageDividePool
-	{
-	public:
-		static const uint64_t MAX_QUEUE_SIZE;
-		static const uint32_t BUFFER_FLUSH_INTEVAL_MS;
-		static const int SLEEP_INTEVAL_MS;
-		
-		static unordered_map<uint64_t, IndexPage*> _mapPage;
-		static queue<IndexPage*> _queuePage;
-		static thread* _treeDivideThread;
-		static bool _bSuspend;
-		static utils::SpinMutex _spinMutex;
+class PageDividePool
+{
+public:
+  static const uint64_t MAX_QUEUE_SIZE;
+  static const uint32_t BUFFER_FLUSH_INTEVAL_MS;
+  static const int SLEEP_INTEVAL_MS;
+public:
+  static thread* CreateThread();
+  static void AddCachePage(IndexPage* page);
+  static void SetThreadStatus(bool bSuspend) { _bSuspend = bSuspend; }
+  static size_t GetWaitingPageSize() { return _mapPage.size(); }
 
-		static thread* CreateThread();
-		static void AddCachePage(IndexPage* page);
-		static void SetThreadStatus(bool bSuspend) { _bSuspend = bSuspend; }
+protected:
+  static map<uint64_t, IndexPage*> _mapPage;
+  static unordered_map<uint64_t, IndexPage*> _mapTmp1;
+  static unordered_map<uint64_t, IndexPage*> _mapTmp2;
 
-		static size_t GetQueuePageSize() {return _queuePage.size();	}
-	};
+  static thread* _treeDivideThread;
+  static bool _bSuspend;
+  static utils::SpinMutex _spinMutex;
+
+};
 }

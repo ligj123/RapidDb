@@ -4,11 +4,11 @@
 
 namespace storage {
 const uint32_t CachePage::CRC32_INDEX_OFFSET =
-    (uint32_t)(Configure::GetCachePageSize() - sizeof(uint64_t));
+(uint32_t)(Configure::GetCachePageSize() - sizeof(uint64_t));
 const uint32_t CachePage::CRC32_HEAD_OFFSET =
-    (uint32_t)(Configure::GetDiskClusterSize() - sizeof(uint64_t));
+(uint32_t)(Configure::GetDiskClusterSize() - sizeof(uint64_t));
 
-CachePage::CachePage(IndexTree *indexTree, uint64_t pageId) {
+CachePage::CachePage(IndexTree* indexTree, uint64_t pageId) {
   _indexTree = indexTree;
   _pageId = pageId;
   _fileId = _indexTree->GetFileId();
@@ -42,34 +42,38 @@ bool CachePage::IsFileClosed() const { return _indexTree->IsClosed(); }
 void CachePage::ReadPage() {
   unique_lock<SpinMutex> lock(_pageLock);
 
-  PageFile *pageFile = _indexTree->ApplyPageFile();
+  PageFile* pageFile = _indexTree->ApplyPageFile();
   if (_pageId != UINT64_MAX) {
     pageFile->ReadPage(Configure::GetDiskClusterSize() +
-                           _pageId * Configure::GetCachePageSize(),
-                       (char *)_bysPage,
-                       (uint32_t)Configure::GetCachePageSize());
+      _pageId * Configure::GetCachePageSize(),
+      (char*)_bysPage,
+      (uint32_t)Configure::GetCachePageSize());
   } else {
-    pageFile->ReadPage(0, (char *)_bysPage,
-                       (uint32_t)Configure::GetDiskClusterSize());
+    pageFile->ReadPage(0, (char*)_bysPage,
+      (uint32_t)Configure::GetDiskClusterSize());
   }
   _indexTree->ReleasePageFile(pageFile);
   _bDirty = false;
 }
 
 void CachePage::WritePage() {
-  PageFile *pageFile = _indexTree->ApplyPageFile();
-  unique_lock<SpinMutex> lock(_pageLock);
+  PageFile* pageFile = _indexTree->ApplyPageFile();
+  char* tmp = PageFile::_ovfBuff.GetBuf();
+  {
+    unique_lock<SpinMutex> lock(_pageLock);
+    memcpy(tmp, _bysPage, (_pageId != UINT64_MAX ?
+      Configure::GetCachePageSize() : Configure::GetDiskClusterSize()));
+    _bDirty = false;
+  }
 
   if (_pageId != UINT64_MAX) {
     pageFile->WritePage(Configure::GetDiskClusterSize() +
-                            _pageId * Configure::GetCachePageSize(),
-                        (char *)_bysPage,
-                        (uint32_t)Configure::GetCachePageSize());
+      _pageId * Configure::GetCachePageSize(),
+      tmp, (uint32_t)Configure::GetCachePageSize());
   } else {
-    pageFile->WritePage(0, (char *)_bysPage,
-                        (uint32_t)Configure::GetDiskClusterSize());
+    pageFile->WritePage(0, tmp,
+      (uint32_t)Configure::GetDiskClusterSize());
   }
   _indexTree->ReleasePageFile(pageFile);
-  _bDirty = false;
 }
 } // namespace storage
