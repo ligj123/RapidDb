@@ -410,14 +410,12 @@ int LeafRecord::CompareKey(const LeafRecord& lr) const {
 }
 
 RawKey* LeafRecord::GetKey() const {
-  uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
   return new RawKey(_bysVal + _indexTree->GetKeyOffset(),
     GetKeyLength() - _indexTree->GetKeyVarLen());
 }
 
 RawKey* LeafRecord::GetPrimayKey() const {
-  uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadValueVariableFieldCount();
-  int start = GetKeyLength() + _indexTree->GetValVarLen();
+  int start = GetKeyLength() + _indexTree->GetValOffset();
   int len = GetTotalLength() - start;
   Byte* buf = CachePool::ApplyBys(len);
   memcpy(buf, _bysVal + start, len);

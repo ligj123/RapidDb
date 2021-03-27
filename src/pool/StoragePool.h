@@ -25,8 +25,7 @@ protected:
   static const uint64_t MAX_QUEUE_SIZE;
   static utils::ThreadPool _threadReadPool;
 
-  static unordered_map<uint64_t, CachePage*> _mapTmp1;
-  static unordered_map<uint64_t, CachePage*> _mapTmp2;
+  static unordered_map<uint64_t, CachePage*> _mapTmp;
   static map<uint64_t, CachePage*> _mapWrite;
   static thread* _threadWrite;
   static bool _bWriteFlush;

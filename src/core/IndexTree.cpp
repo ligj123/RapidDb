@@ -255,18 +255,11 @@ void IndexTree::GetRecords(const RawKey& key, VectorLeafRecord& vct) {
   LeafPage* page = SearchRecursively(key);
   while (true) {
     VectorLeafRecord vctLr;
-    page->GetRecords(key, vctLr);
+    bool bLast = page->GetRecords(key, vctLr);
     vct.insert(vct.end(), vctLr.begin(), vctLr.end());
+    vctLr.clear();
 
-    LeafRecord* lastLr = page->GetLastRecord();
-    if (lastLr != nullptr && lastLr->CompareKey(key) > 0) {
-      lastLr->ReleaseRecord();
-      break;
-    }
-
-    if (lastLr != nullptr) {
-      lastLr->ReleaseRecord();
-    }
+    if (!bLast) break;
 
     uint64_t nextId = page->GetNextPageId();
     if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)

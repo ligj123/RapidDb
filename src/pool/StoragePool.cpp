@@ -8,8 +8,7 @@ const uint64_t StoragePool::MAX_QUEUE_SIZE = Configure::GetTotalCacheSize() / Co
 
 utils::ThreadPool StoragePool::_threadReadPool("StoragePool", (uint32_t)MAX_QUEUE_SIZE, 1);
 
-unordered_map<uint64_t, CachePage*> StoragePool::_mapTmp1;
-unordered_map<uint64_t, CachePage*> StoragePool::_mapTmp2;
+unordered_map<uint64_t, CachePage*> StoragePool::_mapTmp;
 map<uint64_t, CachePage*> StoragePool::_mapWrite;
 thread* StoragePool::_threadWrite = StoragePool::CreateWriteThread();
 bool StoragePool::_bWriteFlush = false;
@@ -22,12 +21,13 @@ thread* StoragePool::CreateWriteThread() {
     utils::ThreadPool::_threadName = "WriteThread";
     while (true) {
       try {
-        {
+        unordered_map<uint64_t, CachePage*> mapTmp2;
+        if (_mapTmp.size() > 0) {
           unique_lock<utils::SpinMutex> lock(_spinMutex);
-          _mapTmp2.swap(_mapTmp1);
+          mapTmp2.swap(_mapTmp);
         }
 
-        for (auto iter = _mapTmp2.begin(); iter != _mapTmp2.end(); iter++) {
+        for (auto iter = mapTmp2.begin(); iter != mapTmp2.end(); iter++) {
           if (_mapWrite.find(iter->first) != _mapWrite.end()) {
             iter->second->DecRefCount();
             continue;
@@ -35,8 +35,6 @@ thread* StoragePool::CreateWriteThread() {
 
           _mapWrite.insert({ iter->first, iter->second });
         }
-
-        _mapTmp2.clear();
 
         if ((_bReadFirst && _threadReadPool.GetTaskCount() > 0) ||
           _mapWrite.size() == 0 || _bWriteSuspend) {
@@ -79,13 +77,13 @@ thread* StoragePool::CreateWriteThread() {
 void StoragePool::WriteCachePage(CachePage* page) {
   {
     lock_guard< utils::SpinMutex> lock(_spinMutex);
-    if (_mapTmp1.find(page->HashCode()) != _mapTmp1.end()) {
+    if (_mapTmp.find(page->HashCode()) != _mapTmp.end()) {
       return;
     }
 
     page->IncRefCount();
     page->UpdateWriteTime();
-    _mapTmp1.insert({ page->HashCode(), page });
+    _mapTmp.insert({ page->HashCode(), page });
   }
 
   while (_mapWrite.size() > MAX_QUEUE_SIZE * 2) {
