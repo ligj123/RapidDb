@@ -63,6 +63,11 @@ thread* PageBufferPool::CreateThread() {
 void PageBufferPool::PoolManage() {
   int64_t numDel = _mapCache.size() - _maxCacheSize;
   if (numDel <= 0) {
+    LOG_DEBUG << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()
+      << "\tPageDividePool=" << PageDividePool::GetWaitingPageSize();
+    LOG_DEBUG << "Removed page:" << 0 << "\tWaitWriteQueue:" <<
+      StoragePool::GetWaitingWriteTaskCount()
+      << "\nRefCountPage=" << 0 << "\tRefPageCount=" << 0;
     return;
   }
 

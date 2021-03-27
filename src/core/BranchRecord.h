@@ -26,7 +26,11 @@ public:
   int CompareKey(const RawRecord& other) const;
   bool EqualPageId(const BranchRecord& br) const;
 
-  inline void ReleaseRecord() { _refCount--; if (_refCount == 0) delete this; }
+  inline void ReleaseRecord() {
+    _refCount--;
+    if (_refCount == 0)
+      delete this;
+  }
   inline BranchRecord* ReferenceRecord() { _refCount++; return this; }
   uint16_t GetValueLength() const override {
     return (uint16_t)(*((uint16_t*)_bysVal) - TWO_SHORT_LEN - PAGE_ID_LEN
@@ -47,21 +51,21 @@ public:
 
 std::ostream& operator<< (std::ostream& os, const BranchRecord& br);
 
-class VectorBranchRecord : public vector<BranchRecord*> {
-public:
-  using vector::vector;
-  ~VectorBranchRecord() {
-    for (auto iter = begin(); iter != end(); iter++) {
-      (*iter)->ReleaseRecord();
-    }
-  }
-
-  void RemoveAll() {
-    for (auto iter = begin(); iter != end(); iter++) {
-      (*iter)->ReleaseRecord();
-    }
-
-    clear();
-  }
-};
+//class VectorBranchRecord : public vector<BranchRecord*> {
+//public:
+//  using vector::vector;
+//  ~VectorBranchRecord() {
+//    for (auto iter = begin(); iter != end(); iter++) {
+//      (*iter)->ReleaseRecord();
+//    }
+//  }
+//
+//  void RemoveAll() {
+//    for (auto iter = begin(); iter != end(); iter++) {
+//      (*iter)->ReleaseRecord();
+//    }
+//
+//    clear();
+//  }
+//};
 }

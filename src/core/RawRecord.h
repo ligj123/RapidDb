@@ -35,12 +35,12 @@ public:
   virtual uint16_t GetValueLength() const = 0;
 
 public:
-  static void* operator new(size_t size) {
-    return CachePool::Apply((uint32_t)size);
-  }
-  static void operator delete(void* ptr, size_t size) {
-    CachePool::Release((Byte*)ptr, (uint32_t)size);
-  }
+  //static void* operator new(size_t size) {
+  //  return CachePool::Apply((uint32_t)size);
+  //}
+  //static void operator delete(void* ptr, size_t size) {
+  //  CachePool::Release((Byte*)ptr, (uint32_t)size);
+  //}
 
 protected:
   virtual ~RawRecord() {
@@ -56,7 +56,7 @@ protected:
   /**index tree*/
   IndexTree* _indexTree;
   /**How many times this record is referenced*/
-  int32_t _refCount = 1;
+  atomic<int32_t> _refCount = 1;
   /**If this record' value is saved to solely buffer or branch page*/
   bool _bSole;
   /**Below variables only used for LeafRecord, put here to save 8 bytes memory*/

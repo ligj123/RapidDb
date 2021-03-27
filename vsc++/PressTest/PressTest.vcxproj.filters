@@ -4,6 +4,7 @@
     <ClCompile Include="..\..\presstest\InsertSpeedTest.cpp" />
     <ClCompile Include="..\..\presstest\PressTest.cpp" />
     <ClCompile Include="..\..\presstest\ArrayTest.cpp" />
+    <ClCompile Include="..\..\presstest\MultiThreadInsertSpeedTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\presstest\PressTest.h" />
