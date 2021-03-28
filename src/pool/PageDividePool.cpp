@@ -9,7 +9,6 @@ const int PageDividePool::SLEEP_INTEVAL_MS = 100;
 
 map<uint64_t, IndexPage*> PageDividePool::_mapPage;
 unordered_map<uint64_t, IndexPage*> PageDividePool::_mapTmp1;
-unordered_map<uint64_t, IndexPage*> PageDividePool::_mapTmp2;
 thread* PageDividePool::_treeDivideThread = PageDividePool::CreateThread();
 bool PageDividePool::_bSuspend = false;
 utils::SpinMutex PageDividePool::_spinMutex;
@@ -19,17 +18,18 @@ thread* PageDividePool::CreateThread() {
     utils::ThreadPool::_threadName = "PageDividePool";
 
     while (true) {
-      if (_bSuspend || (_mapPage.size() == 0 && _mapTmp1.size() == 0)) {
+      if (_bSuspend || (_mapPage.size() + _mapTmp1.size() == 0)) {
         this_thread::sleep_for(std::chrono::milliseconds(1));
         continue;
       }
 
+      unordered_map<uint64_t, IndexPage*> mapTmp2;
       {
         unique_lock< utils::SpinMutex> lock(_spinMutex);
-        _mapTmp2.swap(_mapTmp1);
+        mapTmp2.swap(_mapTmp1);
       }
 
-      for (auto iter = _mapTmp2.cbegin(); iter != _mapTmp2.cend(); iter++) {
+      for (auto iter = mapTmp2.cbegin(); iter != mapTmp2.cend(); iter++) {
         if (_mapPage.find(iter->first) != _mapPage.end()) {
           iter->second->DecRefCount();
           continue;
@@ -38,7 +38,9 @@ thread* PageDividePool::CreateThread() {
         _mapPage.insert(pair<uint64_t, IndexPage*>(iter->first, iter->second));
       }
 
-      _mapTmp2.clear();
+      if (_mapPage.size() < 1000) {
+        this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
 
       for (auto iter = _mapPage.begin(); iter != _mapPage.end(); ) {
         auto iter2 = iter++;
@@ -49,9 +51,9 @@ thread* PageDividePool::CreateThread() {
           continue;
         }
 
-        bool b = page->WriteTryLock();
+        bool b = page->TryUpdateLock();
         if (!b || page->GetRecordRefCount() > 0) {
-          if (b) page->WriteUnlock();
+          if (b) page->UpdateUnlock();
           continue;
         }
 
@@ -62,7 +64,7 @@ thread* PageDividePool::CreateThread() {
           bPassed = page->SaveRecords();
         }
 
-        page->WriteUnlock();
+        page->UpdateUnlock();
         if (bPassed) {
           page->DecRefCount();
           _mapPage.erase(iter2);

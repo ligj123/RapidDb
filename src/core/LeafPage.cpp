@@ -82,8 +82,8 @@ bool LeafPage::SaveRecords() {
       index++;
     }
 
+    unique_lock<utils::ReentrantSharedSpinMutex> lock(_rwLock);
     CleanRecord();
-
     _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
     CachePool::ReleasePage(tmp);
   }
@@ -101,9 +101,6 @@ bool LeafPage::SaveRecords() {
 }
 
 utils::ErrorMsg* LeafPage::InsertRecord(LeafRecord* lr, int32_t pos) {
-  if (_recordNum > 0 && _vctRecord.size() == 0) {
-    LoadRecords();
-  }
 
   bool bUnique =
     (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
@@ -116,18 +113,27 @@ utils::ErrorMsg* LeafPage::InsertRecord(LeafRecord* lr, int32_t pos) {
     }
 
     if (bFind) {
+      UpdateUnlock();
       return new utils::ErrorMsg(CORE_REPEATED_RECORD, {});
     }
   } else if (pos > _recordNum) {
     pos = _recordNum;
   }
 
-  _totalDataLength += lr->GetTotalLength() + sizeof(uint16_t);
-  lr->SetParentPage(this);
-  _vctRecord.insert(_vctRecord.begin() + pos, lr);
-  _recordNum++;
-  _bDirty = true;
-  _bRecordUpdate = true;
+  {
+    unique_lock<utils::ReentrantSharedSpinMutex> lock(_rwLock);
+    if (_recordNum > 0 && _vctRecord.size() == 0) {
+      LoadRecords();
+    }
+    _totalDataLength += lr->GetTotalLength() + sizeof(uint16_t);
+    lr->SetParentPage(this);
+    _vctRecord.insert(_vctRecord.begin() + pos, lr);
+    _recordNum++;
+    _bDirty = true;
+    _bRecordUpdate = true;
+    UpdateUnlock();
+  }
+
   _indexTree->GetHeadPage()->GetAndIncTotalRecordCount();
   PageDividePool::AddCachePage(this);
 
@@ -468,28 +474,23 @@ int LeafPage::CompareTo(uint32_t recPos, const RawKey& key) {
 
   return utils::BytesCompare(
     _bysPage + start + _indexTree->GetKeyOffset(),
-    lenKey - _indexTree->GetKeyVarLen(), key.GetBysVal(), key.GetLength());
+    ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
+    key.GetBysVal(), key.GetLength());
 }
 
 int LeafPage::CompareTo(uint32_t recPos, const LeafRecord& rr, bool key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
-  uint16_t lenKey = ReadShort(start + SHORT_LEN);
 
-  int hr =
-    utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-      lenKey - _indexTree->GetKeyVarLen(),
+  if (key) {
+    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+      ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
       rr.GetBysValue() + _indexTree->GetKeyOffset(),
       rr.GetKeyLength() - _indexTree->GetKeyVarLen());
-  if (hr != 0 || key) {
-    return hr;
+  } else {
+    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+      ReadShort(start) - _indexTree->GetKeyOffset(),
+      rr.GetBysValue() + _indexTree->GetKeyOffset(),
+      rr.GetTotalLength() - _indexTree->GetKeyOffset());
   }
-
-  uint16_t lenTotal = ReadShort(start);
-  uint16_t lenVal = lenTotal - lenKey - TWO_SHORT_LEN;
-  return utils::BytesCompare(
-    _bysPage + start + lenKey + _indexTree->GetKeyOffset(),
-    lenVal - _indexTree->GetKeyVarLen(),
-    rr.GetBysValue() + rr.GetKeyLength() + _indexTree->GetKeyOffset(),
-    rr.GetValueLength() - _indexTree->GetKeyVarLen());
 }
 } // namespace storage

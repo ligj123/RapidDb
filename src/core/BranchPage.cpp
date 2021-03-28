@@ -57,10 +57,10 @@ bool BranchPage::SaveRecords() {
       WriteShort(DATA_BEGIN_OFFSET + sizeof(uint16_t) * i, pos);
       BranchRecord* rr = (BranchRecord*)_vctRecord[i];
       pos += rr->SaveData(_bysPage + pos);
-      rr->ReleaseRecord();
     }
 
-    _vctRecord.clear();
+    unique_lock<utils::ReentrantSharedSpinMutex> lock(_rwLock);
+    CleanRecords();
     _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
     CachePool::ReleasePage(tmp);
   }
@@ -232,34 +232,25 @@ int32_t BranchPage::SearchKey(const RawKey& key, bool& bFind) const {
 
 int BranchPage::CompareTo(uint32_t recPos, const BranchRecord& rr) const {
   uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
-  uint32_t lenKey = ReadShort(start + SHORT_LEN);
-
-  int rt = utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-    lenKey - _indexTree->GetKeyVarLen(),
-    rr.GetBysValue() + _indexTree->GetKeyOffset(),
-    rr.GetKeyLength() - _indexTree->GetKeyVarLen());
-
-  if (rt != 0) {
-    return rt;
-  }
 
   if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
-    return 0;
+    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+      ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
+      rr.GetBysValue() + _indexTree->GetKeyOffset(),
+      rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+  } else {
+    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+      ReadShort(start) - _indexTree->GetKeyOffset(),
+      rr.GetBysValue() + _indexTree->GetKeyOffset(),
+      rr.GetTotalLength() - _indexTree->GetKeyOffset());
   }
-
-  int lenTotal = ReadShort(start);
-  int lenVal = lenTotal - lenKey - BranchRecord::PAGE_ID_LEN - TWO_SHORT_LEN;
-  return utils::BytesCompare(_bysPage + start + lenKey + TWO_SHORT_LEN, lenVal,
-    rr.GetBysValue() + rr.GetKeyLength() + TWO_SHORT_LEN, rr.GetValueLength());
 }
 
 int BranchPage::CompareTo(uint32_t recPos, const RawKey& key) const {
-  uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
   uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
-  uint32_t lenKey = ReadShort(start + SHORT_LEN);
 
   return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-    lenKey - _indexTree->GetKeyVarLen(),
+    ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
     key.GetBysVal(), key.GetLength());
 }
 

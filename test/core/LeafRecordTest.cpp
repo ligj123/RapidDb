@@ -280,8 +280,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Block_test)
   delete dvKey;
   delete dvVal1;
   delete dvVal2;
-  rr->ReleaseRecord();
-  rr2->ReleaseRecord();
+  //rr->ReleaseRecord();
+  //rr2->ReleaseRecord();
   rr3->ReleaseRecord();
   rr4->ReleaseRecord();
   indexTree->Close(true);
@@ -406,10 +406,10 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Snapshot_test)
   delete dvKey;
   delete dvVal1;
   delete dvVal2;
-  rr->ReleaseRecord();
-  rr2->ReleaseRecord();
-  rr3->ReleaseRecord();
-  rr4->ReleaseRecord();
+  //rr->ReleaseRecord();
+  //rr2->ReleaseRecord();
+  //rr3->ReleaseRecord();
+  //rr4->ReleaseRecord();
   indexTree->Close(true);
 
   fs::remove(fs::path(FILE_NAME));

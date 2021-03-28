@@ -21,9 +21,9 @@ public:
   RawKey* GetKey() const;
   void GetListKey(VectorDataValue& vct) const;
   void GetListValue(VectorDataValue& vct) const;
-  int CompareTo(const RawRecord& other) const;
+  int CompareTo(const BranchRecord& br) const;
   int CompareKey(const RawKey& key) const;
-  int CompareKey(const RawRecord& other) const;
+  int CompareTo(const RawRecord* rr) const;
   bool EqualPageId(const BranchRecord& br) const;
 
   inline void ReleaseRecord() {
@@ -40,6 +40,7 @@ public:
   uint64_t GetChildPageId() const {
     return *((uint64_t*)(_bysVal + GetTotalLength() - PAGE_ID_LEN));
   }
+
   uint16_t SaveData(Byte* bysPage) {
     uint16_t len = GetTotalLength();
     std::memcpy(bysPage, _bysVal, len);

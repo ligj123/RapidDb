@@ -169,12 +169,6 @@ utils::ErrorMsg* IndexTree::InsertRecord(LeafRecord* rr) {
   LeafPage* page = SearchRecursively(*rr);
   utils::ErrorMsg* err = page->InsertRecord(rr);
 
-  if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 3U) {
-    page->PageDivide();
-    //page->clear();
-  }
-
-  page->WriteUnlock();
   page->DecRefCount();
   return err;
 }
@@ -429,23 +423,20 @@ LeafPage* IndexTree::SearchRecursively(const RawKey& key) {
 LeafPage* IndexTree::SearchRecursively(const LeafRecord& lr) {
   IndexPage* page = nullptr;
   while (true) {
-    {
-      std::shared_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
-      bool b = false;
-      if (typeid(*_rootPage) == typeid(LeafPage)) {
-        b = _rootPage->WriteTryLock();
-      } else {
-        b = _rootPage->ReadTryLock();
-      }
+    bool b = false;
+    if (typeid(*_rootPage) == typeid(LeafPage)) {
+      b = _rootPage->TryUpdateLock();
+    } else {
+      b = _rootPage->ReadTryLock();
+    }
 
-      if (b) {
-        page = _rootPage;
-        page->IncRefCount();
-        if (typeid(*page) == typeid(LeafPage))
-          return (LeafPage*)page;
-        else
-          break;
-      }
+    if (b) {
+      page = _rootPage;
+      page->IncRefCount();
+      if (typeid(*page) == typeid(LeafPage))
+        return (LeafPage*)page;
+      else
+        break;
     }
 
     std::this_thread::yield();
@@ -469,7 +460,7 @@ LeafPage* IndexTree::SearchRecursively(const LeafRecord& lr) {
     assert(childPage != nullptr);
 
     if (typeid(*childPage) == typeid(LeafPage)) {
-      childPage->WriteLock();
+      childPage->UpdateLock();
     } else {
       childPage->ReadLock();
     }

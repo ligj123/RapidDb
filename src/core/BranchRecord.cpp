@@ -69,18 +69,11 @@ void BranchRecord::GetListValue(VectorDataValue& vct) const {
   }
 }
 
-int BranchRecord::CompareTo(const RawRecord& other) const {
-  BranchRecord& br = (BranchRecord&)other;
-  int rt = utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-    GetKeyLength() - _indexTree->GetKeyVarLen(),
+int BranchRecord::CompareTo(const BranchRecord& br) const {
+  return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+    GetTotalLength() - _indexTree->GetKeyOffset(),
     br._bysVal + _indexTree->GetKeyOffset(),
-    br.GetKeyLength() - _indexTree->GetKeyVarLen());
-  if (rt != 0) return rt;
-
-  if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) return 0;
-
-  return utils::BytesCompare(_bysVal + GetKeyLength() + TWO_SHORT_LEN, GetValueLength(),
-    br._bysVal + br.GetKeyLength() + TWO_SHORT_LEN, br.GetValueLength());
+    br.GetTotalLength() - _indexTree->GetKeyOffset());
 }
 
 int BranchRecord::CompareKey(const RawKey& key) const {
@@ -89,16 +82,16 @@ int BranchRecord::CompareKey(const RawKey& key) const {
     key.GetBysVal(), key.GetLength());
 }
 
-int BranchRecord::CompareKey(const RawRecord& other) const {
+int BranchRecord::CompareTo(const RawRecord* rr) const {
   return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-    GetKeyLength() - _indexTree->GetKeyVarLen(),
-    other.GetBysValue() + _indexTree->GetKeyOffset(),
-    other.GetKeyLength() - _indexTree->GetKeyVarLen());
+    GetTotalLength() - _indexTree->GetKeyVarLen(),
+    rr->GetBysValue() + _indexTree->GetKeyOffset(),
+    rr->GetTotalLength() - _indexTree->GetKeyVarLen());
 }
 
 bool BranchRecord::EqualPageId(const BranchRecord& br) const {
-  return (utils::BytesCompare(_bysVal + GetKeyLength() + GetValueLength() + TWO_SHORT_LEN, sizeof(uint64_t),
-    br._bysVal + br.GetKeyLength() + br.GetValueLength() + TWO_SHORT_LEN, sizeof(uint64_t)) == 0);
+  return (utils::BytesCompare(_bysVal + GetTotalLength() - sizeof(uint64_t), sizeof(uint64_t),
+    br._bysVal + br.GetTotalLength() - sizeof(uint64_t), sizeof(uint64_t)) == 0);
 }
 
 std::ostream& operator<< (std::ostream& os, const BranchRecord& br) {

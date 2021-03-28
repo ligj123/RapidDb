@@ -35,12 +35,12 @@ public:
   virtual uint16_t GetValueLength() const = 0;
 
 public:
-  //static void* operator new(size_t size) {
-  //  return CachePool::Apply((uint32_t)size);
-  //}
-  //static void operator delete(void* ptr, size_t size) {
-  //  CachePool::Release((Byte*)ptr, (uint32_t)size);
-  //}
+  static void* operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void* ptr, size_t size) {
+    CachePool::Release((Byte*)ptr, (uint32_t)size);
+  }
 
 protected:
   virtual ~RawRecord() {

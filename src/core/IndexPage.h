@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "CachePage.h"
 #include "IndexType.h"
 #include "RawRecord.h"
@@ -14,14 +14,15 @@ public:
   static const uint16_t PARENT_PAGE_POINTER_OFFSET;
 
 public:
-  IndexPage(IndexTree *indexTree, uint64_t pageId);
-  IndexPage(IndexTree *indexTree, uint64_t pageId, uint8_t pageLevel,
-            uint64_t parentPageId);
+  IndexPage(IndexTree* indexTree, uint64_t pageId);
+  IndexPage(IndexTree* indexTree, uint64_t pageId, uint8_t pageLevel,
+    uint64_t parentPageId);
   ~IndexPage();
 
   bool PageDivide();
   inline bool IsOverlength() {
-    return _totalDataLength > Configure::GetCachePageSize() * 3;
+    static int32_t max_len = (int32_t)Configure::GetCachePageSize() * 3;
+    return _totalDataLength > max_len;
   }
   inline void SetParentPageID(uint64_t parentPageId) {
     _parentPageId = parentPageId;
@@ -42,13 +43,17 @@ public:
   }
   inline int32_t GetRecordRefCount() { return _recordRefCount; }
   inline int32_t GetRecordNum() { return _recordNum; }
+  inline bool TryUpdateLock() { return _updateLock.try_lock(); }
+  inline void UpdateLock() { _updateLock.lock(); }
+  inline void UpdateUnlock() { _updateLock.unlock(); }
 
   virtual void Init();
   virtual uint16_t GetMaxDataLength() const = 0;
   virtual bool SaveRecords() = 0;
 
 protected:
-  vector<RawRecord *> _vctRecord;
+  utils::SpinMutex _updateLock;
+  vector<RawRecord*> _vctRecord;
   uint64_t _parentPageId = 0;
   uint64_t _dtPageLastUpdate = 0;
   int32_t _totalDataLength = 0;
