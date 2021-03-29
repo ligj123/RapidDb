@@ -14,8 +14,8 @@ void InsertSpeedPrimaryTest(uint64_t row_count) {
     "./dbTest/testInsertSpeedPrimary" + utils::StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
-  //PageDividePool::SetThreadStatus(true);
-  //StoragePool::SetWriteSuspend(true);
+  PageDividePool::SetThreadStatus(true);
+  StoragePool::SetWriteSuspend(true);
   if (row_count < 1000)
     row_count = 10000000;
 

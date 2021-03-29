@@ -8,8 +8,7 @@ const uint32_t PageDividePool::BUFFER_FLUSH_INTEVAL_MS = 1 * 1000;
 const int PageDividePool::SLEEP_INTEVAL_MS = 100;
 
 map<uint64_t, IndexPage*> PageDividePool::_mapPage;
-unordered_map<uint64_t, IndexPage*> PageDividePool::_mapTmp1;
-unordered_map<uint64_t, IndexPage*> PageDividePool::_mapTmp2;
+unordered_map<uint64_t, IndexPage*> PageDividePool::_mapTmp;
 thread* PageDividePool::_treeDivideThread = PageDividePool::CreateThread();
 bool PageDividePool::_bSuspend = false;
 utils::SpinMutex PageDividePool::_spinMutex;
@@ -17,19 +16,21 @@ utils::SpinMutex PageDividePool::_spinMutex;
 thread* PageDividePool::CreateThread() {
   thread* t = new thread([]() {
     utils::ThreadPool::_threadName = "PageDividePool";
+    _mapTmp.reserve(100000);
 
     while (true) {
-      if (_bSuspend || (_mapPage.size() == 0 && _mapTmp1.size() == 0)) {
+      if (_bSuspend || (_mapPage.size() == 0 && _mapTmp.size() == 0)) {
         this_thread::sleep_for(std::chrono::milliseconds(1));
         continue;
       }
 
+      unordered_map<uint64_t, IndexPage*> mapTmp;
       {
         unique_lock< utils::SpinMutex> lock(_spinMutex);
-        _mapTmp2.swap(_mapTmp1);
+        _mapTmp.swap(mapTmp);
       }
 
-      for (auto iter = _mapTmp2.cbegin(); iter != _mapTmp2.cend(); iter++) {
+      for (auto iter = mapTmp.cbegin(); iter != mapTmp.cend(); iter++) {
         if (_mapPage.find(iter->first) != _mapPage.end()) {
           iter->second->DecRefCount();
           continue;
@@ -38,7 +39,9 @@ thread* PageDividePool::CreateThread() {
         _mapPage.insert(pair<uint64_t, IndexPage*>(iter->first, iter->second));
       }
 
-      _mapTmp2.clear();
+      if (_mapPage.size() < 1000) {
+        this_thread::sleep_for(std::chrono::milliseconds(10));
+      }
 
       for (auto iter = _mapPage.begin(); iter != _mapPage.end(); ) {
         auto iter2 = iter++;
@@ -75,12 +78,12 @@ thread* PageDividePool::CreateThread() {
 
 void PageDividePool::AddCachePage(IndexPage* page) {
   lock_guard<utils::SpinMutex> lock(_spinMutex);
-  if (_mapTmp1.find(page->GetPageId()) != _mapTmp1.end()) {
+  if (_mapTmp.find(page->GetPageId()) != _mapTmp.end()) {
     return;
   }
 
   page->IncRefCount();
   page->SetPageLastUpdateTime();
-  _mapTmp1.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
+  _mapTmp.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
 }
 }

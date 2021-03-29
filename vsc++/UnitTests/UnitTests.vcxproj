@@ -41,7 +41,6 @@
     <ClCompile Include="..\..\test\dataType\DataValueVarCharTest.cpp" />
     <ClCompile Include="..\..\test\file\PageFileTest.cpp" />
     <ClCompile Include="..\..\test\pool\StoragePoolTest.cpp" />
-    <ClCompile Include="..\..\test\presstest\InsertSpeedTest.cpp" />
     <ClCompile Include="..\..\test\TestMain.cpp" />
     <ClCompile Include="..\..\test\utils\CharsetConvertTest.cpp" />
     <ClCompile Include="..\..\test\utils\ErrorMsgTest.cpp" />

@@ -151,22 +151,10 @@ bool BranchPage::RecordExist(const RawKey& key) const {
 }
 
 int32_t BranchPage::SearchRecord(const BranchRecord& rr, bool& bFind) const {
-  if (_recordNum == 0) {
-    bFind = false;
-    return 0;
-  }
-
   bFind = true;
   int32_t start = 0;
   int32_t end = _recordNum - 1;
-  int hr = (_vctRecord.size() > 0 ? GetVctRecord(end)->CompareTo(rr) : CompareTo(end, rr));
-  if (hr == 0) return end;
-  else if (hr < 0) {
-    bFind = false;
-    return end + 1;
-  }
 
-  end--;
   while (true) {
     if (start > end) {
       bFind = false;
@@ -174,7 +162,7 @@ int32_t BranchPage::SearchRecord(const BranchRecord& rr, bool& bFind) const {
     }
 
     int middle = (start + end) / 2;
-    hr = (_vctRecord.size() > 0 ? GetVctRecord(middle)->CompareTo(rr) : CompareTo(middle, rr));
+    int hr = (_vctRecord.size() > 0 ? GetVctRecord(middle)->CompareTo(rr) : CompareTo(middle, rr));
     if (hr < 0) {
       start = middle + 1;
     } else if (hr > 0) {
@@ -186,25 +174,9 @@ int32_t BranchPage::SearchRecord(const BranchRecord& rr, bool& bFind) const {
 }
 
 int32_t BranchPage::SearchKey(const RawKey& key, bool& bFind) const {
-  if (_recordNum == 0) {
-    bFind = false;
-    return 0;
-  }
-
   bool bUnique = (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
   int32_t start = 0;
   int32_t end = _recordNum - 1;
-  int hr = (_vctRecord.size() > 0 ? GetVctRecord(end)->CompareKey(key) : CompareTo(end, key));
-  if (hr < 0) {
-    bFind = false;
-    return end + 1;
-  }
-  if (hr == 0 && bUnique) {
-    bFind = true;
-    return end;
-  }
-
-  end--;
   bFind = true;
 
   while (true) {
@@ -214,7 +186,7 @@ int32_t BranchPage::SearchKey(const RawKey& key, bool& bFind) const {
     }
 
     int32_t middle = (start + end) / 2;
-    hr = (_vctRecord.size() > 0 ? GetVctRecord(middle)->CompareKey(key) : CompareTo(middle, key));
+    int hr = (_vctRecord.size() > 0 ? GetVctRecord(middle)->CompareKey(key) : CompareTo(middle, key));
     if (hr < 0) {
       start = middle + 1;
     } else if (hr > 0) {
@@ -234,32 +206,24 @@ int BranchPage::CompareTo(uint32_t recPos, const BranchRecord& rr) const {
   uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
   uint32_t lenKey = ReadShort(start + SHORT_LEN);
 
-  int rt = utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-    lenKey - _indexTree->GetKeyVarLen(),
-    rr.GetBysValue() + _indexTree->GetKeyOffset(),
-    rr.GetKeyLength() - _indexTree->GetKeyVarLen());
-
-  if (rt != 0) {
-    return rt;
-  }
-
   if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
-    return 0;
+    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+      ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
+      rr.GetBysValue() + _indexTree->GetKeyOffset(),
+      rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+  } else {
+    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+      ReadShort(start) - _indexTree->GetKeyOffset(),
+      rr.GetBysValue() + _indexTree->GetKeyOffset(),
+      rr.GetTotalLength() - _indexTree->GetKeyOffset());
   }
-
-  int lenTotal = ReadShort(start);
-  int lenVal = lenTotal - lenKey - BranchRecord::PAGE_ID_LEN - TWO_SHORT_LEN;
-  return utils::BytesCompare(_bysPage + start + lenKey + TWO_SHORT_LEN, lenVal,
-    rr.GetBysValue() + rr.GetKeyLength() + TWO_SHORT_LEN, rr.GetValueLength());
 }
 
 int BranchPage::CompareTo(uint32_t recPos, const RawKey& key) const {
-  uint16_t keyVarNum = _indexTree->GetHeadPage()->ReadKeyVariableFieldCount();
   uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
-  uint32_t lenKey = ReadShort(start + SHORT_LEN);
 
   return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-    lenKey - _indexTree->GetKeyVarLen(),
+    ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
     key.GetBysVal(), key.GetLength());
 }
 

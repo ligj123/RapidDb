@@ -69,18 +69,18 @@ void BranchRecord::GetListValue(VectorDataValue& vct) const {
   }
 }
 
-int BranchRecord::CompareTo(const RawRecord& other) const {
-  BranchRecord& br = (BranchRecord&)other;
-  int rt = utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-    GetKeyLength() - _indexTree->GetKeyVarLen(),
-    br._bysVal + _indexTree->GetKeyOffset(),
-    br.GetKeyLength() - _indexTree->GetKeyVarLen());
-  if (rt != 0) return rt;
-
-  if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) return 0;
-
-  return utils::BytesCompare(_bysVal + GetKeyLength() + TWO_SHORT_LEN, GetValueLength(),
-    br._bysVal + br.GetKeyLength() + TWO_SHORT_LEN, br.GetValueLength());
+int BranchRecord::CompareTo(const RawRecord& rr) const {
+  if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
+    return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+      GetKeyLength() - _indexTree->GetKeyVarLen(),
+      rr.GetBysValue() + _indexTree->GetKeyOffset(),
+      rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+  } else {
+    return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+      GetTotalLength() - _indexTree->GetKeyOffset(),
+      rr.GetBysValue() + _indexTree->GetKeyOffset(),
+      rr.GetTotalLength() - _indexTree->GetKeyOffset());
+  }
 }
 
 int BranchRecord::CompareKey(const RawKey& key) const {
@@ -89,11 +89,11 @@ int BranchRecord::CompareKey(const RawKey& key) const {
     key.GetBysVal(), key.GetLength());
 }
 
-int BranchRecord::CompareKey(const RawRecord& other) const {
+int BranchRecord::CompareKey(const RawRecord& rr) const {
   return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
     GetKeyLength() - _indexTree->GetKeyVarLen(),
-    other.GetBysValue() + _indexTree->GetKeyOffset(),
-    other.GetKeyLength() - _indexTree->GetKeyVarLen());
+    rr.GetBysValue() + _indexTree->GetKeyOffset(),
+    rr.GetKeyLength() - _indexTree->GetKeyVarLen());
 }
 
 bool BranchRecord::EqualPageId(const BranchRecord& br) const {

@@ -57,7 +57,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
 
         if (i % 1000000 == 0) {
           uint64_t dt = utils::MSTime();
-          LOG_INFO << "i=" << i << "\tTotal Time=" << (dt - dtStart)
+          std::cout << "i=" << i << "\tTotal Time=" << (dt - dtStart)
             << "\tGap Time=" << (dt - dtPrev) << endl;
           dtPrev = dt;
         }

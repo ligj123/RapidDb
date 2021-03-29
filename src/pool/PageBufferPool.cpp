@@ -63,11 +63,9 @@ thread* PageBufferPool::CreateThread() {
 void PageBufferPool::PoolManage() {
   int64_t numDel = _mapCache.size() - _maxCacheSize;
   if (numDel <= 0) {
-    LOG_DEBUG << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()
-      << "\tPageDividePool=" << PageDividePool::GetWaitingPageSize();
-    LOG_DEBUG << "Removed page:" << 0 << "\tWaitWriteQueue:" <<
-      StoragePool::GetWaitingWriteTaskCount()
-      << "\nRefCountPage=" << 0 << "\tRefPageCount=" << 0;
+    //LOG_INFO << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()
+    //  << "\tPageDividePool=" << PageDividePool::GetWaitingPageSize();
+    //LOG_INFO << "\tWaitWriteQueue:" << StoragePool::GetWaitingWriteTaskCount();
     return;
   }
 
@@ -128,10 +126,10 @@ void PageBufferPool::PoolManage() {
   }
   _rwLock.unlock();
 
-  LOG_DEBUG << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()
+  LOG_INFO << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()
     << "\tPageDividePool=" << PageDividePool::GetWaitingPageSize();
-  LOG_DEBUG << "Removed page:" << delCount << "\tWaitWriteQueue:" <<
+  LOG_INFO << "Removed page:" << delCount << "\tWaitWriteQueue:" <<
     StoragePool::GetWaitingWriteTaskCount()
-    << "\nRefCountPage=" << refCountPage << "\tRefPageCount=" << refPageCount;
+    << "\tRefCountPage=" << refCountPage << "\tRefPageCount=" << refPageCount;
 }
 }

@@ -24,8 +24,7 @@ public:
 
 protected:
   static map<uint64_t, IndexPage*> _mapPage;
-  static unordered_map<uint64_t, IndexPage*> _mapTmp1;
-  static unordered_map<uint64_t, IndexPage*> _mapTmp2;
+  static unordered_map<uint64_t, IndexPage*> _mapTmp;
 
   static thread* _treeDivideThread;
   static bool _bSuspend;

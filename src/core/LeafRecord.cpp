@@ -380,19 +380,10 @@ void LeafRecord::GetListOverflow(VectorDataValue& vctVal) const {
 }
 
 int LeafRecord::CompareTo(const LeafRecord& lr) const {
-  int rt =
-    utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-      GetKeyLength() - _indexTree->GetKeyVarLen(),
-      lr._bysVal + _indexTree->GetKeyOffset(),
-      lr.GetKeyLength() - _indexTree->GetKeyVarLen());
-  if (rt != 0) {
-    return rt;
-  }
-
-  return utils::BytesCompare(
-    _bysVal + GetKeyLength() + TWO_SHORT_LEN, GetValueLength(),
-    lr._bysVal + lr.GetKeyLength() + TWO_SHORT_LEN,
-    lr.GetValueLength());
+  return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+    GetTotalLength() - _indexTree->GetKeyOffset(),
+    lr._bysVal + _indexTree->GetKeyOffset(),
+    lr.GetTotalLength() - _indexTree->GetKeyOffset());
 }
 
 int LeafRecord::CompareKey(const RawKey& key) const {
@@ -404,8 +395,7 @@ int LeafRecord::CompareKey(const RawKey& key) const {
 int LeafRecord::CompareKey(const LeafRecord& lr) const {
   return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
     GetKeyLength() - _indexTree->GetKeyVarLen(),
-    lr.GetBysValue() +
-    _indexTree->GetKeyOffset(),
+    lr.GetBysValue() + _indexTree->GetKeyOffset(),
     lr.GetKeyLength() - _indexTree->GetKeyVarLen());
 }
 

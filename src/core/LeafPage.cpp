@@ -218,24 +218,10 @@ bool LeafPage::GetRecords(const RawKey& key, VectorLeafRecord& vct,
 
 int32_t LeafPage::SearchRecord(const LeafRecord& rr, bool& bFind, bool bInc,
   int32_t start, int32_t end) {
-  if (_recordNum == 0) {
-    bFind = false;
-    return 0;
-  }
-
   if (end >= _recordNum)
     end = _recordNum - 1;
   bFind = true;
-  int hr = (_vctRecord.size() > 0 ? GetVctRecord(end)->CompareTo(rr)
-    : CompareTo(end, rr, false));
-  if (hr < 0) {
-    bFind = false;
-    return end + 1;
-  } else if (hr == 0) {
-    return bInc ? end : end + 1;
-  } else {
-    end--;
-  }
+  int hr;
 
   while (true) {
     if (start > end) {
@@ -262,33 +248,11 @@ int32_t LeafPage::SearchRecord(const LeafRecord& rr, bool& bFind, bool bInc,
 
 int32_t LeafPage::SearchKey(const RawKey& key, bool& bFind, bool bInc,
   int32_t start, int32_t end) {
-  if (_recordNum == 0) {
-    bFind = false;
-    return 0;
-  }
-
   if (end >= _recordNum)
     end = _recordNum - 1;
   bFind = true;
   bool bUnique =
     (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
-  if (bUnique) {
-    int hr = 0;
-    if (_vctRecord.size() > 0) {
-      hr = GetVctRecord(end)->CompareKey(key);
-    } else {
-      hr = CompareTo(end, key);
-    }
-
-    if (hr < 0) {
-      bFind = false;
-      return end + 1;
-    } else if (hr == 0) {
-      return bInc ? end : end + 1;
-    } else {
-      end--;
-    }
-  }
 
   while (true) {
     if (start > end) {
@@ -338,33 +302,11 @@ int32_t LeafPage::SearchKey(const RawKey& key, bool& bFind, bool bInc,
 
 int32_t LeafPage::SearchKey(const LeafRecord& rr, bool& bFind, bool bInc,
   int32_t start, int32_t end) {
-  if (_recordNum == 0) {
-    bFind = false;
-    return 0;
-  }
-
   if (end >= _recordNum)
     end = _recordNum - 1;
   bFind = true;
   bool bUnique =
     (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
-  if (bUnique) {
-    int hr = 0;
-    if (_vctRecord.size() > 0) {
-      hr = GetVctRecord(end)->CompareKey(rr);
-    } else {
-      hr = CompareTo(end, rr, true);
-    }
-
-    if (hr < 0) {
-      bFind = false;
-      return end + 1;
-    } else if (hr == 0) {
-      return bInc ? end : end + 1;
-    } else {
-      end--;
-    }
-  }
 
   while (true) {
     if (start > end) {
@@ -464,32 +406,24 @@ bool LeafPage::FetchRecords(const RawKey* startKey, const RawKey* endKey,
 
 int LeafPage::CompareTo(uint32_t recPos, const RawKey& key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
-  uint16_t lenKey = ReadShort(start + SHORT_LEN);
-
   return utils::BytesCompare(
     _bysPage + start + _indexTree->GetKeyOffset(),
-    lenKey - _indexTree->GetKeyVarLen(), key.GetBysVal(), key.GetLength());
+    ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
+    key.GetBysVal(), key.GetLength());
 }
 
 int LeafPage::CompareTo(uint32_t recPos, const LeafRecord& rr, bool key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
-  uint16_t lenKey = ReadShort(start + SHORT_LEN);
-
-  int hr =
-    utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-      lenKey - _indexTree->GetKeyVarLen(),
+  if (key) {
+    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+      ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
       rr.GetBysValue() + _indexTree->GetKeyOffset(),
       rr.GetKeyLength() - _indexTree->GetKeyVarLen());
-  if (hr != 0 || key) {
-    return hr;
+  } else {
+    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+      ReadShort(start) - _indexTree->GetKeyOffset(),
+      rr.GetBysValue() + _indexTree->GetKeyOffset(),
+      rr.GetTotalLength() - _indexTree->GetKeyOffset());
   }
-
-  uint16_t lenTotal = ReadShort(start);
-  uint16_t lenVal = lenTotal - lenKey - TWO_SHORT_LEN;
-  return utils::BytesCompare(
-    _bysPage + start + lenKey + _indexTree->GetKeyOffset(),
-    lenVal - _indexTree->GetKeyVarLen(),
-    rr.GetBysValue() + rr.GetKeyLength() + _indexTree->GetKeyOffset(),
-    rr.GetValueLength() - _indexTree->GetKeyVarLen());
 }
 } // namespace storage

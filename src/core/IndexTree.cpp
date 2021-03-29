@@ -9,6 +9,7 @@
 #include "LeafPage.h"
 
 namespace storage {
+double IndexTree::g_divDura = 0;
 unordered_set<uint16_t> IndexTree::_setFiledId;
 uint16_t IndexTree::_currFiledId = 0;
 utils::SpinMutex IndexTree::_spinMutex;

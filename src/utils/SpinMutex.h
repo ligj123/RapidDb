@@ -2,15 +2,15 @@
 #include <atomic>
 #include <cassert>
 #include <thread>
+#include <sstream>
 
 namespace utils {
-static std::hash<std::thread::id> thread_hasher;
-static thread_local size_t g_threadId = 0;
-static inline size_t get_thread_hash() {
-  if (g_threadId == 0)
-    g_threadId = thread_hasher(std::this_thread::get_id());
-  return g_threadId;
+static inline size_t get_thread_id() {
+  std::stringstream ss;
+  ss << std::this_thread::get_id();
+  return atoi(ss.str().c_str());
 }
+static thread_local size_t g_threadId = get_thread_id();
 
 class SpinMutex {
 public:
@@ -22,19 +22,19 @@ public:
       std::this_thread::yield();
     }
 
-    _owner = get_thread_hash();
+    _owner = g_threadId;
   }
 
   inline bool try_lock() noexcept {
     bool b = !_flag.load(std::memory_order_relaxed) &&
       !_flag.exchange(true, std::memory_order_acquire);
     if (b)
-      _owner = get_thread_hash();
+      _owner = g_threadId;
     return b;
   }
 
   inline void unlock() noexcept {
-    assert(_owner == get_thread_hash());
+    assert(_owner == g_threadId);
     _owner = 0;
     _flag.store(false, std::memory_order_release);
   }
@@ -65,7 +65,7 @@ public:
       std::this_thread::yield();
     }
 
-    _owner = get_thread_hash();
+    _owner = g_threadId;
   }
 
   inline bool try_lock() noexcept {
@@ -76,7 +76,7 @@ public:
         return false;
       }
 
-      _owner = get_thread_hash();
+      _owner = g_threadId;
       return true;
     }
 
@@ -84,7 +84,7 @@ public:
   }
 
   void unlock() noexcept {
-    assert(_owner == get_thread_hash());
+    assert(_owner == g_threadId);
     _owner = 0;
     _writeFlag.store(false, std::memory_order_release);
   }
@@ -145,7 +145,7 @@ public:
   ReentrantSpinMutex& operator=(const ReentrantSpinMutex&) = delete;
 
   inline void lock() noexcept {
-    if (_owner == get_thread_hash()) {
+    if (_owner == g_threadId) {
       _reenCount++;
       return;
     }
@@ -155,12 +155,12 @@ public:
     }
 
     assert(_reenCount == 0 && _owner == 0);
-    _owner = get_thread_hash();
+    _owner = g_threadId;
     _reenCount = 1;
   }
 
   bool try_lock() noexcept {
-    size_t currId = get_thread_hash();
+    size_t currId = g_threadId;
     if (_owner == currId) {
       _reenCount++;
       return true;
@@ -178,7 +178,7 @@ public:
   }
 
   inline void unlock() noexcept {
-    assert(_owner == get_thread_hash());
+    assert(_owner == g_threadId);
     _reenCount--;
     if (_reenCount == 0) {
       _owner = 0;
@@ -206,7 +206,7 @@ public:
     operator=(const ReentrantSharedSpinMutex&) = delete;
 
   inline void lock() noexcept {
-    size_t currId = get_thread_hash();
+    size_t currId = g_threadId;
     if (_owner == currId) {
       assert(_reenCount > 0);
       _reenCount++;
@@ -227,7 +227,7 @@ public:
   }
 
   inline bool try_lock() noexcept {
-    size_t currId = get_thread_hash();
+    size_t currId = g_threadId;
     if (_owner == currId) {
       assert(_reenCount > 0);
       _reenCount++;
@@ -251,7 +251,7 @@ public:
   }
 
   void unlock() noexcept {
-    assert(_owner == get_thread_hash());
+    assert(_owner == g_threadId);
     _reenCount--;
     if (_reenCount == 0) {
       _owner = 0;
@@ -309,4 +309,151 @@ protected:
   size_t _owner = 0;
   int32_t _reenCount = 0;
 };
+
+
+//class SpinMutex {
+//public:
+//  SpinMutex() = default;
+//  SpinMutex(const SpinMutex&) = delete;
+//  SpinMutex& operator=(const SpinMutex&) = delete;
+//  inline void lock() noexcept {
+//  }
+//
+//  inline bool try_lock() noexcept {
+//    return true;
+//  }
+//
+//  inline void unlock() noexcept {
+//  }
+//
+//  inline bool is_locked() const {
+//    return true;
+//  }
+//
+//  inline size_t owner() const { return _owner; }
+//
+//protected:
+//  std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
+//  size_t _owner = 0;
+//};
+//
+//class SharedSpinMutex {
+//public:
+//  SharedSpinMutex() = default;
+//  SharedSpinMutex(const SharedSpinMutex&) = delete;
+//  SharedSpinMutex& operator=(const SharedSpinMutex&) = delete;
+//
+//  inline void lock() noexcept {
+//  }
+//
+//  inline bool try_lock() noexcept {
+//    return true;
+//  }
+//
+//  void unlock() noexcept {
+//  }
+//
+//  inline void lock_shared() noexcept {
+//  }
+//
+//  inline bool try_lock_shared() noexcept {
+//    return true;
+//  }
+//
+//  inline void unlock_shared() noexcept {
+//  }
+//
+//  inline bool is_write_locked() const {
+//    return true;
+//  }
+//
+//  inline uint32_t read_locked_count() const {
+//    return 0;
+//  }
+//
+//  inline bool is_locked() const {
+//    return true;
+//  }
+//
+//protected:
+//  std::atomic<int32_t> _readCount{ 0 };
+//  std::atomic<bool> _writeFlag{ false };
+//  size_t _owner = 0;
+//};
+//
+//class ReentrantSpinMutex {
+//public:
+//  ReentrantSpinMutex() = default;
+//  ReentrantSpinMutex(const ReentrantSpinMutex&) = delete;
+//  ReentrantSpinMutex& operator=(const ReentrantSpinMutex&) = delete;
+//
+//  inline void lock() noexcept {
+//  }
+//
+//  bool try_lock() noexcept {
+//    return true;
+//  }
+//
+//  inline void unlock() noexcept {
+//  }
+//
+//  inline bool is_locked() const {
+//    return true;
+//  }
+//
+//  inline int32_t reentrant_count() const { return _reenCount; }
+//
+//protected:
+//  std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
+//  size_t _owner = 0;
+//  int32_t _reenCount = 0;
+//};
+//
+//class ReentrantSharedSpinMutex {
+//public:
+//  ReentrantSharedSpinMutex() = default;
+//  ReentrantSharedSpinMutex(const ReentrantSharedSpinMutex&) = delete;
+//  ReentrantSharedSpinMutex&
+//    operator=(const ReentrantSharedSpinMutex&) = delete;
+//
+//  inline void lock() noexcept {
+//  }
+//
+//  inline bool try_lock() noexcept {
+//    return true;
+//  }
+//
+//  void unlock() noexcept {
+//  }
+//
+//  inline void lock_shared() noexcept {
+//  }
+//
+//  inline bool try_lock_shared() noexcept {
+//    return true;
+//  }
+//
+//  inline void unlock_shared() noexcept {
+//  }
+//
+//  inline bool is_write_locked() const {
+//    return true;
+//  }
+//
+//  inline uint32_t read_locked_count() const {
+//    return 0;
+//  }
+//
+//  inline bool is_locked() const {
+//    return true;
+//  }
+//
+//  inline int32_t reentrant_count() const { return _reenCount; }
+//
+//protected:
+//  std::atomic<int32_t> _readCount{ 0 };
+//  std::atomic<bool> _writeFlag{ false };
+//  size_t _owner = 0;
+//  int32_t _reenCount = 0;
+//};
 } // namespace utils

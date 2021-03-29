@@ -26,28 +26,28 @@
 #define LOG_FATAL   BOOST_LOG_SEV(utils::Logger::slg_, utils::FATAL) << "<" << utils::ThreadPool::GetThreadName() << ">  "
 
 namespace utils {
-  namespace logging = boost::log;
-  namespace src = boost::log::sources;
-  namespace expr = boost::log::expressions;
-  namespace sinks = boost::log::sinks;
-  namespace attrs = boost::log::attributes;
-  namespace keywords = boost::log::keywords;
+namespace logging = boost::log;
+namespace src = boost::log::sources;
+namespace expr = boost::log::expressions;
+namespace sinks = boost::log::sinks;
+namespace attrs = boost::log::attributes;
+namespace keywords = boost::log::keywords;
 
 
-  enum severity_level : uint8_t
-  {
-    DEBUG = 0,
-    INFO,
-    WARN,
-    ERROR,
-    FATAL
-  };
+enum severity_level : uint8_t
+{
+  DEBUG = 0,
+  INFO,
+  WARN,
+  ERROR,
+  FATAL
+};
 
-  class Logger {
-  public:
-    static void init(severity_level filterFile = ERROR, severity_level filterConsole = WARN);
-  public:
-    static src::severity_logger< severity_level > slg_;
-  };
+class Logger {
+public:
+  static void init(severity_level filterFile = ERROR, severity_level filterConsole = WARN);
+public:
+  static src::severity_logger< severity_level > slg_;
+};
 
 }

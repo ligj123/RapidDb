@@ -15,6 +15,7 @@
 
 namespace storage {
 using namespace std;
+
 struct PageLock {
   PageLock() : _sm(new utils::SpinMutex), _refCount(0) {
   }

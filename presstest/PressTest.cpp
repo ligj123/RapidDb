@@ -24,8 +24,10 @@ int main(int argc, char* argv[]) {
   if (!fs::exists(path))
     fs::create_directories(path);
 
-  if (argc <= 1)
+  if (argc <= 1) {
     help();
+    exit(0);
+  }
   std::string str(argv[1]);
   transform(str.begin(), str.end(), str.begin(),
     [](unsigned char c) -> unsigned char { return std::tolower(c); });
@@ -45,4 +47,6 @@ int main(int argc, char* argv[]) {
   } else {
     help();
   }
+
+  exit(0);
 }
