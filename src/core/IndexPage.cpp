@@ -143,7 +143,7 @@ bool IndexPage::PageDivide() {
     last = indexPage->_vctRecord[indexPage->_recordNum - 1];
 
     rec = nullptr;
-    if (i == vctPage.size() - 1 && brParentOld != nullptr && brParentOld->CompareKey(*last) > 0) {
+    if (i == vctPage.size() - 1 && brParentOld != nullptr && brParentOld->CompareTo(*last) > 0) {
       rec = new BranchRecord(_indexTree, brParentOld, indexPage->GetPageId());
     } else {
       rec = new BranchRecord(_indexTree, last, indexPage->GetPageId());
