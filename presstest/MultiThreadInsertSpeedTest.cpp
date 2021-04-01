@@ -37,7 +37,6 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
       uint64_t dtPrev = dtStart;
       VectorDataValue vctKey = { dvKey->CloneDataValue() };
       VectorDataValue vctVal = { dvVal->CloneDataValue() };
-      LOG_INFO << ThreadPool::_threadName;
       uint64_t num = row_count / threadCount;
       for (uint64_t i = k * num; i < (k + 1) * num; i++) {
         uint64_t num = i;
@@ -57,8 +56,8 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
 
         if (i % 1000000 == 0) {
           uint64_t dt = utils::MSTime();
-          std::cout << "i=" << i << "\tTotal Time=" << (dt - dtStart)
-            << "\tGap Time=" << (dt - dtPrev) << endl;
+          std::cout << ThreadPool::_threadName << "  i=" << i << "\tTotal Time="
+            << (dt - dtStart) << "\tGap Time=" << (dt - dtPrev) << endl;
           dtPrev = dt;
         }
       }
