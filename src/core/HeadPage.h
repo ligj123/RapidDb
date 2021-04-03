@@ -28,7 +28,7 @@ public:
   static const uint16_t RECORD_STAMP_OFFSET;
   static const uint16_t RECORD_VERSION_STAMP_OFFSET;
   static const uint16_t FREE_PAGE_OFFSET;
-
+ 
   static const uint64_t NO_PARENT_POINTER;
   static const uint64_t NO_PREV_PAGE_POINTER;
   static const uint64_t NO_NEXT_PAGE_POINTER;

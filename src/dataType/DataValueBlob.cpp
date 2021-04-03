@@ -7,46 +7,46 @@
 
 namespace storage {
 DataValueBlob::DataValueBlob(uint32_t maxLength, bool bKey)
-  : IDataValue(DataType::BLOB, ValueType::NULL_VALUE, bKey),
-  maxLength_(maxLength) {}
+    : IDataValue(DataType::BLOB, ValueType::NULL_VALUE, bKey),
+      maxLength_(maxLength) {}
 
-DataValueBlob::DataValueBlob(char* val, uint32_t len, uint32_t maxLength,
-  bool bKey)
-  : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey), soleValue_(val),
-  maxLength_(maxLength), soleLength_(len) {
+DataValueBlob::DataValueBlob(char *val, uint32_t len, uint32_t maxLength,
+                             bool bKey)
+    : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey), soleValue_(val),
+      maxLength_(maxLength), soleLength_(len) {
   if (soleLength_ > maxLength_) {
     delete[] val;
     throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH,
-      { to_string(maxLength_), to_string(soleLength_) });
+                          {to_string(maxLength_), to_string(soleLength_)});
   }
 }
 
-DataValueBlob::DataValueBlob(const char* val, uint32_t len, uint32_t maxLength,
-  bool bKey)
-  : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey),
-  maxLength_(maxLength), soleLength_(len) {
+DataValueBlob::DataValueBlob(const char *val, uint32_t len, uint32_t maxLength,
+                             bool bKey)
+    : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey),
+      maxLength_(maxLength), soleLength_(len) {
   if (soleLength_ > maxLength_) {
     throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH,
-      { to_string(maxLength_), to_string(soleLength_) });
+                          {to_string(maxLength_), to_string(soleLength_)});
   }
 
   soleValue_ = new char[soleLength_];
   memcpy(soleValue_, val, soleLength_);
 }
 
-DataValueBlob::DataValueBlob(Byte* byArray, uint32_t len, uint32_t maxLength,
-  bool bKey)
-  : IDataValue(DataType::BLOB, ValueType::BYTES_VALUE, bKey),
-  byArray_(byArray), maxLength_(maxLength), soleLength_(len) {}
+DataValueBlob::DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength,
+                             bool bKey)
+    : IDataValue(DataType::BLOB, ValueType::BYTES_VALUE, bKey),
+      byArray_(byArray), maxLength_(maxLength), soleLength_(len) {}
 
 DataValueBlob::DataValueBlob(uint32_t maxLength, bool bKey, std::any val)
-  : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey),
-  maxLength_(maxLength) {
+    : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey),
+      maxLength_(maxLength) {
   throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT,
-    { val.type().name(), "DataValueBlob" });
+                        {val.type().name(), "DataValueBlob"});
 }
 
-DataValueBlob::DataValueBlob(const DataValueBlob& src) : IDataValue(src) {
+DataValueBlob::DataValueBlob(const DataValueBlob &src) : IDataValue(src) {
   maxLength_ = src.maxLength_;
   soleLength_ = src.soleLength_;
 
@@ -71,7 +71,7 @@ DataValueBlob::~DataValueBlob() {
   }
 }
 
-DataValueBlob* DataValueBlob::CloneDataValue(bool incVal) {
+DataValueBlob *DataValueBlob::CloneDataValue(bool incVal) {
   if (incVal) {
     return new DataValueBlob(*this);
   } else {
@@ -84,14 +84,14 @@ std::any DataValueBlob::GetValue() const {
   case ValueType::SOLE_VALUE:
     return soleValue_;
   case ValueType::BYTES_VALUE:
-    return (char*)byArray_;
+    return (char *)byArray_;
   case ValueType::NULL_VALUE:
   default:
     return std::any();
   }
 }
 
-uint32_t DataValueBlob::WriteData(Byte* buf) { return WriteData(buf, bKey_); }
+uint32_t DataValueBlob::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
 
 uint32_t DataValueBlob::GetPersistenceLength(bool key) const {
   if (key) {
@@ -109,7 +109,7 @@ uint32_t DataValueBlob::GetPersistenceLength(bool key) const {
   }
 }
 
-uint32_t DataValueBlob::WriteData(Byte* buf, bool key) {
+uint32_t DataValueBlob::WriteData(Byte *buf, bool key) {
   assert(!bKey_);
 
   if (valType_ == ValueType::NULL_VALUE) {
@@ -118,30 +118,31 @@ uint32_t DataValueBlob::WriteData(Byte* buf, bool key) {
   } else if (valType_ == ValueType::BYTES_VALUE) {
     *buf = VALUE_TYPE | ((Byte)DataType::BLOB & DATE_TYPE);
     buf++;
-    *((uint32_t*)buf) = soleLength_;
+    *((uint32_t *)buf) = soleLength_;
     buf += sizeof(uint32_t);
     std::memcpy(buf, byArray_, soleLength_);
     return soleLength_ + sizeof(uint32_t) + 1;
   } else {
     *buf = VALUE_TYPE | ((Byte)DataType::BLOB & DATE_TYPE);
     buf++;
-    *((uint32_t*)buf) = soleLength_;
+    *((uint32_t *)buf) = soleLength_;
     buf += sizeof(uint32_t);
     std::memcpy(buf, soleValue_, soleLength_);
     return (uint32_t)soleLength_ + sizeof(uint32_t) + 1;
   }
 }
 
-uint32_t DataValueBlob::ReadData(Byte* buf, uint32_t len) {
+uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len) {
   assert(!bKey_);
 
-  valType_ = ((*buf & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+  valType_ =
+      ((*buf & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
   buf++;
 
   if (valType_ == ValueType::NULL_VALUE)
     return 1;
 
-  soleLength_ = *((uint32_t*)buf);
+  soleLength_ = *((uint32_t *)buf);
   buf += sizeof(uint32_t);
   soleValue_ = new char[soleLength_];
   memcpy(soleValue_, buf, soleLength_);
@@ -186,7 +187,7 @@ void DataValueBlob::SetMaxValue() {
     delete[] soleValue_;
 
   valType_ = ValueType::SOLE_VALUE;
-  soleValue_ = new char[4]{ -1, -1, -1, 0 };
+  soleValue_ = new char[4]{-1, -1, -1, 0};
   soleLength_ = 4;
 }
 
@@ -195,28 +196,28 @@ void DataValueBlob::SetDefaultValue() {
     delete[] soleValue_;
 
   valType_ = ValueType::SOLE_VALUE;
-  soleValue_ = new char[1]{ 0 };
+  soleValue_ = new char[1]{0};
   soleLength_ = 1;
 }
 
-DataValueBlob::operator const char* () const {
+DataValueBlob::operator const char *() const {
   switch (valType_) {
   case ValueType::NULL_VALUE:
     return nullptr;
   case ValueType::SOLE_VALUE:
     return soleValue_;
   case ValueType::BYTES_VALUE:
-    return (char*)byArray_;
+    return (char *)byArray_;
   }
 
   return nullptr;
 }
 
-DataValueBlob& DataValueBlob::operator=(const char* val) {
-  uint32_t len = *(uint32_t*)val;
+DataValueBlob &DataValueBlob::operator=(const char *val) {
+  uint32_t len = *(uint32_t *)val;
   if (len >= maxLength_)
     throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH,
-      { to_string(maxLength_), to_string(soleLength_) });
+                          {to_string(maxLength_), to_string(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     delete[] soleValue_;
 
@@ -227,10 +228,10 @@ DataValueBlob& DataValueBlob::operator=(const char* val) {
   return *this;
 }
 
-void DataValueBlob::Put(uint32_t len, char* val) {
+void DataValueBlob::Put(uint32_t len, char *val) {
   if (len >= maxLength_)
     throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH,
-      { to_string(maxLength_), to_string(soleLength_) });
+                          {to_string(maxLength_), to_string(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     delete[] soleValue_;
 
@@ -239,7 +240,7 @@ void DataValueBlob::Put(uint32_t len, char* val) {
   soleValue_ = val;
 }
 
-DataValueBlob& DataValueBlob::operator=(const DataValueBlob& src) {
+DataValueBlob &DataValueBlob::operator=(const DataValueBlob &src) {
   if (valType_ == ValueType::SOLE_VALUE)
     delete[] soleValue_;
 
@@ -265,7 +266,7 @@ DataValueBlob& DataValueBlob::operator=(const DataValueBlob& src) {
   return *this;
 }
 
-bool DataValueBlob::operator==(const DataValueBlob& dv) const {
+bool DataValueBlob::operator==(const DataValueBlob &dv) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return dv.valType_ == ValueType::NULL_VALUE;
   }
@@ -277,14 +278,14 @@ bool DataValueBlob::operator==(const DataValueBlob& dv) const {
   if (len != dv.GetDataLength())
     return false;
 
-  const char* v1 =
-    (valType_ == ValueType::SOLE_VALUE ? soleValue_ : (char*)byArray_);
-  const char* v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_
-    : (char*)dv.byArray_);
-  return utils::BytesCompare((Byte*)v1, len, (Byte*)v2, len) == 0;
+  const char *v1 =
+      (valType_ == ValueType::SOLE_VALUE ? soleValue_ : (char *)byArray_);
+  const char *v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_
+                                                         : (char *)dv.byArray_);
+  return utils::BytesCompare((Byte *)v1, len, (Byte *)v2, len) == 0;
 }
 
-std::ostream& operator<<(std::ostream& os, const DataValueBlob& dv) {
+std::ostream &operator<<(std::ostream &os, const DataValueBlob &dv) {
   switch (dv.valType_) {
   case ValueType::NULL_VALUE:
     os << "nullptr";

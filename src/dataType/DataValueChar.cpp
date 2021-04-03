@@ -1,48 +1,51 @@
 ﻿#include "DataValueChar.h"
-#include <stdexcept>
-#include <string>
-#include "../utils/ErrorMsg.h"
-#include "../utils/BytesConvert.h"
 #include "../config/ErrorID.h"
+#include "../utils/BytesConvert.h"
+#include "../utils/ErrorMsg.h"
 #include <cstring>
 #include <limits.h>
+#include <stdexcept>
+#include <string>
 
 namespace storage {
 DataValueChar::DataValueChar(bool bKey)
-  :IDataValue(DataType::CHAR, ValueType::NULL_VALUE, bKey)
-{
-}
+    : IDataValue(DataType::CHAR, ValueType::NULL_VALUE, bKey) {}
 
 DataValueChar::DataValueChar(int8_t val, bool bKey)
-  : IDataValue(DataType::CHAR, ValueType::SOLE_VALUE, bKey), soleValue_(val)
-{
+    : IDataValue(DataType::CHAR, ValueType::SOLE_VALUE, bKey), soleValue_(val) {
 }
 
-DataValueChar::DataValueChar(Byte* byArray, bool bKey)
-  : IDataValue(DataType::CHAR, ValueType::BYTES_VALUE, bKey), byArray_(byArray)
-{
-}
+DataValueChar::DataValueChar(Byte *byArray, bool bKey)
+    : IDataValue(DataType::CHAR, ValueType::BYTES_VALUE, bKey),
+      byArray_(byArray) {}
 
 DataValueChar::DataValueChar(std::any val, bool bKey)
-  : IDataValue(DataType::CHAR, ValueType::SOLE_VALUE, bKey)
-{
-  if (val.type() == typeid(int64_t)) soleValue_ = (int8_t)std::any_cast<int64_t>(val);
-  else if (val.type() == typeid(int32_t)) soleValue_ = (int8_t)std::any_cast<int32_t>(val);
-  else if (val.type() == typeid(int16_t)) soleValue_ = (int8_t)std::any_cast<int16_t>(val);
-  else if (val.type() == typeid(uint64_t)) soleValue_ = (int8_t)std::any_cast<uint64_t>(val);
-  else if (val.type() == typeid(uint32_t)) soleValue_ = (int8_t)std::any_cast<uint32_t>(val);
-  else if (val.type() == typeid(uint16_t)) soleValue_ = (int8_t)std::any_cast<uint16_t>(val);
-  else if (val.type() == typeid(int8_t)) soleValue_ = std::any_cast<int8_t>(val);
-  else if (val.type() == typeid(uint8_t)) soleValue_ = std::any_cast<uint8_t>(val);
-  else if (val.type() == typeid(std::string)) soleValue_ = (int8_t)std::stoll(std::any_cast<std::string>(val));
-  else throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT, { val.type().name(), "DataValueChar" });
+    : IDataValue(DataType::CHAR, ValueType::SOLE_VALUE, bKey) {
+  if (val.type() == typeid(int64_t))
+    soleValue_ = (int8_t)std::any_cast<int64_t>(val);
+  else if (val.type() == typeid(int32_t))
+    soleValue_ = (int8_t)std::any_cast<int32_t>(val);
+  else if (val.type() == typeid(int16_t))
+    soleValue_ = (int8_t)std::any_cast<int16_t>(val);
+  else if (val.type() == typeid(uint64_t))
+    soleValue_ = (int8_t)std::any_cast<uint64_t>(val);
+  else if (val.type() == typeid(uint32_t))
+    soleValue_ = (int8_t)std::any_cast<uint32_t>(val);
+  else if (val.type() == typeid(uint16_t))
+    soleValue_ = (int8_t)std::any_cast<uint16_t>(val);
+  else if (val.type() == typeid(int8_t))
+    soleValue_ = std::any_cast<int8_t>(val);
+  else if (val.type() == typeid(uint8_t))
+    soleValue_ = std::any_cast<uint8_t>(val);
+  else if (val.type() == typeid(std::string))
+    soleValue_ = (int8_t)std::stoll(std::any_cast<std::string>(val));
+  else
+    throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT,
+                          {val.type().name(), "DataValueChar"});
 }
 
-DataValueChar::DataValueChar(const DataValueChar& src)
-  : IDataValue(src)
-{
-  switch (src.valType_)
-  {
+DataValueChar::DataValueChar(const DataValueChar &src) : IDataValue(src) {
+  switch (src.valType_) {
   case ValueType::SOLE_VALUE:
     soleValue_ = src.soleValue_;
     break;
@@ -54,15 +57,12 @@ DataValueChar::DataValueChar(const DataValueChar& src)
   }
 }
 
-DataValueChar* DataValueChar::CloneDataValue(bool incVal)
-{
+DataValueChar *DataValueChar::CloneDataValue(bool incVal) {
   return new DataValueChar(*this);
 }
 
-std::any DataValueChar::GetValue() const
-{
-  switch (valType_)
-  {
+std::any DataValueChar::GetValue() const {
+  switch (valType_) {
   case ValueType::SOLE_VALUE:
     return soleValue_;
   case ValueType::BYTES_VALUE:
@@ -73,22 +73,17 @@ std::any DataValueChar::GetValue() const
   }
 }
 
-uint32_t DataValueChar::WriteData(Byte* buf)
-{
-  return WriteData(buf, bKey_);
+uint32_t DataValueChar::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
+
+uint32_t DataValueChar::GetPersistenceLength(bool key) const {
+  return key ? sizeof(int8_t)
+             : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(int8_t));
 }
 
-uint32_t DataValueChar::GetPersistenceLength(bool key) const
-{
-  return key ? sizeof(int8_t) : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(int8_t));
-}
-
-uint32_t DataValueChar::WriteData(Byte* buf, bool key)
-{
+uint32_t DataValueChar::WriteData(Byte *buf, bool key) {
   if (key) {
     assert(valType_ != ValueType::NULL_VALUE);
-    if (valType_ == ValueType::BYTES_VALUE)
-    {
+    if (valType_ == ValueType::BYTES_VALUE) {
       std::memcpy(buf, byArray_, sizeof(int8_t));
     } else if (valType_ == ValueType::SOLE_VALUE) {
       utils::Int8ToBytes(soleValue_, buf, bKey_);
@@ -96,8 +91,7 @@ uint32_t DataValueChar::WriteData(Byte* buf, bool key)
 
     return sizeof(int8_t);
   } else {
-    if (valType_ == ValueType::NULL_VALUE)
-    {
+    if (valType_ == ValueType::NULL_VALUE) {
       *buf = (Byte)DataType::CHAR & DATE_TYPE;
       return 1;
     } else if (valType_ == ValueType::BYTES_VALUE) {
@@ -114,15 +108,14 @@ uint32_t DataValueChar::WriteData(Byte* buf, bool key)
   }
 }
 
-uint32_t DataValueChar::ReadData(Byte* buf, uint32_t len)
-{
-  if (bKey_)
-  {
+uint32_t DataValueChar::ReadData(Byte *buf, uint32_t len) {
+  if (bKey_) {
     valType_ = ValueType::SOLE_VALUE;
     soleValue_ = utils::Int8FromBytes(buf, bKey_);
     return sizeof(int8_t);
   } else {
-    valType_ = (*buf & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+    valType_ =
+        (*buf & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
     buf++;
 
     if (valType_ == ValueType::NULL_VALUE)
@@ -133,66 +126,55 @@ uint32_t DataValueChar::ReadData(Byte* buf, uint32_t len)
   }
 }
 
-uint32_t DataValueChar::GetDataLength() const
-{
-  return bKey_ ? sizeof(int8_t) : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(int8_t));
+uint32_t DataValueChar::GetDataLength() const {
+  return bKey_ ? sizeof(int8_t)
+               : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(int8_t));
 }
 
-uint32_t DataValueChar::GetMaxLength() const
-{
-  return sizeof(int8_t);
+uint32_t DataValueChar::GetMaxLength() const { return sizeof(int8_t); }
+
+uint32_t DataValueChar::GetPersistenceLength() const {
+  return bKey_ ? sizeof(int8_t)
+               : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(int8_t));
 }
 
-uint32_t DataValueChar::GetPersistenceLength() const
-{
-  return bKey_ ? sizeof(int8_t) : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(int8_t));
-}
-
-void DataValueChar::SetMinValue()
-{
+void DataValueChar::SetMinValue() {
   valType_ = ValueType::SOLE_VALUE;
   soleValue_ = CHAR_MIN;
 }
-void DataValueChar::SetMaxValue()
-{
+void DataValueChar::SetMaxValue() {
   valType_ = ValueType::SOLE_VALUE;
   soleValue_ = CHAR_MAX;
 }
-void DataValueChar::SetDefaultValue()
-{
+void DataValueChar::SetDefaultValue() {
   valType_ = ValueType::SOLE_VALUE;
   soleValue_ = 0;
 }
 
-DataValueChar::operator int8_t() const
-{
-  switch (valType_)
-  {
+DataValueChar::operator int8_t() const {
+  switch (valType_) {
   case ValueType::NULL_VALUE:
     return 0;
   case ValueType::SOLE_VALUE:
     return soleValue_;
   case ValueType::BYTES_VALUE:
-    return  utils::Int8FromBytes(byArray_, bKey_);
+    return utils::Int8FromBytes(byArray_, bKey_);
   }
 
   return 0;
 }
 
-DataValueChar& DataValueChar::operator=(int8_t val)
-{
+DataValueChar &DataValueChar::operator=(int8_t val) {
   valType_ = ValueType::SOLE_VALUE;
   soleValue_ = val;
   return *this;
 }
 
-DataValueChar& DataValueChar::operator=(const DataValueChar& src)
-{
+DataValueChar &DataValueChar::operator=(const DataValueChar &src) {
   dataType_ = src.dataType_;
   valType_ = src.valType_;
   bKey_ = src.bKey_;
-  switch (src.valType_)
-  {
+  switch (src.valType_) {
   case ValueType::SOLE_VALUE:
     soleValue_ = src.soleValue_;
     break;
@@ -206,55 +188,71 @@ DataValueChar& DataValueChar::operator=(const DataValueChar& src)
   return *this;
 }
 
-bool DataValueChar::operator > (const DataValueChar& dv) const
-{
-  if (valType_ == ValueType::NULL_VALUE) { return false; }
-  if (dv.valType_ == ValueType::NULL_VALUE) { return true; }
+bool DataValueChar::operator>(const DataValueChar &dv) const {
+  if (valType_ == ValueType::NULL_VALUE) {
+    return false;
+  }
+  if (dv.valType_ == ValueType::NULL_VALUE) {
+    return true;
+  }
 
-  int8_t v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::Int8FromBytes(byArray_, bKey_));
-  int8_t v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::Int8FromBytes(dv.byArray_, dv.bKey_));
+  int8_t v1 = (valType_ == ValueType::SOLE_VALUE
+                   ? soleValue_
+                   : utils::Int8FromBytes(byArray_, bKey_));
+  int8_t v2 = (dv.valType_ == ValueType::SOLE_VALUE
+                   ? dv.soleValue_
+                   : utils::Int8FromBytes(dv.byArray_, dv.bKey_));
   return v1 > v2;
 }
 
-bool DataValueChar::operator < (const DataValueChar& dv) const
-{
+bool DataValueChar::operator<(const DataValueChar &dv) const {
   return !(*this >= dv);
 }
 
-bool DataValueChar::operator >= (const DataValueChar& dv) const
-{
-  if (valType_ == ValueType::NULL_VALUE) { return dv.valType_ == ValueType::NULL_VALUE; }
-  if (dv.valType_ == ValueType::NULL_VALUE) { return true; }
+bool DataValueChar::operator>=(const DataValueChar &dv) const {
+  if (valType_ == ValueType::NULL_VALUE) {
+    return dv.valType_ == ValueType::NULL_VALUE;
+  }
+  if (dv.valType_ == ValueType::NULL_VALUE) {
+    return true;
+  }
 
-  int8_t v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::Int8FromBytes(byArray_, bKey_));
-  int8_t v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::Int8FromBytes(dv.byArray_, dv.bKey_));
+  int8_t v1 = (valType_ == ValueType::SOLE_VALUE
+                   ? soleValue_
+                   : utils::Int8FromBytes(byArray_, bKey_));
+  int8_t v2 = (dv.valType_ == ValueType::SOLE_VALUE
+                   ? dv.soleValue_
+                   : utils::Int8FromBytes(dv.byArray_, dv.bKey_));
   return v1 >= v2;
 }
 
-bool DataValueChar::operator <= (const DataValueChar& dv) const
-{
+bool DataValueChar::operator<=(const DataValueChar &dv) const {
   return !(*this > dv);
 }
 
-bool DataValueChar::operator == (const DataValueChar& dv) const
-{
-  if (valType_ == ValueType::NULL_VALUE) { return dv.valType_ == ValueType::NULL_VALUE; }
-  if (dv.valType_ == ValueType::NULL_VALUE) { return false; }
+bool DataValueChar::operator==(const DataValueChar &dv) const {
+  if (valType_ == ValueType::NULL_VALUE) {
+    return dv.valType_ == ValueType::NULL_VALUE;
+  }
+  if (dv.valType_ == ValueType::NULL_VALUE) {
+    return false;
+  }
 
-  int8_t v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::Int8FromBytes(byArray_, bKey_));
-  int8_t v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::Int8FromBytes(dv.byArray_, dv.bKey_));
+  int8_t v1 = (valType_ == ValueType::SOLE_VALUE
+                   ? soleValue_
+                   : utils::Int8FromBytes(byArray_, bKey_));
+  int8_t v2 = (dv.valType_ == ValueType::SOLE_VALUE
+                   ? dv.soleValue_
+                   : utils::Int8FromBytes(dv.byArray_, dv.bKey_));
   return v1 == v2;
 }
 
-bool DataValueChar::operator != (const DataValueChar& dv) const
-{
+bool DataValueChar::operator!=(const DataValueChar &dv) const {
   return !(*this == dv);
 }
 
-std::ostream& operator<< (std::ostream& os, const DataValueChar& dv)
-{
-  switch (dv.valType_)
-  {
+std::ostream &operator<<(std::ostream &os, const DataValueChar &dv) {
+  switch (dv.valType_) {
   case ValueType::NULL_VALUE:
     os << "nullptr";
     break;
@@ -268,4 +266,4 @@ std::ostream& operator<< (std::ostream& os, const DataValueChar& dv)
 
   return os;
 }
-}
+} // namespace storage

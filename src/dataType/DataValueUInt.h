@@ -1,50 +1,50 @@
 #pragma once
 #include "IDataValue.h"
-#include <ostream>
 #include <any>
+#include <ostream>
 
 namespace storage {
-	class DataValueUInt : public IDataValue
-	{
-	public:
-		DataValueUInt(bool bKey=false);
-		DataValueUInt(uint32_t val, bool bKey = false);
-		DataValueUInt(Byte* byArray, bool bKey = false);
-		DataValueUInt(const DataValueUInt& src);
-		DataValueUInt(std::any val, bool bKey = false);
-		~DataValueUInt(){}
-	public:
-		DataValueUInt* CloneDataValue(bool incVal = false) override;
-		uint32_t WriteData(Byte* buf, bool key) override;
-		uint32_t GetPersistenceLength(bool key) const override;
+class DataValueUInt : public IDataValue {
+public:
+  DataValueUInt(bool bKey = false);
+  DataValueUInt(uint32_t val, bool bKey = false);
+  DataValueUInt(Byte *byArray, bool bKey = false);
+  DataValueUInt(const DataValueUInt &src);
+  DataValueUInt(std::any val, bool bKey = false);
+  ~DataValueUInt() {}
 
-		std::any GetValue() const override;
-		uint32_t WriteData(Byte* buf) override;
-		uint32_t ReadData(Byte* buf, uint32_t len = 0) override;
-		uint32_t GetDataLength() const override;
-		uint32_t GetMaxLength() const override;
-		uint32_t GetPersistenceLength() const override;
-		void SetMinValue() override;
-		void SetMaxValue() override;
-		void SetDefaultValue() override;
+public:
+  DataValueUInt *CloneDataValue(bool incVal = false) override;
+  uint32_t WriteData(Byte *buf, bool key) override;
+  uint32_t GetPersistenceLength(bool key) const override;
 
-		operator uint32_t() const;
-		DataValueUInt& operator=(uint32_t val);
-		DataValueUInt& operator=(const DataValueUInt& src);
+  std::any GetValue() const override;
+  uint32_t WriteData(Byte *buf) override;
+  uint32_t ReadData(Byte *buf, uint32_t len = 0) override;
+  uint32_t GetDataLength() const override;
+  uint32_t GetMaxLength() const override;
+  uint32_t GetPersistenceLength() const override;
+  void SetMinValue() override;
+  void SetMaxValue() override;
+  void SetDefaultValue() override;
 
-		bool operator > (const DataValueUInt& dv) const;
-		bool operator < (const DataValueUInt& dv) const;
-		bool operator >= (const DataValueUInt& dv) const;
-		bool operator <= (const DataValueUInt& dv) const;
-		bool operator == (const DataValueUInt& dv) const;
-		bool operator != (const DataValueUInt& dv) const;
-		friend std::ostream& operator<< (std::ostream& os, const DataValueUInt& dv);
+  operator uint32_t() const;
+  DataValueUInt &operator=(uint32_t val);
+  DataValueUInt &operator=(const DataValueUInt &src);
 
-	protected:
-		union {
-			uint32_t soleValue_;
-			Byte* byArray_;
-		};
-	};
-	std::ostream& operator<< (std::ostream& os, const DataValueUInt& dv);
-}
+  bool operator>(const DataValueUInt &dv) const;
+  bool operator<(const DataValueUInt &dv) const;
+  bool operator>=(const DataValueUInt &dv) const;
+  bool operator<=(const DataValueUInt &dv) const;
+  bool operator==(const DataValueUInt &dv) const;
+  bool operator!=(const DataValueUInt &dv) const;
+  friend std::ostream &operator<<(std::ostream &os, const DataValueUInt &dv);
+
+protected:
+  union {
+    uint32_t soleValue_;
+    Byte *byArray_;
+  };
+};
+std::ostream &operator<<(std::ostream &os, const DataValueUInt &dv);
+} // namespace storage

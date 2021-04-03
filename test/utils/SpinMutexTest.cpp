@@ -1,11 +1,10 @@
-﻿#include <boost/test/unit_test.hpp>
-#include "../../src/utils/SpinMutex.h"
+﻿#include "../../src/utils/SpinMutex.h"
+#include <boost/test/unit_test.hpp>
 
 namespace utils {
 BOOST_AUTO_TEST_SUITE(SpinMutexTest)
 
-BOOST_AUTO_TEST_CASE(SpinMutex_test)
-{
+BOOST_AUTO_TEST_CASE(SpinMutex_test) {
   SpinMutex sm;
   BOOST_TEST(sm.try_lock());
   BOOST_TEST(sm.is_locked());
@@ -20,20 +19,22 @@ BOOST_AUTO_TEST_CASE(SpinMutex_test)
   uint64_t ms = 0;
   std::thread t([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock();
     sm.unlock();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t.join();
   BOOST_TEST(ms > 10);
 }
 
-BOOST_AUTO_TEST_CASE(SharedSpinMutex_test)
-{
+BOOST_AUTO_TEST_CASE(SharedSpinMutex_test) {
   SharedSpinMutex sm;
   BOOST_TEST(sm.try_lock());
   BOOST_TEST(!sm.try_lock_shared());
@@ -73,12 +74,15 @@ BOOST_AUTO_TEST_CASE(SharedSpinMutex_test)
   uint64_t ms = 0;
   std::thread t1([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock();
     sm.unlock();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t1.join();
@@ -88,12 +92,15 @@ BOOST_AUTO_TEST_CASE(SharedSpinMutex_test)
   ms = 0;
   std::thread t2([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock_shared();
     sm.unlock_shared();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t2.join();
@@ -103,20 +110,22 @@ BOOST_AUTO_TEST_CASE(SharedSpinMutex_test)
   ms = 0;
   std::thread t3([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock();
     sm.unlock();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock_shared();
   t3.join();
   BOOST_TEST(ms > 10);
 }
 
-BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test)
-{
+BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test) {
   ReentrantSpinMutex sm;
   BOOST_TEST(sm.try_lock());
   BOOST_TEST(sm.is_locked());
@@ -139,12 +148,15 @@ BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test)
   uint64_t ms = 0;
   std::thread t1([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock();
     sm.unlock();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   std::this_thread::sleep_for(std::chrono::milliseconds(12));
   sm.unlock();
   t1.join();
@@ -154,12 +166,15 @@ BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test)
   ms = 0;
   std::thread t2([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock();
     sm.unlock();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   sm.lock();
   std::this_thread::sleep_for(std::chrono::milliseconds(5));
   sm.unlock();
@@ -169,8 +184,7 @@ BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test)
   BOOST_TEST(ms > 10);
 }
 
-BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test)
-{
+BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test) {
   ReentrantSharedSpinMutex sm;
   BOOST_TEST(sm.try_lock());
   BOOST_TEST(!sm.try_lock_shared());
@@ -215,12 +229,15 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test)
   uint64_t ms = 0;
   std::thread t1([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock();
     sm.unlock();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t1.join();
@@ -230,12 +247,15 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test)
   ms = 0;
   std::thread t2([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock_shared();
     sm.unlock_shared();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t2.join();
@@ -245,12 +265,15 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test)
   ms = 0;
   std::thread t3([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock();
     sm.unlock();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock_shared();
   t3.join();
@@ -260,12 +283,15 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test)
   ms = 0;
   std::thread t4([&sm, &ms]() {
     uint64_t start = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count();
+                         std::chrono::system_clock::now().time_since_epoch())
+                         .count();
     sm.lock_shared();
     sm.unlock_shared();
     ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch()).count() - start;
-    });
+             std::chrono::system_clock::now().time_since_epoch())
+             .count() -
+         start;
+  });
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
   sm.try_lock();
   std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -276,4 +302,4 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test)
   BOOST_TEST(ms > 10);
 }
 BOOST_AUTO_TEST_SUITE_END()
-}
+} // namespace utils

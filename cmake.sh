@@ -1,4 +1,4 @@
-#!/bin/bash -x
+#!/bin/bash
 
 if [ -d ./Release ] ; then 
   rm -r ./Release

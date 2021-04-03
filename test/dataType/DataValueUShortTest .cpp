@@ -1,11 +1,10 @@
-﻿#include <boost/test/unit_test.hpp>
-#include "../../src/dataType/DataValueUShort.h"
+﻿#include "../../src/dataType/DataValueUShort.h"
+#include <boost/test/unit_test.hpp>
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(DataTypeTest)
 
-BOOST_AUTO_TEST_CASE(DataValueUShort_test)
-{
+BOOST_AUTO_TEST_CASE(DataValueUShort_test) {
   DataValueUShort dv1;
 
   BOOST_TEST(dv1.GetDataType() == DataType::USHORT);
@@ -40,7 +39,7 @@ BOOST_AUTO_TEST_CASE(DataValueUShort_test)
   BOOST_TEST(dv4 == dv3);
 
   Byte buf[100];
-  *((uint16_t*)buf) = 10;
+  *((uint16_t *)buf) = 10;
   DataValueUShort dv5(buf, false);
   BOOST_TEST(std::any_cast<uint16_t>(dv5.GetValue()) == 10);
   BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
@@ -53,7 +52,7 @@ BOOST_AUTO_TEST_CASE(DataValueUShort_test)
   uint32_t len = dv5.WriteData(buf2);
   BOOST_TEST(len == 3);
   BOOST_TEST(buf2[0] == 0x86);
-  BOOST_TEST(*((uint16_t*)(buf2 + 1)) == 10);
+  BOOST_TEST(*((uint16_t *)(buf2 + 1)) == 10);
 
   dv1.SetDefaultValue();
   BOOST_TEST((uint16_t)dv1 == 0L);
@@ -94,4 +93,4 @@ BOOST_AUTO_TEST_CASE(DataValueUShort_test)
   BOOST_TEST((uint16_t)dv9 == 100);
 }
 BOOST_AUTO_TEST_SUITE_END()
-}
+} // namespace storage

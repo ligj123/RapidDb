@@ -110,7 +110,7 @@ public:
   * @return -1: Failed to read values due to no right version stamp for primary;
   *         0: Passed to read values with all fields.
   *         1: Passed to read part of values due to same of fields saved in overflow file.
-  */
+  */ 
   int GetListValue(VectorDataValue& vct, uint64_t verStamp = UINT64_MAX) const;
   void GetListOverflow(VectorDataValue& vctVal) const;
 

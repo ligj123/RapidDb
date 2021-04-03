@@ -14,9 +14,9 @@ public:
   static const uint16_t PARENT_PAGE_POINTER_OFFSET;
 
 public:
-  IndexPage(IndexTree* indexTree, uint64_t pageId);
-  IndexPage(IndexTree* indexTree, uint64_t pageId, uint8_t pageLevel,
-    uint64_t parentPageId);
+  IndexPage(IndexTree *indexTree, uint64_t pageId);
+  IndexPage(IndexTree *indexTree, uint64_t pageId, uint8_t pageLevel,
+            uint64_t parentPageId);
   ~IndexPage();
 
   bool PageDivide();
@@ -48,7 +48,7 @@ public:
   virtual bool SaveRecords() = 0;
 
 protected:
-  vector<RawRecord*> _vctRecord;
+  vector<RawRecord *> _vctRecord;
   uint64_t _parentPageId = 0;
   uint64_t _dtPageLastUpdate = 0;
   int32_t _totalDataLength = 0;

@@ -1,52 +1,52 @@
 ﻿#pragma once
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <atomic>
-#include "../utils/ErrorMsg.h"
 #include "../config/ErrorID.h"
-#include "../utils/SpinMutex.h"
 #include "../dataType/IDataValue.h"
+#include "../utils/ErrorMsg.h"
+#include "../utils/SpinMutex.h"
+#include <atomic>
+#include <fstream>
+#include <iostream>
+#include <string>
 
 namespace storage {
 using namespace std;
 class OvfBuffer {
 public:
-  OvfBuffer() {
-    pBuf = new char[Configure::GetMaxOverflowCache()];
-  }
-  ~OvfBuffer() {
-    delete[] pBuf;
-  }
+  OvfBuffer() { pBuf = new char[Configure::GetMaxOverflowCache()]; }
+  ~OvfBuffer() { delete[] pBuf; }
 
-  char* GetBuf() { return pBuf; }
+  char *GetBuf() { return pBuf; }
+
 protected:
-  char* pBuf;
+  char *pBuf;
 };
 
-class PageFile
-{
+class PageFile {
 public:
   static thread_local OvfBuffer _ovfBuff;
 
-  PageFile(const string& path, bool overflowFile = false);
+  PageFile(const string &path, bool overflowFile = false);
 
   ~PageFile() {
-    if (_file.is_open()) _file.close();
+    if (_file.is_open())
+      _file.close();
   }
 
-  uint32_t ReadPage(uint64_t fileOffset, char* bys, uint32_t length);
+  uint32_t ReadPage(uint64_t fileOffset, char *bys, uint32_t length);
 
-  void WritePage(uint64_t fileOffset, char* bys, uint32_t length);
+  void WritePage(uint64_t fileOffset, char *bys, uint32_t length);
 
-  void WriteDataValue(vector<IDataValue*> vctDv, uint32_t dvStart, uint64_t offset);
+  void WriteDataValue(vector<IDataValue *> vctDv, uint32_t dvStart,
+                      uint64_t offset);
 
-  void ReadDataValue(vector<IDataValue*> vctDv, uint32_t dvStart, uint64_t offset, uint32_t totalLen);
+  void ReadDataValue(vector<IDataValue *> vctDv, uint32_t dvStart,
+                     uint64_t offset, uint32_t totalLen);
 
-  void MoveOverflowData(uint64_t fileOffsetSrc, uint64_t fileOffsetDest, uint32_t length);
+  void MoveOverflowData(uint64_t fileOffsetSrc, uint64_t fileOffsetDest,
+                        uint32_t length);
 
   uint64_t Length() {
-    unique_lock< utils::SpinMutex> lock;
+    unique_lock<utils::SpinMutex> lock;
     _file.seekp(0, ios::end);
     return _file.tellp();
   }
@@ -57,6 +57,7 @@ public:
   }
 
   void close() { _file.close(); }
+
 protected:
   /***/
   bool _bOverflowFile;
@@ -65,4 +66,4 @@ protected:
   utils::SpinMutex _spinMutex;
   atomic<uint64_t> _overFileLength;
 };
-}
+} // namespace storage

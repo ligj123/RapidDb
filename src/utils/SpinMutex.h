@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include <atomic>
 #include <cassert>
-#include <thread>
 #include <sstream>
+#include <thread>
 
 namespace utils {
 static inline size_t get_thread_id() {
@@ -15,8 +15,8 @@ static thread_local size_t g_threadId = get_thread_id();
 class SpinMutex {
 public:
   SpinMutex() = default;
-  SpinMutex(const SpinMutex&) = delete;
-  SpinMutex& operator=(const SpinMutex&) = delete;
+  SpinMutex(const SpinMutex &) = delete;
+  SpinMutex &operator=(const SpinMutex &) = delete;
   inline void lock() noexcept {
     while (_flag.exchange(true, std::memory_order_acquire)) {
       std::this_thread::yield();
@@ -27,7 +27,7 @@ public:
 
   inline bool try_lock() noexcept {
     bool b = !_flag.load(std::memory_order_relaxed) &&
-      !_flag.exchange(true, std::memory_order_acquire);
+             !_flag.exchange(true, std::memory_order_acquire);
     if (b)
       _owner = g_threadId;
     return b;
@@ -53,8 +53,8 @@ protected:
 class SharedSpinMutex {
 public:
   SharedSpinMutex() = default;
-  SharedSpinMutex(const SharedSpinMutex&) = delete;
-  SharedSpinMutex& operator=(const SharedSpinMutex&) = delete;
+  SharedSpinMutex(const SharedSpinMutex &) = delete;
+  SharedSpinMutex &operator=(const SharedSpinMutex &) = delete;
 
   inline void lock() noexcept {
     while (_writeFlag.exchange(true, std::memory_order_acquire)) {
@@ -70,7 +70,7 @@ public:
 
   inline bool try_lock() noexcept {
     if (_readCount.load(std::memory_order_relaxed) == 0 &&
-      !_writeFlag.exchange(true, std::memory_order_acquire)) {
+        !_writeFlag.exchange(true, std::memory_order_acquire)) {
       if (_readCount.load(std::memory_order_relaxed) > 0) {
         _writeFlag.store(false, std::memory_order_relaxed);
         return false;
@@ -129,20 +129,20 @@ public:
 
   inline bool is_locked() const {
     return _writeFlag.load(std::memory_order_relaxed) ||
-      _readCount.load(std::memory_order_relaxed) > 0;
+           _readCount.load(std::memory_order_relaxed) > 0;
   }
 
 protected:
-  std::atomic<int32_t> _readCount{ 0 };
-  std::atomic<bool> _writeFlag{ false };
+  std::atomic<int32_t> _readCount{0};
+  std::atomic<bool> _writeFlag{false};
   size_t _owner = 0;
 };
 
 class ReentrantSpinMutex {
 public:
   ReentrantSpinMutex() = default;
-  ReentrantSpinMutex(const ReentrantSpinMutex&) = delete;
-  ReentrantSpinMutex& operator=(const ReentrantSpinMutex&) = delete;
+  ReentrantSpinMutex(const ReentrantSpinMutex &) = delete;
+  ReentrantSpinMutex &operator=(const ReentrantSpinMutex &) = delete;
 
   inline void lock() noexcept {
     if (_owner == g_threadId) {
@@ -167,7 +167,7 @@ public:
     }
 
     if (!_flag.load(std::memory_order_relaxed) &&
-      !_flag.exchange(true, std::memory_order_acquire)) {
+        !_flag.exchange(true, std::memory_order_acquire)) {
       assert(_reenCount == 0);
       _owner = currId;
       _reenCount = 1;
@@ -201,9 +201,9 @@ protected:
 class ReentrantSharedSpinMutex {
 public:
   ReentrantSharedSpinMutex() = default;
-  ReentrantSharedSpinMutex(const ReentrantSharedSpinMutex&) = delete;
-  ReentrantSharedSpinMutex&
-    operator=(const ReentrantSharedSpinMutex&) = delete;
+  ReentrantSharedSpinMutex(const ReentrantSharedSpinMutex &) = delete;
+  ReentrantSharedSpinMutex &
+  operator=(const ReentrantSharedSpinMutex &) = delete;
 
   inline void lock() noexcept {
     size_t currId = g_threadId;
@@ -235,7 +235,7 @@ public:
     }
 
     if (_readCount.load(std::memory_order_relaxed) == 0 &&
-      !_writeFlag.exchange(true, std::memory_order_acquire)) {
+        !_writeFlag.exchange(true, std::memory_order_acquire)) {
       if (_readCount.load(std::memory_order_relaxed) > 0) {
         _writeFlag.store(false, std::memory_order_relaxed);
         return false;
@@ -298,21 +298,20 @@ public:
 
   inline bool is_locked() const {
     return _writeFlag.load(std::memory_order_relaxed) ||
-      _readCount.load(std::memory_order_relaxed) > 0;
+           _readCount.load(std::memory_order_relaxed) > 0;
   }
 
   inline int32_t reentrant_count() const { return _reenCount; }
 
 protected:
-  std::atomic<int32_t> _readCount{ 0 };
-  std::atomic<bool> _writeFlag{ false };
+  std::atomic<int32_t> _readCount{0};
+  std::atomic<bool> _writeFlag{false};
   size_t _owner = 0;
   int32_t _reenCount = 0;
 };
 
-
-//class SpinMutex {
-//public:
+// class SpinMutex {
+// public:
 //  SpinMutex() = default;
 //  SpinMutex(const SpinMutex&) = delete;
 //  SpinMutex& operator=(const SpinMutex&) = delete;
@@ -332,13 +331,13 @@ protected:
 //
 //  inline size_t owner() const { return _owner; }
 //
-//protected:
+// protected:
 //  std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
 //  size_t _owner = 0;
 //};
 //
-//class SharedSpinMutex {
-//public:
+// class SharedSpinMutex {
+// public:
 //  SharedSpinMutex() = default;
 //  SharedSpinMutex(const SharedSpinMutex&) = delete;
 //  SharedSpinMutex& operator=(const SharedSpinMutex&) = delete;
@@ -375,14 +374,14 @@ protected:
 //    return true;
 //  }
 //
-//protected:
+// protected:
 //  std::atomic<int32_t> _readCount{ 0 };
 //  std::atomic<bool> _writeFlag{ false };
 //  size_t _owner = 0;
 //};
 //
-//class ReentrantSpinMutex {
-//public:
+// class ReentrantSpinMutex {
+// public:
 //  ReentrantSpinMutex() = default;
 //  ReentrantSpinMutex(const ReentrantSpinMutex&) = delete;
 //  ReentrantSpinMutex& operator=(const ReentrantSpinMutex&) = delete;
@@ -403,14 +402,14 @@ protected:
 //
 //  inline int32_t reentrant_count() const { return _reenCount; }
 //
-//protected:
+// protected:
 //  std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
 //  size_t _owner = 0;
 //  int32_t _reenCount = 0;
 //};
 //
-//class ReentrantSharedSpinMutex {
-//public:
+// class ReentrantSharedSpinMutex {
+// public:
 //  ReentrantSharedSpinMutex() = default;
 //  ReentrantSharedSpinMutex(const ReentrantSharedSpinMutex&) = delete;
 //  ReentrantSharedSpinMutex&
@@ -450,7 +449,7 @@ protected:
 //
 //  inline int32_t reentrant_count() const { return _reenCount; }
 //
-//protected:
+// protected:
 //  std::atomic<int32_t> _readCount{ 0 };
 //  std::atomic<bool> _writeFlag{ false };
 //  size_t _owner = 0;

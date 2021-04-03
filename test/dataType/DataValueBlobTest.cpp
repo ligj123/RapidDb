@@ -1,53 +1,52 @@
-#include <boost/test/unit_test.hpp>
 #include "../../src/dataType/DataValueBlob.h"
+#include <boost/test/unit_test.hpp>
 
 namespace storage {
-	BOOST_AUTO_TEST_SUITE(DataTypeTest)
-	
-		BOOST_AUTO_TEST_CASE(DataValueBlob_test)
-	{
-		DataValueBlob dv1;
-		BOOST_TEST(dv1.GetDataType() == DataType::BLOB);
-		BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
-		BOOST_TEST(!dv1.IsFixLength());
-		BOOST_TEST(dv1.IsNull());
-		BOOST_TEST(dv1.GetMaxLength() == DEFAULT_MAX_LEN);
-		BOOST_TEST(dv1.GetDataLength() == 0);
-		BOOST_TEST(dv1.GetPersistenceLength() == 1);
-		BOOST_TEST(!dv1.GetValue().has_value());
+BOOST_AUTO_TEST_SUITE(DataTypeTest)
 
-		DataValueBlob dv2(100, true);
-		BOOST_TEST(dv2.GetMaxLength() == 100);
-		BOOST_TEST(dv2.GetDataLength() == 0);
-		BOOST_TEST(dv2.GetPersistenceLength() == 0);
-	
-		const char* pStr = "abcd";
-		DataValueBlob dv4(pStr, 4);
-		BOOST_TEST(dv4.GetDataType() == DataType::BLOB);
-		BOOST_TEST(dv4.GetValueType() == ValueType::SOLE_VALUE);
-		BOOST_TEST(!dv4.IsNull());
-		BOOST_TEST(dv4.GetDataLength() == 4);
-		BOOST_TEST(dv4.GetMaxLength() == DEFAULT_MAX_LEN);
-		BOOST_TEST(dv4.GetPersistenceLength() == 9);
+BOOST_AUTO_TEST_CASE(DataValueBlob_test) {
+  DataValueBlob dv1;
+  BOOST_TEST(dv1.GetDataType() == DataType::BLOB);
+  BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
+  BOOST_TEST(!dv1.IsFixLength());
+  BOOST_TEST(dv1.IsNull());
+  BOOST_TEST(dv1.GetMaxLength() == DEFAULT_MAX_LEN);
+  BOOST_TEST(dv1.GetDataLength() == 0);
+  BOOST_TEST(dv1.GetPersistenceLength() == 1);
+  BOOST_TEST(!dv1.GetValue().has_value());
 
-		dv2 = dv4;
-		BOOST_TEST(dv4 == dv2);
+  DataValueBlob dv2(100, true);
+  BOOST_TEST(dv2.GetMaxLength() == 100);
+  BOOST_TEST(dv2.GetDataLength() == 0);
+  BOOST_TEST(dv2.GetPersistenceLength() == 0);
 
-		DataValueBlob dv5(pStr, 4, 100, false);
-		BOOST_TEST(dv5.GetDataLength() == 4);
-		BOOST_TEST(dv5.GetMaxLength() == 100);
-		BOOST_TEST(dv5.GetPersistenceLength() == 9);
+  const char *pStr = "abcd";
+  DataValueBlob dv4(pStr, 4);
+  BOOST_TEST(dv4.GetDataType() == DataType::BLOB);
+  BOOST_TEST(dv4.GetValueType() == ValueType::SOLE_VALUE);
+  BOOST_TEST(!dv4.IsNull());
+  BOOST_TEST(dv4.GetDataLength() == 4);
+  BOOST_TEST(dv4.GetMaxLength() == DEFAULT_MAX_LEN);
+  BOOST_TEST(dv4.GetPersistenceLength() == 9);
 
-		Byte buf[100];
-		DataValueBlob dv9(pStr, 4);
-		dv9.WriteData(buf + 20);
-		dv1.ReadData(buf + 20);
-		BOOST_TEST(dv1 == dv9);
+  dv2 = dv4;
+  BOOST_TEST(dv4 == dv2);
 
-		DataValueBlob dv10(pStr, 4, 100, false);
-		dv10.WriteData(buf + 30);
-		dv5.ReadData(buf + 30, dv10.GetDataLength());
-		BOOST_TEST(dv5 == dv10);
-	}
-	BOOST_AUTO_TEST_SUITE_END()
+  DataValueBlob dv5(pStr, 4, 100, false);
+  BOOST_TEST(dv5.GetDataLength() == 4);
+  BOOST_TEST(dv5.GetMaxLength() == 100);
+  BOOST_TEST(dv5.GetPersistenceLength() == 9);
+
+  Byte buf[100];
+  DataValueBlob dv9(pStr, 4);
+  dv9.WriteData(buf + 20);
+  dv1.ReadData(buf + 20);
+  BOOST_TEST(dv1 == dv9);
+
+  DataValueBlob dv10(pStr, 4, 100, false);
+  dv10.WriteData(buf + 30);
+  dv5.ReadData(buf + 30, dv10.GetDataLength());
+  BOOST_TEST(dv5 == dv10);
 }
+BOOST_AUTO_TEST_SUITE_END()
+} // namespace storage

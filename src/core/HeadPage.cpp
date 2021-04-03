@@ -2,7 +2,8 @@
 #include "IndexTree.h"
 
 namespace storage {
-const uint32_t HeadPage::HEAD_PAGE_LENGTH = (uint32_t)Configure::GetDiskClusterSize();
+const uint32_t HeadPage::HEAD_PAGE_LENGTH =
+    (uint32_t)Configure::GetDiskClusterSize();
 const uint16_t HeadPage::MAX_RECORD_VER_COUNT = 8;
 
 const uint16_t HeadPage::VERSION_OFFSET = 0;
@@ -47,7 +48,8 @@ void HeadPage::ReadPage() {
 
   _vctRecVer.reserve(_recordVerCount);
   for (Byte i = 0; i < _recordVerCount; i++) {
-    _vctRecVer.push_back(ReadLong(RECORD_VERSION_STAMP_OFFSET + sizeof(uint64_t) * i));
+    _vctRecVer.push_back(
+        ReadLong(RECORD_VERSION_STAMP_OFFSET + sizeof(uint64_t) * i));
   }
 }
 
@@ -66,7 +68,8 @@ void HeadPage::WritePage() {
   WriteLong(AUTO_PRIMARY_KEY3, _autoPrimaryKey3);
 
   for (Byte i = 0; i < _recordVerCount; i++) {
-    WriteLong(RECORD_VERSION_STAMP_OFFSET + sizeof(uint64_t) * i, _vctRecVer[i]);
+    WriteLong(RECORD_VERSION_STAMP_OFFSET + sizeof(uint64_t) * i,
+              _vctRecVer[i]);
   }
 
   CachePage::WritePage();
@@ -80,9 +83,8 @@ void HeadPage::WriteFileVersion() {
 }
 
 FileVersion HeadPage::ReadFileVersion() {
-  FileVersion fs(ReadShort(VERSION_OFFSET),
-    ReadByte(VERSION_OFFSET + 2),
-    ReadByte(VERSION_OFFSET + 3));
+  FileVersion fs(ReadShort(VERSION_OFFSET), ReadByte(VERSION_OFFSET + 2),
+                 ReadByte(VERSION_OFFSET + 3));
   return fs;
 }
 
@@ -105,4 +107,4 @@ void HeadPage::WriteValueVariableFieldCount(uint16_t num) {
   _indexTree->_valVarLen = num * sizeof(uint16_t);
   _indexTree->_valOffset = (num + 2) * sizeof(uint16_t);
 }
-}
+} // namespace storage

@@ -20,24 +20,24 @@ public:
   }
   inline static uint64_t GetMsFromEpoch() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
-      std::chrono::system_clock::now().time_since_epoch())
-      .count();
+               std::chrono::system_clock::now().time_since_epoch())
+        .count();
   }
 
 public:
-  static void* operator new(size_t size) {
+  static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
   }
-  static void operator delete(void* ptr, size_t size) {
-    CachePool::Release((Byte*)ptr, (uint32_t)size);
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
 public:
-  CachePage(IndexTree* indexTree, uint64_t pageId);
+  CachePage(IndexTree *indexTree, uint64_t pageId);
   virtual ~CachePage();
   bool IsFileClosed() const;
 
-  inline utils::ReentrantSharedSpinMutex& GetLock() { return _rwLock; }
+  inline utils::ReentrantSharedSpinMutex &GetLock() { return _rwLock; }
   inline bool IsDirty() const { return _bDirty; }
   inline void SetDirty(bool b) { _bDirty = b; }
   inline bool IsLocked() const { return _rwLock.is_locked(); }
@@ -48,8 +48,8 @@ public:
   inline void UpdateWriteTime() { _dtPageLastWrite = GetMsFromEpoch(); }
   inline uint64_t GetWriteTime() const { return _dtPageLastWrite; }
   inline uint64_t GetFileId() const { return _fileId; }
-  inline IndexTree* GetIndexTree() const { return _indexTree; }
-  inline Byte* GetBysPage() const { return _bysPage; }
+  inline IndexTree *GetIndexTree() const { return _indexTree; }
+  inline Byte *GetBysPage() const { return _bysPage; }
   virtual void ReadPage();
   virtual void WritePage();
 
@@ -104,14 +104,14 @@ public:
   }
 
 protected:
-  Byte* _bysPage = nullptr;
+  Byte *_bysPage = nullptr;
   utils::ReentrantSharedSpinMutex _rwLock;
   utils::SpinMutex _pageLock;
   uint64_t _dtPageLastWrite = 0;
   uint64_t _dtPageLastAccess = 0;
   uint64_t _pageId = 0;
   uint64_t _fileId = 0;
-  IndexTree* _indexTree = nullptr;
+  IndexTree *_indexTree = nullptr;
 
   atomic<int32_t> _refCount = 0;
   bool _bDirty = false;

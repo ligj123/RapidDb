@@ -1,11 +1,10 @@
-﻿#include <boost/test/unit_test.hpp>
-#include "../../src/dataType/DataValueVarChar.h"
+﻿#include "../../src/dataType/DataValueVarChar.h"
+#include <boost/test/unit_test.hpp>
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(DataTypeTest)
 
-BOOST_AUTO_TEST_CASE(DataValueVarChar_test)
-{
+BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
   DataValueVarChar dv1;
   BOOST_TEST(dv1.GetDataType() == DataType::VARCHAR);
   BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
@@ -22,7 +21,7 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test)
   BOOST_TEST(dv2.GetPersistenceLength() == 0);
   BOOST_TEST(dv1 == dv2);
 
-  const char* pStr = "abcd";
+  const char *pStr = "abcd";
   DataValueVarChar dv4(pStr);
   BOOST_TEST(dv4.GetDataType() == DataType::VARCHAR);
   BOOST_TEST(dv4.GetValueType() == ValueType::SOLE_VALUE);
@@ -56,7 +55,7 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test)
   BOOST_TEST((string)dv1 == "");
 
   dv1.SetMaxValue();
-  //BOOST_TEST((string)dv1 == "\\uff\\uff\\uff");
+  // BOOST_TEST((string)dv1 == "\\uff\\uff\\uff");
 
   dv1.SetMinValue();
   BOOST_TEST((string)dv1 == "");
@@ -82,4 +81,4 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test)
   BOOST_TEST(dv5 == dv10);
 }
 BOOST_AUTO_TEST_SUITE_END()
-}
+} // namespace storage

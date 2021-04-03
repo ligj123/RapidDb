@@ -1,10 +1,9 @@
-﻿#include <boost/test/unit_test.hpp>
-#include "../../src/dataType/DataValueFixChar.h"
+﻿#include "../../src/dataType/DataValueFixChar.h"
+#include <boost/test/unit_test.hpp>
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(DataTypeTest)
-BOOST_AUTO_TEST_CASE(DataValueFixChar_test)
-{
+BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   DataValueFixChar dv1;
   BOOST_TEST(dv1.GetDataType() == DataType::FIXCHAR);
   BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
@@ -23,7 +22,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test)
   BOOST_TEST(dv1 == dv2);
   BOOST_TEST(dv1 == dv3);
 
-  const char* pStr = "abcd";
+  const char *pStr = "abcd";
   DataValueFixChar dv4(pStr);
   BOOST_TEST(dv4.GetDataType() == DataType::FIXCHAR);
   BOOST_TEST(dv4.GetValueType() == ValueType::SOLE_VALUE);
@@ -54,7 +53,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test)
   BOOST_TEST((string)dv1 == "");
 
   dv1.SetMaxValue();
-  //BOOST_TEST((string)dv1 == "\\uff\\uff\\uff");
+  // BOOST_TEST((string)dv1 == "\\uff\\uff\\uff");
 
   dv1.SetMinValue();
   BOOST_TEST((string)dv1 == "");
@@ -74,7 +73,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test)
   dv3.ReadData(buf + 30);
   BOOST_TEST(dv3 == dv10);
 
-  DataValueFixChar* pDv = dv10.CloneDataValue();
+  DataValueFixChar *pDv = dv10.CloneDataValue();
   BOOST_TEST(pDv->GetValueType() == ValueType::NULL_VALUE);
   delete pDv;
 
@@ -84,4 +83,4 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test)
   delete pDv;
 }
 BOOST_AUTO_TEST_SUITE_END()
-}
+} // namespace storage

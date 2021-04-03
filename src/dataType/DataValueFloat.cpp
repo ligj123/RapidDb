@@ -1,50 +1,55 @@
 ﻿#include "DataValueFloat.h"
+#include "../config/ErrorID.h"
+#include "../utils/BytesConvert.h"
+#include "../utils/ErrorMsg.h"
+#include <cstring>
+#include <float.h>
 #include <stdexcept>
 #include <string>
-#include "../utils/ErrorMsg.h"
-#include "../utils/BytesConvert.h"
-#include "../config/ErrorID.h"
-#include <cstring>
-#include <float.h> 
 
 namespace storage {
 DataValueFloat::DataValueFloat(bool bKey)
-  :IDataValue(DataType::FLOAT, ValueType::NULL_VALUE, bKey)
-{
-}
+    : IDataValue(DataType::FLOAT, ValueType::NULL_VALUE, bKey) {}
 
 DataValueFloat::DataValueFloat(float val, bool bKey)
-  : IDataValue(DataType::FLOAT, ValueType::SOLE_VALUE, bKey), soleValue_(val)
-{
-}
+    : IDataValue(DataType::FLOAT, ValueType::SOLE_VALUE, bKey),
+      soleValue_(val) {}
 
-DataValueFloat::DataValueFloat(Byte* byArray, bool bKey)
-  : IDataValue(DataType::FLOAT, ValueType::BYTES_VALUE, bKey), byArray_(byArray)
-{
-}
+DataValueFloat::DataValueFloat(Byte *byArray, bool bKey)
+    : IDataValue(DataType::FLOAT, ValueType::BYTES_VALUE, bKey),
+      byArray_(byArray) {}
 
 DataValueFloat::DataValueFloat(std::any val, bool bKey)
-  : IDataValue(DataType::FLOAT, ValueType::SOLE_VALUE, bKey)
-{
-  if (val.type() == typeid(double)) soleValue_ = (float)std::any_cast<double>(val);
-  else if (val.type() == typeid(float)) soleValue_ = std::any_cast<float>(val);
-  else if (val.type() == typeid(int64_t)) soleValue_ = (float)std::any_cast<int64_t>(val);
-  else if (val.type() == typeid(int32_t)) soleValue_ = (float)std::any_cast<int32_t>(val);
-  else if (val.type() == typeid(int16_t)) soleValue_ = (float)std::any_cast<int16_t>(val);
-  else if (val.type() == typeid(uint64_t)) soleValue_ = (float)std::any_cast<uint64_t>(val);
-  else if (val.type() == typeid(uint32_t)) soleValue_ = (float)std::any_cast<uint32_t>(val);
-  else if (val.type() == typeid(uint16_t)) soleValue_ = (float)std::any_cast<uint16_t>(val);
-  else if (val.type() == typeid(int8_t)) soleValue_ = (float)std::any_cast<int8_t>(val);
-  else if (val.type() == typeid(uint8_t)) soleValue_ = (float)std::any_cast<uint8_t>(val);
-  else if (val.type() == typeid(std::string)) soleValue_ = std::stof(std::any_cast<std::string>(val));
-  else throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT, { val.type().name(), "DataValueFloat" });
+    : IDataValue(DataType::FLOAT, ValueType::SOLE_VALUE, bKey) {
+  if (val.type() == typeid(double))
+    soleValue_ = (float)std::any_cast<double>(val);
+  else if (val.type() == typeid(float))
+    soleValue_ = std::any_cast<float>(val);
+  else if (val.type() == typeid(int64_t))
+    soleValue_ = (float)std::any_cast<int64_t>(val);
+  else if (val.type() == typeid(int32_t))
+    soleValue_ = (float)std::any_cast<int32_t>(val);
+  else if (val.type() == typeid(int16_t))
+    soleValue_ = (float)std::any_cast<int16_t>(val);
+  else if (val.type() == typeid(uint64_t))
+    soleValue_ = (float)std::any_cast<uint64_t>(val);
+  else if (val.type() == typeid(uint32_t))
+    soleValue_ = (float)std::any_cast<uint32_t>(val);
+  else if (val.type() == typeid(uint16_t))
+    soleValue_ = (float)std::any_cast<uint16_t>(val);
+  else if (val.type() == typeid(int8_t))
+    soleValue_ = (float)std::any_cast<int8_t>(val);
+  else if (val.type() == typeid(uint8_t))
+    soleValue_ = (float)std::any_cast<uint8_t>(val);
+  else if (val.type() == typeid(std::string))
+    soleValue_ = std::stof(std::any_cast<std::string>(val));
+  else
+    throw utils::ErrorMsg(DT_UNSUPPORT_CONVERT,
+                          {val.type().name(), "DataValueFloat"});
 }
 
-DataValueFloat::DataValueFloat(const DataValueFloat& src)
-  : IDataValue(src)
-{
-  switch (src.valType_)
-  {
+DataValueFloat::DataValueFloat(const DataValueFloat &src) : IDataValue(src) {
+  switch (src.valType_) {
   case ValueType::SOLE_VALUE:
     soleValue_ = src.soleValue_;
     break;
@@ -56,15 +61,12 @@ DataValueFloat::DataValueFloat(const DataValueFloat& src)
   }
 }
 
-DataValueFloat* DataValueFloat::CloneDataValue(bool incVal)
-{
+DataValueFloat *DataValueFloat::CloneDataValue(bool incVal) {
   return new DataValueFloat(*this);
 }
 
-std::any DataValueFloat::GetValue() const
-{
-  switch (valType_)
-  {
+std::any DataValueFloat::GetValue() const {
+  switch (valType_) {
   case ValueType::SOLE_VALUE:
     return soleValue_;
   case ValueType::BYTES_VALUE:
@@ -75,18 +77,14 @@ std::any DataValueFloat::GetValue() const
   }
 }
 
-uint32_t DataValueFloat::WriteData(Byte* buf)
-{
-  return WriteData(buf, bKey_);
+uint32_t DataValueFloat::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
+
+uint32_t DataValueFloat::GetPersistenceLength(bool key) const {
+  return key ? sizeof(float)
+             : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(float));
 }
 
-uint32_t DataValueFloat::GetPersistenceLength(bool key) const
-{
-  return key ? sizeof(float) : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(float));
-}
-
-uint32_t DataValueFloat::WriteData(Byte* buf, bool key)
-{
+uint32_t DataValueFloat::WriteData(Byte *buf, bool key) {
   if (key) {
     assert(valType_ != ValueType::NULL_VALUE);
     if (valType_ == ValueType::BYTES_VALUE) {
@@ -114,14 +112,14 @@ uint32_t DataValueFloat::WriteData(Byte* buf, bool key)
   }
 }
 
-uint32_t DataValueFloat::ReadData(Byte* buf, uint32_t len)
-{
+uint32_t DataValueFloat::ReadData(Byte *buf, uint32_t len) {
   if (bKey_) {
     valType_ = ValueType::SOLE_VALUE;
     soleValue_ = utils::FloatFromBytes(buf, bKey_);
     return sizeof(float);
   } else {
-    valType_ = (*buf & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+    valType_ =
+        (*buf & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
     buf++;
 
     if (valType_ == ValueType::NULL_VALUE)
@@ -132,66 +130,55 @@ uint32_t DataValueFloat::ReadData(Byte* buf, uint32_t len)
   }
 }
 
-uint32_t DataValueFloat::GetDataLength() const
-{
-  return bKey_ ? sizeof(float) : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(float));
+uint32_t DataValueFloat::GetDataLength() const {
+  return bKey_ ? sizeof(float)
+               : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(float));
 }
 
-uint32_t DataValueFloat::GetMaxLength() const
-{
-  return sizeof(float);
+uint32_t DataValueFloat::GetMaxLength() const { return sizeof(float); }
+
+uint32_t DataValueFloat::GetPersistenceLength() const {
+  return bKey_ ? sizeof(float)
+               : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(float));
 }
 
-uint32_t DataValueFloat::GetPersistenceLength() const
-{
-  return bKey_ ? sizeof(float) : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(float));
-}
-
-void DataValueFloat::SetMinValue()
-{
+void DataValueFloat::SetMinValue() {
   valType_ = ValueType::SOLE_VALUE;
   soleValue_ = FLT_MIN;
 }
-void DataValueFloat::SetMaxValue()
-{
+void DataValueFloat::SetMaxValue() {
   valType_ = ValueType::SOLE_VALUE;
   soleValue_ = FLT_MAX;
 }
-void DataValueFloat::SetDefaultValue()
-{
+void DataValueFloat::SetDefaultValue() {
   valType_ = ValueType::SOLE_VALUE;
   soleValue_ = 0;
 }
 
-DataValueFloat::operator float() const
-{
-  switch (valType_)
-  {
+DataValueFloat::operator float() const {
+  switch (valType_) {
   case ValueType::NULL_VALUE:
     return 0;
   case ValueType::SOLE_VALUE:
     return soleValue_;
   case ValueType::BYTES_VALUE:
-    return  utils::FloatFromBytes(byArray_, bKey_);
+    return utils::FloatFromBytes(byArray_, bKey_);
   }
 
   return 0;
 }
 
-DataValueFloat& DataValueFloat::operator=(float val)
-{
+DataValueFloat &DataValueFloat::operator=(float val) {
   valType_ = ValueType::SOLE_VALUE;
   soleValue_ = val;
   return *this;
 }
 
-DataValueFloat& DataValueFloat::operator=(const DataValueFloat& src)
-{
+DataValueFloat &DataValueFloat::operator=(const DataValueFloat &src) {
   dataType_ = src.dataType_;
   valType_ = src.valType_;
   bKey_ = src.bKey_;
-  switch (src.valType_)
-  {
+  switch (src.valType_) {
   case ValueType::SOLE_VALUE:
     soleValue_ = src.soleValue_;
     break;
@@ -205,55 +192,71 @@ DataValueFloat& DataValueFloat::operator=(const DataValueFloat& src)
   return *this;
 }
 
-bool DataValueFloat::operator > (const DataValueFloat& dv) const
-{
-  if (valType_ == ValueType::NULL_VALUE) { return false; }
-  if (dv.valType_ == ValueType::NULL_VALUE) { return true; }
+bool DataValueFloat::operator>(const DataValueFloat &dv) const {
+  if (valType_ == ValueType::NULL_VALUE) {
+    return false;
+  }
+  if (dv.valType_ == ValueType::NULL_VALUE) {
+    return true;
+  }
 
-  float v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::FloatFromBytes(byArray_, bKey_));
-  float v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::FloatFromBytes(dv.byArray_, dv.bKey_));
+  float v1 = (valType_ == ValueType::SOLE_VALUE
+                  ? soleValue_
+                  : utils::FloatFromBytes(byArray_, bKey_));
+  float v2 = (dv.valType_ == ValueType::SOLE_VALUE
+                  ? dv.soleValue_
+                  : utils::FloatFromBytes(dv.byArray_, dv.bKey_));
   return v1 > v2;
 }
 
-bool DataValueFloat::operator < (const DataValueFloat& dv) const
-{
+bool DataValueFloat::operator<(const DataValueFloat &dv) const {
   return !(*this >= dv);
 }
 
-bool DataValueFloat::operator >= (const DataValueFloat& dv) const
-{
-  if (valType_ == ValueType::NULL_VALUE) { return dv.valType_ == ValueType::NULL_VALUE; }
-  if (dv.valType_ == ValueType::NULL_VALUE) { return true; }
+bool DataValueFloat::operator>=(const DataValueFloat &dv) const {
+  if (valType_ == ValueType::NULL_VALUE) {
+    return dv.valType_ == ValueType::NULL_VALUE;
+  }
+  if (dv.valType_ == ValueType::NULL_VALUE) {
+    return true;
+  }
 
-  float v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::FloatFromBytes(byArray_, bKey_));
-  float v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::FloatFromBytes(dv.byArray_, dv.bKey_));
+  float v1 = (valType_ == ValueType::SOLE_VALUE
+                  ? soleValue_
+                  : utils::FloatFromBytes(byArray_, bKey_));
+  float v2 = (dv.valType_ == ValueType::SOLE_VALUE
+                  ? dv.soleValue_
+                  : utils::FloatFromBytes(dv.byArray_, dv.bKey_));
   return v1 >= v2;
 }
 
-bool DataValueFloat::operator <= (const DataValueFloat& dv) const
-{
+bool DataValueFloat::operator<=(const DataValueFloat &dv) const {
   return !(*this > dv);
 }
 
-bool DataValueFloat::operator == (const DataValueFloat& dv) const
-{
-  if (valType_ == ValueType::NULL_VALUE) { return dv.valType_ == ValueType::NULL_VALUE; }
-  if (dv.valType_ == ValueType::NULL_VALUE) { return false; }
+bool DataValueFloat::operator==(const DataValueFloat &dv) const {
+  if (valType_ == ValueType::NULL_VALUE) {
+    return dv.valType_ == ValueType::NULL_VALUE;
+  }
+  if (dv.valType_ == ValueType::NULL_VALUE) {
+    return false;
+  }
 
-  float v1 = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : utils::FloatFromBytes(byArray_, bKey_));
-  float v2 = (dv.valType_ == ValueType::SOLE_VALUE ? dv.soleValue_ : utils::FloatFromBytes(dv.byArray_, dv.bKey_));
+  float v1 = (valType_ == ValueType::SOLE_VALUE
+                  ? soleValue_
+                  : utils::FloatFromBytes(byArray_, bKey_));
+  float v2 = (dv.valType_ == ValueType::SOLE_VALUE
+                  ? dv.soleValue_
+                  : utils::FloatFromBytes(dv.byArray_, dv.bKey_));
   return v1 == v2;
 }
 
-bool DataValueFloat::operator != (const DataValueFloat& dv) const
-{
+bool DataValueFloat::operator!=(const DataValueFloat &dv) const {
   return !(*this == dv);
 }
 
-std::ostream& operator<< (std::ostream& os, const DataValueFloat& dv)
-{
-  switch (dv.valType_)
-  {
+std::ostream &operator<<(std::ostream &os, const DataValueFloat &dv) {
+  switch (dv.valType_) {
   case ValueType::NULL_VALUE:
     os << "nullptr";
     break;
@@ -267,4 +270,4 @@ std::ostream& operator<< (std::ostream& os, const DataValueFloat& dv)
 
   return os;
 }
-}
+} // namespace storage

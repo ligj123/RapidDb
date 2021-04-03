@@ -3,18 +3,18 @@
 
 namespace storage {
 const uint64_t PageDividePool::MAX_QUEUE_SIZE =
-Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
+    Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 const uint32_t PageDividePool::BUFFER_FLUSH_INTEVAL_MS = 1 * 1000;
 const int PageDividePool::SLEEP_INTEVAL_MS = 100;
 
-map<uint64_t, IndexPage*> PageDividePool::_mapPage;
-unordered_map<uint64_t, IndexPage*> PageDividePool::_mapTmp;
-thread* PageDividePool::_treeDivideThread = PageDividePool::CreateThread();
+map<uint64_t, IndexPage *> PageDividePool::_mapPage;
+unordered_map<uint64_t, IndexPage *> PageDividePool::_mapTmp;
+thread *PageDividePool::_treeDivideThread = PageDividePool::CreateThread();
 bool PageDividePool::_bSuspend = false;
 utils::SpinMutex PageDividePool::_spinMutex;
 
-thread* PageDividePool::CreateThread() {
-  thread* t = new thread([]() {
+thread *PageDividePool::CreateThread() {
+  thread *t = new thread([]() {
     utils::ThreadPool::_threadName = "PageDividePool";
     _mapTmp.reserve(100000);
 
@@ -24,9 +24,9 @@ thread* PageDividePool::CreateThread() {
         continue;
       }
 
-      unordered_map<uint64_t, IndexPage*> mapTmp;
+      unordered_map<uint64_t, IndexPage *> mapTmp;
       {
-        unique_lock< utils::SpinMutex> lock(_spinMutex);
+        unique_lock<utils::SpinMutex> lock(_spinMutex);
         _mapTmp.swap(mapTmp);
       }
 
@@ -36,25 +36,26 @@ thread* PageDividePool::CreateThread() {
           continue;
         }
 
-        _mapPage.insert(pair<uint64_t, IndexPage*>(iter->first, iter->second));
+        _mapPage.insert(pair<uint64_t, IndexPage *>(iter->first, iter->second));
       }
 
       if (_mapPage.size() < 1000) {
         this_thread::sleep_for(std::chrono::milliseconds(10));
       }
 
-      for (auto iter = _mapPage.begin(); iter != _mapPage.end(); ) {
+      for (auto iter = _mapPage.begin(); iter != _mapPage.end();) {
         auto iter2 = iter++;
         auto page = iter2->second;
         if (page->GetRecordRefCount() > 0 ||
-          (!page->IsOverTime(BUFFER_FLUSH_INTEVAL_MS) &&
-            !page->IsOverlength())) {
+            (!page->IsOverTime(BUFFER_FLUSH_INTEVAL_MS) &&
+             !page->IsOverlength())) {
           continue;
         }
 
         bool b = page->WriteTryLock();
         if (!b || page->GetRecordRefCount() > 0) {
-          if (b) page->WriteUnlock();
+          if (b)
+            page->WriteUnlock();
           continue;
         }
 
@@ -72,11 +73,11 @@ thread* PageDividePool::CreateThread() {
         }
       }
     }
-    });
+  });
   return t;
 }
 
-void PageDividePool::AddCachePage(IndexPage* page) {
+void PageDividePool::AddCachePage(IndexPage *page) {
   lock_guard<utils::SpinMutex> lock(_spinMutex);
   if (_mapTmp.find(page->GetPageId()) != _mapTmp.end()) {
     return;
@@ -84,6 +85,6 @@ void PageDividePool::AddCachePage(IndexPage* page) {
 
   page->IncRefCount();
   page->SetPageLastUpdateTime();
-  _mapTmp.insert(pair<uint64_t, IndexPage*>(page->GetPageId(), page));
+  _mapTmp.insert(pair<uint64_t, IndexPage *>(page->GetPageId(), page));
 }
-}
+} // namespace storage

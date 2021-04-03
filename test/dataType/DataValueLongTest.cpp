@@ -1,11 +1,10 @@
-﻿#include <boost/test/unit_test.hpp>
-#include "../../src/dataType/DataValueLong.h"
+﻿#include "../../src/dataType/DataValueLong.h"
+#include <boost/test/unit_test.hpp>
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(DataTypeTest)
 
-BOOST_AUTO_TEST_CASE(DataValueLong_test)
-{
+BOOST_AUTO_TEST_CASE(DataValueLong_test) {
   DataValueLong dv1;
 
   BOOST_TEST(dv1.GetDataType() == DataType::LONG);
@@ -40,7 +39,7 @@ BOOST_AUTO_TEST_CASE(DataValueLong_test)
   BOOST_TEST(dv4 == dv3);
 
   Byte buf[100];
-  *((int64_t*)buf) = 10;
+  *((int64_t *)buf) = 10;
   DataValueLong dv5(buf, false);
   BOOST_TEST(std::any_cast<int64_t>(dv5.GetValue()) == 10);
   BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
@@ -53,7 +52,7 @@ BOOST_AUTO_TEST_CASE(DataValueLong_test)
   uint32_t len = dv5.WriteData(buf2);
   BOOST_TEST(len == 9);
   BOOST_TEST(buf2[0] == 0x84);
-  BOOST_TEST(*((int64_t*)(buf2 + 1)) == 10);
+  BOOST_TEST(*((int64_t *)(buf2 + 1)) == 10);
 
   dv1.SetDefaultValue();
   BOOST_TEST((int64_t)dv1 == 0L);
@@ -93,9 +92,9 @@ BOOST_AUTO_TEST_CASE(DataValueLong_test)
   DataValueLong dv9(std::any(100));
   BOOST_TEST((int64_t)dv9 == 100);
 
-  DataValueLong* pDv = dv9.CloneDataValue();
+  DataValueLong *pDv = dv9.CloneDataValue();
   BOOST_TEST(dv9 == *pDv);
   delete pDv;
 }
 BOOST_AUTO_TEST_SUITE_END()
-}
+} // namespace storage

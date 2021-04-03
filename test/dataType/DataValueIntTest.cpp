@@ -1,11 +1,10 @@
-﻿#include <boost/test/unit_test.hpp>
-#include "../../src/dataType/DataValueInt.h"
+﻿#include "../../src/dataType/DataValueInt.h"
+#include <boost/test/unit_test.hpp>
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(DataTypeTest)
 
-BOOST_AUTO_TEST_CASE(DataValueInt_test)
-{
+BOOST_AUTO_TEST_CASE(DataValueInt_test) {
   DataValueInt dv1;
 
   BOOST_TEST(dv1.GetDataType() == DataType::INT);
@@ -40,7 +39,7 @@ BOOST_AUTO_TEST_CASE(DataValueInt_test)
   BOOST_TEST(dv4 == dv3);
 
   Byte buf[100];
-  *((int32_t*)buf) = 10;
+  *((int32_t *)buf) = 10;
   DataValueInt dv5(buf, false);
   BOOST_TEST(std::any_cast<int32_t>(dv5.GetValue()) == 10);
   BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
@@ -53,7 +52,7 @@ BOOST_AUTO_TEST_CASE(DataValueInt_test)
   uint32_t len = dv5.WriteData(buf2);
   BOOST_TEST(len == 5);
   BOOST_TEST(buf2[0] == 0x83);
-  BOOST_TEST(*((int32_t*)(buf2 + 1)) == 10);
+  BOOST_TEST(*((int32_t *)(buf2 + 1)) == 10);
 
   dv1.SetDefaultValue();
   BOOST_TEST((int32_t)dv1 == 0L);
@@ -94,4 +93,4 @@ BOOST_AUTO_TEST_CASE(DataValueInt_test)
   BOOST_TEST((int64_t)dv9 == 100);
 }
 BOOST_AUTO_TEST_SUITE_END()
-}
+} // namespace storage

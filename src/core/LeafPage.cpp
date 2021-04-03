@@ -13,19 +13,19 @@ uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 16;
 uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 24;
 uint16_t LeafPage::DATA_BEGIN_OFFSET = 32;
 uint16_t LeafPage::MAX_DATA_LENGTH =
-(uint16_t)(Configure::GetCachePageSize() - LeafPage::DATA_BEGIN_OFFSET -
-  sizeof(uint64_t));
+    (uint16_t)(Configure::GetCachePageSize() - LeafPage::DATA_BEGIN_OFFSET -
+               sizeof(uint64_t));
 
-LeafPage::LeafPage(IndexTree* indexTree, uint64_t pageId, uint64_t parentPageId)
-  : IndexPage(indexTree, pageId, 0, parentPageId),
-  _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
-  _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
+LeafPage::LeafPage(IndexTree *indexTree, uint64_t pageId, uint64_t parentPageId)
+    : IndexPage(indexTree, pageId, 0, parentPageId),
+      _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
+      _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
   _vctRecord.reserve(1500);
 }
 
-LeafPage::LeafPage(IndexTree* indexTree, uint64_t pageId)
-  : IndexPage(indexTree, pageId), _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
-  _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
+LeafPage::LeafPage(IndexTree *indexTree, uint64_t pageId)
+    : IndexPage(indexTree, pageId), _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
+      _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
   _vctRecord.reserve(1500);
 }
 
@@ -41,16 +41,16 @@ void LeafPage::LoadRecords() {
 
   uint16_t pos = DATA_BEGIN_OFFSET;
   for (uint16_t i = 0; i < _recordNum; i++) {
-    LeafRecord* rr =
-      new LeafRecord(this, _bysPage + *((uint16_t*)(_bysPage + pos)));
+    LeafRecord *rr =
+        new LeafRecord(this, _bysPage + *((uint16_t *)(_bysPage + pos)));
     _vctRecord.push_back(rr);
     pos += sizeof(uint16_t);
   }
 }
 
 void LeafPage::CleanRecord() {
-  for (RawRecord* lr : _vctRecord) {
-    ((LeafRecord*)lr)->ReleaseRecord();
+  for (RawRecord *lr : _vctRecord) {
+    ((LeafRecord *)lr)->ReleaseRecord();
   }
 
   _vctRecord.clear();
@@ -65,14 +65,14 @@ bool LeafPage::SaveRecords() {
     return false;
 
   if (_bRecordUpdate) {
-    Byte* tmp = _bysPage;
+    Byte *tmp = _bysPage;
     _bysPage = CachePool::ApplyPage();
     uint16_t pos =
-      (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * sizeof(uint16_t));
+        (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * sizeof(uint16_t));
     uint16_t index = 0;
 
     for (uint16_t i = 0; i < _vctRecord.size(); i++) {
-      LeafRecord* lr = (LeafRecord*)_vctRecord[i];
+      LeafRecord *lr = (LeafRecord *)_vctRecord[i];
       if (lr->GetActionType() == ActionType::DELETE) {
         continue;
       }
@@ -100,13 +100,13 @@ bool LeafPage::SaveRecords() {
   return true;
 }
 
-utils::ErrorMsg* LeafPage::InsertRecord(LeafRecord* lr, int32_t pos) {
+utils::ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
   if (_recordNum > 0 && _vctRecord.size() == 0) {
     LoadRecords();
   }
 
   bool bUnique =
-    (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
+      (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
   if (pos < 0) {
     bool bFind;
     if (bUnique) {
@@ -134,10 +134,10 @@ utils::ErrorMsg* LeafPage::InsertRecord(LeafRecord* lr, int32_t pos) {
   return nullptr;
 }
 
-bool LeafPage::AddRecord(LeafRecord* lr) {
+bool LeafPage::AddRecord(LeafRecord *lr) {
   if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR ||
-    _totalDataLength + lr->GetTotalLength() + sizeof(uint16_t) >
-    MAX_DATA_LENGTH) {
+      _totalDataLength + lr->GetTotalLength() + sizeof(uint16_t) >
+          MAX_DATA_LENGTH) {
     return false;
   }
 
@@ -164,7 +164,7 @@ void LeafPage::UpdateRecord(int32_t pos) {
   assert(pos >= 0 && pos < _recordNum);
 }
 
-LeafRecord* LeafPage::GetRecord(const RawKey& key) {
+LeafRecord *LeafPage::GetRecord(const RawKey &key) {
   if (_recordNum == 0) {
     return nullptr;
   }
@@ -179,12 +179,12 @@ LeafRecord* LeafPage::GetRecord(const RawKey& key) {
     int pos = ReadShort(DATA_BEGIN_OFFSET + index * sizeof(uint16_t));
     return new LeafRecord(this, _bysPage + pos);
   } else {
-    return ((LeafRecord*)_vctRecord[index])->ReferenceRecord();
+    return ((LeafRecord *)_vctRecord[index])->ReferenceRecord();
   }
 }
 
-bool LeafPage::GetRecords(const RawKey& key, VectorLeafRecord& vct,
-  bool bFromZero) {
+bool LeafPage::GetRecords(const RawKey &key, VectorLeafRecord &vct,
+                          bool bFromZero) {
   if (vct.size() > 0)
     vct.RemoveAll();
   if (_recordNum == 0)
@@ -208,7 +208,7 @@ bool LeafPage::GetRecords(const RawKey& key, VectorLeafRecord& vct,
     }
   } else {
     for (uint32_t i = pos; i < end; i++) {
-      LeafRecord* rr = ((LeafRecord*)_vctRecord[i])->ReferenceRecord();
+      LeafRecord *rr = ((LeafRecord *)_vctRecord[i])->ReferenceRecord();
       vct.push_back(rr);
     }
   }
@@ -216,8 +216,8 @@ bool LeafPage::GetRecords(const RawKey& key, VectorLeafRecord& vct,
   return (end == _recordNum);
 }
 
-int32_t LeafPage::SearchRecord(const LeafRecord& rr, bool& bFind, bool bInc,
-  int32_t start, int32_t end) {
+int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc,
+                               int32_t start, int32_t end) {
   if (end >= _recordNum)
     end = _recordNum - 1;
   bFind = true;
@@ -246,13 +246,13 @@ int32_t LeafPage::SearchRecord(const LeafRecord& rr, bool& bFind, bool bInc,
   }
 }
 
-int32_t LeafPage::SearchKey(const RawKey& key, bool& bFind, bool bInc,
-  int32_t start, int32_t end) {
+int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, bool bInc,
+                            int32_t start, int32_t end) {
   if (end >= _recordNum)
     end = _recordNum - 1;
   bFind = true;
   bool bUnique =
-    (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
+      (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
 
   while (true) {
     if (start > end) {
@@ -278,18 +278,18 @@ int32_t LeafPage::SearchKey(const RawKey& key, bool& bFind, bool bInc,
       } else {
         if (bInc) {
           if (middle > start &&
-            (_vctRecord.size() > 0
-              ? GetVctRecord(middle - 1)->CompareKey(key) == 0
-              : CompareTo(middle - 1, key) == 0)) {
+              (_vctRecord.size() > 0
+                   ? GetVctRecord(middle - 1)->CompareKey(key) == 0
+                   : CompareTo(middle - 1, key) == 0)) {
             end = middle - 1;
           } else {
             return middle;
           }
         } else {
           if (middle < end &&
-            (_vctRecord.size() > 0
-              ? GetVctRecord(middle + 1)->CompareKey(key) == 0
-              : CompareTo(middle + 1, key) == 0)) {
+              (_vctRecord.size() > 0
+                   ? GetVctRecord(middle + 1)->CompareKey(key) == 0
+                   : CompareTo(middle + 1, key) == 0)) {
             start = middle + 1;
           } else {
             return middle + 1;
@@ -300,13 +300,13 @@ int32_t LeafPage::SearchKey(const RawKey& key, bool& bFind, bool bInc,
   }
 }
 
-int32_t LeafPage::SearchKey(const LeafRecord& rr, bool& bFind, bool bInc,
-  int32_t start, int32_t end) {
+int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, bool bInc,
+                            int32_t start, int32_t end) {
   if (end >= _recordNum)
     end = _recordNum - 1;
   bFind = true;
   bool bUnique =
-    (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
+      (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
 
   while (true) {
     if (start > end) {
@@ -332,18 +332,18 @@ int32_t LeafPage::SearchKey(const LeafRecord& rr, bool& bFind, bool bInc,
       } else {
         if (bInc) {
           if (middle > start &&
-            (_vctRecord.size() > 0
-              ? GetVctRecord(middle - 1)->CompareKey(rr) == 0
-              : CompareTo(middle - 1, rr, true) == 0)) {
+              (_vctRecord.size() > 0
+                   ? GetVctRecord(middle - 1)->CompareKey(rr) == 0
+                   : CompareTo(middle - 1, rr, true) == 0)) {
             end = middle - 1;
           } else {
             return middle;
           }
         } else {
           if (middle < end &&
-            (_vctRecord.size() > 0
-              ? GetVctRecord(middle + 1)->CompareKey(rr) == 0
-              : CompareTo(middle + 1, rr, true) == 0)) {
+              (_vctRecord.size() > 0
+                   ? GetVctRecord(middle + 1)->CompareKey(rr) == 0
+                   : CompareTo(middle + 1, rr, true) == 0)) {
             start = middle + 1;
           } else {
             return middle + 1;
@@ -354,33 +354,33 @@ int32_t LeafPage::SearchKey(const LeafRecord& rr, bool& bFind, bool bInc,
   }
 }
 
-LeafRecord* LeafPage::GetLastRecord() {
+LeafRecord *LeafPage::GetLastRecord() {
   if (_recordNum == 0)
     return nullptr;
   if (_vctRecord.size() > 0) {
     return GetVctRecord(_recordNum - 1)->ReferenceRecord();
   } else {
     uint16_t offset =
-      ReadShort(DATA_BEGIN_OFFSET + (_recordNum - 1) * sizeof(uint16_t));
+        ReadShort(DATA_BEGIN_OFFSET + (_recordNum - 1) * sizeof(uint16_t));
     return new LeafRecord(this, _bysPage + offset);
   }
 }
 
-void LeafPage::GetAllRecords(VectorLeafRecord& vct) {
+void LeafPage::GetAllRecords(VectorLeafRecord &vct) {
   vct.RemoveAll();
   vct.reserve(_recordNum);
   if (_vctRecord.size() == 0) {
     LoadRecords();
   }
 
-  for (RawRecord* rr : _vctRecord) {
-    vct.push_back(((LeafRecord*)rr)->ReferenceRecord());
+  for (RawRecord *rr : _vctRecord) {
+    vct.push_back(((LeafRecord *)rr)->ReferenceRecord());
   }
 }
 
-bool LeafPage::FetchRecords(const RawKey* startKey, const RawKey* endKey,
-  const bool bIncLeft, const bool bIncRight,
-  VectorLeafRecord& vct) {
+bool LeafPage::FetchRecords(const RawKey *startKey, const RawKey *endKey,
+                            const bool bIncLeft, const bool bIncRight,
+                            VectorLeafRecord &vct) {
   assert(startKey == nullptr || endKey == nullptr || *startKey <= *endKey);
   if (_vctRecord.size() == 0) {
     LoadRecords();
@@ -398,32 +398,34 @@ bool LeafPage::FetchRecords(const RawKey* startKey, const RawKey* endKey,
   vct.RemoveAll();
   vct.reserve(end - start);
   for (; start < end; start++) {
-    vct.push_back(((LeafRecord*)_vctRecord[start])->ReferenceRecord());
+    vct.push_back(((LeafRecord *)_vctRecord[start])->ReferenceRecord());
   }
 
   return end >= _recordNum;
 }
 
-int LeafPage::CompareTo(uint32_t recPos, const RawKey& key) {
+int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
-  return utils::BytesCompare(
-    _bysPage + start + _indexTree->GetKeyOffset(),
-    ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
-    key.GetBysVal(), key.GetLength());
+  return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+                             ReadShort(start + SHORT_LEN) -
+                                 _indexTree->GetKeyVarLen(),
+                             key.GetBysVal(), key.GetLength());
 }
 
-int LeafPage::CompareTo(uint32_t recPos, const LeafRecord& rr, bool key) {
+int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
   if (key) {
     return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-      ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
-      rr.GetBysValue() + _indexTree->GetKeyOffset(),
-      rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+                               ReadShort(start + SHORT_LEN) -
+                                   _indexTree->GetKeyVarLen(),
+                               rr.GetBysValue() + _indexTree->GetKeyOffset(),
+                               rr.GetKeyLength() - _indexTree->GetKeyVarLen());
   } else {
     return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-      ReadShort(start) - _indexTree->GetKeyOffset(),
-      rr.GetBysValue() + _indexTree->GetKeyOffset(),
-      rr.GetTotalLength() - _indexTree->GetKeyOffset());
+                               ReadShort(start) - _indexTree->GetKeyOffset(),
+                               rr.GetBysValue() + _indexTree->GetKeyOffset(),
+                               rr.GetTotalLength() -
+                                   _indexTree->GetKeyOffset());
   }
 }
 } // namespace storage

@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include <ostream>
-#include <string>
-#include <sstream>
 #include "../header.h"
+#include <ostream>
+#include <sstream>
+#include <string>
 
 namespace storage {
 enum class DataType : uint32_t {
@@ -33,17 +33,12 @@ enum class DataType : uint32_t {
   BOOL = FIX_LEN + 15
 };
 
-enum class ValueType : uint8_t {
-  NULL_VALUE = 0,
-  SOLE_VALUE,
-  BYTES_VALUE
-};
+enum class ValueType : uint8_t { NULL_VALUE = 0, SOLE_VALUE, BYTES_VALUE };
 
 static const int DEFAULT_MAX_LEN = 1000;
 
-inline std::ostream& operator<< (std::ostream& os, const DataType& dt) {
-  switch (dt)
-  {
+inline std::ostream &operator<<(std::ostream &os, const DataType &dt) {
+  switch (dt) {
   case DataType::BYTE:
     os << "BYTE(" << (int)DataType::BYTE << ")";
     break;
@@ -98,9 +93,8 @@ inline std::ostream& operator<< (std::ostream& os, const DataType& dt) {
   return os;
 }
 
-inline std::ostream& operator<< (std::ostream& os, const ValueType& vt) {
-  switch (vt)
-  {
+inline std::ostream &operator<<(std::ostream &os, const ValueType &vt) {
+  switch (vt) {
   case ValueType::BYTES_VALUE:
     os << "BYTES_VALUE(" << (int)ValueType::BYTES_VALUE << ")";
     break;
@@ -122,12 +116,14 @@ inline std::string DateTypeToString(const DataType dt) {
 }
 
 inline DataType ValueOfDataType(Byte type) {
-  static DataType arType[] = { DataType::UNKNOWN, DataType::CHAR, DataType::SHORT,
-    DataType::INT, DataType::LONG, DataType::BYTE, DataType::USHORT,
-    DataType::UINT, DataType::ULONG, DataType::FIXCHAR, DataType::VARCHAR,
-    DataType::DATETIME, DataType::FLOAT, DataType::DOUBLE, DataType::BLOB,
-    DataType::BOOL };
+  static DataType arType[] = {
+      DataType::UNKNOWN, DataType::CHAR,    DataType::SHORT,
+      DataType::INT,     DataType::LONG,    DataType::BYTE,
+      DataType::USHORT,  DataType::UINT,    DataType::ULONG,
+      DataType::FIXCHAR, DataType::VARCHAR, DataType::DATETIME,
+      DataType::FLOAT,   DataType::DOUBLE,  DataType::BLOB,
+      DataType::BOOL};
 
   return arType[type];
 }
-}
+} // namespace storage
