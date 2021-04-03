@@ -14,7 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #set(CMAKE_CXX_FLAGS "-g -rdynamic")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
 #打印信息
 message(STATUS "build type:${CMAKE_BUILD_TYPE}")
@@ -29,5 +29,5 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/${CMAKE_BUILD_TYPE})
 #include_directories(${PROJECT_SOURCE_DIR}/test)
 
 add_subdirectory(src)
-#add_subdirectory(test)
+add_subdirectory(test)
 add_subdirectory(presstest)
