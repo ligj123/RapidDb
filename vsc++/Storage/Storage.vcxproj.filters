@@ -106,7 +106,7 @@
     <ClCompile Include="..\..\src\table\Column.cpp">
       <Filter>table</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\table\TableDesc.cpp">
+    <ClCompile Include="..\..\src\table\Table.cpp">
       <Filter>table</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transaction\TranTask.cpp">
@@ -114,6 +114,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp">
       <Filter>pool</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\table\TableResultSet.cpp">
+      <Filter>table</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\table\CacheResultSet.cpp">
+      <Filter>table</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -259,7 +265,7 @@
     <ClInclude Include="..\..\src\table\Column.h">
       <Filter>table</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\table\TableDesc.h">
+    <ClInclude Include="..\..\src\table\Table.h">
       <Filter>table</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transaction\TranStatus.h">
@@ -273,6 +279,15 @@
     </ClInclude>
     <ClInclude Include="..\..\src\pool\PageBufferPool.h">
       <Filter>pool</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\table\IResultSet.h">
+      <Filter>table</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\table\TableResultSet.h">
+      <Filter>table</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\table\CacheResultSet.h">
+      <Filter>table</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

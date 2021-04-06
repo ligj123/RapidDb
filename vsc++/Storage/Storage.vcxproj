@@ -50,8 +50,10 @@
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp" />
     <ClCompile Include="..\..\src\pool\PageDividePool.cpp" />
     <ClCompile Include="..\..\src\pool\StoragePool.cpp" />
+    <ClCompile Include="..\..\src\table\CacheResultSet.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
-    <ClCompile Include="..\..\src\table\TableDesc.cpp" />
+    <ClCompile Include="..\..\src\table\Table.cpp" />
+    <ClCompile Include="..\..\src\table\TableResultSet.cpp" />
     <ClCompile Include="..\..\src\transaction\TranTask.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
     <ClCompile Include="..\..\src\utils\ErrorMsg.cpp" />
@@ -99,8 +101,11 @@
     <ClInclude Include="..\..\src\pool\PageBufferPool.h" />
     <ClInclude Include="..\..\src\pool\PageDividePool.h" />
     <ClInclude Include="..\..\src\pool\StoragePool.h" />
+    <ClInclude Include="..\..\src\table\CacheResultSet.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
-    <ClInclude Include="..\..\src\table\TableDesc.h" />
+    <ClInclude Include="..\..\src\table\IResultSet.h" />
+    <ClInclude Include="..\..\src\table\Table.h" />
+    <ClInclude Include="..\..\src\table\TableResultSet.h" />
     <ClInclude Include="..\..\src\transaction\TranStatus.h" />
     <ClInclude Include="..\..\src\transaction\TranTask.h" />
     <ClInclude Include="..\..\src\transaction\TranType.h" />

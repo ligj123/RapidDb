@@ -54,4 +54,6 @@ protected:
   string comments_;
   IDataValue *pDefaultVal_;
 };
+
+class TempColumn : public BaseColumn {};
 } // namespace storage

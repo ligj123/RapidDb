@@ -8,20 +8,28 @@
 
 namespace storage {
 using namespace std;
+static const char *COLUMN_CONNECTOR_CHAR = "|";
+static const char *NAME_PATTERN =
+    "^[_a-zA-Z\\u4E00-\\u9FA5][_a-zA-Z0-9\\u4E00-\\u9FA5]*?$";
+static const char *PRIMARY_KEY = "PARMARYKEY";
+static void IsValidName(string name) {
+  static regex reg(NAME_PATTERN);
+  cmatch mt;
+  if (!regex_match(name.c_str(), mt, reg)) {
+    throw ErrorMsg(TB_INVALID_FILE_VERSION, {name});
+  }
+}
 
-class TableDesc {
-public:
-  static const char *COLUMN_CONNECTOR_CHAR;
-  static const char *NAME_PATTERN;
-  static const char *PRIMARY_KEY;
-  static void IsValidName(string name);
+class BaseTable {};
 
+class PersistTable : public BaseTable {
 public:
-  TableDesc(string tableName, string description);
-  TableDesc();
-  ~TableDesc();
-  const string GetTableName() const { return _name; }
-  void SetTableName(string name) {
+public:
+  PersistTable(string tableName, string description);
+  PersistTable();
+  ~PersistTable();
+  inline const string GetTableName() const { return _name; }
+  inline void SetTableName(string name) {
     IsValidName(name);
     _name = name;
   }

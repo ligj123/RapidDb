@@ -82,9 +82,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\..\test\utils\ErrorMsg.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <Filter Include="cache">
       <UniqueIdentifier>{4b329b50-eaf6-494d-9538-27317e0c2dae}</UniqueIdentifier>
     </Filter>

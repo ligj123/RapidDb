@@ -1,4 +1,4 @@
-﻿#include "TableDesc.h"
+﻿#include "Table.h"
 #include "../config/ErrorID.h"
 #include "../dataType/DataValueFactory.h"
 #include "../utils/ErrorMsg.h"
@@ -7,35 +7,22 @@
 namespace storage {
 using namespace utils;
 
-const char *TableDesc::COLUMN_CONNECTOR_CHAR = "|";
-const char *TableDesc::NAME_PATTERN =
-    "^[_a-zA-Z\\u4E00-\\u9FA5][_a-zA-Z0-9\\u4E00-\\u9FA5]*?$";
-const char *TableDesc::PRIMARY_KEY = "PARMARYKEY";
-
-void TableDesc::IsValidName(string name) {
-  static regex reg(NAME_PATTERN);
-  cmatch mt;
-  if (!regex_match(name.c_str(), mt, reg)) {
-    throw ErrorMsg(TB_INVALID_FILE_VERSION, {name});
-  }
-}
-
-TableDesc::TableDesc(string name, string desc) {
+PersistTable::PersistTable(string name, string desc) {
   IsValidName(name);
 
   _name = name;
   _desc = desc;
 }
 
-TableDesc::TableDesc() {}
+PersistTable::PersistTable() {}
 
-TableDesc::~TableDesc() {
+PersistTable::~PersistTable() {
   for (auto iter = _vctColumn.begin(); iter != _vctColumn.end(); iter++) {
     delete *iter;
   }
 }
 
-IndexType TableDesc::GetIndexType(string indexName) const {
+IndexType PersistTable::GetIndexType(string indexName) const {
   auto iter = _mapIndexType.find(indexName);
   if (iter == _mapIndexType.end())
     return IndexType::UNKNOWN;
@@ -43,7 +30,7 @@ IndexType TableDesc::GetIndexType(string indexName) const {
     return iter->second;
 }
 
-const PersistColumn *TableDesc::GetColumn(string fieldName) const {
+const PersistColumn *PersistTable::GetColumn(string fieldName) const {
   auto iter = _mapColumnPos.find(fieldName);
   if (iter == _mapColumnPos.end()) {
     return nullptr;
@@ -52,7 +39,7 @@ const PersistColumn *TableDesc::GetColumn(string fieldName) const {
   }
 }
 
-const PersistColumn *TableDesc::GetColumn(int pos) {
+const PersistColumn *PersistTable::GetColumn(int pos) {
   if (pos < 0 || pos > _vctColumn.size()) {
     return nullptr;
   } else {
@@ -60,9 +47,9 @@ const PersistColumn *TableDesc::GetColumn(int pos) {
   }
 }
 
-void TableDesc::AddColumn(string &columnName, DataType dataType, bool nullable,
-                          uint32_t maxLen, string &comment,
-                          utils::Charsets charset, any &valDefault) {
+void PersistTable::AddColumn(string &columnName, DataType dataType,
+                             bool nullable, uint32_t maxLen, string &comment,
+                             utils::Charsets charset, any &valDefault) {
   transform(columnName.begin(), columnName.end(), columnName.begin(),
             ::toupper);
   IsValidName(columnName);
@@ -88,7 +75,7 @@ void TableDesc::AddColumn(string &columnName, DataType dataType, bool nullable,
   _mapColumnPos.insert(pair<string, size_t>(columnName, cm->GetPosition()));
 }
 
-void TableDesc::SetPrimaryKey(vector<string> priCols) {
+void PersistTable::SetPrimaryKey(vector<string> priCols) {
   if (priCols.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {PRIMARY_KEY});
   }
@@ -123,7 +110,7 @@ void TableDesc::SetPrimaryKey(vector<string> priCols) {
   _mapIndexFirstField.insert(pair<string, string>(priCols[0], PRIMARY_KEY));
 }
 
-void TableDesc::SetPrimaryKey(string priCol, uint32_t incStep) {
+void PersistTable::SetPrimaryKey(string priCol, uint32_t incStep) {
   if (_mapIndexName.find(PRIMARY_KEY) != _mapIndexName.end()) {
     throw ErrorMsg(TB_REPEATED_INDEX, {PRIMARY_KEY});
   }
@@ -153,8 +140,8 @@ void TableDesc::SetPrimaryKey(string priCol, uint32_t incStep) {
   _mapIndexFirstField.insert(pair<string, string>(priCol, PRIMARY_KEY));
 }
 
-void TableDesc::AddSecondaryKey(string indexName, IndexType indexType,
-                                vector<string> colNames) {
+void PersistTable::AddSecondaryKey(string indexName, IndexType indexType,
+                                   vector<string> colNames) {
   if (colNames.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName});
   }
