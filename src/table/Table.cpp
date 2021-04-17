@@ -7,27 +7,10 @@
 namespace storage {
 using namespace utils;
 
-PersistTable::PersistTable(string name, string desc) {
-  IsValidName(name);
-
-  _name = name;
-  _desc = desc;
-}
-
-PersistTable::PersistTable() {}
-
 PersistTable::~PersistTable() {
   for (auto iter = _vctColumn.begin(); iter != _vctColumn.end(); iter++) {
     delete *iter;
   }
-}
-
-IndexType PersistTable::GetIndexType(string indexName) const {
-  auto iter = _mapIndexType.find(indexName);
-  if (iter == _mapIndexType.end())
-    return IndexType::UNKNOWN;
-  else
-    return iter->second;
 }
 
 const PersistColumn *PersistTable::GetColumn(string fieldName) const {
@@ -79,65 +62,35 @@ void PersistTable::SetPrimaryKey(vector<string> priCols) {
   if (priCols.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {PRIMARY_KEY});
   }
-  if (_mapIndexName.find(PRIMARY_KEY) != _mapIndexName.end()) {
+
+  if (_mapIndex.find(PRIMARY_KEY) != _mapIndex.end()) {
     throw ErrorMsg(TB_REPEATED_INDEX, {PRIMARY_KEY});
   }
 
-  string names;
-  vector<PersistColumn *> vct;
+  vector<IndexProp::Column> vct;
   for (string col : priCols) {
     auto iter = _mapColumnPos.find(col);
     if (iter == _mapColumnPos.end()) {
       throw ErrorMsg(TB_UNEXIST_COLUMN, {col});
     }
 
+    IndexProp::Column clm;
+
     PersistColumn *tc = _vctColumn[iter->second];
-    vct.push_back(tc);
     if (!IDataValue::IsIndexType(tc->GetDataType())) {
       throw ErrorMsg(TB_INDEX_UNSUPPORT_DATA_TYPE,
                      {col, DateTypeToString(tc->GetDataType())});
     }
-    if (names.size() > 0)
-      names += COLUMN_CONNECTOR_CHAR;
-    names += col;
+
+    clm.colName = tc->GetName();
+    clm.colPos = tc->GetPosition();
+
+    vct.push_back(clm);
   }
 
-  _mapIndexName.insert(pair<string, string>(PRIMARY_KEY, names));
-  _mapIndexType.insert(
-      pair<string, IndexType>(PRIMARY_KEY, IndexType::PRIMARY));
-  _mapIndexColumn.insert(
-      pair<string, vector<PersistColumn *>>(PRIMARY_KEY, vct));
-  _mapIndexFirstField.insert(pair<string, string>(priCols[0], PRIMARY_KEY));
-}
-
-void PersistTable::SetPrimaryKey(string priCol, uint32_t incStep) {
-  if (_mapIndexName.find(PRIMARY_KEY) != _mapIndexName.end()) {
-    throw ErrorMsg(TB_REPEATED_INDEX, {PRIMARY_KEY});
-  }
-
-  string names;
-  vector<PersistColumn *> vct;
-  auto iter = _mapColumnPos.find(priCol);
-  if (iter == _mapColumnPos.end()) {
-    throw ErrorMsg(TB_UNEXIST_COLUMN, {priCol});
-  }
-
-  PersistColumn *tc = _vctColumn[iter->second];
-  vct.push_back(tc);
-  if (!IDataValue::IsIndexType(tc->GetDataType())) {
-    throw ErrorMsg(TB_INDEX_UNSUPPORT_DATA_TYPE,
-                   {priCol, DateTypeToString(tc->GetDataType())});
-  }
-  if (names.size() > 0)
-    names += COLUMN_CONNECTOR_CHAR;
-  names += priCol;
-
-  _mapIndexName.insert(pair<string, string>(PRIMARY_KEY, names));
-  _mapIndexType.insert(
-      pair<string, IndexType>(PRIMARY_KEY, IndexType::PRIMARY));
-  _mapIndexColumn.insert(
-      pair<string, vector<PersistColumn *>>(PRIMARY_KEY, vct));
-  _mapIndexFirstField.insert(pair<string, string>(priCol, PRIMARY_KEY));
+  IndexProp prop{IndexType::PRIMARY, vct};
+  _mapIndex.insert({PRIMARY_KEY, prop});
+  _mapIndexFirstField.insert({vct[0].colPos, PRIMARY_KEY});
 }
 
 void PersistTable::AddSecondaryKey(string indexName, IndexType indexType,
@@ -145,33 +98,32 @@ void PersistTable::AddSecondaryKey(string indexName, IndexType indexType,
   if (colNames.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName});
   }
-  if (_mapIndexName.find(indexName) != _mapIndexName.end()) {
+  if (_mapIndex.find(indexName) != _mapIndex.end()) {
     throw ErrorMsg(TB_REPEATED_INDEX, {indexName});
   }
 
-  string names;
-  vector<PersistColumn *> vct;
+  vector<IndexProp::Column> vct;
   for (string col : colNames) {
     auto iter = _mapColumnPos.find(col);
     if (iter == _mapColumnPos.end()) {
       throw ErrorMsg(TB_UNEXIST_COLUMN, {col});
     }
+    IndexProp::Column clm;
 
     PersistColumn *tc = _vctColumn[iter->second];
-    vct.push_back(tc);
     if (!IDataValue::IsIndexType(tc->GetDataType())) {
       throw ErrorMsg(TB_INDEX_UNSUPPORT_DATA_TYPE,
                      {col, DateTypeToString(tc->GetDataType())});
     }
-    if (names.size() > 0)
-      names += COLUMN_CONNECTOR_CHAR;
-    names += col;
+
+    clm.colName = tc->GetName();
+    clm.colPos = tc->GetPosition();
+
+    vct.push_back(clm);
   }
 
-  _mapIndexName.insert(pair<string, string>(indexName, names));
-  _mapIndexType.insert(pair<string, IndexType>(indexName, IndexType::PRIMARY));
-  _mapIndexColumn.insert(pair<string, vector<PersistColumn *>>(indexName, vct));
-  _mapIndexFirstField.insert(pair<string, string>(colNames[0], indexName));
-  _mapIndexType.insert(pair<string, IndexType>(indexName, indexType));
+  IndexProp prop{indexType, vct};
+  _mapIndex.insert({indexName, prop});
+  _mapIndexFirstField.insert({vct[0].colPos, indexName});
 }
 } // namespace storage

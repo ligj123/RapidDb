@@ -56,17 +56,24 @@ bool BranchPage::SaveRecords() {
     _bysPage = CachePool::ApplyPage();
     uint16_t pos =
         (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * sizeof(uint16_t));
+    _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
+    int refCount = 0;
 
     for (int i = 0; i < _vctRecord.size(); i++) {
       WriteShort(DATA_BEGIN_OFFSET + sizeof(uint16_t) * i, pos);
       BranchRecord *rr = (BranchRecord *)_vctRecord[i];
+      if (!rr->IsSole())
+        refCount++;
+
       pos += rr->SaveData(_bysPage + pos);
       rr->ReleaseRecord();
     }
 
-    _vctRecord.clear();
-    _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
-    CachePool::ReleasePage(tmp);
+    CleanRecords();
+    if (refCount > 0)
+      _absoBuf->ReleaseCount(refCount);
+    if (_absoBuf == nullptr || _absoBuf->IsDiffBuff(tmp))
+      CachePool::Release(tmp, (uint32_t)Configure::GetCachePageSize());
   }
 
   WriteLong(PARENT_PAGE_POINTER_OFFSET, _parentPageId);

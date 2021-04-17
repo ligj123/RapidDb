@@ -32,6 +32,8 @@ public:
   inline IndexPage *GetParentPage() const { return _parentPage; }
   inline IndexTree *GetTreeFile() const { return _indexTree; }
   virtual uint16_t GetValueLength() const = 0;
+  virtual bool IsSole() const { return _bSole; }
+  virtual bool IsTransaction() const { return false; }
 
 public:
   static void *operator new(size_t size) {

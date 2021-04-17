@@ -50,10 +50,10 @@
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp" />
     <ClCompile Include="..\..\src\pool\PageDividePool.cpp" />
     <ClCompile Include="..\..\src\pool\StoragePool.cpp" />
-    <ClCompile Include="..\..\src\table\CacheResultSet.cpp" />
+    <ClCompile Include="..\..\src\statement\CacheResultSet.cpp" />
+    <ClCompile Include="..\..\src\statement\TableResultSet.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
     <ClCompile Include="..\..\src\table\Table.cpp" />
-    <ClCompile Include="..\..\src\table\TableResultSet.cpp" />
     <ClCompile Include="..\..\src\transaction\TranTask.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
     <ClCompile Include="..\..\src\utils\ErrorMsg.cpp" />
@@ -61,6 +61,7 @@
     <ClCompile Include="..\..\src\utils\ThreadPool.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\cache\AbsoleteBuffer.h" />
     <ClInclude Include="..\..\src\cache\CachePool.h" />
     <ClInclude Include="..\..\src\cache\BufferPool.h" />
     <ClInclude Include="..\..\src\config\Configure.h" />
@@ -96,21 +97,24 @@
     <ClInclude Include="..\..\src\dataType\DataValueBlob.h" />
     <ClInclude Include="..\..\src\dataType\DataValueVarChar.h" />
     <ClInclude Include="..\..\src\dataType\IDataValue.h" />
+    <ClInclude Include="..\..\src\expr\BaseExpr.h" />
     <ClInclude Include="..\..\src\file\PageFile.h" />
     <ClInclude Include="..\..\src\header.h" />
     <ClInclude Include="..\..\src\pool\PageBufferPool.h" />
     <ClInclude Include="..\..\src\pool\PageDividePool.h" />
     <ClInclude Include="..\..\src\pool\StoragePool.h" />
-    <ClInclude Include="..\..\src\table\CacheResultSet.h" />
+    <ClInclude Include="..\..\src\statement\CacheResultSet.h" />
+    <ClInclude Include="..\..\src\statement\IResultSet.h" />
+    <ClInclude Include="..\..\src\statement\Statement.h" />
+    <ClInclude Include="..\..\src\statement\TableResultSet.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
-    <ClInclude Include="..\..\src\table\IResultSet.h" />
     <ClInclude Include="..\..\src\table\Table.h" />
-    <ClInclude Include="..\..\src\table\TableResultSet.h" />
     <ClInclude Include="..\..\src\transaction\TranStatus.h" />
     <ClInclude Include="..\..\src\transaction\TranTask.h" />
     <ClInclude Include="..\..\src\transaction\TranType.h" />
     <ClInclude Include="..\..\src\utils\BytesConvert.h" />
     <ClInclude Include="..\..\src\utils\CharsetConvert.h" />
+    <ClInclude Include="..\..\src\utils\ConcurrentHashMap.h" />
     <ClInclude Include="..\..\src\utils\ErrorMsg.h" />
     <ClInclude Include="..\..\src\utils\ExceptionEx.h" />
     <ClInclude Include="..\..\src\utils\Log.h" />

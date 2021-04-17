@@ -11,9 +11,10 @@ class IDataValue;
 using namespace std;
 class BaseColumn {
 public:
-  BaseColumn() {}
+  BaseColumn() : name_(), position_(), dataType_() {}
   BaseColumn(std::string name, uint32_t pos, DataType dataType)
       : name_(name), position_(pos), dataType_(dataType) {}
+  virtual ~BaseColumn() {}
   const string &GetName() const { return name_; }
   uint32_t GetPosition() { return position_; }
   DataType GetDataType() { return dataType_; }
@@ -55,5 +56,13 @@ protected:
   IDataValue *pDefaultVal_;
 };
 
-class TempColumn : public BaseColumn {};
+class TempColumn : public BaseColumn {
+public:
+  TempColumn(const std::string &name, uint32_t pos, DataType dataType,
+             string alias);
+  const string &GetAlias() { return _alias; }
+
+protected:
+  string _alias;
+};
 } // namespace storage

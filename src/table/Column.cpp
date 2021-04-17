@@ -111,4 +111,8 @@ uint32_t PersistColumn::WriteData(Byte *pBuf) {
 
   return (uint32_t)(p - pBuf);
 }
+
+TempColumn::TempColumn(const std::string &name, uint32_t pos, DataType dataType,
+                       string alias)
+    : BaseColumn(name, pos, dataType), _alias(alias) {}
 } // namespace storage

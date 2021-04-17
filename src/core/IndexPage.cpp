@@ -31,7 +31,7 @@ IndexPage::~IndexPage() {}
 
 void IndexPage::Init() {
   _vctRecord.clear();
-  _recordRefCount = 0;
+  _tranCount = 0;
   _recordNum = ReadShort(NUM_RECORD_OFFSET);
   _totalDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
   _parentPageId = ReadLong(PARENT_PAGE_POINTER_OFFSET);
@@ -68,10 +68,17 @@ bool IndexPage::PageDivide() {
   int maxLen = (int)(GetMaxDataLength() * LOAD_FACTOR);
   int pos = 0;
   int len = 0;
+  int refCount = 0;
+  _tranCount = 0;
+
   for (; pos < _vctRecord.size(); pos++) {
     RawRecord *rr = _vctRecord[pos];
-    len += rr->GetTotalLength() + sizeof(uint16_t);
+    if (!rr->IsSole())
+      refCount++;
+    if (rr->IsTransaction())
+      _tranCount++;
 
+    len += rr->GetTotalLength() + sizeof(uint16_t);
     if (len > maxLen) {
       if (len > GetMaxDataLength()) {
         len -= rr->GetTotalLength() + sizeof(uint16_t);
@@ -86,17 +93,23 @@ bool IndexPage::PageDivide() {
   // Split the surplus records to following page
   _totalDataLength = len;
   _recordNum = pos;
+
   vector<IndexPage *> vctPage;
   IndexPage *newPage = nullptr;
 
   len = 0;
   int startPos = pos;
   Byte level = GetPageLevel();
-
+  int tranCount = 0;
   for (int i = pos; i < _vctRecord.size(); i++) {
     RawRecord *rr = _vctRecord[i];
+    if (!rr->IsSole())
+      refCount++;
+    if (rr->IsTransaction())
+      tranCount++;
 
     len += rr->GetTotalLength() + sizeof(uint16_t);
+
     if (len > maxLen) {
       if (len > GetMaxDataLength()) {
         len -= rr->GetTotalLength() + sizeof(uint16_t);
@@ -112,6 +125,8 @@ bool IndexPage::PageDivide() {
 
       newPage->_totalDataLength = len;
       newPage->_recordNum = (int32_t)newPage->_vctRecord.size();
+      newPage->_tranCount = tranCount;
+      tranCount = 0;
       vctPage.push_back(newPage);
       len = 0;
       startPos = i + 1;
@@ -128,6 +143,7 @@ bool IndexPage::PageDivide() {
 
     newPage->_totalDataLength = len;
     newPage->_recordNum = (int32_t)newPage->_vctRecord.size();
+    newPage->_tranCount = tranCount;
     vctPage.push_back(newPage);
   }
 
@@ -139,6 +155,9 @@ bool IndexPage::PageDivide() {
   parentPage->InsertRecord(rec, posInParent);
   posInParent++;
 
+  if (_absoBuf == nullptr && refCount > 0) {
+    _absoBuf = new AbsoleteBuffer(_bysPage, refCount);
+  }
   // Insert new page' key and id to parent page
   for (int i = 0; i < vctPage.size(); i++) {
     IndexPage *indexPage = vctPage[i];
@@ -153,6 +172,12 @@ bool IndexPage::PageDivide() {
     }
 
     parentPage->InsertRecord(rec, posInParent + i);
+    if (_absoBuf != nullptr)
+      indexPage->_absoBuf = _absoBuf;
+
+    for (RawRecord *rr : indexPage->_vctRecord) {
+      rr->SetParentPage(indexPage);
+    }
   }
 
   parentPage->WriteUnlock();
@@ -191,7 +216,7 @@ bool IndexPage::PageDivide() {
   for (int i = 0; i < vctPage.size(); i++) {
     IndexPage *indexPage = vctPage[i];
     indexPage->_bRecordUpdate = true;
-    indexPage->SaveRecords();
+    PageDividePool::AddCachePage(indexPage);
     indexPage->WriteUnlock();
     indexPage->DecRefCount();
   }

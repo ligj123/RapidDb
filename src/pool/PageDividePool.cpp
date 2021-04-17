@@ -46,14 +46,14 @@ thread *PageDividePool::CreateThread() {
       for (auto iter = _mapPage.begin(); iter != _mapPage.end();) {
         auto iter2 = iter++;
         auto page = iter2->second;
-        if (page->GetRecordRefCount() > 0 ||
+        if (page->GetRecordTranCount() > 0 ||
             (!page->IsOverTime(BUFFER_FLUSH_INTEVAL_MS) &&
              !page->IsOverlength())) {
           continue;
         }
 
         bool b = page->WriteTryLock();
-        if (!b || page->GetRecordRefCount() > 0) {
+        if (!b || page->GetRecordTranCount() > 0) {
           if (b)
             page->WriteUnlock();
           continue;

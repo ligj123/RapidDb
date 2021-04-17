@@ -59,11 +59,22 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
     : RawRecord(indexTree, nullptr, nullptr, true), _undoRecords(old),
       _tranId(tranId) {
   _actionType = type;
+  PriValStruct *oldValStru =
+      (old == nullptr ? nullptr : old->GetPriValStruct());
+  uint32_t snapLen = (old == nullptr ? 0 : old->GetSnapshotLength());
+  uint64_t lver = _indexTree->GetHeadPage()->GetLastVersionStamp();
+  bool bOldAll = (oldValStru == nullptr || oldValStru->arrStamp[0] < lver);
+  Byte rsCount =
+      (old == nullptr ? 1 : (oldValStru->verCount + (bOldAll ? 1 : 0)));
 
-  int i;
+  int i = 0;
   uint16_t lenKey = _indexTree->GetKeyVarLen();
-  for (i = 0; i < vctKey.size(); i++) {
-    lenKey += vctKey[i]->GetPersistenceLength(true);
+  if (type != ActionType::DELETE || rsCount > 1) {
+    for (i = 0; i < vctKey.size(); i++) {
+      lenKey += vctKey[i]->GetPersistenceLength(true);
+    }
+  } else {
+    lenKey = 0;
   }
 
   if (lenKey > Configure::GetMaxKeyLength()) {
@@ -73,12 +84,17 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   uint16_t lenVal = 0;
   uint16_t max_lenVal =
       (uint16_t)(Configure::GetMaxRecordLength() - lenKey - TWO_SHORT_LEN);
-  for (i = 0; i < vctVal.size(); i++) {
-    lenVal += vctVal[i]->GetPersistenceLength(false);
-    if (lenVal > max_lenVal) {
-      lenVal -= vctVal[i]->GetPersistenceLength(false);
-      break;
+  if (type != ActionType::DELETE) {
+    for (i = 0; i < vctVal.size(); i++) {
+      lenVal += vctVal[i]->GetPersistenceLength(false);
+      if (lenVal > max_lenVal) {
+        lenVal -= vctVal[i]->GetPersistenceLength(false);
+        break;
+      }
     }
+  } else {
+    assert(vctVal.size() == 0);
+    lenVal = 0;
   }
 
   uint16_t indexOvfStart = (i < vctVal.size() ? i : (uint16_t)vctVal.size());
@@ -88,14 +104,6 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
       sizeOverflow += vctVal[i]->GetPersistenceLength(false);
     }
   }
-
-  PriValStruct *oldValStru =
-      (old == nullptr ? nullptr : old->GetPriValStruct());
-  uint32_t snapLen = (old == nullptr ? 0 : old->GetSnapshotLength());
-  uint64_t lver = _indexTree->GetHeadPage()->GetLastVersionStamp();
-  bool bOldAll = (oldValStru == nullptr || oldValStru->arrStamp[0] < lver);
-  Byte rsCount =
-      (old == nullptr ? 1 : (oldValStru->verCount + (bOldAll ? 1 : 0)));
 
   uint16_t lenAttr = 1 + sizeof(uint64_t) * rsCount;
   if (sizeOverflow > 0 || lenVal + snapLen > max_lenVal) {
@@ -109,6 +117,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   _priStru->bLastOvf = (sizeOverflow > 0);
   _priStru->bOvf = (sizeOverflow > 0 ||
                     (lenAttr + lenVal + snapLen > max_lenVal && snapLen > 0));
+  _priStru->bDelete = (type == ActionType::DELETE);
   _priStru->verCount = rsCount;
 
   int totalLen = lenKey + sizeof(uint16_t) * 2 + lenAttr + lenVal;
@@ -116,6 +125,10 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
     totalLen += snapLen;
 
   _bysVal = CachePool::ApplyBys(totalLen);
+  if (type == ActionType::DELETE && rsCount == 1) {
+    *((uint16_t *)_bysVal) = 0;
+    return;
+  }
   *((uint16_t *)_bysVal) = totalLen;
   *((uint16_t *)(_bysVal + sizeof(uint16_t))) = lenKey;
 
@@ -135,12 +148,13 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   _priStru->pageValOffset = pos + lenAttr;
 
   _bysVal[pos] = (_priStru->bLastOvf ? LAST_RECORD_OVERFLOW : 0) +
-                 (_priStru->bOvf ? RECORD_OVERFLOW : 0) + _priStru->verCount;
+                 (_priStru->bOvf ? RECORD_OVERFLOW : 0) +
+                 (_priStru->bDelete ? RECORD_DELETED : 0) + _priStru->verCount;
   pos++;
 
   _priStru->arrStamp = (uint64_t *)&_bysVal[pos];
-  utils::UInt64ToBytes(recStamp, _bysVal + pos, false);
   pos += sizeof(uint64_t) * rsCount;
+  _priStru->arrStamp[0] = recStamp;
 
   if (rsCount > 1) {
     std::memcpy(&_priStru->arrStamp[1], &oldValStru->arrStamp[bOldAll ? 0 : 1],

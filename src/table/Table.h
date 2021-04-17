@@ -1,7 +1,10 @@
 ﻿#pragma once
+#include "../config/ErrorID.h"
 #include "../core/IndexType.h"
+#include "../utils/ErrorMsg.h"
 #include "Column.h"
 #include <any>
+#include <regex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -12,49 +15,73 @@ static const char *COLUMN_CONNECTOR_CHAR = "|";
 static const char *NAME_PATTERN =
     "^[_a-zA-Z\\u4E00-\\u9FA5][_a-zA-Z0-9\\u4E00-\\u9FA5]*?$";
 static const char *PRIMARY_KEY = "PARMARYKEY";
+static regex reg(NAME_PATTERN);
+
 static void IsValidName(string name) {
-  static regex reg(NAME_PATTERN);
   cmatch mt;
   if (!regex_match(name.c_str(), mt, reg)) {
-    throw ErrorMsg(TB_INVALID_FILE_VERSION, {name});
+    throw utils::ErrorMsg(TB_INVALID_FILE_VERSION, {name});
   }
 }
 
-class BaseTable {};
+struct IndexProp {
+  IndexType type;
+  struct Column {
+    string colName;
+    int colPos = 0;
+  };
+  vector<Column> vctCol;
+};
 
-class PersistTable : public BaseTable {
+class BaseTable {
 public:
-public:
-  PersistTable(string tableName, string description);
-  PersistTable();
-  ~PersistTable();
+  BaseTable() {}
+  BaseTable(const string &name, const string &desc)
+      : _name(name), _desc(desc) {}
+  virtual ~BaseTable() {}
   inline const string GetTableName() const { return _name; }
   inline void SetTableName(string name) {
     IsValidName(name);
     _name = name;
   }
+  inline const string &GetDescription() const { return _desc; }
+  inline void SetTableDesc(const string &desc) { _desc = desc; }
 
-  const string &GetDescription() const { return _desc; }
+protected:
+  /**Table name*/
+  string _name;
+  /**Table describer*/
+  string _desc;
+};
+
+class PersistTable : public BaseTable {
+public:
+public:
+  PersistTable(string tableName, string description)
+      : BaseTable(tableName, description){};
+  PersistTable(){};
+  ~PersistTable();
+
   const string GetPrimaryKey() const { return PRIMARY_KEY; }
-  const vector<PersistColumn *> &GetPrimaryKeyColumns() const {
-    return _mapIndexColumn.at(PRIMARY_KEY);
+  const IndexProp &GetPrimaryKeyColumns() const {
+    return _mapIndex.at(PRIMARY_KEY);
   }
-  const unordered_map<string, vector<PersistColumn *>> &
-  GetMapIndexColumns() const {
-    return _mapIndexColumn;
+  const unordered_map<string, IndexProp> &GetMapIndex() const {
+    return _mapIndex;
   }
-  IndexType GetIndexType(string indexName) const;
-  const unordered_map<string, IndexType> &GetMapIndexType() const {
-    return _mapIndexType;
+  IndexType GetIndexType(string indexName) const {
+    auto iter = _mapIndex.find(indexName);
+    if (iter == _mapIndex.end())
+      return IndexType::UNKNOWN;
+    return iter->second.type;
   }
+
   const vector<PersistColumn *> &GetColumnArray() const { return _vctColumn; }
-  const unordered_map<string, string> &GetMapIndexName() const {
-    return _mapIndexName;
-  }
+
   const PersistColumn *GetColumn(string fieldName) const;
   const PersistColumn *GetColumn(int pos);
-  unordered_map<string, size_t> GetMapColumnPos() { return _mapColumnPos; }
-  unordered_map<string, string> GetIndexFirstFieldMap() {
+  unordered_map<string, int> GetMapColumnPos() { return _mapColumnPos; }
+  unordered_map<int, string> GetIndexFirstFieldMap() {
     return _mapIndexFirstField;
   }
 
@@ -62,7 +89,6 @@ public:
                  uint32_t maxLen, string &comment, utils::Charsets charset,
                  any &valDefault);
   void SetPrimaryKey(vector<string> priCols);
-  void SetPrimaryKey(string priCol, uint32_t incStep);
 
   void AddSecondaryKey(string indexName, IndexType indexType,
                        vector<string> colNames);
@@ -73,27 +99,16 @@ protected:
   }
 
 protected:
-  /**Table name*/
-  string _name;
-  /**Table describer*/
-  string _desc;
   /**Include all columns in this table, they will order by actual position in
    * the table.*/
   vector<PersistColumn *> _vctColumn;
   /** The map for column name and their position in column list */
-  unordered_map<string, size_t> _mapColumnPos;
+  unordered_map<string, int> _mapColumnPos;
   /**The first parameter is the unique name for a index and the primary key's
-  name is fixed, must be PRIMARY_KEY. The second parameter is the column(s)'
-  name to constitute the index.*/
-  unordered_map<string, string> _mapIndexName;
-  /**The first parameter, the unique name for a index;
-  The second parameter, the index type: PRIMARY, UNIQUE, NON_UNIQUE*/
-  unordered_map<string, IndexType> _mapIndexType;
-  /** The first parameter, the unique name for a index;
-  The second parameter, the columns to constitute it.*/
-  unordered_map<string, vector<PersistColumn *>> _mapIndexColumn;
-  /**The first column name to constitute the index;
+  name is fixed, must be PRIMARY_KEY. The second parameter is IndexProp.*/
+  unordered_map<string, IndexProp> _mapIndex;
+  /**The first column position to constitute the index;
   The second parameter,  the unique name for a index;*/
-  unordered_map<string, string> _mapIndexFirstField;
+  unordered_map<int, string> _mapIndexFirstField;
 };
 } // namespace storage

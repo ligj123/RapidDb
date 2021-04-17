@@ -208,6 +208,6 @@ class IResultSet {
    */
   virtual void GetCurrDataValueRow(VectorDataValue vct) = 0;
   virtual void close() {}
-}
+};
 
 } // namespace storage

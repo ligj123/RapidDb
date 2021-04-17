@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../cache/AbsoleteBuffer.h"
 #include "CachePage.h"
 #include "IndexType.h"
 #include "RawRecord.h"
@@ -35,12 +36,12 @@ public:
   inline void SetPageLastUpdateTime() { _dtPageLastUpdate = GetMsFromEpoch(); }
   inline uint32_t GetTotalDataLength() { return _totalDataLength; }
   inline uint32_t GetRecordSize() { return _recordNum; }
-  inline bool Releaseable() { return _refCount == 0 && _recordRefCount == 0; }
-  inline int32_t AddRecordRefCount(int32_t x) {
-    _recordRefCount += x;
-    return _recordRefCount;
+  inline bool Releaseable() { return _refCount == 0 && _tranCount == 0; }
+  inline int32_t AddRecordTranCount(int32_t x) {
+    _tranCount += x;
+    return _tranCount;
   }
-  inline int32_t GetRecordRefCount() { return _recordRefCount; }
+  inline int32_t GetRecordTranCount() { return _tranCount; }
   inline int32_t GetRecordNum() { return _recordNum; }
 
   virtual void Init();
@@ -48,11 +49,12 @@ public:
   virtual bool SaveRecords() = 0;
 
 protected:
+  AbsoleteBuffer *_absoBuf = nullptr;
   vector<RawRecord *> _vctRecord;
   uint64_t _parentPageId = 0;
   uint64_t _dtPageLastUpdate = 0;
   int32_t _totalDataLength = 0;
   int32_t _recordNum = 0;
-  int32_t _recordRefCount = 0;
+  int32_t _tranCount = 0;
 };
 } // namespace storage
