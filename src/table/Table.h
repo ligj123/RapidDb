@@ -2,9 +2,9 @@
 #include "../config/ErrorID.h"
 #include "../core/IndexType.h"
 #include "../utils/ErrorMsg.h"
+#include "../utils/Utilitys.h"
 #include "Column.h"
 #include <any>
-#include <regex>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -12,17 +12,7 @@
 namespace storage {
 using namespace std;
 static const char *COLUMN_CONNECTOR_CHAR = "|";
-static const char *NAME_PATTERN =
-    "^[_a-zA-Z\\u4E00-\\u9FA5][_a-zA-Z0-9\\u4E00-\\u9FA5]*?$";
 static const char *PRIMARY_KEY = "PARMARYKEY";
-static regex reg(NAME_PATTERN);
-
-static void IsValidName(string name) {
-  cmatch mt;
-  if (!regex_match(name.c_str(), mt, reg)) {
-    throw utils::ErrorMsg(TB_INVALID_FILE_VERSION, {name});
-  }
-}
 
 struct IndexProp {
   IndexType type;
@@ -111,4 +101,6 @@ protected:
   The second parameter,  the unique name for a index;*/
   unordered_map<int, string> _mapIndexFirstField;
 };
+
+class TempTable : public BaseTable {};
 } // namespace storage

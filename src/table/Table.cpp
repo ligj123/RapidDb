@@ -52,10 +52,10 @@ void PersistTable::AddColumn(string &columnName, DataType dataType,
 
   PersistColumn *cm = new PersistColumn(columnName, (uint32_t)_vctColumn.size(),
                                         dataType, comment, nullable, maxLen, -1,
-                                        utils::Charsets::UTF8, dvDefault);
+                                        -1, utils::Charsets::UTF8, dvDefault);
 
   _vctColumn.push_back(cm);
-  _mapColumnPos.insert(pair<string, size_t>(columnName, cm->GetPosition()));
+  _mapColumnPos.insert(pair<string, int>(columnName, cm->GetPosition()));
 }
 
 void PersistTable::SetPrimaryKey(vector<string> priCols) {

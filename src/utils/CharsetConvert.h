@@ -6,7 +6,7 @@
 
 namespace utils {
 using namespace std;
-enum class Charsets : uint16_t { UTF8 = 0, UTF16, UTF32, GBK };
+enum class Charsets : uint16_t { UNKNOWN = 0, UTF8, UTF16, UTF32, GBK };
 
 enum class ConvResult { OK = 0, PARTIAL, ERROR, IGNORE };
 

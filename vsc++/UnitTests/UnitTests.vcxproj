@@ -43,6 +43,7 @@
     <ClCompile Include="..\..\test\pool\StoragePoolTest.cpp" />
     <ClCompile Include="..\..\test\TestMain.cpp" />
     <ClCompile Include="..\..\test\utils\CharsetConvertTest.cpp" />
+    <ClCompile Include="..\..\test\utils\ConcurrentHashMapTest.cpp" />
     <ClCompile Include="..\..\test\utils\ErrorMsgTest.cpp" />
     <ClCompile Include="..\..\test\utils\SpinMutexTest.cpp" />
     <ClCompile Include="..\..\test\utils\ThreadPoolTest.cpp" />

@@ -5,49 +5,40 @@
 #include <cstring>
 
 namespace storage {
-PersistColumn::PersistColumn(const std::string &name, uint32_t pos,
-                             DataType dataType, const string &comments,
-                             bool bNullable, uint32_t maxLen, uint32_t incStep,
-                             utils::Charsets charset, IDataValue *defaultVal)
-    : BaseColumn(name, pos, dataType), bNullable_(bNullable),
-      comments_(comments), maxLength_(maxLen), incStep_(incStep),
-      charset_(charset), pDefaultVal_(defaultVal) {}
-PersistColumn::~PersistColumn() { delete pDefaultVal_; }
-
 uint32_t PersistColumn::ReadData(Byte *pBuf) {
   Byte *p = pBuf;
-  *((uint32_t *)p) = (uint32_t)name_.size();
+  *((uint32_t *)p) = (uint32_t)_name.size();
   p += sizeof(uint32_t);
-  std::memcpy(p, name_.c_str(), name_.size());
-  p += name_.size();
+  std::memcpy(p, _name.c_str(), _name.size());
+  p += _name.size();
 
-  *((uint32_t *)p) = position_;
-  p += sizeof(uint32_t);
-
-  *((uint32_t *)p) = (uint32_t)dataType_;
+  *((uint32_t *)p) = _position;
   p += sizeof(uint32_t);
 
-  *p = (bNullable_ ? 0 : 1);
+  *((uint32_t *)p) = (uint32_t)_dataType;
+  p += sizeof(uint32_t);
+
+  *p = (_bNullable ? 0 : 1);
   p++;
 
-  *((uint32_t *)p) = maxLength_;
+  *((uint32_t *)p) = _maxLength;
   p += sizeof(uint32_t);
 
-  *((uint32_t *)p) = incStep_;
+  *((uint32_t *)p) = _incStep;
   p += sizeof(uint32_t);
 
-  *((uint32_t *)p) = (uint32_t)charset_;
+  *((uint32_t *)p) = (uint32_t)_charset;
   p += sizeof(uint32_t);
 
-  *((uint32_t *)p) = (uint32_t)comments_.size();
+  *((uint32_t *)p) = (uint32_t)_comments.size();
   p += sizeof(uint32_t);
-  std::memcpy(p, comments_.c_str(), comments_.size());
-  p += comments_.size();
+  std::memcpy(p, _comments.c_str(), _comments.size());
+  p += _comments.size();
 
-  *p = (pDefaultVal_ == nullptr ? 0 : 1);
+  *p = (_pDefaultVal == nullptr ? 0 : 1);
   p++;
-  if (pDefaultVal_ != nullptr) {
-    p += pDefaultVal_->WriteData(p);
+  if (_pDefaultVal != nullptr) {
+    p += _pDefaultVal->WriteData(p);
   }
 
   return (int32_t)(p - pBuf);
@@ -58,52 +49,52 @@ uint32_t PersistColumn::WriteData(Byte *pBuf) {
 
   uint32_t len = *((uint32_t *)p);
   p += sizeof(uint32_t);
-  name_ = string((char *)p, len);
+  _name = string((char *)p, len);
   p += len;
 
-  position_ = *((uint32_t *)p);
+  _position = *((uint32_t *)p);
   p += sizeof(uint32_t);
 
-  dataType_ = (DataType) * ((uint32_t *)p);
+  _dataType = (DataType) * ((uint32_t *)p);
   p += sizeof(uint32_t);
 
-  bNullable_ = (*p == 0);
+  _bNullable = (*p == 0);
   p++;
 
-  maxLength_ = *((uint32_t *)p);
+  _maxLength = *((uint32_t *)p);
   p += sizeof(uint32_t);
 
-  incStep_ = *((uint32_t *)p);
+  _incStep = *((uint32_t *)p);
   p += sizeof(uint32_t);
 
-  charset_ = (utils::Charsets) * ((uint32_t *)p);
+  _charset = (utils::Charsets) * ((uint32_t *)p);
   p += sizeof(uint32_t);
 
   len = *((uint32_t *)p);
   p += sizeof(uint32_t);
-  comments_ = string((char *)p, len);
+  _comments = string((char *)p, len);
   p += len;
 
   bool bDefault = (*p != 0);
   p++;
   if (bDefault) {
-    switch (dataType_) {
+    switch (_dataType) {
     case DataType::LONG:
-      pDefaultVal_ = new DataValueLong(*((int64_t *)p));
+      _pDefaultVal = new DataValueLong(*((int64_t *)p));
       p += sizeof(uint64_t);
       break;
     case DataType::VARCHAR:
       len = (*(int32_t *)p);
       p += sizeof(uint32_t);
-      pDefaultVal_ = new DataValueVarChar((char *)p);
+      _pDefaultVal = new DataValueVarChar((char *)p);
       p += len;
       break;
     case DataType::FIXCHAR:
-      if (p[maxLength_ - 1] == '\0')
-        pDefaultVal_ = new DataValueFixChar((char *)p);
+      if (p[_maxLength - 1] == '\0')
+        _pDefaultVal = new DataValueFixChar((char *)p);
       else
-        pDefaultVal_ = new DataValueFixChar((char *)p, maxLength_);
-      p += maxLength_;
+        _pDefaultVal = new DataValueFixChar((char *)p, _maxLength);
+      p += _maxLength;
     default:
       break;
     }
@@ -112,7 +103,4 @@ uint32_t PersistColumn::WriteData(Byte *pBuf) {
   return (uint32_t)(p - pBuf);
 }
 
-TempColumn::TempColumn(const std::string &name, uint32_t pos, DataType dataType,
-                       string alias)
-    : BaseColumn(name, pos, dataType), _alias(alias) {}
 } // namespace storage

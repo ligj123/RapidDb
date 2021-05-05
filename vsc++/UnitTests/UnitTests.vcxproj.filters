@@ -80,6 +80,9 @@
     <ClCompile Include="..\..\test\core\IndexTreeTest.cpp">
       <Filter>core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\test\utils\ConcurrentHashMapTest.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cache">
