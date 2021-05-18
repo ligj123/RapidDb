@@ -9,23 +9,18 @@ class IResultSet {
   /**
    * Move to the first row if possible
    * @return true if moved to the first row; false if failed to move or not able
-   * to move the first row.
+   * to move to the first row.
    */
   virtual bool First() = 0;
   /**
-   * Move to the next row if possible
-   * @return true if moved to the next row; false if failed to move or not able
-   * to move the next row.
-   * @throws StorageIOException
-   * @throws StorageInvalidDataTypeException
+   * Judge if it has the next
+   * @return true if has the next row; false if not have
    */
   virtual bool HasNext() = 0;
   /**
    * Move to the next row if possible
    * @return true if moved to the next row; false if failed to move or not able
    * to move the next row.
-   * @throws StorageIOException
-   * @throws StorageInvalidDataTypeException
    */
   virtual bool Next() = 0;
   /**
@@ -97,8 +92,8 @@ class IResultSet {
   /**
    * Get the field blob value
    * @param fieldIndex the filed index
-   * @return the field blob value, the first 4 bytes is the length of blob, not
-   * include the 4 bytes.
+   * @return the field blob value, the first 4 bytes is the length of blob.The
+   * length not include the 4 bytes.
    */
   virtual Byte *GetBlob(int fieldIndex) = 0;
   /**
@@ -206,7 +201,7 @@ class IResultSet {
    * Get the current row with DataValue type
    * @return
    */
-  virtual void GetCurrDataValueRow(VectorDataValue vct) = 0;
+  virtual void GetCurrDataValueRow(VectorDataValue &vct) = 0;
   virtual void close() {}
 };
 

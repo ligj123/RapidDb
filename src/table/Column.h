@@ -66,12 +66,26 @@ protected:
 class TempColumn : public BaseColumn {
 public:
   TempColumn(const std::string &name, uint32_t pos, DataType dataType,
-             string alias, int dataBasicStart, int prevVarCol)
-      : BaseColumn(name, pos, dataType), _alias(alias) {}
+             string alias, int dataBasicStart, int prevVarCols,
+             int colNullPlace)
+      : BaseColumn(name, pos, dataType), _alias(alias),
+        _dataBasicStart(dataBasicStart), _prevVarCols(prevVarCols),
+        _colNullPlace(colNullPlace) {}
 
   const string &GetAlias() const { return _alias; }
+  const int GetDataBasicStart() const { return _dataBasicStart; }
+  const int GetPrevVarCols() const { return _prevVarCols; }
+  const int GetColNullPlace() const { return _colNullPlace; }
 
 protected:
   string _alias; // The ailas of this column
+  /**The data position in this record that start from row's values,
+   * all variable columns's length set to 0 in this variable.
+   * The variable columns' length saved to byte arrays*/
+  int _dataBasicStart;
+  /**To save how many variable columns(String or blob) before this column*/
+  int _prevVarCols;
+  /**How many bytes to save which columna are null, 8 columns per byte*/
+  int _colNullPlace;
 };
 } // namespace storage

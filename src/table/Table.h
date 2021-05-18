@@ -31,7 +31,7 @@ public:
   virtual ~BaseTable() {}
   inline const string GetTableName() const { return _name; }
   inline void SetTableName(string name) {
-    IsValidName(name);
+    utils::IsValidName(name);
     _name = name;
   }
   inline const string &GetDescription() const { return _desc; }
