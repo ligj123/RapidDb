@@ -5,6 +5,6 @@
 namespace storage {
 class TableResultSet : public IResultSet {
 protected:
-  TempTable _table;
+  // MiddleTable _table;
 };
 } // namespace storage

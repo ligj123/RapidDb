@@ -1,4 +1,4 @@
-#include "../../src/core/HeadPage.h"
+﻿#include "../../src/core/HeadPage.h"
 #include "../../src/core/IndexTree.h"
 #include "../../src/dataType/DataValueLong.h"
 #include "../../src/pool/PageBufferPool.h"
@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
   headPage = new HeadPage(indexTree);
   headPage->ReadPage();
   FileVersion fv = headPage->ReadFileVersion();
-  BOOST_TEST(fv == INDEX_FILE_VERSION);
+  BOOST_TEST(fv == CURRENT_FILE_VERSION);
 
   BOOST_TEST(IndexType::PRIMARY == headPage->ReadIndexType());
   BOOST_TEST(2 == headPage->ReadRecordVersionCount());

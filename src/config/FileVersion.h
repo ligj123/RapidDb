@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include <regex>
@@ -56,5 +56,5 @@ inline std::ostream &operator<<(std::ostream &os, const FileVersion &fv) {
      << "\tPatchVer:" << fv._patchVer;
   return os;
 }
-static FileVersion INDEX_FILE_VERSION = {1, 1, 0};
+static FileVersion CURRENT_FILE_VERSION = {1, 1, 0};
 } // namespace storage

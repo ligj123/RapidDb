@@ -54,7 +54,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   } else {
     _headPage->ReadPage();
     FileVersion &&fv = _headPage->ReadFileVersion();
-    if (!(fv == INDEX_FILE_VERSION)) {
+    if (!(fv == CURRENT_FILE_VERSION)) {
       throw ErrorMsg(TB_ERROR_INDEX_VERSION, {_fileName});
     }
 

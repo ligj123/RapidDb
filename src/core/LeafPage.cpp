@@ -75,7 +75,7 @@ bool LeafPage::SaveRecords() {
 
     for (uint16_t i = 0; i < _vctRecord.size(); i++) {
       LeafRecord *lr = (LeafRecord *)_vctRecord[i];
-      if (!lr->IsSole())
+      if (_absoBuf != nullptr && !lr->IsSole())
         refCount++;
 
       if (lr->GetTotalLength() == 0) {
@@ -88,10 +88,12 @@ bool LeafPage::SaveRecords() {
     }
 
     CleanRecord();
-    if (refCount > 0)
-      _absoBuf->ReleaseCount(refCount);
     if (_absoBuf == nullptr || _absoBuf->IsDiffBuff(tmp))
       CachePool::Release(tmp, (uint32_t)Configure::GetCachePageSize());
+    if (refCount > 0)
+      _absoBuf->ReleaseCount(refCount);
+
+    _absoBuf = nullptr;
   }
 
   WriteLong(PARENT_PAGE_POINTER_OFFSET, _parentPageId);

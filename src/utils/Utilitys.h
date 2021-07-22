@@ -7,8 +7,8 @@
 
 namespace utils {
 static const char *NAME_PATTERN =
-    "^[_a-zA-Z\\u4E00-\\u9FA5][_a-zA-Z0-9\\u4E00-\\u9FA5]*?$";
-static regex reg(NAME_PATTERN);
+    "^[_a-zA-Z\\\\u4E00-\\\\u9FA5][_a-zA-Z0-9\\\\u4E00-\\\\u9FA5]*?$";
+static regex reg(""); // NAME_PATTERN);
 
 static void IsValidName(string name) {
   cmatch mt;

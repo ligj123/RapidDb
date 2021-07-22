@@ -20,7 +20,8 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
   BOOST_TEST(hMap._groupCount == 100);
   BOOST_TEST(hMap._vctMap.size() == 100);
   BOOST_TEST(hMap._vctLock.size() = 100);
-  BOOST_TEST(hMap._vctMap[0]->size() == 10000);
+  BOOST_TEST(hMap._vctMap[0]->size() == 0);
+  BOOST_TEST(hMap._vctMap[0]->bucket_count() >= 10000);
 
   for (int i = 0; i < 500000; i++) {
     BOOST_TEST(hMap.insert(i, to_string(i)));

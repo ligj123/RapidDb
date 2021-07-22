@@ -7,3 +7,4 @@ typedef unsigned char Byte;
 #define UI64_LEN sizeof(uint64_t)
 #define UI16_2_LEN sizeof(uint16_t) * 2
 #define UI16_3_LEN sizeof(uint16_t) * 3
+#define BYTE_SIZE 8

@@ -2,12 +2,15 @@
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
 #include "../header.h"
+#include "../utils/BytesConvert.h"
 #include "../utils/CharsetConvert.h"
 #include <any>
 #include <string>
 
 namespace storage {
 using namespace std;
+using namespace utils;
+
 class BaseColumn {
 public:
   BaseColumn() : _name(), _position(), _dataType() {}
@@ -17,9 +20,6 @@ public:
   const string &GetName() const { return _name; }
   int32_t GetPosition() { return _position; }
   DataType GetDataType() { return _dataType; }
-
-  virtual uint32_t ReadData(Byte *pBuf) = 0;
-  virtual uint32_t WriteData(Byte *pBuf) = 0;
 
 protected:
   string _name;       // The column's name
@@ -34,7 +34,7 @@ public:
         _initVal(0), _incStep(1), _charset(), _pDefaultVal(nullptr) {}
   PersistColumn(const std::string &name, int32_t pos, DataType dataType,
                 const string &comments, bool bNullable, int32_t maxLen,
-                int64_t initVal, int64_t incStep, utils::Charsets charset,
+                int64_t initVal, int64_t incStep, Charsets charset,
                 IDataValue *defaultVal)
       : BaseColumn(name, pos, dataType), _bNullable(bNullable),
         _comments(comments), _maxLength(maxLen), _initVal(initVal),
@@ -42,8 +42,8 @@ public:
   ~PersistColumn() { delete _pDefaultVal; }
 
 public:
-  uint32_t ReadData(Byte *pBuf) override;
-  uint32_t WriteData(Byte *pBuf) override;
+  uint32_t ReadData(Byte *pBuf);
+  uint32_t WriteData(Byte *pBuf);
   bool IsNullable() const { return _bNullable; }
   int32_t GetMaxLength() const { return _maxLength; }
   int64_t GetInitVal() const { return _initVal; }
@@ -63,19 +63,53 @@ protected:
   IDataValue *_pDefaultVal; // The default value if has or null
 };
 
-class TempColumn : public BaseColumn {
+class MiddleColumn : public BaseColumn {
 public:
-  TempColumn(const std::string &name, uint32_t pos, DataType dataType,
-             string alias, int dataBasicStart, int prevVarCols,
-             int colNullPlace)
+  MiddleColumn(const std::string &name, uint32_t pos, DataType dataType,
+               string alias, int dataBasicStart, int prevVarCols,
+               int colNullPlace)
       : BaseColumn(name, pos, dataType), _alias(alias),
         _dataBasicStart(dataBasicStart), _prevVarCols(prevVarCols),
         _colNullPlace(colNullPlace) {}
+  ~MiddleColumn() {}
 
   const string &GetAlias() const { return _alias; }
   const int GetDataBasicStart() const { return _dataBasicStart; }
   const int GetPrevVarCols() const { return _prevVarCols; }
   const int GetColNullPlace() const { return _colNullPlace; }
+
+  /**
+   * Return the column's data start position, if is null, return -1
+   * @param bys the row data begin bytes.
+   * @return -1: if value is null; > 0: the actual start position of column data
+   */
+  int CalcPosition(Byte *bys) {
+    if ((bys[sizeof(int32_t) + _position / BYTE_SIZE] &
+         (Byte)(1 << (_position % BYTE_SIZE))) == 0) {
+      return -1;
+    } else {
+      return _dataBasicStart +
+             (_prevVarCols <= 0
+                  ? 0
+                  : UInt32FromBytes(bys + _colNullPlace +
+                                    _prevVarCols * sizeof(int32_t)));
+    }
+  }
+
+  /**
+   * Return the data length for this column
+   * @param bys the row data begin bytes.
+   * @return the actual data length, if null, return 0;
+   */
+  int GetLength(Byte *bys);
+
+  /**
+   * compare the same column for two records
+   * @param bys1
+   * @param bys2
+   * @return
+   */
+  int CompareTo(Byte *bys1, Byte *bys2);
 
 protected:
   string _alias; // The ailas of this column

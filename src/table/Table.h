@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../config/ErrorID.h"
+#include "../core/IndexTree.h"
 #include "../core/IndexType.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
@@ -23,12 +24,12 @@ struct IndexProp {
   vector<Column> vctCol;
 };
 
-class BaseTable {
+class BaseTableDesc {
 public:
-  BaseTable() {}
-  BaseTable(const string &name, const string &desc)
+  BaseTableDesc() {}
+  BaseTableDesc(const string &name, const string &desc)
       : _name(name), _desc(desc) {}
-  virtual ~BaseTable() {}
+  virtual ~BaseTableDesc() {}
   inline const string GetTableName() const { return _name; }
   inline void SetTableName(string name) {
     utils::IsValidName(name);
@@ -44,13 +45,12 @@ protected:
   string _desc;
 };
 
-class PersistTable : public BaseTable {
+class PersistTableDesc : public BaseTableDesc {
 public:
-public:
-  PersistTable(string tableName, string description)
-      : BaseTable(tableName, description){};
-  PersistTable(){};
-  ~PersistTable();
+  PersistTableDesc(string tableName, string description)
+      : BaseTableDesc(tableName, description){};
+  PersistTableDesc(){};
+  ~PersistTableDesc();
 
   const string GetPrimaryKey() const { return PRIMARY_KEY; }
   const IndexProp &GetPrimaryKeyColumns() const {
@@ -82,6 +82,9 @@ public:
 
   void AddSecondaryKey(string indexName, IndexType indexType,
                        vector<string> colNames);
+  static PersistTableDesc *ReadData(string rootPath, string dbName,
+                                    string tblName);
+  void WriteData(string rootPath, string dbName);
 
 protected:
   inline bool IsExistedColumn(string name) {
@@ -102,5 +105,5 @@ protected:
   unordered_map<int, string> _mapIndexFirstField;
 };
 
-class TempTable : public BaseTable {};
+class MiddleTableDesc : public BaseTableDesc {};
 } // namespace storage

@@ -176,5 +176,5 @@ public:
    * Close this instance
    */
   virtual void Close() {}
-}
+};
 } // namespace storage

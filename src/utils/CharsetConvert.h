@@ -8,6 +8,28 @@ namespace utils {
 using namespace std;
 enum class Charsets : uint16_t { UNKNOWN = 0, UTF8, UTF16, UTF32, GBK };
 
+inline std::ostream &operator<<(std::ostream &os, const Charsets &vt) {
+  switch (vt) {
+  case Charsets::UNKNOWN:
+    os << "UNKNOWN(" << (int)Charsets::UNKNOWN << ")";
+    break;
+  case Charsets::UTF8:
+    os << "UTF8(" << (int)Charsets::UTF8 << ")";
+    break;
+  case Charsets::UTF16:
+    os << "UTF16(" << (int)Charsets::UTF16 << ")";
+    break;
+  case Charsets::UTF32:
+    os << "UTF32(" << (int)Charsets::UTF32 << ")";
+    break;
+  case Charsets::GBK:
+    os << "GBK(" << (int)Charsets::GBK << ")";
+    break;
+  }
+
+  return os;
+}
+
 enum class ConvResult { OK = 0, PARTIAL, ERROR, IGNORE };
 
 class CodeConvert {

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <condition_variable>
 #include <future>
@@ -7,6 +7,7 @@
 #include <string>
 #include <thread>
 #include <type_traits>
+#include <unordered_map>
 #include <vector>
 
 namespace utils {
@@ -14,8 +15,13 @@ using namespace std;
 
 class ThreadPool {
 public:
+  static thread_local string _threadName;
+  static string GetThreadName() { return _threadName; }
+
+public:
   ThreadPool(string threadPrefix, uint32_t maxQueueSize = 1000000,
-             size_t threadCount = std::thread::hardware_concurrency());
+             int minThreads = 1,
+             int maxThreads = std::thread::hardware_concurrency());
   ~ThreadPool();
 
   // since std::thread objects are not copiable, it doesn't make sense for a
@@ -29,8 +35,12 @@ public:
   void SetMaxQueueSize(uint32_t qsize) { _maxQueueSize = qsize; }
   uint32_t GetMaxQueueSize() { return _maxQueueSize; }
   bool IsFull() { return _maxQueueSize <= _tasks.size(); }
-  static string GetThreadName() { return _threadName; }
-  static thread_local string _threadName;
+  void CreateThread(int id);
+  int GetThreadCount() { return (int)_mapThread.size(); }
+  int GetMinThreads() { return _minThreads; }
+  int GetMaxThreads() { return _maxThreads; }
+  int GetCurrId() { return _currId; }
+  int GetFreeThreads() { return _freeThreads; }
 
 private:
   class _task_container_base {
@@ -43,7 +53,6 @@ private:
   template <typename F> class _task_container : public _task_container_base {
   public:
     _task_container(F &&func) : _f(std::forward<F>(func)) {}
-
     void operator()() override { _f(); }
 
   private:
@@ -60,13 +69,18 @@ private:
     return _task_ptr(new _task_container<_Func>(std::forward<_Func>(f)));
   }
 
-  vector<std::thread> _threads;
+  unordered_map<int, std::thread *> _mapThread;
   queue<_task_ptr> _tasks;
   mutex _task_mutex;
+  mutex _threadMutex;
   condition_variable _taskCv;
   bool _stopThreads = false;
   string _threadPrefix;
   uint32_t _maxQueueSize;
+  int _minThreads;
+  int _maxThreads;
+  atomic_int32_t _currId;
+  int _freeThreads;
 };
 
 template <typename F, typename... Args>
@@ -84,6 +98,10 @@ auto ThreadPool::AddTask(F &&function, Args &&...args) {
       new _task_container([task(std::move(task_pkg))]() mutable { task(); })));
   queue_lock.unlock();
   _taskCv.notify_one();
+
+  if (_mapThread.size() < _maxThreads && _freeThreads <= 0) {
+    CreateThread(++_currId);
+  }
 
   return std::move(future);
 }

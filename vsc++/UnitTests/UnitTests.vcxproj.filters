@@ -83,6 +83,12 @@
     <ClCompile Include="..\..\test\utils\ConcurrentHashMapTest.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\test\table\ColumnTest.cpp">
+      <Filter>table</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\table\TableTest.cpp">
+      <Filter>table</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cache">
@@ -102,6 +108,9 @@
     </Filter>
     <Filter Include="pool">
       <UniqueIdentifier>{22179bc2-4780-4713-a462-ef4a1727bd30}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="table">
+      <UniqueIdentifier>{2d703e1d-4906-4039-936c-4297a6c57e0b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

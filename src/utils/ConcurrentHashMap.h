@@ -9,9 +9,21 @@ using namespace std;
 template <class Key, class T> class ConcurrentHashMap {
 public:
   ConcurrentHashMap(int groupCount, uint64_t maxCount)
-      : _vctMap(groupCount, new unordered_map<Key, T>(maxCount / groupCount)),
-        _vctLock(groupCount, new SpinMutex()), _groupCount(groupCount) {}
+      : _groupCount(groupCount) {
+    _vctMap.reserve(groupCount);
+    _vctLock.reserve(groupCount);
+    for (int i = 0; i < groupCount; i++) {
+      _vctMap.push_back(new unordered_map<Key, T>(maxCount / groupCount));
+      _vctLock.push_back(new SpinMutex());
+    }
+  }
 
+  ~ConcurrentHashMap() {
+    for (int i = 0; i < _groupCount; i++) {
+      delete _vctMap[i];
+      delete _vctLock[i];
+    }
+  }
   size_t size() {
     size_t sz = 0;
     for (int i = 0; i < _vctMap.size(); i++) {

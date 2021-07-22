@@ -76,9 +76,9 @@ void HeadPage::WritePage() {
 }
 
 void HeadPage::WriteFileVersion() {
-  WriteShort(VERSION_OFFSET, INDEX_FILE_VERSION.GetMajorVersion());
-  WriteByte(VERSION_OFFSET + 2, INDEX_FILE_VERSION.GetMinorVersion());
-  WriteByte(VERSION_OFFSET + 3, INDEX_FILE_VERSION.GetPatchVersion());
+  WriteShort(VERSION_OFFSET, CURRENT_FILE_VERSION.GetMajorVersion());
+  WriteByte(VERSION_OFFSET + 2, CURRENT_FILE_VERSION.GetMinorVersion());
+  WriteByte(VERSION_OFFSET + 3, CURRENT_FILE_VERSION.GetPatchVersion());
   _bDirty = true;
 }
 
