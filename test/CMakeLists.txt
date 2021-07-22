@@ -29,6 +29,6 @@ target_link_libraries(UnitTest
 enable_testing()
 
 add_test(
-  NAME UnitTest
-  COMMAND $<TARGET_FILE:${c_files}>
+  NAME repidTest
+  COMMAND $<TARGET_FILE:UnitTest>
   )
