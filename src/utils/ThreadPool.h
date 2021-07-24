@@ -43,34 +43,24 @@ public:
   int GetFreeThreads() { return _freeThreads; }
 
 private:
-  class _task_container_base {
+  class task_container_base {
   public:
-    virtual ~_task_container_base(){};
+    virtual ~task_container_base(){};
     virtual void operator()() = 0;
   };
-  using _task_ptr = std::unique_ptr<_task_container_base>;
+  using task_ptr = std::unique_ptr<task_container_base>;
 
-  template <typename F> class _task_container : public _task_container_base {
+  template <typename F> class task_container : public task_container_base {
   public:
-    _task_container(F &&func) : _f(std::forward<F>(func)) {}
+    task_container(F &&func) : _f(std::forward<F>(func)) {}
     void operator()() override { _f(); }
 
   private:
     F _f;
   };
 
-  template <typename _Func>
-  static _task_ptr allocate_task_container(_Func &&f) {
-    // in the construction of the _task_container, f must be std::forward'ed
-    // because
-    //  it may not be CopyConstructible - the only requirement for an
-    //  instantiation of a _task_container is that the parameter is of a
-    //  MoveConstructible type.
-    return _task_ptr(new _task_container<_Func>(std::forward<_Func>(f)));
-  }
-
   unordered_map<int, std::thread *> _mapThread;
-  queue<_task_ptr> _tasks;
+  queue<task_ptr> _tasks;
   mutex _task_mutex;
   mutex _threadMutex;
   condition_variable _taskCv;
@@ -94,8 +84,8 @@ auto ThreadPool::AddTask(F &&function, Args &&...args) {
   std::future<std::invoke_result_t<F, Args...>> future = task_pkg.get_future();
 
   queue_lock.lock();
-  _tasks.emplace(_task_ptr(
-      new _task_container([task(std::move(task_pkg))]() mutable { task(); })));
+  _tasks.emplace(task_ptr(
+      new task_container([task(std::move(task_pkg))]() mutable { task(); })));
   queue_lock.unlock();
   _taskCv.notify_one();
 

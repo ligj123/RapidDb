@@ -106,7 +106,7 @@
     <ClCompile Include="..\..\src\table\Column.cpp">
       <Filter>table</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\table\Table.cpp">
+    <ClCompile Include="..\..\src\table\TableDesc.cpp">
       <Filter>table</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transaction\TranTask.cpp">
@@ -120,6 +120,13 @@
     </ClCompile>
     <ClCompile Include="..\..\src\statement\TableResultSet.cpp">
       <Filter>statement</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\table\Table.cpp" />
+    <ClCompile Include="..\..\src\database\Table.cpp">
+      <Filter>database</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\database\Database.cpp">
+      <Filter>database</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -265,7 +272,7 @@
     <ClInclude Include="..\..\src\table\Column.h">
       <Filter>table</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\table\Table.h">
+    <ClInclude Include="..\..\src\table\TableDesc.h">
       <Filter>table</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transaction\TranStatus.h">
@@ -300,6 +307,13 @@
     </ClInclude>
     <ClInclude Include="..\..\src\utils\ConcurrentHashMap.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\table\Table.h" />
+    <ClInclude Include="..\..\src\database\Table.h">
+      <Filter>database</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\database\Database.h">
+      <Filter>database</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -338,6 +352,9 @@
     </Filter>
     <Filter Include="sysTable">
       <UniqueIdentifier>{58b394fb-b0ff-43f2-86c3-7d79105fd364}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="database">
+      <UniqueIdentifier>{301a3148-59cd-447c-a0fe-977503949427}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

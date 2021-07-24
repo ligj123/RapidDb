@@ -31,6 +31,8 @@
     <ClCompile Include="..\..\src\core\LeafPage.cpp" />
     <ClCompile Include="..\..\src\core\LeafRecord.cpp" />
     <ClCompile Include="..\..\src\core\RawKey.cpp" />
+    <ClCompile Include="..\..\src\database\Database.cpp" />
+    <ClCompile Include="..\..\src\database\Table.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueBool.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueByte.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueChar.cpp" />
@@ -54,6 +56,7 @@
     <ClCompile Include="..\..\src\statement\TableResultSet.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
     <ClCompile Include="..\..\src\table\Table.cpp" />
+    <ClCompile Include="..\..\src\table\TableDesc.cpp" />
     <ClCompile Include="..\..\src\transaction\TranTask.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
     <ClCompile Include="..\..\src\utils\ErrorMsg.cpp" />
@@ -79,6 +82,8 @@
     <ClInclude Include="..\..\src\core\LeafRecord.h" />
     <ClInclude Include="..\..\src\core\RawKey.h" />
     <ClInclude Include="..\..\src\core\RawRecord.h" />
+    <ClInclude Include="..\..\src\database\Database.h" />
+    <ClInclude Include="..\..\src\database\Table.h" />
     <ClInclude Include="..\..\src\dataType\DataType.h" />
     <ClInclude Include="..\..\src\dataType\DataValueBool.h" />
     <ClInclude Include="..\..\src\dataType\DataValueByte.h" />
@@ -109,6 +114,7 @@
     <ClInclude Include="..\..\src\statement\TableResultSet.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
     <ClInclude Include="..\..\src\table\Table.h" />
+    <ClInclude Include="..\..\src\table\TableDesc.h" />
     <ClInclude Include="..\..\src\transaction\TranStatus.h" />
     <ClInclude Include="..\..\src\transaction\TranTask.h" />
     <ClInclude Include="..\..\src\transaction\TranType.h" />

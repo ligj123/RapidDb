@@ -86,7 +86,7 @@
     <ClCompile Include="..\..\test\table\ColumnTest.cpp">
       <Filter>table</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\test\table\TableTest.cpp">
+    <ClCompile Include="..\..\test\table\TableDescTest.cpp">
       <Filter>table</Filter>
     </ClCompile>
   </ItemGroup>
