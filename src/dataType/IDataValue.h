@@ -8,30 +8,32 @@
 namespace storage {
 class IDataValue {
 public:
-  static bool IsIndexType(const DataType dt) {
-    return ((int)dt & (int)DataType::INDEX_TYPE) == (int)DataType::INDEX_TYPE;
+  bool IsIndexType() {
+    return ((int)dataType_ & (int)DataType::INDEX_TYPE) ==
+           (int)DataType::INDEX_TYPE;
   }
 
-  static bool IsFixLength(const DataType dt) {
-    return ((int)dt & (int)DataType::FIX_LEN) == (int)DataType::FIX_LEN;
+  bool IsFixLength() {
+    return ((int)dataType_ & (int)DataType::FIX_LEN) == (int)DataType::FIX_LEN;
   }
 
-  static bool IsAutoPrimaryKey(const DataType dt) {
-    return ((int)dt & (int)DataType::AUTO_INC_TYPE) ==
+  bool IsAutoPrimaryKey() {
+    return ((int)dataType_ & (int)DataType::AUTO_INC_TYPE) ==
            (int)DataType::AUTO_INC_TYPE;
   }
 
-  static bool IsDigital(const DataType dt) {
-    return ((int)dt & (int)DataType::DIGITAL_TYPE) ==
+  bool IsDigital() {
+    return ((int)dataType_ & (int)DataType::DIGITAL_TYPE) ==
            (int)DataType::DIGITAL_TYPE;
   }
 
-  static bool IsArrayType(const DataType dt) {
-    return ((int)dt & (int)DataType::ARRAY_TYPE) == (int)DataType::ARRAY_TYPE;
+  bool IsArrayType() {
+    return ((int)dataType_ & (int)DataType::ARRAY_TYPE) ==
+           (int)DataType::ARRAY_TYPE;
   }
 
-  static bool IsStringType(const DataType dt) {
-    return dt == DataType::FIXCHAR || dt == DataType::VARCHAR;
+  bool IsStringType() {
+    return dataType_ == DataType::FIXCHAR || dataType_ == DataType::VARCHAR;
   }
 
 public:
@@ -45,7 +47,6 @@ public:
    */
   DataType GetDataType() const { return dataType_; }
   ValueType GetValueType() const { return valType_; }
-  bool IsFixLength() const { return IsFixLength(dataType_); }
   bool IsNull() { return valType_ == ValueType::NULL_VALUE; }
   bool isKey() { return bKey_; }
 
@@ -72,6 +73,7 @@ public:
   virtual void SetMinValue() = 0;
   virtual void SetMaxValue() = 0;
   virtual void SetDefaultValue() = 0;
+  virtual string ToString() = 0;
 
   friend std::ostream &operator<<(std::ostream &os, const IDataValue &dv);
   friend bool operator==(const IDataValue &dv1, const IDataValue &dv2);

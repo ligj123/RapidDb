@@ -187,8 +187,7 @@ public:
     IDataValue *left = _exprLeft->calcVal(vdPara, vdRow);
     IDataValue *right = _exprRight->calcVal(vdPara, vdRow);
 
-    if (IDataValue::IsStringType(->GetType()) ||
-        IDataValue::IsStringType(_exprRight->GetType())) {
+    if (left->IsStringType() || right->IsStringType()) {
     }
     return nullptr;
   }
