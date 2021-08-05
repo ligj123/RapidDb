@@ -21,12 +21,17 @@ public:
            (int)DataType::AUTO_INC_TYPE;
   }
 
-  static bool IsAggregate(const DataType dt) {
-    return ((int)dt & (int)DataType::AGGR_TYPE) == (int)DataType::AGGR_TYPE;
+  static bool IsDigital(const DataType dt) {
+    return ((int)dt & (int)DataType::DIGITAL_TYPE) ==
+           (int)DataType::DIGITAL_TYPE;
   }
 
   static bool IsArrayType(const DataType dt) {
     return ((int)dt & (int)DataType::ARRAY_TYPE) == (int)DataType::ARRAY_TYPE;
+  }
+
+  static bool IsStringType(const DataType dt) {
+    return dt == DataType::FIXCHAR || dt == DataType::VARCHAR;
   }
 
 public:

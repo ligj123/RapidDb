@@ -48,6 +48,7 @@
     <ClCompile Include="..\..\src\dataType\DataValueUShort.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueBlob.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp" />
+    <ClCompile Include="..\..\src\expr\BaseExpr.cpp" />
     <ClCompile Include="..\..\src\file\PageFile.cpp" />
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp" />
     <ClCompile Include="..\..\src\pool\PageDividePool.cpp" />

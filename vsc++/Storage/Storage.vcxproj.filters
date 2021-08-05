@@ -128,6 +128,9 @@
     <ClCompile Include="..\..\src\database\Database.cpp">
       <Filter>database</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\expr\BaseExpr.cpp">
+      <Filter>expr</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />
