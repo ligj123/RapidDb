@@ -56,7 +56,6 @@
     <ClCompile Include="..\..\src\statement\CacheResultSet.cpp" />
     <ClCompile Include="..\..\src\statement\TableResultSet.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
-    <ClCompile Include="..\..\src\table\Table.cpp" />
     <ClCompile Include="..\..\src\table\TableDesc.cpp" />
     <ClCompile Include="..\..\src\transaction\TranTask.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
@@ -68,6 +67,7 @@
     <ClInclude Include="..\..\src\cache\AbsoleteBuffer.h" />
     <ClInclude Include="..\..\src\cache\CachePool.h" />
     <ClInclude Include="..\..\src\cache\BufferPool.h" />
+    <ClInclude Include="..\..\src\cache\StrBuff.h" />
     <ClInclude Include="..\..\src\config\Configure.h" />
     <ClInclude Include="..\..\src\config\ErrorID.h" />
     <ClInclude Include="..\..\src\config\FileVersion.h" />
@@ -114,7 +114,6 @@
     <ClInclude Include="..\..\src\statement\Statement.h" />
     <ClInclude Include="..\..\src\statement\TableResultSet.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
-    <ClInclude Include="..\..\src\table\Table.h" />
     <ClInclude Include="..\..\src\table\TableDesc.h" />
     <ClInclude Include="..\..\src\transaction\TranStatus.h" />
     <ClInclude Include="..\..\src\transaction\TranTask.h" />
@@ -234,6 +233,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/D "_CRT_SECURE_NO_WARNINGS" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

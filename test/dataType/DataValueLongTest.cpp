@@ -95,6 +95,13 @@ BOOST_AUTO_TEST_CASE(DataValueLong_test) {
   DataValueLong *pDv = dv9.CloneDataValue();
   BOOST_TEST(dv9 == *pDv);
   delete pDv;
+
+  StrBuff sb(0);
+  dv1 = 1234567890;
+  dv1.ToString(sb);
+  BOOST_TEST(strcmp(sb.GetBuff(), "1234567890") == 0);
+  BOOST_TEST(sb.GetBufLen() > 10U);
+  BOOST_TEST(sb.GetStrLen() == 10U);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

@@ -108,7 +108,34 @@ uint32_t DataValueUShort::WriteData(Byte *buf, bool key) {
   }
 }
 
-uint32_t DataValueUShort::ReadData(Byte *buf, uint32_t len) {
+uint32_t DataValueUShort::WriteData(fstream &fs) {
+  if (valType_ == ValueType::NULL_VALUE) {
+    fs.put((Byte)DataType::USHORT & DATE_TYPE);
+    return 1;
+  } else {
+    fs.put(VALUE_TYPE | ((Byte)DataType::USHORT & DATE_TYPE));
+    if (valType_ == ValueType::SOLE_VALUE) {
+      fs.write((char *)&soleValue_, sizeof(uint16_t));
+    } else {
+      fs.write((char *)byArray_, sizeof(uint16_t));
+    }
+    return sizeof(uint16_t) + 1;
+  }
+}
+
+uint32_t DataValueUShort::ReadData(fstream &fs) {
+  Byte by;
+  fs.read((char *)&by, 1);
+  valType_ =
+      ((by & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+  if (valType_ == ValueType::NULL_VALUE)
+    return 1;
+
+  fs.read((char *)&soleValue_, sizeof(uint16_t));
+  return sizeof(uint16_t) + 1;
+}
+
+uint32_t DataValueUShort::ReadData(Byte *buf, uint32_t len, bool bSole) {
   if (bKey_) {
     valType_ = ValueType::SOLE_VALUE;
     soleValue_ = utils::UInt16FromBytes(buf, bKey_);
@@ -265,5 +292,21 @@ std::ostream &operator<<(std::ostream &os, const DataValueUShort &dv) {
   }
 
   return os;
+}
+
+void DataValueUShort::ToString(StrBuff &sb) {
+  if (valType_ == ValueType::NULL_VALUE) {
+    return;
+  }
+  if (9 > sb.GetFreeLen()) {
+    sb.Resize(sb.GetStrLen() + 9);
+  }
+
+  uint16_t val = (valType_ == ValueType::SOLE_VALUE
+                      ? soleValue_
+                      : utils::UInt16FromBytes(byArray_, bKey_));
+  char *dest = sb.GetFreeBuff();
+  int n = sprintf(dest, "%u", val);
+  sb.SetStrLen(sb.GetStrLen() + n);
 }
 } // namespace storage

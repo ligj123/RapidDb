@@ -91,6 +91,13 @@ BOOST_AUTO_TEST_CASE(DataValueByte_test) {
 
   DataValueByte dv9(std::any(100));
   BOOST_TEST((uint8_t)dv9 == 100);
+
+  StrBuff sb(0);
+  dv1 = 99;
+  dv1.ToString(sb);
+  BOOST_TEST(strcmp(sb.GetBuff(), "99") == 0);
+  BOOST_TEST(sb.GetBufLen() > 2U);
+  BOOST_TEST(sb.GetStrLen() == 2U);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

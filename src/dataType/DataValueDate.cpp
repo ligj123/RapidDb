@@ -94,7 +94,34 @@ uint32_t DataValueDate::WriteData(Byte *buf, bool key) {
   }
 }
 
-uint32_t DataValueDate::ReadData(Byte *buf, uint32_t len) {
+uint32_t DataValueDate::WriteData(fstream &fs) {
+  if (valType_ == ValueType::NULL_VALUE) {
+    fs.put((Byte)DataType::DATETIME & DATE_TYPE);
+    return 1;
+  } else {
+    fs.put(VALUE_TYPE | ((Byte)DataType::DATETIME & DATE_TYPE));
+    if (valType_ == ValueType::SOLE_VALUE) {
+      fs.write((char *)&soleValue_, sizeof(uint64_t));
+    } else {
+      fs.write((char *)byArray_, sizeof(uint64_t));
+    }
+    return sizeof(uint64_t) + 1;
+  }
+}
+
+uint32_t DataValueDate::ReadData(fstream &fs) {
+  Byte by;
+  fs.read((char *)&by, 1);
+  valType_ =
+      ((by & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+  if (valType_ == ValueType::NULL_VALUE)
+    return 1;
+
+  fs.read((char *)&soleValue_, sizeof(uint64_t));
+  return sizeof(uint64_t) + 1;
+}
+
+uint32_t DataValueDate::ReadData(Byte *buf, uint32_t len, bool bSole) {
   if (bKey_) {
     valType_ = ValueType::SOLE_VALUE;
     soleValue_ = utils::UInt64FromBytes(buf, bKey_);
@@ -252,5 +279,21 @@ std::ostream &operator<<(std::ostream &os, const DataValueDate &dv) {
   }
 
   return os;
+}
+
+void DataValueDate::ToString(StrBuff &sb) {
+  if (valType_ == ValueType::NULL_VALUE) {
+    return;
+  }
+  if (22 > sb.GetFreeLen()) {
+    sb.Resize(sb.GetStrLen() + 22);
+  }
+
+  uint64_t t = (valType_ == ValueType::SOLE_VALUE
+                    ? soleValue_
+                    : utils::UInt64FromBytes(byArray_, bKey_));
+  char *dest = sb.GetFreeBuff();
+  int n = sprintf(dest, "%llu", t);
+  sb.SetStrLen(sb.GetStrLen() + n);
 }
 } // namespace storage

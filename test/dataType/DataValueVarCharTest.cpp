@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
   BOOST_TEST(dv1 == dv2);
 
   const char *pStr = "abcd";
-  DataValueVarChar dv4(pStr);
+  DataValueVarChar dv4(pStr, strlen(pStr));
   BOOST_TEST(dv4.GetDataType() == DataType::VARCHAR);
   BOOST_TEST(dv4.GetValueType() == ValueType::SOLE_VALUE);
   BOOST_TEST(!dv4.IsNull());
@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
   dv2 = dv4;
   BOOST_TEST(dv4 == dv2);
 
-  DataValueVarChar dv5(pStr, 100, true);
+  DataValueVarChar dv5(pStr, 4, 100, true);
   BOOST_TEST(dv5.GetDataLength() == 5);
   BOOST_TEST(dv5.GetMaxLength() == 100);
   BOOST_TEST(dv5.GetPersistenceLength() == 5);
@@ -70,15 +70,22 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
   dv2.ReadData(buf + 10);
   BOOST_TEST(dv2 == dv8);
 
-  DataValueVarChar dv9(pStr);
+  DataValueVarChar dv9(pStr, strlen(pStr));
   dv9.WriteData(buf + 20);
   dv1.ReadData(buf + 20);
   BOOST_TEST(dv1 == dv9);
 
-  DataValueVarChar dv10(pStr, 100, true);
+  DataValueVarChar dv10(pStr, 4, 100, true);
   dv10.WriteData(buf + 30);
   dv5.ReadData(buf + 30, dv10.GetDataLength());
   BOOST_TEST(dv5 == dv10);
+
+  StrBuff sb(10);
+  dv1 = "abcdefghijklmn1234567890";
+  dv1.ToString(sb);
+  BOOST_TEST(strcmp(sb.GetBuff(), "abcdefghijklmn1234567890") == 0);
+  BOOST_TEST(sb.GetBufLen() > 24U);
+  BOOST_TEST(sb.GetStrLen() == 24U);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

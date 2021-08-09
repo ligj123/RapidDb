@@ -121,7 +121,6 @@
     <ClCompile Include="..\..\src\statement\TableResultSet.cpp">
       <Filter>statement</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\table\Table.cpp" />
     <ClCompile Include="..\..\src\database\Table.cpp">
       <Filter>database</Filter>
     </ClCompile>
@@ -311,12 +310,14 @@
     <ClInclude Include="..\..\src\utils\ConcurrentHashMap.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\table\Table.h" />
     <ClInclude Include="..\..\src\database\Table.h">
       <Filter>database</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\database\Database.h">
       <Filter>database</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\cache\StrBuff.h">
+      <Filter>cache</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

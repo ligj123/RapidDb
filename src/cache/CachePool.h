@@ -32,13 +32,27 @@ public:
   static void Release(Byte *pBuf, uint32_t eleSize);
   /**Apply a memory block with unfixed size*/
   static inline Byte *ApplyBys(uint32_t bufSize) {
-    uint32_t sz = *_gSetBufSize.lower_bound(bufSize);
-    return Apply(sz);
+    uint32_t sz = CalcBufSize(bufSize);
+    if (sz == UINT32_MAX)
+      return new Byte[bufSize];
+    else
+      return Apply(sz);
+  }
+  static inline Byte *ApplyBys(uint32_t bufSize, uint32_t &realSize) {
+    realSize = CalcBufSize(bufSize);
+    if (realSize == UINT32_MAX) {
+      realSize = bufSize;
+      return new Byte[realSize];
+    } else
+      return Apply(realSize);
   }
   /**Release a memory block with unfixed size*/
   static inline void ReleaseBys(Byte *pBuf, uint32_t bufSize) {
-    uint32_t sz = *_gSetBufSize.lower_bound(bufSize);
-    return Release(pBuf, sz);
+    uint32_t sz = CalcBufSize(bufSize);
+    if (sz == UINT32_MAX)
+      delete[] pBuf;
+    else
+      return Release(pBuf, sz);
   }
 
 public:
@@ -55,9 +69,8 @@ protected:
                            bool bAll = false);
 
 protected:
+  static uint32_t CalcBufSize(uint32_t sz);
   static thread_local LocalMap _localMap;
-
-  static set<uint32_t> _gSetBufSize;
   static CachePool *_gCachePool;
 
   /**The totla memory size that has been allocated.*/

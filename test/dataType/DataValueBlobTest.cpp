@@ -1,4 +1,4 @@
-#include "../../src/dataType/DataValueBlob.h"
+﻿#include "../../src/dataType/DataValueBlob.h"
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
@@ -15,10 +15,10 @@ BOOST_AUTO_TEST_CASE(DataValueBlob_test) {
   BOOST_TEST(dv1.GetPersistenceLength() == 1);
   BOOST_TEST(!dv1.GetValue().has_value());
 
-  DataValueBlob dv2(100, true);
+  DataValueBlob dv2(100, false);
   BOOST_TEST(dv2.GetMaxLength() == 100);
   BOOST_TEST(dv2.GetDataLength() == 0);
-  BOOST_TEST(dv2.GetPersistenceLength() == 0);
+  BOOST_TEST(dv2.GetPersistenceLength() == 1);
 
   const char *pStr = "abcd";
   DataValueBlob dv4(pStr, 4);
@@ -47,6 +47,18 @@ BOOST_AUTO_TEST_CASE(DataValueBlob_test) {
   dv10.WriteData(buf + 30);
   dv5.ReadData(buf + 30, dv10.GetDataLength());
   BOOST_TEST(dv5 == dv10);
+
+  StrBuff sb(0);
+  *(int *)buf = 6;
+  for (int i = 4; i < 10; i++) {
+    buf[i] = (char)i;
+  }
+
+  dv1 = (char *)buf;
+  dv1.ToString(sb);
+  BOOST_TEST(strcmp(sb.GetBuff(), "0x040506070809") == 0);
+  BOOST_TEST(sb.GetBufLen() > 14U);
+  BOOST_TEST(sb.GetStrLen() == 14U);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

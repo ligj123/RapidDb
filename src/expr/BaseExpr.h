@@ -372,4 +372,12 @@ protected:
   BaseExpr *_exprLeft;
   BaseExpr *_exprRight;
 };
+
+class ExprSelect {};
+
+class ExprDelete {};
+
+class ExprUpdate {};
+
+class ExprInsert {};
 } // namespace storage

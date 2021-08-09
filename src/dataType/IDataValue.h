@@ -1,12 +1,37 @@
 ﻿#pragma once
 #include "../cache/CachePool.h"
+#include "../cache/StrBuff.h"
 #include "DataType.h"
 #include <any>
 #include <cassert>
 #include <cstring>
+#include <fstream>
 
 namespace storage {
 class IDataValue {
+public:
+  static bool IsIndexType(const DataType dt) {
+    return ((int)dt & (int)DataType::INDEX_TYPE) == (int)DataType::INDEX_TYPE;
+  }
+
+  static bool IsFixLength(const DataType dt) {
+    return ((int)dt & (int)DataType::FIX_LEN) == (int)DataType::FIX_LEN;
+  }
+
+  static bool IsAutoPrimaryKey(const DataType dt) {
+    return ((int)dt & (int)DataType::AUTO_INC_TYPE) ==
+           (int)DataType::AUTO_INC_TYPE;
+  }
+
+  static bool IsDigital(const DataType dt) {
+    return ((int)dt & (int)DataType::DIGITAL_TYPE) ==
+           (int)DataType::DIGITAL_TYPE;
+  }
+
+  static bool IsArrayType(const DataType dt) {
+    return ((int)dt & (int)DataType::ARRAY_TYPE) == (int)DataType::ARRAY_TYPE;
+  }
+
 public:
   bool IsIndexType() {
     return ((int)dataType_ & (int)DataType::INDEX_TYPE) ==
@@ -36,7 +61,6 @@ public:
     return dataType_ == DataType::FIXCHAR || dataType_ == DataType::VARCHAR;
   }
 
-public:
   IDataValue(const IDataValue &dv)
       : dataType_(dv.dataType_), valType_(dv.valType_), bKey_(dv.bKey_) {}
   IDataValue(DataType dataType, ValueType valType, const bool bKey)
@@ -53,7 +77,7 @@ public:
   virtual IDataValue *CloneDataValue(bool incVal = false) = 0;
   virtual std::any GetValue() const = 0;
   virtual uint32_t WriteData(Byte *buf) = 0;
-  virtual uint32_t ReadData(Byte *buf, uint32_t len) = 0;
+  virtual uint32_t ReadData(Byte *buf, uint32_t len, bool bSole = true) = 0;
   virtual uint32_t WriteData(Byte *buf, bool key) = 0;
   virtual uint32_t WriteData(fstream &fs) {
     assert(false);
@@ -73,7 +97,7 @@ public:
   virtual void SetMinValue() = 0;
   virtual void SetMaxValue() = 0;
   virtual void SetDefaultValue() = 0;
-  virtual string ToString() = 0;
+  virtual void ToString(StrBuff &sb) = 0;
 
   friend std::ostream &operator<<(std::ostream &os, const IDataValue &dv);
   friend bool operator==(const IDataValue &dv1, const IDataValue &dv2);

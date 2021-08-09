@@ -63,6 +63,18 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
   dv6.WriteData(buf);
   dv2.ReadData(buf, -1);
   BOOST_TEST(dv2 == dv6);
+
+  StrBuff sb(10);
+  dv1 = true;
+  dv1.ToString(sb);
+  BOOST_TEST(strcmp(sb.GetBuff(), "true ") == 0);
+  BOOST_TEST(sb.GetBufLen() > 5U);
+  BOOST_TEST(sb.GetStrLen() == 5U);
+
+  dv1 = false;
+  sb.SetStrLen(0);
+  dv1.ToString(sb);
+  BOOST_TEST(strcmp(sb.GetBuff(), "false") == 0);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

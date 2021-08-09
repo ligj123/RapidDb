@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../table/Table.h"
+#include "../table/TableDesc.h"
 #include "IResultSet.h"
 
 namespace storage {
