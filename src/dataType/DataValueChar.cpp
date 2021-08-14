@@ -73,8 +73,6 @@ std::any DataValueChar::GetValue() const {
   }
 }
 
-uint32_t DataValueChar::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
-
 uint32_t DataValueChar::GetPersistenceLength(bool key) const {
   return key ? sizeof(int8_t)
              : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(int8_t));
@@ -294,7 +292,7 @@ std::ostream &operator<<(std::ostream &os, const DataValueChar &dv) {
   return os;
 }
 
-void DataValueChar::ToString(StrBuff &sb) {
+void DataValueChar::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }

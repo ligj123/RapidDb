@@ -89,6 +89,11 @@ public:
   const char *GetBuff() { return _buf; }
   char *GetFreeBuff() { return _buf + _strLen; }
   void SetStrLen(uint32_t len) { _strLen = len; }
+  bool operator==(const StrBuff &sb) const {
+    if (_strLen != sb._strLen)
+      return false;
+    return memcmp(_buf, sb._buf, _strLen);
+  }
 
 protected:
   uint32_t _bufLen;

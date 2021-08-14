@@ -72,8 +72,6 @@ std::any DataValueUInt::GetValue() const {
   }
 }
 
-uint32_t DataValueUInt::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
-
 uint32_t DataValueUInt::GetPersistenceLength(bool key) const {
   return key ? sizeof(uint32_t)
              : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(uint32_t));
@@ -293,7 +291,7 @@ std::ostream &operator<<(std::ostream &os, const DataValueUInt &dv) {
   return os;
 }
 
-void DataValueUInt::ToString(StrBuff &sb) {
+void DataValueUInt::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }

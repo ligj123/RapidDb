@@ -18,7 +18,8 @@ public:
     } else {
       _errMsg = iter->second;
       for (int i = 0; i < paras.size(); i++) {
-        size_t pos = _errMsg.find("{}");
+        string str = "{" + std::to_string(i + 1) + "}";
+        size_t pos = _errMsg.find(str);
         if (pos != string::npos)
           _errMsg.replace(pos, 2, paras[i]);
       }

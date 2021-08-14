@@ -59,8 +59,6 @@ std::any DataValueDate::GetValue() const {
   }
 }
 
-uint32_t DataValueDate::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
-
 uint32_t DataValueDate::GetPersistenceLength(bool key) const {
   return key ? sizeof(uint64_t)
              : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(uint64_t));
@@ -281,7 +279,7 @@ std::ostream &operator<<(std::ostream &os, const DataValueDate &dv) {
   return os;
 }
 
-void DataValueDate::ToString(StrBuff &sb) {
+void DataValueDate::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }

@@ -114,10 +114,6 @@ std::any DataValueVarChar::GetValue() const {
   }
 }
 
-uint32_t DataValueVarChar::WriteData(Byte *buf) {
-  return WriteData(buf, bKey_);
-}
-
 uint32_t DataValueVarChar::GetPersistenceLength(bool key) const {
   if (key) {
     return soleLength_;
@@ -408,7 +404,7 @@ std::ostream &operator<<(std::ostream &os, const DataValueVarChar &dv) {
   return os;
 }
 
-void DataValueVarChar::ToString(StrBuff &sb) {
+void DataValueVarChar::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }

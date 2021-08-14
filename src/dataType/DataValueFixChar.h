@@ -18,8 +18,24 @@ public:
 
 public:
   DataValueFixChar *CloneDataValue(bool incVal = false) override;
-  uint32_t WriteData(Byte *buf, bool key) override;
+  uint32_t WriteData(Byte *buf, bool key) override {
+    return WriteData(buf, bKey_);
+  };
   uint32_t GetPersistenceLength(bool key) const override;
+  size_t Hash() const override {
+    if (valType_ == ValueType::NULL_VALUE)
+      return 0;
+    size_t h = 0;
+    for (uint32_t i = 0; i < maxLength_; i++) {
+      h = (h << 1) ^ bysValue_[i];
+    }
+    return h;
+  }
+  bool Equal(const IDataValue &dv) const {
+    if (dataType_ != dv.GetDataType())
+      return false;
+    return *this == (DataValueFixChar &)dv;
+  }
 
   std::any GetValue() const override;
   uint32_t WriteData(Byte *buf) override { return WriteData(buf, bKey_); }
@@ -33,7 +49,7 @@ public:
   void SetMinValue() override;
   void SetMaxValue() override;
   void SetDefaultValue() override;
-  void ToString(StrBuff &sb) override;
+  void ToString(StrBuff &sb) const override;
 
   operator string() const;
   DataValueFixChar &operator=(const char *val);

@@ -73,8 +73,6 @@ std::any DataValueLong::GetValue() const {
   }
 }
 
-uint32_t DataValueLong::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
-
 uint32_t DataValueLong::GetPersistenceLength(bool key) const {
   return key ? sizeof(int64_t)
              : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(int64_t));
@@ -294,7 +292,7 @@ std::ostream &operator<<(std::ostream &os, const DataValueLong &dv) {
   return os;
 }
 
-void DataValueLong::ToString(StrBuff &sb) {
+void DataValueLong::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }

@@ -3,33 +3,34 @@
 0002	table error1-{}, error2-{}
 
 #table error
-1001	Failed to parse file version text "{}", it is not a valid version.
-1002	Invalid table name, name = {}.
-1003	Repeated column name, name = {}.
-1004	MaxLength must be large than 0 for no array data type. columnName = {}, dataType = {}.
-1005	Column's length exceed the limit. The limit size = {}, the actual size = {}.
-1006	Try to add repeated index {}.
-1007	Failed to find the column {}.
-1008	Try to add index with unsupport data type, column name = {}, data type = {}.
-1009	Index should have one column at least. Index name = {}.
-1010	Error index file version, fileName={}.
-1011	Error record version, its value should be between {} and {}.
-1012	column index is out of range, column index={}, column index range from 0 to {}.
-1013	Invalid column name, name={}.
+1001	Failed to parse file version text "{1}", it is not a valid version.
+1002	Invalid table name, name = {1}.
+1003	Repeated column name, name = {1}.
+1004	MaxLength must be large than 0 for no array data type. columnName = {1}, dataType = {2}.
+1005	Column's length exceed the limit. The limit size = {1}, the actual size = {2}.
+1006	Try to add repeated index {1}.
+1007	Failed to find the column {1}.
+1008	Try to add index with unsupport data type, column name = {1}, data type = {2}.
+1009	Index should have one column at least. Index name = {1}.
+1010	Error index file version, fileName={1}.
+1011	Error record version, its value should be between {1} and {2}.
+1012	column index is out of range, column index={1}, column index range from 0 to {2}.
+1013	Invalid column name, name={1}.
 1014	Invalid result set, please call it after initalization.
 
 #data type error
-2001	Unsupport data type conversion from {} to {}.
-2002	Try to input over length value for column, max length={}, actual length={}.
-2003	Unknown data type, data type = {}.
+2001	Unsupport data type conversion from {1} to {2}.
+2002	Try to input over length value for column, max length={1}, actual length={2}.
+2003	Unknown data type, data type = {1}.
+2004  Unsupport operation {1} for data type {2}. 
 
 #Cache manage
 3001	Exceed the cache size limit.
-3002	Failed to find the buffer cache with size = {}.
+3002	Failed to find the buffer cache with size = {1}.
 
 #File operator
-4001	Filed to open file, name = {}.
+4001	Filed to open file, name = {1}.
 
 #Core error
-5001	The index key's length exceed the limit of configure. Length={}.
+5001	The index key's length exceed the limit of configure. Length={1}.
 5002	Try to insert repeated records into unique index.

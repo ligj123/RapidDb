@@ -77,8 +77,6 @@ std::any DataValueDouble::GetValue() const {
   }
 }
 
-uint32_t DataValueDouble::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
-
 uint32_t DataValueDouble::GetPersistenceLength(bool key) const {
   return key ? sizeof(double)
              : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(double));
@@ -298,7 +296,7 @@ std::ostream &operator<<(std::ostream &os, const DataValueDouble &dv) {
   return os;
 }
 
-void DataValueDouble::ToString(StrBuff &sb) {
+void DataValueDouble::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }

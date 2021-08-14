@@ -370,11 +370,11 @@ std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv) {
   return os;
 }
 
-void DataValueFixChar::ToString(StrBuff &sb) {
+void DataValueFixChar::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }
 
-  sb.Cat((char *)bysValue_);
+  sb.Cat((char *)bysValue_, maxLength_ - 1);
 }
 } // namespace storage

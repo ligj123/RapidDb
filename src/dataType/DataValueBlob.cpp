@@ -80,24 +80,8 @@ std::any DataValueBlob::GetValue() const {
   }
 }
 
-uint32_t DataValueBlob::GetPersistenceLength(bool key) const {
-  if (key) {
-    return soleLength_;
-  } else {
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
-      return soleLength_ + 1 + sizeof(uint32_t);
-    case ValueType::BYTES_VALUE:
-      return soleLength_ + 1 + sizeof(uint32_t);
-    case ValueType::NULL_VALUE:
-    default:
-      return 1;
-    }
-  }
-}
-
 uint32_t DataValueBlob::WriteData(Byte *buf, bool key) {
-  assert(!bKey_);
+  assert(!key);
 
   if (valType_ == ValueType::NULL_VALUE) {
     *buf = ((Byte)DataType::BLOB & DATE_TYPE);
@@ -165,28 +149,6 @@ uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len, bool bSole) {
   }
 
   return soleLength_ + sizeof(uint32_t) + 1;
-}
-
-uint32_t DataValueBlob::GetDataLength() const {
-  assert(!bKey_);
-  if (valType_ == ValueType::NULL_VALUE)
-    return 0;
-  else
-    return soleLength_;
-}
-
-uint32_t DataValueBlob::GetPersistenceLength() const {
-  assert(!bKey_);
-
-  switch (valType_) {
-  case ValueType::SOLE_VALUE:
-    return soleLength_ + 1 + sizeof(uint32_t);
-  case ValueType::BYTES_VALUE:
-    return soleLength_ + 1 + sizeof(uint32_t);
-  case ValueType::NULL_VALUE:
-  default:
-    return 1;
-  }
 }
 
 void DataValueBlob::SetMinValue() {

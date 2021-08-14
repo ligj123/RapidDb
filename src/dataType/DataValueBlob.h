@@ -19,20 +19,50 @@ public:
 public:
   DataValueBlob *CloneDataValue(bool incVal = false) override;
   uint32_t WriteData(Byte *buf, bool key) override;
-  uint32_t GetPersistenceLength(bool key) const override;
+  uint32_t GetPersistenceLength(bool key) const override {
+    assert(!bKey_);
+    switch (valType_) {
+    case ValueType::SOLE_VALUE:
+    case ValueType::BYTES_VALUE:
+      return soleLength_ + 1 + sizeof(uint32_t);
+    case ValueType::NULL_VALUE:
+    default:
+      return 1;
+    }
+  }
+  size_t Hash() const override {
+    if (valType_ == ValueType::NULL_VALUE)
+      return 0;
+    size_t h = 0;
+    for (uint32_t i = 0; i < soleLength_; i++) {
+      h = (h << 1) ^ bysValue_[i];
+    }
+    return h;
+  }
+  bool Equal(const IDataValue &dv) const override {
+    if (dataType_ != dv.GetDataType())
+      return false;
+
+    return *this == (DataValueBlob &)dv;
+  }
 
   std::any GetValue() const override;
   uint32_t WriteData(Byte *buf) override { return WriteData(buf, bKey_); }
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = false) override;
   uint32_t WriteData(fstream &fs) override;
   uint32_t ReadData(fstream &fs) override;
-  uint32_t GetDataLength() const override;
+  uint32_t GetDataLength() const override {
+    assert(!bKey_);
+    return (valType_ == ValueType::NULL_VALUE ? 0 : soleLength_);
+  }
   uint32_t GetMaxLength() const override { return maxLength_; }
-  uint32_t GetPersistenceLength() const override;
+  uint32_t GetPersistenceLength() const override {
+    return GetPersistenceLength(bKey_);
+  };
   void SetMinValue() override;
   void SetMaxValue() override;
   void SetDefaultValue() override;
-  void ToString(StrBuff &sb) override;
+  void ToString(StrBuff &sb) const override;
   operator const char *() const;
 
   /**Only for byte array that first 4 bytes is lenght*/

@@ -1,5 +1,11 @@
 ﻿#pragma once
+#include "../config/ErrorID.h"
+#include "../dataType/DataValueDouble.h"
+#include "../dataType/DataValueLong.h"
+#include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
+#include "../utils/ErrorMsg.h"
+#include <unordered_set>
 #include <vector>
 
 using namespace std;
@@ -30,7 +36,11 @@ enum class ExprType {
   EXPR_MUL,
   EXPR_DIV,
   EXPR_MINUS,
-  // Below expression return bool type
+  Expr_INNER_JOIN,
+  EXPR_LEFT_JOIN,
+  EXPR_RIGHT_JOIN,
+  EXPR_OUTTER_JOIN,
+  EXPR_SPLIT, // Split Line, below expression return bool type
   EXPR_AND,
   EXPR_OR,
   EXPR_COMP,
@@ -47,25 +57,27 @@ enum class ExprType {
 class BaseExpr {
 public:
   BaseExpr(ExprType t) : _exprType(t) {}
-  ~BaseExpr() {}
+  virtual ~BaseExpr() {}
+  /**Returned DataValue need user to release self.*/
   virtual IDataValue *calcVal(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     abort();
   }
+  // The expression below EXPR_SPLIT to call this functionto calc and return
+  // bool value.
   virtual bool calcBool(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     abort();
   }
 
   ExprType GetType() { return _exprType; }
-  bool IsRtBool() { return _exprType >= ExprType::EXPR_AND; }
-  static void ClearLocalDataValue() { _vctDvLocal.RemoveAll(); }
+  bool IsRtBool() { return _exprType >= ExprType::EXPR_SPLIT; }
 
 protected:
+  // Every expression must set one of type in ExprType.
   ExprType _exprType;
-  static thread_local VectorDataValue _vctDvLocal;
 };
 
 /**
- * @brief Corresponding to a column in thw row.
+ * @brief Corresponding to a column in the table or temp table.
  */
 class ExprColumn : public BaseExpr {
 public:
@@ -93,15 +105,6 @@ protected:
   int _paraPos; // The position in parameter array.
 };
 
-/*
- * @brief The parent class for all function expression.
- */
-class ExprFunc : public BaseExpr {
-public:
-protected:
-  string _funcName;
-};
-
 class ExprConst : public BaseExpr {
 public:
   ExprConst(IDataValue *val) : BaseExpr(ExprType::EXPR_CONST), _val(val) {}
@@ -125,7 +128,17 @@ public:
       : _index(index), _bSimple(true), _direct(direct), _child(child),
         _rowPos(-1), _bNullable(nullable) {}
   ~ExprValue() { delete _child; }
-  void calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {}
+  void calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
+    if (vdRow[_index] != nullptr && !vdRow[_index]->IsReuse())
+      delete vdRow[_index];
+
+    if (_bSimple) {
+      vdRow[_index] = vdPara[_rowPos];
+    } else {
+      vdRow[_index] = _child->calcVal(vdPara, vdRow);
+    }
+  }
+
   int GetIndex() { return _index; }
 
 protected:
@@ -136,8 +149,8 @@ protected:
    */
   bool _bSimple;
   BaseExpr *_child; // Only used when _bSimple=false
-  int _rowPos;     // Only used when _bSimple=true, the position in value array.
-  bool _bNullable; // Only used for DD_IN, to judge if a value is null
+  int _rowPos; // Only used when _bSimple=true, the position in parameter array.
+  bool _bNullable; // Only used for DD_IN, to judge if a value is nullable
 };
 
 /**
@@ -165,13 +178,19 @@ protected:
 class ExprArray : public BaseExpr {
 public:
   ExprArray(VectorDataValue &vctVal) : BaseExpr(ExprType::EXPR_ARRAY) {
-    _vctVal.swap(vctVal);
+    _setVal.insert(vctVal.begin(), vctVal.end());
+    vctVal.clear();
+  }
+  ~ExprArray() {
+    for (IDataValue *pdv : _setVal) {
+      delete pdv;
+    }
   }
 
-  const VectorDataValue &GetVals() { return _vctVal; }
+  bool InSet(IDataValue *pdv) { _setVal.find(pdv) != _setVal.end(); }
 
 protected:
-  VectorDataValue _vctVal;
+  unordered_set<IDataValue *, DataValueHash, DataValueEqual> _setVal;
 };
 
 class ExprAdd : public BaseExpr {
@@ -186,9 +205,27 @@ public:
   IDataValue *calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     IDataValue *left = _exprLeft->calcVal(vdPara, vdRow);
     IDataValue *right = _exprRight->calcVal(vdPara, vdRow);
+    IDataValue *rt = nullptr;
 
     if (left->IsStringType() || right->IsStringType()) {
+      StrBuff sb(left->GetDataLength() * 2 + right->GetDataLength() * 2);
+      left->ToString(sb);
+      right->ToString(sb);
+      rt = new DataValueVarChar(sb.GetBuff(), sb.GetBufLen() + 1,
+                                sb.GetBufLen() + 1);
+    } else if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
+      rt = new DataValueLong(left->GetLong() + right->GetLong());
+    } else if (left->IsDigital() && right->IsDigital()) {
+      rt = new DataValueDouble(left->GetDouble() + right->GetDouble());
+    } else {
+      stringstream ss;
+      ss << left->GetDataType() << " and " << right->GetDataType();
+      throw utils::ErrorMsg(DT_UNSUPPORT_OPER, {"add", ss.str()});
     }
+    if (!left->IsReuse())
+      delete left;
+    if (!right->IsReuse())
+      delete right;
     return nullptr;
   }
 

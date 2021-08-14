@@ -130,6 +130,9 @@
     <ClCompile Include="..\..\src\expr\BaseExpr.cpp">
       <Filter>expr</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\expr\ExprFunc.cpp">
+      <Filter>expr</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />
@@ -318,6 +321,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\cache\StrBuff.h">
       <Filter>cache</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\expr\ExprFunc.h">
+      <Filter>expr</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -17,9 +17,17 @@ public:
   DataValueDate *CloneDataValue(bool incVal = false) override;
   uint32_t WriteData(Byte *buf, bool key) override;
   uint32_t GetPersistenceLength(bool key) const override;
+  size_t Hash() const override {
+    return std::hash<uint64_t>{}((uint64_t) * this);
+  }
+  bool Equal(const IDataValue &dv) const {
+    if (dv.GetDataType() != DataType::DATETIME)
+      return false;
 
+    return *this == (DataValueDate &)dv;
+  }
   std::any GetValue() const override;
-  uint32_t WriteData(Byte *buf) override;
+  uint32_t WriteData(Byte *buf) override { return WriteData(buf, bKey_); }
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
   uint32_t WriteData(fstream &fs) override;
   uint32_t ReadData(fstream &fs) override;
@@ -29,7 +37,7 @@ public:
   void SetMinValue() override;
   void SetMaxValue() override;
   void SetDefaultValue() override;
-  void ToString(StrBuff &sb) override;
+  void ToString(StrBuff &sb) const override;
 
   /**millisecond since 1970/1/1*/
   operator uint64_t() const;

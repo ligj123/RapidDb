@@ -77,8 +77,6 @@ std::any DataValueFloat::GetValue() const {
   }
 }
 
-uint32_t DataValueFloat::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
-
 uint32_t DataValueFloat::GetPersistenceLength(bool key) const {
   return key ? sizeof(float)
              : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(float));
@@ -298,7 +296,7 @@ std::ostream &operator<<(std::ostream &os, const DataValueFloat &dv) {
   return os;
 }
 
-void DataValueFloat::ToString(StrBuff &sb) {
+void DataValueFloat::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }

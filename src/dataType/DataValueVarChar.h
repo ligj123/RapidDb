@@ -20,9 +20,22 @@ public:
   DataValueVarChar *CloneDataValue(bool incVal = false) override;
   uint32_t WriteData(Byte *buf, bool key) override;
   uint32_t GetPersistenceLength(bool key) const override;
-
+  size_t Hash() const override {
+    if (valType_ == ValueType::NULL_VALUE)
+      return 0;
+    size_t h = 0;
+    for (uint32_t i = 0; i < soleLength_; i++) {
+      h = (h << 1) ^ bysValue_[i];
+    }
+    return h;
+  }
+  bool Equal(const IDataValue &dv) const {
+    if (dataType_ != dv.GetDataType())
+      return false;
+    return *this == (DataValueVarChar &)dv;
+  }
   std::any GetValue() const override;
-  uint32_t WriteData(Byte *buf) override;
+  uint32_t WriteData(Byte *buf) override { return WriteData(buf, bKey_); }
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
   uint32_t WriteData(fstream &fs) override;
   uint32_t ReadData(fstream &fs) override;
@@ -32,7 +45,7 @@ public:
   void SetMinValue() override;
   void SetMaxValue() override;
   void SetDefaultValue() override;
-  void ToString(StrBuff &sb) override;
+  void ToString(StrBuff &sb) const override;
 
   operator string() const;
   DataValueVarChar &operator=(char *val);

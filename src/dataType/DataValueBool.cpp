@@ -82,8 +82,6 @@ std::any DataValueBool::GetValue() const {
   }
 }
 
-uint32_t DataValueBool::WriteData(Byte *buf) { return WriteData(buf, bKey_); }
-
 uint32_t DataValueBool::GetPersistenceLength(bool key) const {
   return key ? 1 : (valType_ == ValueType::NULL_VALUE ? 1 : 2);
 }
@@ -159,16 +157,6 @@ uint32_t DataValueBool::ReadData(Byte *buf, uint32_t len, bool bSole) {
     soleValue_ = *buf;
     return 2;
   }
-}
-
-uint32_t DataValueBool::GetDataLength() const {
-  return bKey_ ? 1 : (valType_ == ValueType::NULL_VALUE ? 0 : 1);
-}
-
-uint32_t DataValueBool::GetMaxLength() const { return 1; }
-
-uint32_t DataValueBool::GetPersistenceLength() const {
-  return bKey_ ? 1 : (valType_ == ValueType::NULL_VALUE ? 1 : 2);
 }
 
 void DataValueBool::SetMinValue() {
@@ -294,7 +282,7 @@ std::ostream &operator<<(std::ostream &os, const DataValueBool &dv) {
   return os;
 }
 
-void DataValueBool::ToString(StrBuff &sb) {
+void DataValueBool::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }
@@ -304,7 +292,7 @@ void DataValueBool::ToString(StrBuff &sb) {
 
   bool b = (valType_ == ValueType::SOLE_VALUE ? soleValue_ : *byArray_);
   char *dest = sb.GetFreeBuff();
-  strcpy(dest, b ? "true " : "false");
-  sb.SetStrLen(sb.GetStrLen() + 5);
+  strcpy(dest, b ? "true" : "false");
+  sb.SetStrLen(sb.GetStrLen() + b ? 4 : 5);
 }
 } // namespace storage

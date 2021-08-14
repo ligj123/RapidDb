@@ -17,9 +17,22 @@ public:
   DataValueLong *CloneDataValue(bool incVal = false) override;
   uint32_t WriteData(Byte *buf, bool key) override;
   uint32_t GetPersistenceLength(bool key) const override;
-
+  int64_t GetLong() const { return (int64_t) * this; }
+  double GetDouble() const { return (int64_t) * this; }
+  size_t Hash() const override {
+    return std::hash<int64_t>{}((int64_t) * this);
+  }
+  bool Equal(const IDataValue &dv) const {
+    if (!dv.IsDigital())
+      return false;
+    if (dv.IsAutoPrimaryKey()) {
+      return GetLong() == dv.GetLong();
+    } else {
+      return GetDouble() == dv.GetDouble();
+    }
+  }
   std::any GetValue() const override;
-  uint32_t WriteData(Byte *buf) override;
+  uint32_t WriteData(Byte *buf) override { return WriteData(buf, bKey_); }
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
   uint32_t WriteData(fstream &fs) override;
   uint32_t ReadData(fstream &fs) override;
@@ -29,7 +42,7 @@ public:
   void SetMinValue() override;
   void SetMaxValue() override;
   void SetDefaultValue() override;
-  void ToString(StrBuff &sb) override;
+  void ToString(StrBuff &sb) const override;
 
   operator int64_t() const;
   DataValueLong &operator=(int64_t val);

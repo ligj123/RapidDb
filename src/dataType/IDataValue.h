@@ -33,38 +33,39 @@ public:
   }
 
 public:
-  bool IsIndexType() {
+  bool IsIndexType() const {
     return ((int)dataType_ & (int)DataType::INDEX_TYPE) ==
            (int)DataType::INDEX_TYPE;
   }
 
-  bool IsFixLength() {
+  bool IsFixLength() const {
     return ((int)dataType_ & (int)DataType::FIX_LEN) == (int)DataType::FIX_LEN;
   }
 
-  bool IsAutoPrimaryKey() {
+  bool IsAutoPrimaryKey() const {
     return ((int)dataType_ & (int)DataType::AUTO_INC_TYPE) ==
            (int)DataType::AUTO_INC_TYPE;
   }
 
-  bool IsDigital() {
+  bool IsDigital() const {
     return ((int)dataType_ & (int)DataType::DIGITAL_TYPE) ==
            (int)DataType::DIGITAL_TYPE;
   }
 
-  bool IsArrayType() {
+  bool IsArrayType() const {
     return ((int)dataType_ & (int)DataType::ARRAY_TYPE) ==
            (int)DataType::ARRAY_TYPE;
   }
 
-  bool IsStringType() {
+  bool IsStringType() const {
     return dataType_ == DataType::FIXCHAR || dataType_ == DataType::VARCHAR;
   }
 
   IDataValue(const IDataValue &dv)
-      : dataType_(dv.dataType_), valType_(dv.valType_), bKey_(dv.bKey_) {}
+      : dataType_(dv.dataType_), valType_(dv.valType_), bKey_(dv.bKey_),
+        bReuse_(false) {}
   IDataValue(DataType dataType, ValueType valType, const bool bKey)
-      : dataType_(dataType), valType_(valType), bKey_(bKey) {}
+      : dataType_(dataType), valType_(valType), bKey_(bKey), bReuse_(false) {}
   virtual ~IDataValue() {}
   /**
    * return the data type for this data value
@@ -72,17 +73,23 @@ public:
   DataType GetDataType() const { return dataType_; }
   ValueType GetValueType() const { return valType_; }
   bool IsNull() { return valType_ == ValueType::NULL_VALUE; }
-  bool isKey() { return bKey_; }
+  bool IsKey() { return bKey_; }
+  bool IsReuse() { return bReuse_; }
+  void SetReuse(bool b) { bReuse_ = b; }
 
   virtual IDataValue *CloneDataValue(bool incVal = false) = 0;
   virtual std::any GetValue() const = 0;
   virtual uint32_t WriteData(Byte *buf) = 0;
   virtual uint32_t ReadData(Byte *buf, uint32_t len, bool bSole = true) = 0;
   virtual uint32_t WriteData(Byte *buf, bool key) = 0;
+  // Only support to save over length fileds to overflow file. So bKey_ can not
+  // be true.
   virtual uint32_t WriteData(fstream &fs) {
     assert(false);
     return 0;
   }
+  // Only support to load over length fileds from overflow file. So bKey_ can
+  // not be true.
   virtual uint32_t ReadData(fstream &fs) {
     assert(false);
     return 0;
@@ -97,8 +104,15 @@ public:
   virtual void SetMinValue() = 0;
   virtual void SetMaxValue() = 0;
   virtual void SetDefaultValue() = 0;
-  virtual void ToString(StrBuff &sb) = 0;
-
+  virtual void ToString(StrBuff &sb) const = 0;
+  virtual size_t Hash() const = 0;
+  virtual bool Equal(const IDataValue &dv) const = 0;
+  virtual int64_t GetLong() const { // Only used for digital type
+    abort();
+  }
+  virtual double GetDouble() const { // Only used for digital type
+    abort();
+  }
   friend std::ostream &operator<<(std::ostream &os, const IDataValue &dv);
   friend bool operator==(const IDataValue &dv1, const IDataValue &dv2);
 
@@ -114,6 +128,9 @@ protected:
   DataType dataType_;
   ValueType valType_;
   bool bKey_;
+  // If true, the instance will be used in multi place, please ensure it will be
+  // deleted once.
+  bool bReuse_;
 };
 
 class VectorDataValue : public vector<IDataValue *> {
@@ -121,17 +138,24 @@ public:
   using vector::vector;
   ~VectorDataValue() {
     for (auto iter = begin(); iter != end(); iter++) {
-      delete *iter;
+      if (bDelAll_ || !(*iter)->IsReuse())
+        delete *iter;
     }
   }
 
   void RemoveAll() {
     for (auto iter = begin(); iter != end(); iter++) {
-      delete *iter;
+      if (bDelAll_ || !(*iter)->IsReuse())
+        delete *iter;
     }
 
     clear();
   }
+  void SetDelAll(bool b) { bDelAll_ = b; }
+  bool IsDelAll() { return bDelAll_; }
+
+protected:
+  bool bDelAll_ = false;
 };
 
 class VectorRow : public vector<VectorDataValue *> {
@@ -149,6 +173,16 @@ public:
     }
 
     clear();
+  }
+};
+
+struct DataValueHash {
+  size_t operator()(IDataValue *pDv) const { return pDv->Hash(); }
+};
+
+struct DataValueEqual {
+  bool operator()(const IDataValue *&ldv, const IDataValue *&rdv) const {
+    return ldv->Equal(*rdv);
   }
 };
 } // namespace storage
