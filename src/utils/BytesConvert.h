@@ -399,4 +399,74 @@ inline int BytesCompare(Byte *bys1, uint32_t len1, Byte *bys2, uint32_t len2) {
   //}
   // return len1 - len2;
 }
+
+template <class T>
+inline void DigitalToBytes(T val, Byte *pArr, bool bkey = false) {
+  switch (sizeof(T)) {
+  case 1:
+    if (typeid(T) == typeid(char))
+      Int8ToBytes((char)val, pArr, bkey);
+    else if (typeid(T) == typeid(bool))
+      *pArr = (bool)val;
+    else
+      UInt8ToBytes((Byte)val, pArr, bkey);
+    return;
+  case 2:
+    if (typeid(T) == typeid(int16_t))
+      Int16ToBytes((int16_t)val, pArr, bkey);
+    else
+      UInt16ToBytes((uint16_t)val, pArr, bkey);
+    return;
+  case 4:
+    if (typeid(T) == typeid(int32_t))
+      Int32ToBytes((int32_t)val, pArr, bkey);
+    else if (typeid(T) == typeid(uint32_t))
+      UInt32ToBytes((uint32_t)val, pArr, bkey);
+    else
+      FloatToBytes((float)val, pArr, bkey);
+    return;
+  case 8:
+    if (typeid(T) == typeid(int64_t))
+      Int64ToBytes((int64_t)val, pArr, bkey);
+    else if (typeid(T) == typeid(uint64_t))
+      UInt64ToBytes((uint64_t)val, pArr, bkey);
+    else
+      DoubleToBytes((double)val, pArr, bkey);
+    return;
+  }
+  abort();
+}
+
+template <class T> inline T DigitalFromBytes(Byte *pArr, bool bkey = false) {
+  switch (sizeof(T)) {
+  case 1:
+    if (typeid(T) == typeid(char))
+      return (T)Int8FromBytes(pArr, bkey);
+    else if (typeid(T) == typeid(bool))
+      return (T)*pArr;
+    else
+      return (T)UInt8FromBytes(pArr, bkey);
+  case 2:
+    if (typeid(T) == typeid(int16_t))
+      return (T)Int16FromBytes(pArr, bkey);
+    else
+      return (T)UInt16FromBytes(pArr, bkey);
+  case 4:
+    if (typeid(T) == typeid(int32_t))
+      return (T)Int32FromBytes(pArr, bkey);
+    else if (typeid(T) == typeid(uint32_t))
+      return (T)UInt32FromBytes(pArr, bkey);
+    else
+      return (T)FloatFromBytes(pArr, bkey);
+  case 8:
+    if (typeid(T) == typeid(int64_t))
+      return (T)Int64FromBytes(pArr, bkey);
+    else if (typeid(T) == typeid(uint64_t))
+      return (T)UInt64FromBytes(pArr, bkey);
+    else
+      return (T)DoubleFromBytes(pArr, bkey);
+  }
+
+  abort();
+}
 } // namespace utils

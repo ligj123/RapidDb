@@ -1,26 +1,12 @@
-#pragma once
-#include "DataValueByte.h"
-#include "DataValueInt.h"
-#include "DataValueLong.h"
-#include "DataValueShort.h"
-#include "IDataValue.h"
-#include <any>
-
-#include "DataValueChar.h"
-#include "DataValueUInt.h"
-#include "DataValueULong.h"
-#include "DataValueUShort.h"
-
-#include "DataValueBool.h"
-#include "DataValueDate.h"
-#include "DataValueDouble.h"
-#include "DataValueFloat.h"
+﻿#pragma once
 
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "DataValueBlob.h"
+#include "DataValueDate.h"
 #include "DataValueFixChar.h"
 #include "DataValueVarChar.h"
+#include <any>
 
 namespace storage {
 using namespace std;
@@ -75,7 +61,7 @@ inline IDataValue *DataValueFactory(DataType type, bool bKey = false,
     break;
   case DataType::BOOL:
     pDv = dfVal.has_value() ? new DataValueBool(dfVal, bKey)
-                            : new DataValueBool(bKey);
+                            : new DataValueBool(false, bKey);
     break;
   case DataType::FIXCHAR:
     pDv = dfVal.has_value() ? new DataValueFixChar(maxLen, bKey, dfVal)
@@ -150,52 +136,113 @@ inline std::ostream &operator<<(std::ostream &os, const IDataValue &dv) {
 }
 
 inline bool operator==(const IDataValue &dv1, const IDataValue &dv2) {
+  if (dv1.IsAutoPrimaryKey() && dv2.IsAutoPrimaryKey()) {
+    int64_t l1 = dv1.GetLong();
+    int64_t l2 = dv2.GetLong();
+    return (l1 == l2);
+  }
+  if (dv1.IsDigital() && dv2.IsDigital()) {
+    double d1 = dv1.GetDouble();
+    double d2 = dv2.GetDouble();
+    return (d1 == d2);
+  }
+
+  if (dv1.IsArrayType() && dv2.IsArrayType()) {
+    return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) == 0);
+  }
+
   assert(dv1.GetDataType() == dv2.GetDataType());
   switch (dv1.dataType_) {
-  case DataType::CHAR:
-    return (const DataValueChar &)dv1 == (const DataValueChar &)dv2;
-    break;
-  case DataType::SHORT:
-    return (const DataValueShort &)dv1 == (const DataValueShort &)dv2;
-    break;
-  case DataType::INT:
-    return (const DataValueInt &)dv1 == (const DataValueInt &)dv2;
-    break;
-  case DataType::LONG:
-    return (const DataValueLong &)dv1 == (const DataValueLong &)dv2;
-    break;
-  case DataType::BYTE:
-    return (const DataValueByte &)dv1 == (const DataValueByte &)dv2;
-    break;
-  case DataType::USHORT:
-    return (const DataValueUShort &)dv1 == (const DataValueUShort &)dv2;
-    break;
-  case DataType::UINT:
-    return (const DataValueUInt &)dv1 == (const DataValueUInt &)dv2;
-    break;
-  case DataType::ULONG:
-    return (const DataValueULong &)dv1 == (const DataValueULong &)dv2;
-    break;
-  case DataType::FLOAT:
-    return (const DataValueFloat &)dv1 == (const DataValueFloat &)dv2;
-    break;
-  case DataType::DOUBLE:
-    return (const DataValueDouble &)dv1 == (const DataValueDouble &)dv2;
-    break;
+
   case DataType::DATETIME:
     return (const DataValueDate &)dv1 == (const DataValueDate &)dv2;
     break;
   case DataType::BOOL:
     return (const DataValueBool &)dv1 == (const DataValueBool &)dv2;
     break;
-  case DataType::FIXCHAR:
-    return (const DataValueFixChar &)dv1 == (const DataValueFixChar &)dv2;
-    break;
-  case DataType::VARCHAR:
-    return (const DataValueVarChar &)dv1 == (const DataValueVarChar &)dv2;
+  case DataType::BLOB:
+    return (const DataValueBlob &)dv1 == (const DataValueBlob &)dv2;
     break;
   default:
     throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
   }
+}
+
+inline bool operator>(const IDataValue &dv1, const IDataValue &dv2) {
+  if (dv1.IsAutoPrimaryKey() && dv2.IsAutoPrimaryKey()) {
+    int64_t l1 = dv1.GetLong();
+    int64_t l2 = dv2.GetLong();
+    return (l1 > l2);
+  }
+  if (dv1.IsDigital() && dv2.IsDigital()) {
+    double d1 = dv1.GetDouble();
+    double d2 = dv2.GetDouble();
+    return (d1 > d2);
+  }
+
+  if (dv1.IsArrayType() && dv2.IsArrayType()) {
+    return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) > 0);
+  }
+
+  assert(dv1.GetDataType() == dv2.GetDataType());
+  switch (dv1.dataType_) {
+
+  case DataType::DATETIME:
+    return (const DataValueDate &)dv1 > (const DataValueDate &)dv2;
+    break;
+  case DataType::BOOL:
+    return (const DataValueBool &)dv1 > (const DataValueBool &)dv2;
+    break;
+  case DataType::BLOB:
+    return (const DataValueBlob &)dv1 > (const DataValueBlob &)dv2;
+    break;
+  default:
+    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
+  }
+}
+
+inline bool operator>=(const IDataValue &dv1, const IDataValue &dv2) {
+  if (dv1.IsAutoPrimaryKey() && dv2.IsAutoPrimaryKey()) {
+    int64_t l1 = dv1.GetLong();
+    int64_t l2 = dv2.GetLong();
+    return (l1 >= l2);
+  }
+  if (dv1.IsDigital() && dv2.IsDigital()) {
+    double d1 = dv1.GetDouble();
+    double d2 = dv2.GetDouble();
+    return (d1 >= d2);
+  }
+
+  if (dv1.IsArrayType() && dv2.IsArrayType()) {
+    return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) >= 0);
+  }
+
+  assert(dv1.GetDataType() == dv2.GetDataType());
+  switch (dv1.dataType_) {
+
+  case DataType::DATETIME:
+    return (const DataValueDate &)dv1 >= (const DataValueDate &)dv2;
+    break;
+  case DataType::BOOL:
+    return (const DataValueBool &)dv1 >= (const DataValueBool &)dv2;
+    break;
+  case DataType::BLOB:
+    return (const DataValueBlob &)dv1 >= (const DataValueBlob &)dv2;
+    break;
+  default:
+    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
+  }
+}
+
+inline bool operator!=(const IDataValue &dv1, const IDataValue &dv2) {
+  return !(dv1 == dv2);
+}
+
+inline bool operator<(const IDataValue &dv1, const IDataValue &dv2) {
+  return !(dv1 >= dv2);
+}
+
+inline bool operator<=(const IDataValue &dv1, const IDataValue &dv2) {
+  return !(dv1 > dv2);
 }
 } // namespace storage

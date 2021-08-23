@@ -1,4 +1,5 @@
-﻿#include "../../src/dataType/DataValueInt.h"
+﻿#include "../../src/dataType/DataValueDigit.h"
+#include "../../src/dataType/DataValueVarChar.h"
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
@@ -39,10 +40,9 @@ BOOST_AUTO_TEST_CASE(DataValueInt_test) {
   BOOST_TEST(dv4 == dv3);
 
   Byte buf[100];
-  *((int32_t *)buf) = 10;
-  DataValueInt dv5(buf, false);
+  DataValueInt dv5(10, false);
   BOOST_TEST(std::any_cast<int32_t>(dv5.GetValue()) == 10);
-  BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
+  BOOST_TEST(dv5.GetValueType() == ValueType::SOLE_VALUE);
 
   BOOST_TEST(dv5 > dv3);
   BOOST_TEST(dv5 >= dv3);
@@ -98,6 +98,29 @@ BOOST_AUTO_TEST_CASE(DataValueInt_test) {
   BOOST_TEST(strcmp(sb.GetBuff(), "123456789") == 0);
   BOOST_TEST(sb.GetBufLen() > 9U);
   BOOST_TEST(sb.GetStrLen() == 9U);
+}
+
+BOOST_AUTO_TEST_CASE(DataValueDigitCopy_test) {
+  DataValueInt dvi1(1000);
+  DataValueInt dvi2;
+  dvi2.Copy(dvi1);
+  BOOST_TEST((int32_t)dvi2 == 1000);
+
+  DataValueChar dvc(100, true);
+  dvi2.Copy(dvc);
+  BOOST_TEST((int32_t)dvi2 == 100);
+
+  DataValueULong dvl(1000000, true);
+  dvi2.Copy(dvl);
+  BOOST_TEST((int32_t)dvi2 == 1000000);
+
+  DataValueFloat dvf(1.01, true);
+  dvi2.Copy(dvf);
+  BOOST_TEST((int32_t)dvi2 == 1);
+
+  DataValueVarChar dv("12345", 5);
+  dvi2.Copy(dv);
+  BOOST_TEST((int32_t)dvi2 == 12345);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

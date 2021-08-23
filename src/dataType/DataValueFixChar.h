@@ -17,11 +17,34 @@ public:
   ~DataValueFixChar();
 
 public:
-  DataValueFixChar *CloneDataValue(bool incVal = false) override;
-  uint32_t WriteData(Byte *buf, bool key) override {
+  void Copy(IDataValue &dv, bool bMove = true) override;
+  DataValueFixChar *Clone(bool incVal = false) override {
+    if (incVal) {
+      return new DataValueFixChar(*this);
+    } else {
+      return new DataValueFixChar(maxLength_, bKey_);
+    }
+  }
+  uint32_t WriteData(Byte *buf) const override {
     return WriteData(buf, bKey_);
   };
-  uint32_t GetPersistenceLength(bool key) const override;
+  uint32_t WriteData(Byte *buf, bool key) const override;
+  uint32_t GetPersistenceLength() const override {
+    return GetPersistenceLength(bKey_);
+  }
+  uint32_t GetPersistenceLength(bool key) const override {
+    if (key) {
+      return maxLength_;
+    } else {
+      switch (valType_) {
+      case ValueType::SOLE_VALUE:
+        return maxLength_ + 1;
+      case ValueType::NULL_VALUE:
+      default:
+        return 1;
+      }
+    }
+  }
   size_t Hash() const override {
     if (valType_ == ValueType::NULL_VALUE)
       return 0;
@@ -38,29 +61,77 @@ public:
   }
 
   std::any GetValue() const override;
-  uint32_t WriteData(Byte *buf) override { return WriteData(buf, bKey_); }
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
-  uint32_t WriteData(fstream &fs) override;
+  uint32_t WriteData(fstream &fs) const override;
   uint32_t ReadData(fstream &fs) override;
-  uint32_t GetDataLength() const override;
-  uint32_t GetMaxLength() const override;
-  uint32_t GetPersistenceLength() const override;
+  uint32_t GetDataLength() const override {
+    if (!bKey_ && valType_ == ValueType::NULL_VALUE)
+      return 0;
+    else
+      return maxLength_;
+  }
+  uint32_t GetMaxLength() const override { return maxLength_; }
 
   void SetMinValue() override;
   void SetMaxValue() override;
   void SetDefaultValue() override;
-  void ToString(StrBuff &sb) const override;
+  void ToString(StrBuff &sb) const override {
+    if (valType_ == ValueType::NULL_VALUE) {
+      return;
+    }
 
-  operator string() const;
+    sb.Cat((char *)bysValue_, maxLength_ - 1);
+  }
+
+  operator string() const {
+    switch (valType_) {
+    case ValueType::NULL_VALUE:
+      return "";
+    case ValueType::SOLE_VALUE:
+    case ValueType::BYTES_VALUE:
+      return string((char *)bysValue_);
+    }
+
+    return "";
+  }
+
   DataValueFixChar &operator=(const char *val);
   DataValueFixChar &operator=(const DataValueFixChar &src);
 
-  bool operator>(const DataValueFixChar &dv) const;
-  bool operator<(const DataValueFixChar &dv) const;
-  bool operator>=(const DataValueFixChar &dv) const;
-  bool operator<=(const DataValueFixChar &dv) const;
-  bool operator==(const DataValueFixChar &dv) const;
-  bool operator!=(const DataValueFixChar &dv) const;
+  bool operator>(const DataValueFixChar &dv) const {
+    if (valType_ == ValueType::NULL_VALUE) {
+      return false;
+    }
+    if (dv.valType_ == ValueType::NULL_VALUE) {
+      return true;
+    }
+
+    return strcmp((char *)bysValue_, (char *)dv.bysValue_);
+  }
+  bool operator<(const DataValueFixChar &dv) const { return !(*this >= dv); }
+  bool operator>=(const DataValueFixChar &dv) const {
+    if (valType_ == ValueType::NULL_VALUE) {
+      return dv.valType_ == ValueType::NULL_VALUE;
+    }
+    if (dv.valType_ == ValueType::NULL_VALUE) {
+      return true;
+    }
+
+    return strcmp((char *)bysValue_, (char *)dv.bysValue_);
+  }
+  bool operator<=(const DataValueFixChar &dv) const { return !(*this > dv); }
+  bool operator==(const DataValueFixChar &dv) const {
+    if (valType_ == ValueType::NULL_VALUE) {
+      return dv.valType_ == ValueType::NULL_VALUE;
+    }
+    if (dv.valType_ == ValueType::NULL_VALUE) {
+      return false;
+    }
+
+    return strcmp((char *)bysValue_, (char *)dv.bysValue_) == 0;
+  }
+  Byte *GetBuff() const override { return bysValue_; }
+  bool operator!=(const DataValueFixChar &dv) const { return !(*this == dv); }
   friend std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv);
 
 protected:

@@ -1,5 +1,5 @@
 ﻿#include "../../src/table/Column.h"
-#include "../../src/dataType/DataValueUInt.h"
+#include "../../src/dataType/DataValueFactory.h"
 #include "../../src/utils/Utilitys.h"
 #include <boost/test/unit_test.hpp>
 #include <cstring>

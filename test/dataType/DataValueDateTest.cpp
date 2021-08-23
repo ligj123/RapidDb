@@ -39,10 +39,9 @@ BOOST_AUTO_TEST_CASE(DataValueDate_test) {
   BOOST_TEST(dv4 == dv3);
 
   Byte buf[100];
-  *((uint64_t *)buf) = 10;
-  DataValueDate dv5(buf, false);
+  DataValueDate dv5(10, false);
   BOOST_TEST(std::any_cast<uint64_t>(dv5.GetValue()) == 10);
-  BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
+  BOOST_TEST(dv5.GetValueType() == ValueType::SOLE_VALUE);
 
   BOOST_TEST(dv5 > dv3);
   BOOST_TEST(dv5 >= dv3);
@@ -68,7 +67,7 @@ BOOST_AUTO_TEST_CASE(DataValueDate_test) {
   dv2.ReadData(buf, -1);
   BOOST_TEST(dv2 == dv6);
 
-  dv6 = 0x1234;
+  dv6 = 0x1234LL;
   dv6.WriteData(buf);
   dv2.ReadData(buf);
   BOOST_TEST(std::any_cast<uint64_t>(dv2.GetValue()) == 0x1234);
@@ -78,7 +77,7 @@ BOOST_AUTO_TEST_CASE(DataValueDate_test) {
   dv1.ReadData(buf + 20);
   BOOST_TEST(dv1 == dv7);
 
-  dv7 = 10000;
+  dv7 = 10000LL;
   dv7.WriteData(buf + 20);
   dv1.ReadData(buf + 20);
   BOOST_TEST(dv1 == dv7);
@@ -93,7 +92,7 @@ BOOST_AUTO_TEST_CASE(DataValueDate_test) {
   BOOST_TEST((uint64_t)dv9 == 100ULL);
 
   StrBuff sb(0);
-  dv1 = 1234567890;
+  dv1 = 1234567890LL;
   dv1.ToString(sb);
   BOOST_TEST(strcmp(sb.GetBuff(), "1234567890") == 0);
   BOOST_TEST(sb.GetBufLen() > 10U);

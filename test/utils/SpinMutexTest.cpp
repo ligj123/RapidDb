@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(SharedSpinMutex_test) {
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t1.join();
-  BOOST_TEST(ms > 10);
+  BOOST_TEST(ms >= 10);
 
   sm.lock();
   ms = 0;
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(SharedSpinMutex_test) {
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t2.join();
-  BOOST_TEST(ms > 10);
+  BOOST_TEST(ms >= 10);
 
   sm.lock_shared();
   ms = 0;
@@ -122,7 +122,7 @@ BOOST_AUTO_TEST_CASE(SharedSpinMutex_test) {
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock_shared();
   t3.join();
-  BOOST_TEST(ms > 10);
+  BOOST_TEST(ms >= 10);
 }
 
 BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test) {
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test) {
   std::this_thread::sleep_for(std::chrono::milliseconds(12));
   sm.unlock();
   t1.join();
-  BOOST_TEST(ms > 10);
+  BOOST_TEST(ms >= 10);
 
   sm.lock();
   ms = 0;
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test) {
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   sm.unlock();
   t2.join();
-  BOOST_TEST(ms > 10);
+  BOOST_TEST(ms >= 10);
 }
 
 BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test) {
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test) {
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t1.join();
-  BOOST_TEST(ms > 10);
+  BOOST_TEST(ms >= 10);
 
   sm.lock();
   ms = 0;
@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test) {
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t2.join();
-  BOOST_TEST(ms > 10);
+  BOOST_TEST(ms >= 10);
 
   sm.lock_shared();
   ms = 0;
@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test) {
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock_shared();
   t3.join();
-  BOOST_TEST(ms > 10);
+  BOOST_TEST(ms >= 10);
 
   sm.lock();
   ms = 0;
@@ -299,7 +299,7 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test) {
   std::this_thread::sleep_for(std::chrono::milliseconds(11));
   sm.unlock();
   t4.join();
-  BOOST_TEST(ms > 10);
+  BOOST_TEST(ms >= 10);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace utils

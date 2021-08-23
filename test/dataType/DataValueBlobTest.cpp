@@ -1,4 +1,5 @@
 ﻿#include "../../src/dataType/DataValueBlob.h"
+#include "../../src/dataType/DataValueDigit.h"
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
@@ -59,6 +60,56 @@ BOOST_AUTO_TEST_CASE(DataValueBlob_test) {
   BOOST_TEST(strcmp(sb.GetBuff(), "0x040506070809") == 0);
   BOOST_TEST(sb.GetBufLen() > 14U);
   BOOST_TEST(sb.GetStrLen() == 14U);
+}
+
+BOOST_AUTO_TEST_CASE(DataValueBlobCopy_test) {
+  class DataValueBlobEx : public DataValueBlob {
+  public:
+    using DataValueBlob::bysValue_;
+    using DataValueBlob::DataValueBlob;
+    using DataValueBlob::maxLength_;
+    using DataValueBlob::soleLength_;
+  };
+
+  DataValueInt dvi(100, true);
+  DataValueBlobEx dvb(10);
+
+  try {
+    dvb.Copy(dvi);
+  } catch (utils::ErrorMsg &err) {
+    BOOST_TEST(err.getErrId() == DT_UNSUPPORT_CONVERT);
+  }
+
+  const char *pStr = "abcdefghijklmn";
+  DataValueBlobEx dvb2(pStr, 14);
+
+  try {
+    dvb.Copy(dvb2);
+  } catch (utils::ErrorMsg &err) {
+    BOOST_TEST(err.getErrId() == DT_INPUT_OVER_LENGTH);
+  }
+
+  char buf[100];
+  buf[0] = VALUE_TYPE | ((Byte)DataType::BLOB & DATE_TYPE);
+  *(int *)(buf + 1) = 7;
+  memcpy(buf + 5, "abcdefg", 7);
+
+  dvb2.ReadData((Byte *)buf, 0, false);
+  dvb.Copy(dvb2);
+  BOOST_TEST(dvb.bysValue_ == dvb2.bysValue_);
+  BOOST_TEST(dvb.maxLength_ != dvb2.maxLength_);
+  BOOST_TEST(dvb.soleLength_ == dvb2.soleLength_);
+  BOOST_TEST(dvb == dvb2);
+
+  dvb2.ReadData((Byte *)buf, 0, true);
+  dvb.Copy(dvb2, false);
+  BOOST_TEST(dvb.bysValue_ != dvb2.bysValue_);
+  BOOST_TEST(dvb.maxLength_ != dvb2.maxLength_);
+  BOOST_TEST(dvb.soleLength_ == dvb2.soleLength_);
+  BOOST_TEST(dvb == dvb2);
+
+  dvb.Copy(dvb2, true);
+  BOOST_TEST(dvb2.GetValueType() == ValueType::NULL_VALUE);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

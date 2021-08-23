@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   bStop = true;
   this_thread::sleep_for(chrono::milliseconds(1000));
   BOOST_TEST(tp.GetMinThreads() == tp.GetThreadCount());
-  BOOST_TEST(tp.GetCurrId() == tp.GetMinThreads());
+  BOOST_TEST(tp.GetCurrId() == 8);
 
   bStop = false;
   for (int i = 0; i < 20; i++) {
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   bStop = true;
   this_thread::sleep_for(chrono::milliseconds(1000));
   BOOST_TEST(tp.GetMinThreads() == tp.GetThreadCount());
-  BOOST_TEST(tp.GetCurrId() == tp.GetMinThreads() * 2 - 1);
+  BOOST_TEST(tp.GetCurrId() == 15);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace utils

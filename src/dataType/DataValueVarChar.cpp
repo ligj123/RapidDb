@@ -5,28 +5,6 @@
 #include <stdexcept>
 
 namespace storage {
-DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey)
-    : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE, bKey),
-      maxLength_(maxLength), soleLength_(0), bysValue_(nullptr) {}
-
-DataValueVarChar::DataValueVarChar(const char *val, uint32_t strLen,
-                                   uint32_t maxLength, bool bKey)
-    : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey),
-      maxLength_(maxLength), soleLength_(strLen + 1) {
-  if (soleLength_ >= maxLength_) {
-    throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH,
-                          {to_string(maxLength_), to_string(soleLength_)});
-  }
-
-  bysValue_ = CachePool::ApplyBys(soleLength_);
-  memcpy(bysValue_, val, soleLength_);
-}
-
-DataValueVarChar::DataValueVarChar(Byte *byArray, uint32_t strLen,
-                                   uint32_t maxLength, bool bKey)
-    : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE, bKey),
-      bysValue_(byArray), maxLength_(maxLength), soleLength_(strLen) {}
-
 DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey, std::any val)
     : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey),
       maxLength_(maxLength) {
@@ -68,67 +46,63 @@ DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey, std::any val)
   memcpy(bysValue_, str.c_str(), soleLength_);
 }
 
-DataValueVarChar::DataValueVarChar(const DataValueVarChar &src)
-    : IDataValue(src) {
-  maxLength_ = src.maxLength_;
-  soleLength_ = src.soleLength_;
-
-  switch (valType_) {
-  case ValueType::SOLE_VALUE:
-    bysValue_ = CachePool::ApplyBys(soleLength_);
-    memcpy(bysValue_, src.bysValue_, soleLength_);
-    break;
-  case ValueType::BYTES_VALUE:
-    bysValue_ = src.bysValue_;
-    break;
-  case ValueType::NULL_VALUE:
-  default:
-    bysValue_ = nullptr;
-    break;
-  }
-}
-
-DataValueVarChar::~DataValueVarChar() {
-  if (valType_ == ValueType::SOLE_VALUE) {
-    CachePool::ReleaseBys((Byte *)bysValue_, soleLength_);
+void DataValueVarChar::Copy(IDataValue &dv, bool bMove) {
+  if (dv.IsNull()) {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::ReleaseBys(bysValue_, soleLength_);
+    }
     valType_ = ValueType::NULL_VALUE;
   }
-}
 
-DataValueVarChar *DataValueVarChar::CloneDataValue(bool incVal) {
-  if (incVal) {
-    return new DataValueVarChar(*this);
-  } else {
-    return new DataValueVarChar(maxLength_, bKey_);
-  }
-}
-
-std::any DataValueVarChar::GetValue() const {
-  switch (valType_) {
-  case ValueType::SOLE_VALUE:
-  case ValueType::BYTES_VALUE:
-    return string((char *)bysValue_);
-  case ValueType::NULL_VALUE:
-  default:
-    return std::any();
-  }
-}
-
-uint32_t DataValueVarChar::GetPersistenceLength(bool key) const {
-  if (key) {
-    return soleLength_;
-  } else {
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
-      return soleLength_ + 1 + sizeof(uint32_t);
-    case ValueType::NULL_VALUE:
-    default:
-      return 1;
+  if (dataType_ != dv.GetDataType()) {
+    StrBuff sb(0);
+    dv.ToString(sb);
+    if (maxLength_ < sb.GetStrLen() + 1) {
+      throw utils::ErrorMsg(
+          DT_INPUT_OVER_LENGTH,
+          {to_string(maxLength_), to_string(dv.GetDataLength())});
     }
+
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::ReleaseBys(bysValue_, soleLength_);
+    }
+
+    soleLength_ = sb.GetStrLen() + 1;
+    bysValue_ = CachePool::ApplyBys(soleLength_);
+    valType_ = ValueType::SOLE_VALUE;
+    memcpy(bysValue_, sb.GetBuff(), soleLength_);
+    return;
+  }
+
+  if (dv.GetDataLength() > maxLength_) {
+    throw utils::ErrorMsg(
+        DT_INPUT_OVER_LENGTH,
+        {to_string(maxLength_), to_string(dv.GetDataLength())});
+  }
+
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::ReleaseBys(bysValue_, soleLength_);
+  }
+
+  if (dv.GetValueType() == ValueType::BYTES_VALUE) {
+    bysValue_ = ((DataValueVarChar &)dv).bysValue_;
+    valType_ = ValueType::BYTES_VALUE;
+    soleLength_ = dv.GetDataLength();
+  } else if (bMove) {
+    bysValue_ = ((DataValueVarChar &)dv).bysValue_;
+    valType_ = ValueType::SOLE_VALUE;
+    soleLength_ = dv.GetDataLength();
+    ((DataValueVarChar &)dv).bysValue_ = nullptr;
+    ((DataValueVarChar &)dv).valType_ = ValueType::NULL_VALUE;
+  } else if (dv.GetValueType() != ValueType::NULL_VALUE) {
+    soleLength_ = dv.GetDataLength();
+    bysValue_ = CachePool::ApplyBys(soleLength_);
+    valType_ = ValueType::SOLE_VALUE;
+    memcpy(bysValue_, ((DataValueVarChar &)dv).bysValue_, soleLength_);
   }
 }
 
-uint32_t DataValueVarChar::WriteData(Byte *buf, bool key) {
+uint32_t DataValueVarChar::WriteData(Byte *buf, bool key) const {
   if (bKey_) {
     assert(valType_ != ValueType::NULL_VALUE);
     std::memcpy(buf, bysValue_, soleLength_);
@@ -155,7 +129,7 @@ uint32_t DataValueVarChar::WriteData(Byte *buf, bool key) {
   }
 }
 
-uint32_t DataValueVarChar::WriteData(fstream &fs) {
+uint32_t DataValueVarChar::WriteData(fstream &fs) const {
   if (valType_ == ValueType::NULL_VALUE) {
     fs.put((Byte)DataType::VARCHAR & DATE_TYPE);
     return 1;
@@ -172,9 +146,12 @@ uint32_t DataValueVarChar::ReadData(fstream &fs) {
   fs.get(c);
 
   valType_ = (c & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
-  if (valType_ == ValueType::NULL_VALUE)
+  if (valType_ == ValueType::NULL_VALUE) {
+    valType_ = ValueType::NULL_VALUE;
     return 1;
+  }
 
+  valType_ = ValueType::SOLE_VALUE;
   fs.read((char *)&soleLength_, sizeof(uint32_t));
   bysValue_ = CachePool::ApplyBys(soleLength_);
   fs.read((char *)bysValue_, soleLength_);
@@ -182,53 +159,45 @@ uint32_t DataValueVarChar::ReadData(fstream &fs) {
 }
 
 uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::ReleaseBys(bysValue_, soleLength_);
+  }
+
   if (bKey_) {
     assert(len > 0);
-    valType_ = ValueType::SOLE_VALUE;
     soleLength_ = len;
-    bysValue_ = CachePool::ApplyBys(soleLength_);
-    memcpy(bysValue_, buf, len);
+    if (bSole) {
+      valType_ = ValueType::SOLE_VALUE;
+      bysValue_ = CachePool::ApplyBys(soleLength_);
+      memcpy(bysValue_, buf, len);
+    } else {
+      valType_ = ValueType::BYTES_VALUE;
+      bysValue_ = buf;
+    }
+
     return len;
   } else {
-    valType_ =
-        (*buf & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
-    buf++;
-
-    if (valType_ == ValueType::NULL_VALUE)
+    if ((*buf & VALUE_TYPE) == 0) {
+      valType_ = ValueType::NULL_VALUE;
       return 1;
+    }
 
+    buf++;
     soleLength_ = *((uint32_t *)buf);
     buf += sizeof(uint32_t);
-    bysValue_ = CachePool::ApplyBys(soleLength_);
-    memcpy(bysValue_, buf, soleLength_);
+
+    if (bSole) {
+      bysValue_ = CachePool::ApplyBys(soleLength_);
+      memcpy(bysValue_, buf, soleLength_);
+      valType_ = ValueType::SOLE_VALUE;
+    } else {
+      bysValue_ = buf;
+      valType_ = ValueType::BYTES_VALUE;
+    }
     return soleLength_ + sizeof(uint32_t) + 1;
   }
 }
 
-uint32_t DataValueVarChar::GetDataLength() const {
-  if (!bKey_ && valType_ == ValueType::NULL_VALUE)
-    return 0;
-  else
-    return soleLength_;
-}
-
-uint32_t DataValueVarChar::GetMaxLength() const { return maxLength_; }
-
-uint32_t DataValueVarChar::GetPersistenceLength() const {
-  if (bKey_) {
-    return soleLength_;
-  } else {
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
-      return soleLength_ + 1 + sizeof(uint32_t);
-    case ValueType::BYTES_VALUE:
-      return soleLength_ + 1 + sizeof(uint32_t);
-    case ValueType::NULL_VALUE:
-    default:
-      return 1;
-    }
-  }
-}
 void DataValueVarChar::SetMinValue() {
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::ReleaseBys(bysValue_, soleLength_);
@@ -258,18 +227,6 @@ void DataValueVarChar::SetDefaultValue() {
   soleLength_ = 1;
   bysValue_ = CachePool::ApplyBys(soleLength_);
   bysValue_[0] = 0;
-}
-
-DataValueVarChar::operator string() const {
-  switch (valType_) {
-  case ValueType::NULL_VALUE:
-    return "";
-  case ValueType::SOLE_VALUE:
-  case ValueType::BYTES_VALUE:
-    return string((char *)bysValue_);
-  }
-
-  return "";
 }
 
 DataValueVarChar &DataValueVarChar::operator=(char *val) {
@@ -329,67 +286,6 @@ DataValueVarChar &DataValueVarChar::operator=(const DataValueVarChar &src) {
   return *this;
 }
 
-bool DataValueVarChar::operator>(const DataValueVarChar &dv) const {
-  if (valType_ == ValueType::NULL_VALUE) {
-    return false;
-  }
-  if (dv.valType_ == ValueType::NULL_VALUE) {
-    return true;
-  }
-
-  int rt = strncmp((char *)bysValue_, (char *)dv.bysValue_,
-                   std::min(GetDataLength(), dv.GetDataLength()));
-  if (rt == 0) {
-    return GetDataLength() > dv.GetDataLength();
-  } else {
-    return rt > 0;
-  }
-}
-
-bool DataValueVarChar::operator<(const DataValueVarChar &dv) const {
-  return !(*this >= dv);
-}
-
-bool DataValueVarChar::operator>=(const DataValueVarChar &dv) const {
-  if (valType_ == ValueType::NULL_VALUE) {
-    return dv.valType_ == ValueType::NULL_VALUE;
-  }
-  if (dv.valType_ == ValueType::NULL_VALUE) {
-    return true;
-  }
-
-  int rt = strncmp((char *)bysValue_, (char *)dv.bysValue_,
-                   std::min(GetDataLength(), dv.GetDataLength()));
-  if (rt == 0) {
-    return GetDataLength() >= dv.GetDataLength();
-  } else {
-    return rt > 0;
-  }
-}
-
-bool DataValueVarChar::operator<=(const DataValueVarChar &dv) const {
-  return !(*this > dv);
-}
-
-bool DataValueVarChar::operator==(const DataValueVarChar &dv) const {
-  if (valType_ == ValueType::NULL_VALUE) {
-    return dv.valType_ == ValueType::NULL_VALUE;
-  }
-  if (dv.valType_ == ValueType::NULL_VALUE) {
-    return false;
-  }
-
-  if (GetDataLength() != dv.GetDataLength())
-    return false;
-
-  return strncmp((char *)bysValue_, (char *)dv.bysValue_,
-                 std::min(GetDataLength(), dv.GetDataLength())) == 0;
-}
-
-bool DataValueVarChar::operator!=(const DataValueVarChar &dv) const {
-  return !(*this == dv);
-}
-
 std::ostream &operator<<(std::ostream &os, const DataValueVarChar &dv) {
   switch (dv.valType_) {
   case ValueType::NULL_VALUE:
@@ -404,11 +300,4 @@ std::ostream &operator<<(std::ostream &os, const DataValueVarChar &dv) {
   return os;
 }
 
-void DataValueVarChar::ToString(StrBuff &sb) const {
-  if (valType_ == ValueType::NULL_VALUE) {
-    return;
-  }
-
-  sb.Cat((char *)bysValue_, soleLength_ - 1);
-}
 } // namespace storage

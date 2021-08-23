@@ -1,6 +1,6 @@
 ﻿#include "../../src/core/HeadPage.h"
 #include "../../src/core/IndexTree.h"
-#include "../../src/dataType/DataValueLong.h"
+#include "../../src/dataType/DataValueDigit.h"
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/pool/StoragePool.h"
 #include "../../src/utils/Utilitys.h"

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../cache/CachePool.h"
 #include "IDataValue.h"
 
 namespace storage {
@@ -17,8 +18,19 @@ public:
   ~DataValueBlob();
 
 public:
-  DataValueBlob *CloneDataValue(bool incVal = false) override;
-  uint32_t WriteData(Byte *buf, bool key) override;
+  void Copy(IDataValue &dv, bool bMove = true) override;
+
+  DataValueBlob *Clone(bool incVal = false) override {
+    if (incVal) {
+      return new DataValueBlob(*this);
+    } else {
+      return new DataValueBlob(maxLength_, bKey_);
+    }
+  }
+  uint32_t WriteData(Byte *buf, bool key) const override;
+  uint32_t GetPersistenceLength() const override {
+    return GetPersistenceLength(bKey_);
+  }
   uint32_t GetPersistenceLength(bool key) const override {
     assert(!bKey_);
     switch (valType_) {
@@ -46,19 +58,29 @@ public:
     return *this == (DataValueBlob &)dv;
   }
 
-  std::any GetValue() const override;
-  uint32_t WriteData(Byte *buf) override { return WriteData(buf, bKey_); }
+  std::any GetValue() const override {
+    switch (valType_) {
+    case ValueType::SOLE_VALUE:
+    case ValueType::BYTES_VALUE:
+      return (char *)bysValue_;
+    case ValueType::NULL_VALUE:
+    default:
+      return std::any();
+    }
+  }
+
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = false) override;
-  uint32_t WriteData(fstream &fs) override;
+  uint32_t WriteData(Byte *buf) const override {
+    return WriteData(buf, bKey_);
+  };
+  uint32_t WriteData(fstream &fs) const override;
   uint32_t ReadData(fstream &fs) override;
   uint32_t GetDataLength() const override {
     assert(!bKey_);
     return (valType_ == ValueType::NULL_VALUE ? 0 : soleLength_);
   }
   uint32_t GetMaxLength() const override { return maxLength_; }
-  uint32_t GetPersistenceLength() const override {
-    return GetPersistenceLength(bKey_);
-  };
+
   void SetMinValue() override;
   void SetMaxValue() override;
   void SetDefaultValue() override;
@@ -68,8 +90,13 @@ public:
   /**Only for byte array that first 4 bytes is lenght*/
   DataValueBlob &operator=(const char *val);
   void Put(uint32_t len, char *val);
+  char *Get(uint32_t &len) {
+    len = soleLength_;
+    return (char *)bysValue_;
+  }
   DataValueBlob &operator=(const DataValueBlob &src);
   bool operator==(const DataValueBlob &dv) const;
+  Byte *GetBuff() const override { return bysValue_; }
   friend std::ostream &operator<<(std::ostream &os, const DataValueBlob &dv);
 
 protected:

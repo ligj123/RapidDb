@@ -135,7 +135,7 @@ void IndexTree::CloneKeys(VectorDataValue &vct) {
   vct.RemoveAll();
   vct.reserve(_vctKey.size());
   for (IDataValue *dv : _vctKey) {
-    vct.push_back(dv->CloneDataValue(false));
+    vct.push_back(dv->Clone(false));
   }
 }
 
@@ -143,7 +143,7 @@ void IndexTree::CloneValues(VectorDataValue &vct) {
   vct.RemoveAll();
   vct.reserve(_vctValue.size());
   for (IDataValue *dv : _vctValue) {
-    vct.push_back(dv->CloneDataValue(false));
+    vct.push_back(dv->Clone(false));
   }
 }
 

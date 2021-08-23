@@ -54,6 +54,45 @@ DataValueBlob::DataValueBlob(const DataValueBlob &src) : IDataValue(src) {
   }
 }
 
+void DataValueBlob::Copy(IDataValue &dv, bool bMove) {
+  if (dataType_ != dv.GetDataType()) {
+    throw utils::ErrorMsg(
+        DT_UNSUPPORT_CONVERT,
+        {StrOfDataType(dv.GetDataType()), StrOfDataType(dataType_)});
+  }
+
+  if (dv.GetDataLength() > maxLength_) {
+    throw utils::ErrorMsg(
+        DT_INPUT_OVER_LENGTH,
+        {to_string(maxLength_), to_string(dv.GetDataLength())});
+  }
+
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::ReleaseBys(bysValue_, soleLength_);
+  }
+
+  if (dv.GetValueType() == ValueType::BYTES_VALUE) {
+    bysValue_ = ((DataValueBlob &)dv).bysValue_;
+    valType_ = ValueType::BYTES_VALUE;
+    soleLength_ = dv.GetDataLength();
+  } else if (bMove) {
+    bysValue_ = ((DataValueBlob &)dv).bysValue_;
+    valType_ = ValueType::SOLE_VALUE;
+    soleLength_ = dv.GetDataLength();
+    ((DataValueBlob &)dv).bysValue_ = nullptr;
+    ((DataValueBlob &)dv).valType_ = ValueType::NULL_VALUE;
+  } else if (dv.GetValueType() != ValueType::NULL_VALUE) {
+    bysValue_ = CachePool::ApplyBys(soleLength_);
+    valType_ = ValueType::SOLE_VALUE;
+    soleLength_ = dv.GetDataLength();
+    memcpy(bysValue_, ((DataValueBlob &)dv).bysValue_, soleLength_);
+  } else {
+    valType_ = ValueType::NULL_VALUE;
+    soleLength_ = 0;
+    bysValue_ = nullptr;
+  }
+}
+
 DataValueBlob::~DataValueBlob() {
   if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::ReleaseBys(bysValue_, soleLength_);
@@ -61,26 +100,7 @@ DataValueBlob::~DataValueBlob() {
   }
 }
 
-DataValueBlob *DataValueBlob::CloneDataValue(bool incVal) {
-  if (incVal) {
-    return new DataValueBlob(*this);
-  } else {
-    return new DataValueBlob(maxLength_, bKey_);
-  }
-}
-
-std::any DataValueBlob::GetValue() const {
-  switch (valType_) {
-  case ValueType::SOLE_VALUE:
-  case ValueType::BYTES_VALUE:
-    return (char *)bysValue_;
-  case ValueType::NULL_VALUE:
-  default:
-    return std::any();
-  }
-}
-
-uint32_t DataValueBlob::WriteData(Byte *buf, bool key) {
+uint32_t DataValueBlob::WriteData(Byte *buf, bool key) const {
   assert(!key);
 
   if (valType_ == ValueType::NULL_VALUE) {
@@ -103,7 +123,7 @@ uint32_t DataValueBlob::WriteData(Byte *buf, bool key) {
   }
 }
 
-uint32_t DataValueBlob::WriteData(fstream &fs) {
+uint32_t DataValueBlob::WriteData(fstream &fs) const {
   if (valType_ == ValueType::NULL_VALUE) {
     fs.put((Byte)DataType::BLOB & DATE_TYPE);
     return 1;
@@ -120,8 +140,12 @@ uint32_t DataValueBlob::ReadData(fstream &fs) {
   fs.read((char *)&by, 1);
   valType_ =
       ((by & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
-  if (valType_ == ValueType::NULL_VALUE)
+  if (valType_ == ValueType::NULL_VALUE) {
+    valType_ = ValueType::NULL_VALUE;
     return 1;
+  }
+
+  valType_ = ValueType::SOLE_VALUE;
   fs.read((char *)&soleLength_, sizeof(uint32_t));
   bysValue_ = CachePool::ApplyBys(soleLength_);
   fs.read((char *)bysValue_, soleLength_);
@@ -130,21 +154,24 @@ uint32_t DataValueBlob::ReadData(fstream &fs) {
 
 uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len, bool bSole) {
   assert(!bKey_);
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::ReleaseBys(bysValue_, soleLength_);
+  }
 
-  valType_ = ((*buf & VALUE_TYPE)
-                  ? (bSole ? ValueType::SOLE_VALUE : ValueType::BYTES_VALUE)
-                  : ValueType::NULL_VALUE);
-  buf++;
-
-  if (valType_ == ValueType::NULL_VALUE)
+  if ((*buf & VALUE_TYPE) == 0) {
+    valType_ = ValueType::NULL_VALUE;
     return 1;
+  }
 
+  buf++;
   soleLength_ = *((uint32_t *)buf);
   buf += sizeof(uint32_t);
-  if (valType_ == ValueType::SOLE_VALUE) {
+  if (bSole) {
     bysValue_ = CachePool::ApplyBys(soleLength_);
     memcpy(bysValue_, buf, soleLength_);
+    valType_ = ValueType::SOLE_VALUE;
   } else {
+    valType_ = ValueType::BYTES_VALUE;
     bysValue_ = buf;
   }
 
@@ -263,7 +290,7 @@ bool DataValueBlob::operator==(const DataValueBlob &dv) const {
   return utils::BytesCompare(bysValue_, len, dv.bysValue_, len) == 0;
 }
 
-void DataValueBlob::ToString(StrBuff &sb) {
+void DataValueBlob::ToString(StrBuff &sb) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return;
   }

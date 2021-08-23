@@ -1,4 +1,4 @@
-﻿#include "../../src/dataType/DataValueUInt.h"
+﻿#include "../../src/dataType/DataValueDigit.h"
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
@@ -39,10 +39,9 @@ BOOST_AUTO_TEST_CASE(DataValueUInt_test) {
   BOOST_TEST(dv4 == dv3);
 
   Byte buf[100];
-  *((uint32_t *)buf) = 10;
-  DataValueUInt dv5(buf, false);
+  DataValueUInt dv5(10, false);
   BOOST_TEST(std::any_cast<uint32_t>(dv5.GetValue()) == 10);
-  BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
+  BOOST_TEST(dv5.GetValueType() == ValueType::SOLE_VALUE);
 
   BOOST_TEST(dv5 > dv3);
   BOOST_TEST(dv5 >= dv3);

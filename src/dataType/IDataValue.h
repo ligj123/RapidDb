@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "../cache/CachePool.h"
 #include "../cache/StrBuff.h"
+#include "../config/ErrorID.h"
+#include "../utils/ErrorMsg.h"
 #include "DataType.h"
 #include <any>
 #include <cassert>
@@ -76,15 +78,19 @@ public:
   bool IsKey() { return bKey_; }
   bool IsReuse() { return bReuse_; }
   void SetReuse(bool b) { bReuse_ = b; }
-
-  virtual IDataValue *CloneDataValue(bool incVal = false) = 0;
+  // Only copy value from the dv, not include maxlength, bKey. If bMove=true,
+  // array type will move byte pointer to this and dv will set to null. They are
+  // maybe not same data type. All digital type will convert each other and all
+  // types can be converted to string.
+  virtual void Copy(IDataValue &dv, bool bMove = false) = 0;
+  virtual IDataValue *Clone(bool incVal = false) = 0;
   virtual std::any GetValue() const = 0;
-  virtual uint32_t WriteData(Byte *buf) = 0;
+  virtual uint32_t WriteData(Byte *buf) const = 0;
   virtual uint32_t ReadData(Byte *buf, uint32_t len, bool bSole = true) = 0;
-  virtual uint32_t WriteData(Byte *buf, bool key) = 0;
+  virtual uint32_t WriteData(Byte *buf, bool key) const = 0;
   // Only support to save over length fileds to overflow file. So bKey_ can not
   // be true.
-  virtual uint32_t WriteData(fstream &fs) {
+  virtual uint32_t WriteData(fstream &fs) const {
     assert(false);
     return 0;
   }
@@ -113,8 +119,16 @@ public:
   virtual double GetDouble() const { // Only used for digital type
     abort();
   }
+  // Only used for array data type
+  virtual Byte *GetBuff() const { abort(); }
+
   friend std::ostream &operator<<(std::ostream &os, const IDataValue &dv);
   friend bool operator==(const IDataValue &dv1, const IDataValue &dv2);
+  friend bool operator>(const IDataValue &dv1, const IDataValue &dv2);
+  friend bool operator>=(const IDataValue &dv1, const IDataValue &dv2);
+  friend bool operator<(const IDataValue &dv1, const IDataValue &dv2);
+  friend bool operator<=(const IDataValue &dv1, const IDataValue &dv2);
+  friend bool operator!=(const IDataValue &dv1, const IDataValue &dv2);
 
 public:
   static void *operator new(size_t size) {
@@ -152,7 +166,7 @@ public:
     clear();
   }
   void SetDelAll(bool b) { bDelAll_ = b; }
-  bool IsDelAll() { return bDelAll_; }
+  bool IsDelAll() const { return bDelAll_; }
 
 protected:
   bool bDelAll_ = false;

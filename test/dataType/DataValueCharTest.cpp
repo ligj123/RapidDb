@@ -1,4 +1,4 @@
-﻿#include "../../src/dataType/DataValueChar.h"
+﻿#include "../../src/dataType/DataValueDigit.h"
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
@@ -32,17 +32,16 @@ BOOST_AUTO_TEST_CASE(DataValueChar_test) {
   BOOST_TEST(dv1 < dv3);
   BOOST_TEST(dv1 <= dv3);
   BOOST_TEST(dv1 != dv3);
-  BOOST_TEST(std::any_cast<int8_t>(dv3.GetValue()) == 2);
+  BOOST_TEST(std::any_cast<char>(dv3.GetValue()) == 2);
 
   DataValueChar dv4(2, true);
   BOOST_TEST(dv4.GetPersistenceLength() == 1);
   BOOST_TEST(dv4 == dv3);
 
   Byte buf[100];
-  *((int8_t *)buf) = 10;
-  DataValueChar dv5(buf, false);
-  BOOST_TEST(std::any_cast<int8_t>(dv5.GetValue()) == 10);
-  BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
+  DataValueChar dv5(10, false);
+  BOOST_TEST(std::any_cast<char>(dv5.GetValue()) == 10);
+  BOOST_TEST(dv5.GetValueType() == ValueType::SOLE_VALUE);
 
   BOOST_TEST(dv5 > dv3);
   BOOST_TEST(dv5 >= dv3);
@@ -71,7 +70,7 @@ BOOST_AUTO_TEST_CASE(DataValueChar_test) {
   dv6 = 0x12;
   dv6.WriteData(buf);
   dv2.ReadData(buf);
-  BOOST_TEST(std::any_cast<int8_t>(dv2.GetValue()) == 0x12);
+  BOOST_TEST(std::any_cast<char>(dv2.GetValue()) == 0x12);
 
   DataValueChar dv7(false);
   dv7.WriteData(buf + 20);
@@ -95,9 +94,9 @@ BOOST_AUTO_TEST_CASE(DataValueChar_test) {
   StrBuff sb(0);
   dv1 = 99;
   dv1.ToString(sb);
-  BOOST_TEST(strcmp(sb.GetBuff(), "0x63") == 0);
-  BOOST_TEST(sb.GetBufLen() > 4U);
-  BOOST_TEST(sb.GetStrLen() == 4U);
+  BOOST_TEST(strcmp(sb.GetBuff(), "99") == 0);
+  BOOST_TEST(sb.GetBufLen() > 2U);
+  BOOST_TEST(sb.GetStrLen() == 2U);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

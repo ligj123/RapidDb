@@ -20,13 +20,13 @@ LeafPage::LeafPage(IndexTree *indexTree, uint64_t pageId, uint64_t parentPageId)
     : IndexPage(indexTree, pageId, 0, parentPageId),
       _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
       _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
-  _vctRecord.reserve(1500);
+  _vctRecord.reserve(256);
 }
 
 LeafPage::LeafPage(IndexTree *indexTree, uint64_t pageId)
     : IndexPage(indexTree, pageId), _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
       _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
-  _vctRecord.reserve(1500);
+  _vctRecord.reserve(256);
 }
 
 LeafPage::~LeafPage() { CleanRecord(); }

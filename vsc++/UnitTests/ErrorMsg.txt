@@ -17,6 +17,7 @@
 1012	column index is out of range, column index={1}, column index range from 0 to {2}.
 1013	Invalid column name, name={1}.
 1014	Invalid result set, please call it after initalization.
+1015  The column {1} is be nullable.
 
 #data type error
 2001	Unsupport data type conversion from {1} to {2}.

@@ -1,4 +1,5 @@
 ﻿#include "../../src/dataType/DataValueFixChar.h"
+#include "../../src/dataType/DataValueDigit.h"
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
@@ -73,11 +74,11 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   dv3.ReadData(buf + 30);
   BOOST_TEST(dv3 == dv10);
 
-  DataValueFixChar *pDv = dv10.CloneDataValue();
+  DataValueFixChar *pDv = dv10.Clone();
   BOOST_TEST(pDv->GetValueType() == ValueType::NULL_VALUE);
   delete pDv;
 
-  pDv = dv10.CloneDataValue(true);
+  pDv = dv10.Clone(true);
   BOOST_TEST(pDv->GetValueType() == ValueType::SOLE_VALUE);
   BOOST_TEST((string)(*pDv) == "abcd     ");
   delete pDv;
@@ -85,9 +86,53 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   StrBuff sb(0);
   dv1 = "abcdefghijklmn1234567890";
   dv1.ToString(sb);
-  BOOST_TEST(strcmp(sb.GetBuff(), "abcdefghijklmn1234567890") == 0);
-  BOOST_TEST(sb.GetBufLen() > 24U);
-  BOOST_TEST(sb.GetStrLen() == 24U);
+  BOOST_TEST(strncmp(sb.GetBuff(), "abcdefghijklmn1234567890", 24) == 0);
+  BOOST_TEST(sb.GetBufLen() > 999U);
+  BOOST_TEST(sb.GetStrLen() == 999U);
+}
+
+BOOST_AUTO_TEST_CASE(DataValueFixCharCopy_test) {
+  class DataValueFixCharEx : public DataValueFixChar {
+  public:
+    using DataValueFixChar::bysValue_;
+    using DataValueFixChar::DataValueFixChar;
+    using DataValueFixChar::maxLength_;
+  };
+
+  DataValueInt dvi(100, true);
+  DataValueFixCharEx dvc(10);
+
+  dvc.Copy(dvi);
+  BOOST_TEST(strcmp((char *)dvc.bysValue_, "100      ") == 0);
+  BOOST_TEST(dvc.GetValueType() == ValueType::SOLE_VALUE);
+
+  const char *pStr = "abcdefghijklmn";
+  DataValueFixCharEx dvc2(pStr, 14);
+
+  try {
+    dvc.Copy(dvc2);
+  } catch (utils::ErrorMsg &err) {
+    BOOST_TEST(err.getErrId() == DT_INPUT_OVER_LENGTH);
+  }
+
+  char buf[100];
+  buf[0] = VALUE_TYPE | ((Byte)DataType::FIXCHAR & DATE_TYPE);
+  strcpy(buf + 1, "abcdefg  ");
+
+  dvc2 = DataValueFixCharEx(10);
+  dvc2.ReadData((Byte *)buf, 0, false);
+  dvc.Copy(dvc2);
+  BOOST_TEST(dvc.bysValue_ == dvc2.bysValue_);
+  BOOST_TEST(dvc.maxLength_ == dvc2.maxLength_);
+  BOOST_TEST(dvc == dvc2);
+
+  dvc2.ReadData((Byte *)buf, 0, true);
+  dvc.Copy(dvc2, false);
+  BOOST_TEST(dvc.bysValue_ != dvc2.bysValue_);
+  BOOST_TEST(dvc == dvc2);
+
+  dvc.Copy(dvc2, true);
+  BOOST_TEST(dvc2.GetValueType() == ValueType::NULL_VALUE);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

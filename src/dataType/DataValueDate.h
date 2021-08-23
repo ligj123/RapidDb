@@ -1,64 +1,44 @@
 ﻿#pragma once
-#include "IDataValue.h"
+#include "DataValueDigit.h"
 #include <any>
 #include <ostream>
 
 namespace storage {
-class DataValueDate : public IDataValue {
-public:
-  DataValueDate(bool bKey = false);
-  DataValueDate(uint64_t msVal, bool bKey = false);
-  DataValueDate(Byte *byArray, bool bKey = false);
-  DataValueDate(const DataValueDate &src);
-  DataValueDate(std::any val, bool bKey = false);
-  ~DataValueDate() {}
-
-public:
-  DataValueDate *CloneDataValue(bool incVal = false) override;
-  uint32_t WriteData(Byte *buf, bool key) override;
-  uint32_t GetPersistenceLength(bool key) const override;
-  size_t Hash() const override {
-    return std::hash<uint64_t>{}((uint64_t) * this);
-  }
-  bool Equal(const IDataValue &dv) const {
-    if (dv.GetDataType() != DataType::DATETIME)
-      return false;
-
-    return *this == (DataValueDate &)dv;
-  }
-  std::any GetValue() const override;
-  uint32_t WriteData(Byte *buf) override { return WriteData(buf, bKey_); }
-  uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
-  uint32_t WriteData(fstream &fs) override;
-  uint32_t ReadData(fstream &fs) override;
-  uint32_t GetDataLength() const override;
-  uint32_t GetMaxLength() const override;
-  uint32_t GetPersistenceLength() const override;
-  void SetMinValue() override;
-  void SetMaxValue() override;
-  void SetDefaultValue() override;
-  void ToString(StrBuff &sb) const override;
-
-  /**millisecond since 1970/1/1*/
-  operator uint64_t() const;
-  /**millisecond since 1970/1/1*/
-  DataValueDate &operator=(uint64_t msVal);
-  DataValueDate &operator=(const DataValueDate &src);
-
-  bool operator>(const DataValueDate &dv) const;
-  bool operator<(const DataValueDate &dv) const;
-  bool operator>=(const DataValueDate &dv) const;
-  bool operator<=(const DataValueDate &dv) const;
-  bool operator==(const DataValueDate &dv) const;
-  bool operator!=(const DataValueDate &dv) const;
-  friend std::ostream &operator<<(std::ostream &os, const DataValueDate &dv);
-
-protected:
-  union {
-    /**millisecond since 1970/1/1*/
-    uint64_t soleValue_;
-    Byte *byArray_;
-  };
-};
-std::ostream &operator<<(std::ostream &os, const DataValueDate &dv);
+// class DataValueDate : public DataValueDigit<uint64_t, DataType::DATETIME> {
+// public:
+//  DataValueDate(bool bKey = false) : DataValueDigit(bKey) {}
+//  DataValueDate(uint64_t msVal, bool bKey = false)
+//      : DataValueDigit(msVal, bKey) {}
+//  DataValueDate(std::any val, bool bKey = false) : DataValueDigit(val, bKey)
+//  {} DataValueDate(const DataValueDate &src) : DataValueDigit(src) {}
+//  ~DataValueDate() {}
+//
+// public:
+//  DataValueDate *Clone(bool incVal = false) override {
+//    return new DataValueDate(*this);
+//  }
+//  void ToString(StrBuff &sb) const override {
+//    if (valType_ == ValueType::NULL_VALUE) {
+//      return;
+//    }
+//    if (22 > sb.GetFreeLen()) {
+//      sb.Resize(sb.GetStrLen() + 22);
+//    }
+//
+//    char *dest = sb.GetFreeBuff();
+//    int n = sprintf(dest, "%llu", _value);
+//    sb.SetStrLen(sb.GetStrLen() + n);
+//  }
+//
+//  friend std::ostream &operator<<(std::ostream &os, const DataValueDate &dv);
+//};
+//
+// inline std::ostream &operator<<(std::ostream &os, const DataValueDate &dv) {
+//  if (dv.valType_ == ValueType::NULL_VALUE)
+//    os << "nullptr";
+//  else
+//    os << dv._value;
+//
+//  return os;
+//}
 } // namespace storage

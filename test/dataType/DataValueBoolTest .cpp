@@ -1,4 +1,4 @@
-﻿#include "../../src/dataType/DataValueBool.h"
+﻿#include "../../src/dataType/DataValueDigit.h"
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
@@ -16,11 +16,11 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
   BOOST_TEST(dv1.GetPersistenceLength() == 1);
   BOOST_TEST(!dv1.GetValue().has_value());
 
-  DataValueBool dv2(true);
+  DataValueBool dv2(true, false);
   BOOST_TEST(dv2.GetMaxLength() == 1);
   BOOST_TEST(dv2.GetDataLength() == 1);
-  BOOST_TEST(dv2.GetPersistenceLength() == 1);
-  BOOST_TEST(dv1 == dv2);
+  BOOST_TEST(dv2.GetPersistenceLength() == 2);
+  BOOST_TEST(dv1 != dv2);
 
   DataValueBool dv3(true, false);
   BOOST_TEST(dv3.GetDataType() == DataType::BOOL);
@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
   *((uint8_t *)buf) = 1;
   DataValueBool dv5(buf, false);
   BOOST_TEST(std::any_cast<bool>(dv5.GetValue()) == true);
-  BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
+  BOOST_TEST(dv5.GetValueType() == ValueType::SOLE_VALUE);
 
   Byte buf2[100];
   uint32_t len = dv5.WriteData(buf2);
@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
   dv1.SetMinValue();
   BOOST_TEST((bool)dv1 == false);
 
-  DataValueBool dv6(true, true);
+  DataValueBool dv6(true, false);
   dv6.WriteData(buf);
   dv2.ReadData(buf, -1);
   BOOST_TEST(dv2 == dv6);
@@ -67,9 +67,9 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
   StrBuff sb(10);
   dv1 = true;
   dv1.ToString(sb);
-  BOOST_TEST(strcmp(sb.GetBuff(), "true ") == 0);
-  BOOST_TEST(sb.GetBufLen() > 5U);
-  BOOST_TEST(sb.GetStrLen() == 5U);
+  BOOST_TEST(strcmp(sb.GetBuff(), "true") == 0);
+  BOOST_TEST(sb.GetBufLen() > 4U);
+  BOOST_TEST(sb.GetStrLen() == 4U);
 
   dv1 = false;
   sb.SetStrLen(0);

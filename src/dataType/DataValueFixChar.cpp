@@ -96,11 +96,69 @@ DataValueFixChar::~DataValueFixChar() {
   }
 }
 
-DataValueFixChar *DataValueFixChar::CloneDataValue(bool incVal) {
-  if (incVal) {
-    return new DataValueFixChar(*this);
+void DataValueFixChar::Copy(IDataValue &dv, bool bMove) {
+  if (dv.IsNull()) {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::ReleaseBys(bysValue_, maxLength_);
+    }
+    valType_ = ValueType::NULL_VALUE;
+  }
+
+  if (dataType_ != dv.GetDataType()) {
+    StrBuff sb(0);
+    dv.ToString(sb);
+    if (maxLength_ < sb.GetStrLen() + 1) {
+      throw utils::ErrorMsg(
+          DT_INPUT_OVER_LENGTH,
+          {to_string(maxLength_), to_string(dv.GetDataLength())});
+    }
+
+    if (valType_ != ValueType::SOLE_VALUE) {
+      bysValue_ = CachePool::ApplyBys(maxLength_);
+    }
+
+    int len = sb.GetStrLen();
+    valType_ = ValueType::SOLE_VALUE;
+    memcpy(bysValue_, sb.GetBuff(), len);
+    memset(bysValue_ + len, ' ', maxLength_ - len - 1);
+    bysValue_[maxLength_ - 1] = 0;
+    return;
+  }
+
+  if (dv.GetDataLength() > maxLength_) {
+    throw utils::ErrorMsg(
+        DT_INPUT_OVER_LENGTH,
+        {to_string(maxLength_), to_string(dv.GetDataLength())});
+  }
+
+  if (dv.GetValueType() == ValueType::BYTES_VALUE) {
+    assert(maxLength_ == dv.GetMaxLength());
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::ReleaseBys(bysValue_, maxLength_);
+    }
+
+    bysValue_ = ((DataValueFixChar &)dv).bysValue_;
+    valType_ = ValueType::BYTES_VALUE;
+  } else if (bMove) {
+    assert(maxLength_ == dv.GetMaxLength());
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::ReleaseBys(bysValue_, maxLength_);
+    }
+    bysValue_ = ((DataValueFixChar &)dv).bysValue_;
+    valType_ = ValueType::SOLE_VALUE;
+    ((DataValueFixChar &)dv).bysValue_ = nullptr;
+    ((DataValueFixChar &)dv).valType_ = ValueType::NULL_VALUE;
   } else {
-    return new DataValueFixChar(maxLength_, bKey_);
+    if (valType_ != ValueType::SOLE_VALUE) {
+      bysValue_ = CachePool::ApplyBys(maxLength_);
+    }
+    valType_ = ValueType::SOLE_VALUE;
+    memcpy(bysValue_, ((DataValueFixChar &)dv).bysValue_, dv.GetMaxLength());
+    if (maxLength_ > dv.GetMaxLength()) {
+      memset(bysValue_ + dv.GetMaxLength() - 1, ' ',
+             maxLength_ - dv.GetMaxLength());
+      bysValue_[maxLength_ - 1] = 0;
+    }
   }
 }
 
@@ -115,21 +173,7 @@ std::any DataValueFixChar::GetValue() const {
   }
 }
 
-uint32_t DataValueFixChar::GetPersistenceLength(bool key) const {
-  if (key) {
-    return maxLength_;
-  } else {
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
-      return maxLength_ + 1;
-    case ValueType::NULL_VALUE:
-    default:
-      return 1;
-    }
-  }
-}
-
-uint32_t DataValueFixChar::WriteData(Byte *buf, bool key) {
+uint32_t DataValueFixChar::WriteData(Byte *buf, bool key) const {
   if (key) {
     assert(valType_ != ValueType::NULL_VALUE);
     std::memcpy(buf, bysValue_, maxLength_);
@@ -148,7 +192,7 @@ uint32_t DataValueFixChar::WriteData(Byte *buf, bool key) {
   }
 }
 
-uint32_t DataValueFixChar::WriteData(fstream &fs) {
+uint32_t DataValueFixChar::WriteData(fstream &fs) const {
   if (valType_ == ValueType::NULL_VALUE) {
     fs.put((Byte)DataType::FIXCHAR & DATE_TYPE);
     return 1;
@@ -164,9 +208,11 @@ uint32_t DataValueFixChar::ReadData(fstream &fs) {
   fs.get(c);
 
   valType_ = (c & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
-  if (valType_ == ValueType::NULL_VALUE)
+  if (valType_ == ValueType::NULL_VALUE) {
+    valType_ = ValueType::NULL_VALUE;
     return 1;
-
+  }
+  valType_ = ValueType::SOLE_VALUE;
   bysValue_ = CachePool::ApplyBys(maxLength_);
   fs.read((char *)bysValue_, maxLength_);
   return maxLength_ + 1;
@@ -174,46 +220,43 @@ uint32_t DataValueFixChar::ReadData(fstream &fs) {
 
 uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
   if (bKey_) {
-    valType_ = ValueType::SOLE_VALUE;
-    bysValue_ = CachePool::ApplyBys(maxLength_);
-    memcpy(bysValue_, buf, maxLength_);
+    if (bSole) {
+      if (valType_ != ValueType::SOLE_VALUE) {
+        bysValue_ = CachePool::ApplyBys(maxLength_);
+      }
+      valType_ = ValueType::SOLE_VALUE;
+      memcpy(bysValue_, buf, maxLength_);
+    } else {
+      if (valType_ == ValueType::SOLE_VALUE) {
+        CachePool::ReleaseBys(bysValue_, maxLength_);
+      }
+      valType_ = ValueType::BYTES_VALUE;
+      bysValue_ = buf;
+    }
     return maxLength_;
   } else {
-    valType_ =
-        (*buf & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
-    buf++;
-
-    if (valType_ == ValueType::NULL_VALUE)
-      return 1;
-
-    bysValue_ = CachePool::ApplyBys(maxLength_);
-    memcpy(bysValue_, buf, maxLength_);
-    return maxLength_ + 1;
-  }
-}
-
-uint32_t DataValueFixChar::GetDataLength() const {
-  if (!bKey_ && valType_ == ValueType::NULL_VALUE)
-    return 0;
-  else
-    return maxLength_;
-}
-
-uint32_t DataValueFixChar::GetMaxLength() const { return maxLength_; }
-
-uint32_t DataValueFixChar::GetPersistenceLength() const {
-  if (bKey_) {
-    return maxLength_;
-  } else {
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
-      return maxLength_ + 1;
-    case ValueType::BYTES_VALUE:
-      return maxLength_ + 1;
-    case ValueType::NULL_VALUE:
-    default:
+    if ((*buf & VALUE_TYPE) == 0) {
+      if (valType_ == ValueType::SOLE_VALUE) {
+        CachePool::ReleaseBys(bysValue_, maxLength_);
+      }
+      valType_ = ValueType::NULL_VALUE;
       return 1;
     }
+    buf++;
+
+    if (bSole) {
+      if (valType_ != ValueType::SOLE_VALUE)
+        bysValue_ = CachePool::ApplyBys(maxLength_);
+      valType_ = ValueType::SOLE_VALUE;
+      memcpy(bysValue_, buf, maxLength_);
+    } else {
+      if (valType_ == ValueType::SOLE_VALUE)
+        CachePool::ReleaseBys(bysValue_, maxLength_);
+      valType_ = ValueType::BYTES_VALUE;
+      bysValue_ = buf;
+    }
+
+    return maxLength_ + 1;
   }
 }
 
@@ -245,21 +288,9 @@ void DataValueFixChar::SetDefaultValue() {
   bysValue_[0] = 0;
 }
 
-DataValueFixChar::operator string() const {
-  switch (valType_) {
-  case ValueType::NULL_VALUE:
-    return "";
-  case ValueType::SOLE_VALUE:
-  case ValueType::BYTES_VALUE:
-    return string((char *)bysValue_);
-  }
-
-  return "";
-}
-
 DataValueFixChar &DataValueFixChar::operator=(const char *val) {
-  uint32_t len = (uint32_t)strlen(val) + 1;
-  if (len >= maxLength_)
+  uint32_t len = (uint32_t)strlen(val);
+  if (len + 1 >= maxLength_)
     throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH,
                           {to_string(maxLength_), to_string(len)});
   if (valType_ != ValueType::SOLE_VALUE)
@@ -298,64 +329,6 @@ DataValueFixChar &DataValueFixChar::operator=(const DataValueFixChar &src) {
   return *this;
 }
 
-bool DataValueFixChar::operator>(const DataValueFixChar &dv) const {
-  if (valType_ == ValueType::NULL_VALUE) {
-    return false;
-  }
-  if (dv.valType_ == ValueType::NULL_VALUE) {
-    return true;
-  }
-
-  int rt = strncmp((char *)bysValue_, (char *)dv.bysValue_,
-                   std::min(GetDataLength(), dv.GetDataLength()));
-  if (rt == 0) {
-    return GetDataLength() > dv.GetDataLength();
-  } else {
-    return rt > 0;
-  }
-}
-
-bool DataValueFixChar::operator<(const DataValueFixChar &dv) const {
-  return !(*this >= dv);
-}
-
-bool DataValueFixChar::operator>=(const DataValueFixChar &dv) const {
-  if (valType_ == ValueType::NULL_VALUE) {
-    return dv.valType_ == ValueType::NULL_VALUE;
-  }
-  if (dv.valType_ == ValueType::NULL_VALUE) {
-    return true;
-  }
-
-  int rt = strncmp((char *)bysValue_, (char *)dv.bysValue_,
-                   std::min(GetDataLength(), dv.GetDataLength()));
-  if (rt == 0) {
-    return GetDataLength() >= dv.GetDataLength();
-  } else {
-    return rt > 0;
-  }
-}
-
-bool DataValueFixChar::operator<=(const DataValueFixChar &dv) const {
-  return !(*this > dv);
-}
-
-bool DataValueFixChar::operator==(const DataValueFixChar &dv) const {
-  if (valType_ == ValueType::NULL_VALUE) {
-    return dv.valType_ == ValueType::NULL_VALUE;
-  }
-  if (dv.valType_ == ValueType::NULL_VALUE) {
-    return false;
-  }
-
-  return strncmp((char *)bysValue_, (char *)dv.bysValue_,
-                 std::min(GetDataLength(), dv.GetDataLength())) == 0;
-}
-
-bool DataValueFixChar::operator!=(const DataValueFixChar &dv) const {
-  return !(*this == dv);
-}
-
 std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv) {
   switch (dv.valType_) {
   case ValueType::NULL_VALUE:
@@ -368,13 +341,5 @@ std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv) {
   }
 
   return os;
-}
-
-void DataValueFixChar::ToString(StrBuff &sb) const {
-  if (valType_ == ValueType::NULL_VALUE) {
-    return;
-  }
-
-  sb.Cat((char *)bysValue_, maxLength_ - 1);
 }
 } // namespace storage

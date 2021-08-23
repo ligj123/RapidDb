@@ -126,4 +126,14 @@ inline DataType ValueOfDataType(Byte type) {
 
   return arType[type];
 }
+
+inline const char *StrOfDataType(DataType type) {
+  static const char strDt[][10] = {
+      "UNKNOWN", "CHAR",   "SHORT", "INT",     "LONG",    "BYTE",
+      "USHORT",  "UINT",   "ULONG", "FIXCHAR", "VARCHAR", "DATETIME",
+      "FLOAT",   "DOUBLE", "BLOB",  "BOOL",
+  };
+
+  return strDt[(uint8_t)type & 0x7F];
+}
 } // namespace storage

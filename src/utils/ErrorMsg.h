@@ -21,7 +21,7 @@ public:
         string str = "{" + std::to_string(i + 1) + "}";
         size_t pos = _errMsg.find(str);
         if (pos != string::npos)
-          _errMsg.replace(pos, 2, paras[i]);
+          _errMsg.replace(pos, 3, paras[i]);
       }
     }
   }

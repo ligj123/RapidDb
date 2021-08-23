@@ -1,8 +1,7 @@
 ﻿#include "../../src/core/LeafPage.h"
 #include "../../src/core/IndexTree.h"
 #include "../../src/core/LeafRecord.h"
-#include "../../src/dataType/DataValueLong.h"
-#include "../../src/dataType/DataValueVarChar.h"
+#include "../../src/dataType/DataValueFactory.h"
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/pool/PageDividePool.h"
 #include "../../src/pool/StoragePool.h"
@@ -23,16 +22,16 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   StoragePool::SetWriteSuspend(true);
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
 
   BOOST_TEST(nullptr == lp->GetLastRecord());
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   RawKey *key = new RawKey(vctKey);
   BOOST_TEST(nullptr == lp->GetRecord(*key));
   VectorLeafRecord vctLr;
@@ -123,14 +122,14 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
   lp->WriteLock();
   for (int i = 0; i < ROW_COUNT; i++) {
@@ -173,15 +172,15 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   HeadPage *hp = indexTree->GetHeadPage();
   hp->WriteIndexType(IndexType::PRIMARY);
   LeafPage *lp = (LeafPage *)indexTree->GetPage(0, true);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
   for (int i = ROW_COUNT * 9; i < ROW_COUNT * 10; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -293,14 +292,14 @@ BOOST_AUTO_TEST_CASE(LeafPageSearchKey_test) {
   const int ROW_COUNT = 300;
 
   DataValueLong *dvKey = new DataValueLong(100, true);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
   DataValueLong *dvVal = new DataValueLong(100, true);
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::NON_UNIQUE);
   LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
 
-  vctKey.push_back(dvKey->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
   Byte buff[100];
 
   for (int i = 0; i < ROW_COUNT; i++) {

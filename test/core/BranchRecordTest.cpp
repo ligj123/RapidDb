@@ -2,7 +2,6 @@
 #include "../../src/core/BranchPage.h"
 #include "../../src/core/IndexTree.h"
 #include "../../src/dataType/DataValueFactory.h"
-#include "../../src/dataType/DataValueLong.h"
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/utils/Utilitys.h"
@@ -19,8 +18,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   BranchPage *bp =
@@ -78,8 +77,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_Equal_test) {
 
   DataValueLong *dvKey = new DataValueLong(100LL, true);
   DataValueLong *dvVal = new DataValueLong(200LL, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
 
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);

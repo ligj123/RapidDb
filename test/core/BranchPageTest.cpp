@@ -1,7 +1,7 @@
 ﻿#include "../../src/core/BranchPage.h"
 #include "../../src/core/BranchRecord.h"
 #include "../../src/core/IndexTree.h"
-#include "../../src/dataType/DataValueLong.h"
+#include "../../src/dataType/DataValueDigit.h"
 #include "../../src/dataType/DataValueVarChar.h"
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/utils/BytesConvert.h"
@@ -20,8 +20,8 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   BranchPage *bp =
@@ -90,15 +90,15 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   BranchPage *bp =
       (BranchPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
 
-  vctKey.push_back(dvKey->CloneDataValue(true));
-  vctVal.push_back(dvVal->CloneDataValue(true));
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
@@ -142,15 +142,15 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, true);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   BranchPage *bp =
       (BranchPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
 
-  vctKey.push_back(dvKey->CloneDataValue(true));
-  vctVal.push_back(dvVal->CloneDataValue(true));
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
@@ -193,16 +193,16 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
 
   DataValueVarChar *dvKey = new DataValueVarChar(1000, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   indexTree->GetHeadPage()->WriteKeyVariableFieldCount((short)1);
   BranchPage *bp =
       (BranchPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
 
-  vctKey.push_back(dvKey->CloneDataValue(true));
-  vctVal.push_back(dvVal->CloneDataValue(true));
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
   uint64_t arLong[] = {1, 123456, 3456, 789, 8776};
   for (int i = 0; i < 5; i++) {
     string str = "testString" + to_string(arLong[i]);

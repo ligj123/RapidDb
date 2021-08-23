@@ -1,5 +1,5 @@
 ﻿#include "../../src/core/IndexTree.h"
-#include "../../src/dataType/DataValueLong.h"
+#include "../../src/dataType/DataValueDigit.h"
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/pool/PageDividePool.h"
 #include "../../src/pool/StoragePool.h"
@@ -19,13 +19,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100LL;
@@ -62,13 +62,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, true);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::NON_UNIQUE);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   Byte bys[100];
 
   for (int i = 0; i < ROW_COUNT; i++) {
@@ -109,8 +109,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToUniqueIndex_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, true);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
 
@@ -140,13 +140,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, true);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::NON_UNIQUE);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   Byte bys[100];
 
   *((DataValueLong *)vctKey[0]) = 10;
@@ -175,13 +175,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithUniqueIndex_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100LL;
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithUniqueIndex_test) {
   indexTree->Close(true);
 
   indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-  vctKey.push_back(dvKey->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -219,13 +219,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, true);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::NON_UNIQUE);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   Byte bys[100];
 
   for (int i = 0; i < ROW_COUNT; i++) {
@@ -238,7 +238,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
   indexTree->Close(true);
 
   indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-  vctKey.push_back(dvKey->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
 
   for (int i = 0; i < ROW_COUNT / 3; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -270,13 +270,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithUniqueIndex_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, true);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100LL;
@@ -288,8 +288,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithUniqueIndex_test) {
   indexTree->Close(true);
   indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   *((DataValueLong *)vctKey[0]) = ROW_COUNT / 4;
   RawKey keyStart(vctKey);
   *((DataValueLong *)vctKey[0]) = ROW_COUNT / 2;
@@ -365,13 +365,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadRecord_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -384,7 +384,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadRecord_test) {
   indexTree->Close(true);
 
   indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-  vctKey.push_back(dvKey->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -409,13 +409,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysNoUnique_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, true);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::NON_UNIQUE);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   Byte bys[100];
 
   for (int i = 0; i < ROW_COUNT; i++) {
@@ -428,7 +428,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysNoUnique_test) {
   indexTree->Close(true);
 
   indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-  vctKey.push_back(dvKey->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
 
   for (int i = 0; i < ROW_COUNT / 3; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -458,13 +458,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysUnique_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, true);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::UNIQUE);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
   Byte bys[100];
 
   for (int i = 0; i < ROW_COUNT; i++) {
@@ -477,7 +477,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysUnique_test) {
   indexTree->Close(true);
 
   indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-  vctKey.push_back(dvKey->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -505,13 +505,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexPaimary_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -580,13 +580,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexUnique_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::UNIQUE);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
   Byte buff[100];
   for (int i = 0; i < ROW_COUNT; i++) {
@@ -656,13 +656,13 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexNonUnique_test) {
   const int KEY_COUNT = 2000;
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::NON_UNIQUE);
 
-  vctKey.push_back(dvKey->CloneDataValue());
-  vctVal.push_back(dvVal->CloneDataValue());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
   Byte buff[100];
   for (int i = 0; i < ROW_COUNT; i++) {

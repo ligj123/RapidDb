@@ -1,4 +1,4 @@
-﻿#include "../../src/dataType/DataValueByte.h"
+﻿#include "../../src/dataType/DataValueDigit.h"
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
@@ -38,21 +38,19 @@ BOOST_AUTO_TEST_CASE(DataValueByte_test) {
   BOOST_TEST(dv4.GetPersistenceLength() == 1);
   BOOST_TEST(dv4 == dv3);
 
-  Byte buf[100];
-  *((uint8_t *)buf) = 10;
-  DataValueByte dv5(buf, false);
+  DataValueByte dv5(10, false);
   BOOST_TEST(std::any_cast<uint8_t>(dv5.GetValue()) == 10);
-  BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
+  BOOST_TEST(dv5.GetValueType() == ValueType::SOLE_VALUE);
 
   BOOST_TEST(dv5 > dv3);
   BOOST_TEST(dv5 >= dv3);
   BOOST_TEST(dv5 != dv3);
 
-  Byte buf2[100];
-  uint32_t len = dv5.WriteData(buf2);
+  Byte buf[100];
+  uint32_t len = dv5.WriteData(buf);
   BOOST_TEST(len == 2);
-  BOOST_TEST(buf2[0] == 0x85);
-  BOOST_TEST(*((uint8_t *)(buf2 + 1)) == 10);
+  BOOST_TEST(buf[0] == 0x85);
+  BOOST_TEST(*((uint8_t *)(buf + 1)) == 10);
 
   dv1.SetDefaultValue();
   BOOST_TEST((uint8_t)dv1 == 0L);

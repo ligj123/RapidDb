@@ -2,8 +2,8 @@
 #include "../../src/core/IndexTree.h"
 #include "../../src/core/LeafPage.h"
 #include "../../src/dataType/DataValueBlob.h"
+#include "../../src/dataType/DataValueDigit.h"
 #include "../../src/dataType/DataValueFactory.h"
-#include "../../src/dataType/DataValueLong.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/utils/Utilitys.h"
 #include <boost/test/unit_test.hpp>
@@ -19,13 +19,13 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   const string TABLE_NAME = "testTable";
   DataValueLong *dvKey = new DataValueLong(100LL, true);
   DataValueLong *dvVal = new DataValueLong(200LL, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue()};
-  VectorDataValue vctVal = {dvVal->CloneDataValue()};
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
 
-  vctKey.push_back(dvKey->CloneDataValue(true));
-  vctVal.push_back(dvVal->CloneDataValue(true));
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
   LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1);
   BOOST_TEST(8 == lr->GetKeyLength());
   BOOST_TEST(20 == lr->GetValueLength());
@@ -108,8 +108,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue(false)};
-  VectorDataValue vctVal = {dvVal->CloneDataValue(false)};
+  VectorDataValue vctKey = {dvKey->Clone(false)};
+  VectorDataValue vctVal = {dvVal->Clone(false)};
 
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
   key = rr2->GetKey();
   BOOST_TEST(0 > rr1->CompareKey(*key));
 
-  vctKey.push_back(dvKey->CloneDataValue(true));
+  vctKey.push_back(dvKey->Clone(true));
   RawKey *key2 = new RawKey(vctKey);
   BOOST_TEST(0 == key2->CompareTo(*key));
 
@@ -257,15 +257,14 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Block_test) {
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal1 = new DataValueLong(200, false);
   DataValueBlob *dvVal2 = new DataValueBlob(1024 * 20, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue(false)};
-  VectorDataValue vctVal = {dvVal1->CloneDataValue(false),
-                            dvVal2->CloneDataValue(false)};
+  VectorDataValue vctKey = {dvKey->Clone(false)};
+  VectorDataValue vctVal = {dvVal1->Clone(false), dvVal2->Clone(false)};
 
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
 
-  vctKey.push_back(dvKey->CloneDataValue(true));
-  vctVal.push_back(dvVal1->CloneDataValue(true));
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal1->Clone(true));
   vctVal.push_back(new DataValueBlob(blockData, 1024 * 10, 1024 * 20, false));
 
   LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, 1);
@@ -326,16 +325,15 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Snapshot_test) {
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal1 = new DataValueLong(200, false);
   DataValueBlob *dvVal2 = new DataValueBlob(1024 * 20, false);
-  VectorDataValue vctKey = {dvKey->CloneDataValue(false)};
-  VectorDataValue vctVal = {dvVal1->CloneDataValue(false),
-                            dvVal2->CloneDataValue(false)};
+  VectorDataValue vctKey = {dvKey->Clone(false)};
+  VectorDataValue vctVal = {dvVal1->Clone(false), dvVal2->Clone(false)};
 
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   indexTree->GetHeadPage()->AddNewRecordVersion(100);
 
-  vctKey.push_back(dvKey->CloneDataValue(true));
-  vctVal.push_back(dvVal1->CloneDataValue(true));
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal1->Clone(true));
   vctVal.push_back(new DataValueBlob(blockData1, 1024 * 2, 1024 * 2, false));
 
   LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, 1);

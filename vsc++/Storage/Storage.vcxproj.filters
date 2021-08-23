@@ -4,43 +4,7 @@
     <ClCompile Include="..\..\src\dataType\DataValueBlob.cpp">
       <Filter>dataType</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueBool.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueByte.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueChar.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueDate.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueDouble.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\dataType\DataValueFixChar.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueFloat.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueInt.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueLong.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueShort.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueUInt.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueULong.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueUShort.cpp">
       <Filter>dataType</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp">
@@ -142,46 +106,13 @@
     <ClInclude Include="..\..\src\dataType\DataValueBlob.h">
       <Filter>dataType</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueBool.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueByte.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueChar.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\dataType\DataValueDate.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueDouble.h">
       <Filter>dataType</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\dataType\DataValueFactory.h">
       <Filter>dataType</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\dataType\DataValueFixChar.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueFloat.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueInt.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueLong.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueShort.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueUInt.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueULong.h">
-      <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\dataType\DataValueUShort.h">
       <Filter>dataType</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\dataType\DataValueVarChar.h">
@@ -324,6 +255,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\expr\ExprFunc.h">
       <Filter>expr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\dataType\DataValueDigit.h">
+      <Filter>dataType</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,4 +1,4 @@
-﻿#include "../../src/dataType/DataValueLong.h"
+﻿#include "../../src/dataType/DataValueDigit.h"
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
@@ -39,10 +39,9 @@ BOOST_AUTO_TEST_CASE(DataValueLong_test) {
   BOOST_TEST(dv4 == dv3);
 
   Byte buf[100];
-  *((int64_t *)buf) = 10;
-  DataValueLong dv5(buf, false);
+  DataValueLong dv5(10, false);
   BOOST_TEST(std::any_cast<int64_t>(dv5.GetValue()) == 10);
-  BOOST_TEST(dv5.GetValueType() == ValueType::BYTES_VALUE);
+  BOOST_TEST(dv5.GetValueType() == ValueType::SOLE_VALUE);
 
   BOOST_TEST(dv5 > dv3);
   BOOST_TEST(dv5 >= dv3);
@@ -92,7 +91,7 @@ BOOST_AUTO_TEST_CASE(DataValueLong_test) {
   DataValueLong dv9(std::any(100));
   BOOST_TEST((int64_t)dv9 == 100);
 
-  DataValueLong *pDv = dv9.CloneDataValue();
+  DataValueLong *pDv = dv9.Clone();
   BOOST_TEST(dv9 == *pDv);
   delete pDv;
 
