@@ -147,7 +147,7 @@ inline bool operator==(const IDataValue &dv1, const IDataValue &dv2) {
     return (d1 == d2);
   }
 
-  if (dv1.IsArrayType() && dv2.IsArrayType()) {
+  if (dv1.IsStringType() && dv2.IsStringType()) {
     return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) == 0);
   }
 

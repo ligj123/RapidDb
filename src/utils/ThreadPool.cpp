@@ -20,7 +20,7 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
 
 void ThreadPool::CreateThread(int id) {
   thread *t = new thread([this, id]() {
-    std::unique_lock<std::mutex> queue_lock(_task_mutex, std::defer_lock);
+    std::unique_lock<SpinMutex> queue_lock(_task_mutex, std::defer_lock);
     _threadName = _threadPrefix + "_" + to_string(id);
 
     while (true) {
@@ -33,7 +33,7 @@ void ThreadPool::CreateThread(int id) {
       if (_tasks.empty()) {
         _freeThreads--;
         queue_lock.unlock();
-        std::unique_lock<std::mutex> thread_lock(_threadMutex);
+        std::unique_lock<SpinMutex> thread_lock(_threadMutex);
         if (_mapThread.size() > _minThreads || _stopThreads) {
           break;
         } else {
@@ -49,7 +49,7 @@ void ThreadPool::CreateThread(int id) {
       (*temp_task)();
     }
 
-    std::unique_lock<std::mutex> thread_lock(_threadMutex);
+    std::unique_lock<SpinMutex> thread_lock(_threadMutex);
 
     if (!_stopThreads) {
       thread *t = _mapThread[id];
@@ -59,13 +59,13 @@ void ThreadPool::CreateThread(int id) {
     }
   });
 
-  std::unique_lock<std::mutex> thread_lock(_threadMutex);
+  std::unique_lock<SpinMutex> thread_lock(_threadMutex);
   _mapThread.insert({id, t});
 }
 
 ThreadPool::~ThreadPool() {
   {
-    std::unique_lock<std::mutex> thread_lock(_threadMutex);
+    std::unique_lock<SpinMutex> thread_lock(_threadMutex);
     _stopThreads = true;
   }
   _taskCv.notify_all();

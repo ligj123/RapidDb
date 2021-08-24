@@ -69,7 +69,19 @@ protected:
                            bool bAll = false);
 
 protected:
-  static uint32_t CalcBufSize(uint32_t sz);
+  static uint32_t CalcBufSize(uint32_t sz) {
+    if (sz > 16384)
+      return UINT32_MAX;
+    if (sz <= 64)
+      return ((sz + 7) & 0xF8);
+
+    uint32_t x = sz | (sz >> 1);
+    x = x | (x >> 2);
+    x = x | (x >> 4);
+    x = x | (x >> 8);
+    x = x + 1;
+    return ((x >> 1) ^ sz) != 0 ? x : (x >> 1);
+  }
   static thread_local LocalMap _localMap;
   static CachePool *_gCachePool;
 

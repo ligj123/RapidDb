@@ -82,6 +82,7 @@
     <ClInclude Include="..\..\src\dataType\DataValueBlob.h" />
     <ClInclude Include="..\..\src\dataType\DataValueVarChar.h" />
     <ClInclude Include="..\..\src\dataType\IDataValue.h" />
+    <ClInclude Include="..\..\src\dataType\Metadata.h" />
     <ClInclude Include="..\..\src\expr\BaseExpr.h" />
     <ClInclude Include="..\..\src\expr\ExprFunc.h" />
     <ClInclude Include="..\..\src\file\PageFile.h" />

@@ -3,6 +3,7 @@
 #include "../utils/BytesConvert.h"
 #include "../utils/ErrorMsg.h"
 #include "IDataValue.h"
+#include "Metadata.h"
 
 namespace storage {
 template <class T, DataType DT> class DataValueDigit : public IDataValue {
@@ -52,9 +53,9 @@ public:
       _value = ((DataValueDigit &)dv)._value;
     } else if (dv.IsStringType()) {
       if (IsAutoPrimaryKey())
-        _value = std::atoi(any_cast<string>(dv.GetValue()).c_str());
+        _value = (T)std::atoi(any_cast<string>(dv.GetValue()).c_str());
       else
-        _value = std::atof(any_cast<string>(dv.GetValue()).c_str());
+        _value = (T)std::atof(any_cast<string>(dv.GetValue()).c_str());
     } else if (!dv.IsDigital()) {
       throw utils::ErrorMsg(
           2001, {StrOfDataType(dv.GetDataType()), StrOfDataType(dataType_)});
@@ -127,7 +128,7 @@ public:
       } else {
         *buf = (VALUE_TYPE | ((Byte)dataType_ & DATE_TYPE));
         buf++;
-        utils::DigitalToBytes<T>(_value, buf, false);
+        DigitalToBytes<T, DT>(_value, buf, false);
         return sizeof(T) + 1;
       }
     }
@@ -145,7 +146,7 @@ public:
       if (valType_ == ValueType::NULL_VALUE)
         return 1;
 
-      _value = utils::DigitalFromBytes<T>(buf, bKey_);
+      _value = DigitalFromBytes<T, DT>(buf, bKey_);
       return sizeof(T) + 1;
     }
   }
@@ -172,74 +173,11 @@ public:
   }
   void SetMinValue() override {
     valType_ = ValueType::SOLE_VALUE;
-
-    switch (sizeof(T)) {
-    case 1:
-      if (typeid(T) == typeid(char))
-        _value = (T)CHAR_MIN;
-      else if (typeid(T) == typeid(bool))
-        _value = (T) false;
-      else
-        _value = (T)0;
-      return;
-    case 2:
-      if (typeid(T) == typeid(int16_t))
-        _value = (T)SHRT_MIN;
-      else
-        _value = (T)0;
-      return;
-    case 4:
-      if (typeid(T) == typeid(int32_t))
-        _value = (T)INT_MIN;
-      else if (typeid(T) == typeid(uint32_t))
-        _value = (T)0;
-      else
-        _value = (T)-FLT_MAX;
-      return;
-    case 8:
-      if (typeid(T) == typeid(int64_t))
-        _value = (T)LLONG_MIN;
-      else if (typeid(T) == typeid(uint64_t))
-        _value = (T)0;
-      else
-        _value = (T)-DBL_MAX;
-      return;
-    }
+    _value = MinValue<T, DT>();
   }
   void SetMaxValue() override {
     valType_ = ValueType::SOLE_VALUE;
-    switch (sizeof(T)) {
-    case 1:
-      if (typeid(T) == typeid(char))
-        _value = (T)CHAR_MAX;
-      else if (typeid(T) == typeid(bool))
-        _value = (T) true;
-      else
-        _value = (T)UCHAR_MAX;
-      return;
-    case 2:
-      if (typeid(T) == typeid(int16_t))
-        _value = (T)SHRT_MAX;
-      else
-        _value = (T)USHRT_MAX;
-      return;
-    case 4:
-      if (typeid(T) == typeid(int32_t))
-        _value = (T)INT_MAX;
-      else if (typeid(T) == typeid(uint32_t))
-        _value = (T)UINT_MAX;
-      else
-        _value = (T)FLT_MAX;
-      return;
-    case 8:
-      if (typeid(T) == typeid(int64_t))
-        _value = (T)LLONG_MAX;
-      else if (typeid(T) == typeid(uint64_t))
-        _value = (T)ULLONG_MAX;
-      else
-        _value = (T)DBL_MAX;
-      return;
-    }
+    _value = MaxValue<T, DT>();
   }
   void SetDefaultValue() override {
     _value = 0;

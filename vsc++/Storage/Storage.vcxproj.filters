@@ -259,6 +259,9 @@
     <ClInclude Include="..\..\src\dataType\DataValueDigit.h">
       <Filter>dataType</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\dataType\Metadata.h">
+      <Filter>dataType</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dataType">

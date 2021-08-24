@@ -1,8 +1,8 @@
 ﻿#pragma once
 
+#include "SpinMutex.h"
 #include <condition_variable>
 #include <future>
-#include <mutex>
 #include <queue>
 #include <string>
 #include <thread>
@@ -61,9 +61,9 @@ private:
 
   unordered_map<int, std::thread *> _mapThread;
   queue<task_ptr> _tasks;
-  mutex _task_mutex;
-  mutex _threadMutex;
-  condition_variable _taskCv;
+  SpinMutex _task_mutex;
+  SpinMutex _threadMutex;
+  condition_variable_any _taskCv;
   bool _stopThreads = false;
   string _threadPrefix;
   uint32_t _maxQueueSize;
@@ -75,7 +75,7 @@ private:
 
 template <typename F, typename... Args>
 auto ThreadPool::AddTask(F &&function, Args &&...args) {
-  std::unique_lock<std::mutex> queue_lock(_task_mutex, std::defer_lock);
+  std::unique_lock<SpinMutex> queue_lock(_task_mutex, std::defer_lock);
   std::packaged_task<std::invoke_result_t<F, Args...>()> task_pkg(
       [_f = std::move(function),
        _fargs = std::make_tuple(std::forward<Args>(args)...)]() mutable {

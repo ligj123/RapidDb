@@ -48,16 +48,6 @@ Byte *LocalMap::Pop(uint32_t eleSize) {
   return buf;
 }
 
-uint32_t CachePool::CalcBufSize(uint32_t sz) {
-  static uint32_t bufSize[] = {16384, 4096, 1024, 512, 128, 32};
-  for (int i = 5; i >= 0; i--) {
-    if (bufSize[i] >= sz)
-      return bufSize[i];
-  }
-
-  return UINT32_MAX;
-}
-
 Byte *CachePool::ApplyPage() {
   CachePool *pool = GetInstance();
   return pool->_localMap.Pop((uint32_t)Configure::GetCachePageSize());

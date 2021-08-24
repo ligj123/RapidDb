@@ -191,12 +191,18 @@ public:
 };
 
 struct DataValueHash {
-  size_t operator()(IDataValue *pDv) const { return pDv->Hash(); }
+  size_t operator()(const IDataValue *pDv) const { return pDv->Hash(); }
 };
 
 struct DataValueEqual {
-  bool operator()(const IDataValue *&ldv, const IDataValue *&rdv) const {
-    return ldv->Equal(*rdv);
+  bool operator()(const IDataValue *ldv, const IDataValue *rdv) const {
+    return (*ldv) == (*rdv);
+  }
+};
+
+struct DataValueCmp {
+  bool operator()(const IDataValue *ldv, const IDataValue *rdv) const {
+    return (*ldv) < (*rdv);
   }
 };
 } // namespace storage

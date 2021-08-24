@@ -132,7 +132,7 @@ public:
     }
   }
 
-  bool Exist(IDataValue *pdv) { _setVal.find(pdv) != _setVal.end(); }
+  bool Exist(IDataValue *pdv) { return (_setVal.find(pdv) != _setVal.end()); }
 
 protected:
   unordered_set<IDataValue *, DataValueHash, DataValueEqual> _setVal;
