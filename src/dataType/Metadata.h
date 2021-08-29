@@ -289,4 +289,112 @@ public:
 template <class T, DataType DT> inline T MaxValue() {
   return Case_Max<DT>::Run();
 }
+
+// sprintf
+template <DataType v> class Case_Pri {
+public:
+  static inline int Sprintf(char *dest, int val) {
+    return sprintf(dest, "%d", (int32_t)val);
+  }
+};
+
+template <> class Case_Pri<DataType::CHAR> {
+public:
+  static inline int Sprintf(char *dest, int8_t val) {
+    return sprintf(dest, "%d", val);
+  }
+};
+
+template <> class Case_Pri<DataType::SHORT> {
+public:
+  static inline int Sprintf(char *dest, int16_t val) {
+    return sprintf(dest, "%d", val);
+  }
+};
+
+template <> class Case_Pri<DataType::INT> {
+public:
+  static inline int Sprintf(char *dest, int32_t val) {
+    return sprintf(dest, "%d", val);
+  }
+};
+
+template <> class Case_Pri<DataType::LONG> {
+public:
+  static inline int Sprintf(char *dest, int64_t val) {
+#ifdef _MSVC_LANG
+    return sprintf(dest, "%lld", val);
+#else
+    return sprintf(dest, "%ld", val);
+#endif // _MSVC_LANG
+  }
+};
+
+template <> class Case_Pri<DataType::BYTE> {
+public:
+  static inline int Sprintf(char *dest, Byte val) {
+    return sprintf(dest, "%u", val);
+  }
+};
+
+template <> class Case_Pri<DataType::USHORT> {
+public:
+  static inline int Sprintf(char *dest, uint16_t val) {
+    return sprintf(dest, "%u", val);
+  }
+};
+
+template <> class Case_Pri<DataType::UINT> {
+public:
+  static inline int Sprintf(char *dest, uint32_t val) {
+    return sprintf(dest, "%d", val);
+  }
+};
+
+template <> class Case_Pri<DataType::ULONG> {
+public:
+  static inline int Sprintf(char *dest, uint64_t val) {
+#ifdef _MSVC_LANG
+    return sprintf(dest, "%llu", val);
+#else
+    return sprintf(dest, "%lu", val);
+#endif // _MSVC_LANG
+  }
+};
+
+template <> class Case_Pri<DataType::BOOL> {
+public:
+  static inline int Sprintf(char *dest, bool val) {
+    return sprintf(dest, val ? "true" : "false");
+  }
+};
+
+template <> class Case_Pri<DataType::DATETIME> {
+public:
+  static inline int Sprintf(char *dest, uint64_t val) {
+#ifdef _MSVC_LANG
+    return sprintf(dest, "%llu", val);
+#else
+    return sprintf(dest, "%lu", val);
+#endif // _MSVC_LANG
+  }
+};
+
+template <> class Case_Pri<DataType::FLOAT> {
+public:
+  static inline int Sprintf(char *dest, float val) {
+    return sprintf(dest, "%f", val);
+  }
+};
+
+template <> class Case_Pri<DataType::DOUBLE> {
+public:
+  static inline int Sprintf(char *dest, double val) {
+    return sprintf(dest, "%f", val);
+  }
+};
+
+template <class T, DataType DT> inline int Sprintf(char *dest, T val) {
+  return Case_Pri<DT>::Sprintf(dest, val);
+}
 } // namespace storage

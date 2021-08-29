@@ -36,7 +36,6 @@
     <ClCompile Include="..\..\src\dataType\DataValueFixChar.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueBlob.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp" />
-    <ClCompile Include="..\..\src\expr\BaseExpr.cpp" />
     <ClCompile Include="..\..\src\expr\ExprFunc.cpp" />
     <ClCompile Include="..\..\src\file\PageFile.cpp" />
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp" />
@@ -84,7 +83,12 @@
     <ClInclude Include="..\..\src\dataType\IDataValue.h" />
     <ClInclude Include="..\..\src\dataType\Metadata.h" />
     <ClInclude Include="..\..\src\expr\BaseExpr.h" />
+    <ClInclude Include="..\..\src\expr\ExprAggr.h" />
+    <ClInclude Include="..\..\src\expr\ExprData.h" />
     <ClInclude Include="..\..\src\expr\ExprFunc.h" />
+    <ClInclude Include="..\..\src\expr\ExprLogic.h" />
+    <ClInclude Include="..\..\src\expr\ExprSelect.h" />
+    <ClInclude Include="..\..\src\expr\ExprValue.h" />
     <ClInclude Include="..\..\src\file\PageFile.h" />
     <ClInclude Include="..\..\src\header.h" />
     <ClInclude Include="..\..\src\pool\PageBufferPool.h" />
@@ -232,6 +236,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/D "_CRT_SECURE_NO_WARNINGS" %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

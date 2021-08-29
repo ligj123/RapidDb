@@ -91,9 +91,6 @@
     <ClCompile Include="..\..\src\database\Database.cpp">
       <Filter>database</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\expr\BaseExpr.cpp">
-      <Filter>expr</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\expr\ExprFunc.cpp">
       <Filter>expr</Filter>
     </ClCompile>
@@ -261,6 +258,21 @@
     </ClInclude>
     <ClInclude Include="..\..\src\dataType\Metadata.h">
       <Filter>dataType</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\expr\ExprData.h">
+      <Filter>expr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\expr\ExprAggr.h">
+      <Filter>expr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\expr\ExprLogic.h">
+      <Filter>expr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\expr\ExprValue.h">
+      <Filter>expr</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\expr\ExprSelect.h">
+      <Filter>expr</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

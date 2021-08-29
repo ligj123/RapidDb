@@ -128,7 +128,7 @@ uint32_t DataValueBlob::WriteData(fstream &fs) const {
     fs.put((Byte)DataType::BLOB & DATE_TYPE);
     return 1;
   } else {
-    fs.put(VALUE_TYPE | ((Byte)DataType::BLOB & DATE_TYPE));
+    fs.put((char)(VALUE_TYPE | ((Byte)DataType::BLOB & DATE_TYPE)));
     fs.write((char *)&soleLength_, sizeof(uint32_t));
     fs.write((char *)bysValue_, soleLength_);
     return soleLength_ + sizeof(uint32_t) + 1;

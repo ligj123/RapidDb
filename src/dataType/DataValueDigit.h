@@ -12,7 +12,7 @@ public:
       : IDataValue(DT, ValueType::NULL_VALUE, key), _value(0) {}
   DataValueDigit(T val, bool key = false)
       : IDataValue(DT, ValueType::SOLE_VALUE, key), _value(val) {}
-  DataValueDigit(std::any val, bool bKey = false)
+  DataValueDigit(std::any val, bool bKey)
       : IDataValue(DT, ValueType::SOLE_VALUE, bKey) {
     if (val.type() == typeid(int64_t))
       _value = (T)std::any_cast<int64_t>(val);
@@ -208,47 +208,15 @@ public:
     if (valType_ == ValueType::NULL_VALUE) {
       return;
     }
-    if (22 > sb.GetFreeLen()) {
-      sb.Resize(sb.GetStrLen() + 22);
+    if (24 > sb.GetFreeLen()) {
+      sb.Resize(sb.GetStrLen() + 24);
     }
 
     char *dest = sb.GetFreeBuff();
-    int n = 0;
-    switch (sizeof(T)) {
-    case 1:
-      if (typeid(T) == typeid(char))
-        n = sprintf(dest, "%d", (char)_value);
-      else if (typeid(T) == typeid(bool))
-        n = sprintf(dest, _value ? "true" : "false");
-      else
-        n = sprintf(dest, "%u", (Byte)_value);
-      break;
-    case 2:
-      if (typeid(T) == typeid(int16_t))
-        n = sprintf(dest, "%d", (int16_t)_value);
-      else
-        n = sprintf(dest, "%u", (uint16_t)_value);
-      break;
-    case 4:
-      if (typeid(T) == typeid(int32_t))
-        n = sprintf(dest, "%d", (int32_t)_value);
-      else if (typeid(T) == typeid(uint32_t))
-        n = sprintf(dest, "%u", (uint32_t)_value);
-      else
-        n = sprintf(dest, "%f", (float)_value);
-      break;
-    case 8:
-      if (typeid(T) == typeid(int64_t))
-        n = sprintf(dest, "%lld", (int64_t)_value);
-      else if (typeid(T) == typeid(uint64_t))
-        n = sprintf(dest, "%llu", (uint64_t)_value);
-      else
-        n = sprintf(dest, "%f", (double)_value);
-      break;
-    }
-
+    int n = Sprintf<T, DT>(dest, _value);
     sb.SetStrLen(sb.GetStrLen() + n);
   }
+
   bool operator>(const DataValueDigit &dv) const {
     if (valType_ == ValueType::NULL_VALUE) {
       return false;
@@ -280,8 +248,15 @@ public:
     return _value == dv._value;
   }
   bool operator!=(const DataValueDigit &dv) const { return !(*this == dv); }
-  // friend std::ostream &operator<<(std::ostream &os,
-  //                                const DataValueDigit<T, DT> &dv);
+  void Add(IDataValue &dv) override {
+    assert(dv.IsDigital());
+    if (IsAutoPrimaryKey())
+      _value += dv.GetLong();
+    else
+      _value += dv.GetDouble();
+  }
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const DataValueDigit<T, DT> &dv);
 
 protected:
   T _value;

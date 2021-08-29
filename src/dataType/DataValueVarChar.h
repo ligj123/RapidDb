@@ -83,7 +83,7 @@ public:
     }
     return h;
   }
-  bool Equal(const IDataValue &dv) const {
+  bool Equal(const IDataValue &dv) const override {
     if (dataType_ != dv.GetDataType())
       return false;
     return *this == (DataValueVarChar &)dv;

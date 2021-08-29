@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "../header.h"
 #include "CachePool.h"
+#include <cstring>
 
 namespace storage {
 class StrBuff {

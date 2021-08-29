@@ -6,15 +6,15 @@
 
 namespace storage {
 const uint16_t BranchPage::DATA_BEGIN_OFFSET = 16;
-const uint16_t BranchPage::MAX_DATA_LENGTH = (uint16_t)(
-    Configure::GetCachePageSize() - DATA_BEGIN_OFFSET - sizeof(uint64_t));
+const uint16_t BranchPage::MAX_DATA_LENGTH =
+    (uint16_t)(Configure::GetCachePageSize() - DATA_BEGIN_OFFSET -
+               sizeof(uint64_t));
 
 BranchPage::~BranchPage() { CleanRecords(); }
 
 void BranchPage::CleanRecords() {
   for (RawRecord *rr : _vctRecord) {
     ((BranchRecord *)rr)->ReleaseRecord();
-    ;
   }
 
   _vctRecord.clear();
@@ -66,12 +66,11 @@ bool BranchPage::SaveRecords() {
         refCount++;
 
       pos += rr->SaveData(_bysPage + pos);
-      rr->ReleaseRecord();
     }
 
     CleanRecords();
     if (_absoBuf == nullptr || _absoBuf->IsDiffBuff(tmp))
-      CachePool::Release(tmp, (uint32_t)Configure::GetCachePageSize());
+      CachePool::ReleasePage(tmp);
     if (refCount > 0)
       _absoBuf->ReleaseCount(refCount);
 
@@ -95,7 +94,7 @@ BranchRecord *BranchPage::DeleteRecord(uint16_t index) {
 
   BranchRecord *br = (BranchRecord *)_vctRecord[index];
   _vctRecord.erase(_vctRecord.begin() + index);
-  _totalDataLength -= br->GetTotalLength();
+  _totalDataLength -= br->GetTotalLength() + sizeof(uint16_t);
   _recordNum--;
   _bRecordUpdate = true;
   _bDirty = true;
@@ -112,7 +111,7 @@ BranchRecord *BranchPage::DeleteRecord(const BranchRecord &rr) {
   assert(bFind);
   BranchRecord *br = (BranchRecord *)_vctRecord[index];
   _vctRecord.erase(_vctRecord.begin() + index);
-  _totalDataLength -= br->GetTotalLength();
+  _totalDataLength -= br->GetTotalLength() + sizeof(uint16_t);
   _recordNum--;
   _bRecordUpdate = true;
   _bDirty = true;

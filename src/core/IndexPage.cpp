@@ -172,8 +172,7 @@ bool IndexPage::PageDivide() {
     }
 
     parentPage->InsertRecord(rec, posInParent + i);
-    if (_absoBuf != nullptr)
-      indexPage->_absoBuf = _absoBuf;
+    indexPage->_absoBuf = _absoBuf;
 
     for (RawRecord *rr : indexPage->_vctRecord) {
       rr->SetParentPage(indexPage);
@@ -226,7 +225,8 @@ bool IndexPage::PageDivide() {
   }
 
   _bRecordUpdate = true;
-  SaveRecords();
+  // SaveRecords();
+  PageDividePool::AddCachePage(this);
   PageDividePool::AddCachePage(parentPage);
   StoragePool::WriteCachePage(_indexTree->GetHeadPage());
 

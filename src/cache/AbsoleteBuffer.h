@@ -8,15 +8,12 @@ namespace storage {
 class AbsoleteBuffer {
 public:
   AbsoleteBuffer(Byte *bys, int refCount) : _bys(bys), _refCount(refCount) {}
-  bool ReleaseCount(int num) {
+  void ReleaseCount(int num) {
     int val = _refCount.fetch_sub(num) - num;
     assert(val >= 0);
     if (val == 0) {
-      CachePool::Release(_bys, (uint32_t)Configure::GetCachePageSize());
+      CachePool::ReleasePage(_bys);
       delete this;
-      return true;
-    } else {
-      return true;
     }
   }
 

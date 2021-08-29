@@ -66,6 +66,7 @@ void InsertSpeedPrimaryTest(uint64_t row_count) {
   // PageBufferPool::ClearPool();
   dtEnd = utils::MSTime();
   cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
+
   // std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
 

@@ -63,15 +63,15 @@ protected:
   IDataValue *_pDefaultVal; // The default value if has or null
 };
 
-class MiddleColumn : public BaseColumn {
+class TempColumn : public BaseColumn {
 public:
-  MiddleColumn(const std::string &name, uint32_t pos, DataType dataType,
-               string alias, int dataBasicStart, int prevVarCols,
-               int colNullPlace)
+  TempColumn(const std::string &name, uint32_t pos, DataType dataType,
+             string alias, int dataBasicStart, int prevVarCols,
+             int colNullPlace)
       : BaseColumn(name, pos, dataType), _alias(alias),
         _dataBasicStart(dataBasicStart), _prevVarCols(prevVarCols),
         _colNullPlace(colNullPlace) {}
-  ~MiddleColumn() {}
+  ~TempColumn() {}
 
   const string &GetAlias() const { return _alias; }
   const int GetDataBasicStart() const { return _dataBasicStart; }

@@ -46,8 +46,9 @@ Byte *Buffer::Apply() {
 }
 
 void Buffer::Release(Byte *bys) {
-  uint32_t index = (uint32_t)(
-      ((uint64_t)bys & (Configure::GetCacheBlockSize() - 1)) / _eleSize);
+  uint32_t index =
+      (uint32_t)(((uint64_t)bys & (Configure::GetCacheBlockSize() - 1)) /
+                 _eleSize);
   _stackFree.push(index);
 }
 
@@ -67,8 +68,9 @@ void Buffer::Release(vector<Byte *> &vct, bool bAll) {
     if ((((uint64_t)bys) ^ ((uint64_t)_pBuf)) > Configure::GetCacheBlockSize())
       continue;
 
-    uint32_t index = (uint32_t)(
-        ((uint64_t)bys & (Configure::GetCacheBlockSize() - 1)) / _eleSize);
+    uint32_t index =
+        (uint32_t)(((uint64_t)bys & (Configure::GetCacheBlockSize() - 1)) /
+                   _eleSize);
     _stackFree.push(index);
 
     vct.erase(vct.begin() + i);

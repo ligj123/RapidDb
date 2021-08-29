@@ -17,7 +17,7 @@ void help() {
   std::cout << "internal parameters for cases" << std::endl;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
   std::cout << "Initialize press test.\n";
   utils::Logger::init(utils::ERROR, utils::INFO);
   fs::path path(ROOT_PATH);
@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
   }
   std::string str(argv[1]);
   transform(str.begin(), str.end(), str.begin(),
-    [](unsigned char c) -> unsigned char { return std::tolower(c); });
+            [](unsigned char c) -> unsigned char { return std::tolower(c); });
 
   if (str == "0") {
     storage::ArrayTest();

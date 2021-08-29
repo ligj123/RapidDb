@@ -2,6 +2,7 @@
 #include "../config/ErrorID.h"
 #include "../core/IndexTree.h"
 #include "../core/IndexType.h"
+#include "../table/Column.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
 #include "Column.h"
@@ -92,6 +93,8 @@ protected:
   }
 
 protected:
+  //
+  vector<TempColumn *> _vctColm;
   /**Include all columns in this table, they will order by actual position in
    * the table.*/
   vector<PersistColumn *> _vctColumn;

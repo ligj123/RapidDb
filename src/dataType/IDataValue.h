@@ -121,6 +121,7 @@ public:
   }
   // Only used for array data type
   virtual Byte *GetBuff() const { abort(); }
+  virtual void Add(IDataValue &dv) {}
 
   friend std::ostream &operator<<(std::ostream &os, const IDataValue &dv);
   friend bool operator==(const IDataValue &dv1, const IDataValue &dv2);

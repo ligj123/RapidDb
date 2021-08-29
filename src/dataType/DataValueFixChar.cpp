@@ -197,7 +197,7 @@ uint32_t DataValueFixChar::WriteData(fstream &fs) const {
     fs.put((Byte)DataType::FIXCHAR & DATE_TYPE);
     return 1;
   } else {
-    fs.put(VALUE_TYPE | ((Byte)DataType::FIXCHAR & DATE_TYPE));
+    fs.put((char)(VALUE_TYPE | ((Byte)DataType::FIXCHAR & DATE_TYPE)));
     fs.write((char *)bysValue_, maxLength_);
     return maxLength_ + 1;
   }
