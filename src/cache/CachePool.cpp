@@ -21,7 +21,10 @@ void LocalMap::Push(Byte *pBuf, uint32_t eleSize) {
   if (iter == _map.end()) {
     _map.insert({eleSize, vector<Byte *>()});
     iter = _map.find(eleSize);
-    iter->second.reserve(eleSize <= 512 ? 1024 : 20);
+    int num = (eleSize == Configure::GetCachePageSize() ? 32 : 16384 / eleSize);
+    if (num < 4)
+      num = 4;
+    iter->second.reserve(num);
   }
 
   iter->second.push_back(pBuf);
@@ -36,7 +39,10 @@ Byte *LocalMap::Pop(uint32_t eleSize) {
   if (iter == _map.end()) {
     _map.insert({eleSize, vector<Byte *>()});
     iter = _map.find(eleSize);
-    iter->second.reserve(eleSize <= 512 ? 400 : 20);
+    int num = (eleSize == Configure::GetCachePageSize() ? 32 : 16384 / eleSize);
+    if (num < 4)
+      num = 4;
+    iter->second.reserve(num);
   }
 
   if (iter->second.size() == 0) {
@@ -48,26 +54,11 @@ Byte *LocalMap::Pop(uint32_t eleSize) {
   return buf;
 }
 
-Byte *CachePool::ApplyPage() {
-  CachePool *pool = GetInstance();
-  return pool->_localMap.Pop((uint32_t)Configure::GetCachePageSize());
-}
-
-void CachePool::ReleasePage(Byte *page) {
-  CachePool *pool = GetInstance();
-  pool->_localMap.Push(page, (uint32_t)Configure::GetCachePageSize());
-}
-
-Byte *CachePool::Apply(uint32_t eleSize) {
-  CachePool *pool = GetInstance();
-  return pool->_localMap.Pop(eleSize);
-}
-
 void CachePool::BatchApply(uint32_t bufSize, vector<Byte *> &vct) {
   CachePool *pool = GetInstance();
   auto iter = pool->_mapPool.find(bufSize);
   if (iter == pool->_mapPool.end()) {
-    std::unique_lock<utils::SpinMutex> lock(pool->_spinMutex);
+    std::unique_lock<SpinMutex> lock(pool->_spinMutex);
     iter = pool->_mapPool.find(bufSize);
     if (iter == pool->_mapPool.end()) {
       pool->_mapPool.insert(
@@ -87,14 +78,9 @@ void CachePool::BatchRelease(uint32_t bufSize, vector<Byte *> &vct, bool bAll) {
   iter->second->Release(vct, bAll);
 }
 
-void CachePool::Release(Byte *pBuf, uint32_t eleSize) {
-  CachePool *pool = GetInstance();
-  pool->_localMap.Push(pBuf, eleSize);
-}
-
 Buffer *CachePool::AllocateBuffer(uint32_t eleLen) {
   CachePool *pool = GetInstance();
-  std::unique_lock<utils::SpinMutex> lock(pool->_spinMutex);
+  std::unique_lock<SpinMutex> lock(pool->_spinMutex);
 
   if (pool->_queueFreeBuf.size() > 0) {
     Buffer *buf = GetInstance()->_queueFreeBuf.front();
@@ -109,7 +95,7 @@ Buffer *CachePool::AllocateBuffer(uint32_t eleLen) {
 
 void CachePool::RecycleBuffer(Buffer *buf) {
   CachePool *pool = GetInstance();
-  std::unique_lock<utils::SpinMutex> lock(pool->_spinMutex);
+  std::unique_lock<SpinMutex> lock(pool->_spinMutex);
   if (pool->_queueFreeBuf.size() > Configure::GetMaxFreeBufferCount()) {
     delete buf;
   } else {

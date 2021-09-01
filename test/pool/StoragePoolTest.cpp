@@ -11,7 +11,7 @@ BOOST_AUTO_TEST_SUITE(PoolTest)
 
 BOOST_AUTO_TEST_CASE(StoragePool_test) {
   const string FILE_NAME =
-      "./dbTest/testStoragePool" + utils::StrMSTime() + ".dat";
+      "./dbTest/testStoragePool" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int NUM = 10000;
   VectorDataValue vctKey;
@@ -21,7 +21,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
   strTest += strTest;
   size_t size = strTest.size() + 1;
   const char *pStrTest = strTest.c_str();
-  vector<CachePage *> vctPage;
+  MVector<CachePage *>::Type vctPage;
 
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   for (int i = 1; i <= NUM; i++) {

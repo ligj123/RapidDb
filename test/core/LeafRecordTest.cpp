@@ -15,7 +15,7 @@ BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   DataValueLong *dvKey = new DataValueLong(100LL, true);
   DataValueLong *dvVal = new DataValueLong(200LL, false);
@@ -51,19 +51,19 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 
   Byte buff[100] = {};
   int pos = 0;
-  utils::UInt16ToBytes((uint16_t)(15 + dvKey->GetPersistenceLength(true) +
+  UInt16ToBytes((uint16_t)(15 + dvKey->GetPersistenceLength(true) +
                                   dvVal->GetPersistenceLength(false)),
                        buff + pos);
   pos += 2;
-  utils::UInt16ToBytes(dvKey->GetPersistenceLength(true), buff + pos);
+  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff + pos, true);
   buff[pos] = 1;
   pos++;
-  utils::UInt64ToBytes(100, buff + pos);
+  UInt64ToBytes(100, buff + pos);
   pos += 8;
-  utils::UInt16ToBytes(9, buff + pos);
+  UInt16ToBytes(9, buff + pos);
   pos += 2;
 
   pos += dvVal->WriteData(buff + pos, false);
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong *dvKey = new DataValueLong(100, true);
@@ -118,11 +118,11 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
 
   Byte buff1[100] = {0};
   uint32_t pos = 0;
-  utils::UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
+  UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
                            dvVal->GetPersistenceLength(false),
                        buff1 + pos);
   pos += 2;
-  utils::UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true),
+  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true),
                        buff1 + pos);
   pos += 2;
 
@@ -130,29 +130,29 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
 
   buff1[pos] = 1;
   pos++;
-  utils::UInt64ToBytes(100, buff1 + pos);
+  UInt64ToBytes(100, buff1 + pos);
   pos += 8;
-  utils::UInt16ToBytes(9, buff1 + pos);
+  UInt16ToBytes(9, buff1 + pos);
   pos += 2;
 
   pos += dvVal->WriteData(buff1 + pos, false);
 
   Byte buff2[100] = {0};
   pos = 0;
-  utils::UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
+  UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
                            dvVal->GetPersistenceLength(false),
                        buff2 + pos);
   pos += 2;
-  utils::UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
+  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff2 + pos, true);
 
   buff2[pos] = 1;
   pos++;
-  utils::UInt64ToBytes(100, buff2 + pos);
+  UInt64ToBytes(100, buff2 + pos);
   pos += 8;
-  utils::UInt16ToBytes(9, buff2 + pos);
+  UInt16ToBytes(9, buff2 + pos);
   pos += 2;
 
   pos += dvVal->WriteData(buff2 + pos, false);
@@ -169,11 +169,11 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
   delete dvVal;
   dvVal = new DataValueLong(210, false);
   pos = 0;
-  utils::UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
+  UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
                            dvVal->GetPersistenceLength(false),
                        buff2 + pos);
   pos += 2;
-  utils::UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true),
+  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true),
                        buff2 + pos);
   pos += 2;
 
@@ -181,9 +181,9 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
 
   buff2[pos] = 1;
   pos++;
-  utils::UInt64ToBytes(100, buff2 + pos);
+  UInt64ToBytes(100, buff2 + pos);
   pos += 8;
-  utils::UInt16ToBytes(9, buff2 + pos);
+  UInt16ToBytes(9, buff2 + pos);
   pos += 2;
 
   pos += dvVal->WriteData(buff2 + pos, false);
@@ -201,11 +201,11 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
   delete dvKey;
   dvKey = new DataValueLong(110, true);
   pos = 0;
-  utils::UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
+  UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
                            dvVal->GetPersistenceLength(false),
                        buff2 + pos);
   pos += 2;
-  utils::UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true),
+  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true),
                        buff2 + pos);
   pos += 2;
 
@@ -213,9 +213,9 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
 
   buff2[pos] = 1;
   pos++;
-  utils::UInt64ToBytes(100, buff2 + pos);
+  UInt64ToBytes(100, buff2 + pos);
   pos += 8;
-  utils::UInt16ToBytes(9, buff2 + pos);
+  UInt16ToBytes(9, buff2 + pos);
   pos += 2;
 
   pos += dvVal->WriteData(buff2 + pos, false);
@@ -242,7 +242,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Block_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   char *blockData = new char[1024 * 10];
   for (int i = 0; i < 1024 * 10; i++) {
@@ -305,7 +305,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Block_test) {
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Snapshot_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   char *blockData1 = new char[1024 * 2];
   for (int i = 0; i < 1024 * 2; i++) {

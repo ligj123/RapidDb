@@ -16,11 +16,11 @@ namespace storage {
 using namespace std;
 
 struct PageLock {
-  PageLock() : _sm(new utils::SpinMutex), _refCount(0) {}
+  PageLock() : _sm(new SpinMutex), _refCount(0) {}
 
   ~PageLock() { delete _sm; }
 
-  utils::SpinMutex *_sm;
+  SpinMutex *_sm;
   int _refCount;
 };
 
@@ -28,7 +28,7 @@ class IndexTree {
 public:
   IndexTree(const string &tableName, const string &fileName,
             VectorDataValue &vctKey, VectorDataValue &vctVal);
-  utils::ErrorMsg *InsertRecord(LeafRecord *rr);
+  ErrorMsg *InsertRecord(LeafRecord *rr);
   void UpdateRootPage(IndexPage *root);
   IndexPage *AllocateNewPage(uint64_t parentId, Byte pageLevel);
   void CloneKeys(VectorDataValue &vct);
@@ -87,12 +87,12 @@ public:
   inline void SetClose() { _bClosed = true; }
   void Close(bool bWait);
   inline void ReleasePageFile(PageFile *rpf) {
-    lock_guard<utils::SpinMutex> lock(_fileMutex);
+    lock_guard<SpinMutex> lock(_fileMutex);
     _fileQueue.push(rpf);
   }
   inline PageFile *GetOverflowFile() {
     if (_ovfFile == nullptr) {
-      unique_lock<utils::SpinMutex> lock(_fileMutex);
+      unique_lock<SpinMutex> lock(_fileMutex);
       if (_ovfFile == nullptr) {
         string name =
             _fileName.substr(0, _fileName.find_last_of('.')) + "_ovf.dat";
@@ -127,7 +127,7 @@ protected:
   std::string _tableName;
   std::string _fileName;
   std::queue<PageFile *> _fileQueue;
-  utils::SpinMutex _fileMutex;
+  SpinMutex _fileMutex;
   /**How much page files were opened for this index tree*/
   uint32_t _rpfCount = 0;
   uint64_t _fileId;
@@ -143,11 +143,11 @@ protected:
 
   VectorDataValue _vctKey;
   VectorDataValue _vctValue;
-  utils::SpinMutex _pageMutex;
-  unordered_map<uint64_t, PageLock *> _mapMutex;
+  SpinMutex _pageMutex;
+  MHashMap<uint64_t, PageLock *>::Type _mapMutex;
   queue<PageLock *> _queueMutex;
   /**To lock for root page*/
-  utils::SharedSpinMutex _rootSharedMutex;
+  SharedSpinMutex _rootSharedMutex;
   IndexPage *_rootPage = nullptr;
 
   uint16_t _keyVarLen; // KeyVarFieldNum * sizeof(uint16_t)
@@ -155,9 +155,9 @@ protected:
   uint16_t _keyOffset; //(KeyVarFieldNum + 2) * sizeof(uint16_t)
   uint16_t _valOffset; //(ValVarFieldNum + 2) * sizeof(uint16_t)
 protected:
-  static unordered_set<uint16_t> _setFiledId;
+  static MHashSet<uint16_t>::Type _setFiledId;
   static uint16_t _currFiledId;
-  static utils::SpinMutex _spinMutex;
+  static SpinMutex _spinMutex;
   friend class HeadPage;
 };
 } // namespace storage

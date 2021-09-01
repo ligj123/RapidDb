@@ -8,7 +8,6 @@
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
 #include <unordered_set>
-#include <vector>
 
 using namespace std;
 namespace storage {
@@ -55,7 +54,7 @@ protected:
  */
 class ExprValueArrayIn : public ExprValue {
 public:
-  ExprValueArrayIn(vector<ExprValueIn *> &vctVal)
+  ExprValueArrayIn(MVector<ExprValueIn *>::Type &vctVal)
       : ExprValue(ExprType::EXPR_VALUE_ARRAY_IN) {
     _vctVal.swap(vctVal);
   }
@@ -67,7 +66,7 @@ public:
   }
 
 protected:
-  vector<ExprValueIn *> _vctVal;
+  MVector<ExprValueIn *>::Type _vctVal;
 };
 
 /**
@@ -108,7 +107,7 @@ protected:
  */
 class ExprValueArrayOut : public ExprValue {
 public:
-  ExprValueArrayOut(vector<ExprValueOut *> &vctVal)
+  ExprValueArrayOut(MVector<ExprValueOut *>::Type &vctVal)
       : ExprValue(ExprType::EXPR_VALUE_ARRAY_OUT) {
     _vctVal.swap(vctVal);
   }
@@ -120,6 +119,6 @@ public:
   }
 
 protected:
-  vector<ExprValueOut *> _vctVal;
+  MVector<ExprValueOut *>::Type _vctVal;
 };
 } // namespace storage

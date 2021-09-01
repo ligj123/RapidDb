@@ -3,7 +3,6 @@
 #include "IDataValue.h"
 
 namespace storage {
-using namespace utils;
 using namespace std;
 
 class DataValueBlob : public IDataValue {

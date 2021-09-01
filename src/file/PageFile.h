@@ -36,17 +36,17 @@ public:
 
   void WritePage(uint64_t fileOffset, char *bys, uint32_t length);
 
-  void WriteDataValue(vector<IDataValue *> vctDv, uint32_t dvStart,
+  void WriteDataValue(MVector<IDataValue *>::Type vctDv, uint32_t dvStart,
                       uint64_t offset);
 
-  void ReadDataValue(vector<IDataValue *> vctDv, uint32_t dvStart,
+  void ReadDataValue(MVector<IDataValue *>::Type vctDv, uint32_t dvStart,
                      uint64_t offset, uint32_t totalLen);
 
   void MoveOverflowData(uint64_t fileOffsetSrc, uint64_t fileOffsetDest,
                         uint32_t length);
 
   uint64_t Length() {
-    unique_lock<utils::SpinMutex> lock;
+    unique_lock<SpinMutex> lock;
     _file.seekp(0, ios::end);
     return _file.tellp();
   }
@@ -63,7 +63,7 @@ protected:
   bool _bOverflowFile;
   string _path;
   fstream _file;
-  utils::SpinMutex _spinMutex;
+  SpinMutex _spinMutex;
   atomic<uint64_t> _overFileLength;
 };
 } // namespace storage

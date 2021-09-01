@@ -6,22 +6,23 @@
 #include <shared_mutex>
 
 namespace storage {
-unordered_map<uint64_t, IndexPage *> PageBufferPool::_mapCache;
-utils::SharedSpinMutex PageBufferPool::_rwLock;
+MHashMap<uint64_t, IndexPage *>::Type PageBufferPool::_mapCache;
+SharedSpinMutex PageBufferPool::_rwLock;
 int64_t PageBufferPool::_maxCacheSize =
     Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 thread PageBufferPool::_tIndexPageManager;
 int64_t PageBufferPool::_prevDelNum = 100;
 thread *PageBufferPool::_pageBufferThread = PageBufferPool::CreateThread();
 bool PageBufferPool::_bSuspend = false;
+bool PageBufferPool::_bStop = false;
 
 void PageBufferPool::AddPage(IndexPage *page) {
-  unique_lock<utils::SharedSpinMutex> lock(_rwLock);
+  unique_lock<SharedSpinMutex> lock(_rwLock);
   _mapCache.insert(pair<uint64_t, IndexPage *>(page->HashCode(), page));
 }
 
 IndexPage *PageBufferPool::GetPage(uint64_t pageId) {
-  shared_lock<utils::SharedSpinMutex> lock(_rwLock);
+  shared_lock<SharedSpinMutex> lock(_rwLock);
   auto iter = _mapCache.find(pageId);
   if (iter != _mapCache.end()) {
     iter->second->UpdateAccessTime();
@@ -33,7 +34,7 @@ IndexPage *PageBufferPool::GetPage(uint64_t pageId) {
 }
 
 void PageBufferPool::ClearPool() {
-  unique_lock<utils::SharedSpinMutex> lock(_rwLock);
+  unique_lock<SharedSpinMutex> lock(_rwLock);
   for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
     IndexPage *page = iter->second;
     while (!page->Releaseable()) {
@@ -50,6 +51,10 @@ thread *PageBufferPool::CreateThread() {
   thread *t = new thread([]() {
     while (true) {
       this_thread::sleep_for(std::chrono::milliseconds(1000 * 5));
+      if (_bStop) {
+        ClearPool();
+        break;
+      }
       if (_bSuspend)
         continue;
       try {
@@ -87,7 +92,8 @@ void PageBufferPool::PoolManage() {
   static auto cmp = [](IndexPage *left, IndexPage *right) {
     return left->GetAccessTime() < right->GetAccessTime();
   };
-  priority_queue<IndexPage *, vector<IndexPage *>, decltype(cmp)> queue(cmp);
+  priority_queue<IndexPage *, MVector<IndexPage *>::Type, decltype(cmp)> queue(
+      cmp);
 
   int refCountPage = 0;
   int refPageCount = 0;

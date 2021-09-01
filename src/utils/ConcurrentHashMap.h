@@ -1,19 +1,22 @@
 ﻿#pragma once
+#include "../cache/Mallocator.h"
 #include "SpinMutex.h"
 #include <mutex>
 #include <unordered_map>
-#include <vector>
 
-namespace utils {
+namespace storage {
 using namespace std;
 template <class Key, class T> class ConcurrentHashMap {
 public:
+  typedef unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
+                        Mallocator<std::pair<const Key, T>>>
+      ConHashMap;
   ConcurrentHashMap(int groupCount, uint64_t maxCount)
       : _groupCount(groupCount) {
     _vctMap.reserve(groupCount);
     _vctLock.reserve(groupCount);
     for (int i = 0; i < groupCount; i++) {
-      _vctMap.push_back(new unordered_map<Key, T>(maxCount / groupCount));
+      _vctMap.push_back(new ConHashMap(maxCount / groupCount));
       _vctLock.push_back(new SpinMutex());
     }
   }
@@ -61,8 +64,8 @@ public:
   void unlock(int pos) { _vctLock[pos]->unlock(); }
 
 protected:
-  vector<unordered_map<Key, T> *> _vctMap;
+  vector<ConHashMap *> _vctMap;
   vector<SpinMutex *> _vctLock;
   int _groupCount;
 };
-} // namespace utils
+} // namespace storage

@@ -15,7 +15,7 @@ BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(LeafPage_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafPage" + utils::StrMSTime() + ".dat";
+      "./dbTest/testLeafPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
 
@@ -116,7 +116,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
 
 BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafPageSaveLoad" + utils::StrMSTime() + ".dat";
+      "./dbTest/testLeafPageSaveLoad" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = LeafPage::MAX_DATA_LENGTH / 34;
 
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
 
 BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafPageSaveLoad" + utils::StrMSTime() + ".dat";
+      "./dbTest/testLeafPageSaveLoad" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = LeafPage::MAX_DATA_LENGTH;
 
@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
 
 BOOST_AUTO_TEST_CASE(LeafPageSearchKey_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafPageSearchKey" + utils::StrMSTime() + ".dat";
+      "./dbTest/testLeafPageSearchKey" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 300;
 
@@ -304,12 +304,12 @@ BOOST_AUTO_TEST_CASE(LeafPageSearchKey_test) {
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i % (ROW_COUNT / 3);
-    utils::Int64ToBytes(i + 100, buff, true);
+    Int64ToBytes(i + 100, buff, true);
     LeafRecord *lr = new LeafRecord(indexTree, vctKey, buff, 8);
     lp->InsertRecord(lr);
   }
 
-  utils::Int64ToBytes(0, buff, true);
+  Int64ToBytes(0, buff, true);
   RawKey key(buff, 8);
   bool bFind;
   int pos = lp->SearchKey(key, bFind, true);
@@ -324,7 +324,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSearchKey_test) {
   pos = lp->SearchKey(key, bFind, false, 10);
   BOOST_TEST(pos == 10);
 
-  utils::Int64ToBytes(99, buff, true);
+  Int64ToBytes(99, buff, true);
   pos = lp->SearchKey(key, bFind, true);
   BOOST_TEST(pos == 297);
 
@@ -337,7 +337,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSearchKey_test) {
   pos = lp->SearchKey(key, bFind, false, 0, 200);
   BOOST_TEST(pos == 201);
 
-  utils::Int64ToBytes(50, buff, true);
+  Int64ToBytes(50, buff, true);
   pos = lp->SearchKey(key, bFind, true);
   BOOST_TEST(pos == 150);
 

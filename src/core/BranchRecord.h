@@ -52,22 +52,4 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &os, const BranchRecord &br);
-
-// class VectorBranchRecord : public vector<BranchRecord*> {
-// public:
-//  using vector::vector;
-//  ~VectorBranchRecord() {
-//    for (auto iter = begin(); iter != end(); iter++) {
-//      (*iter)->ReleaseRecord();
-//    }
-//  }
-//
-//  void RemoveAll() {
-//    for (auto iter = begin(); iter != end(); iter++) {
-//      (*iter)->ReleaseRecord();
-//    }
-//
-//    clear();
-//  }
-//};
 } // namespace storage

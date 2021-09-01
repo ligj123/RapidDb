@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(DataValueDate_test) {
   dv6 = dv7;
   BOOST_TEST(dv6 == dv7);
 
-  DataValueDate dv9(std::any(100ULL));
+  DataValueDate dv9(std::any(100ULL), false);
   BOOST_TEST((uint64_t)dv9 == 100ULL);
 
   StrBuff sb(0);

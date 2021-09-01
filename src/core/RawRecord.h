@@ -46,7 +46,7 @@ public:
 protected:
   virtual ~RawRecord() {
     if (_bSole && _bysVal != nullptr)
-      CachePool::ReleaseBys(_bysVal, GetTotalLength());
+      CachePool::Release(_bysVal, GetTotalLength());
   }
 
 protected:

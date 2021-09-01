@@ -9,9 +9,9 @@
 #include <shared_mutex>
 
 namespace storage {
-unordered_set<uint16_t> IndexTree::_setFiledId;
+MHashSet<uint16_t>::Type IndexTree::_setFiledId;
 uint16_t IndexTree::_currFiledId = 0;
-utils::SpinMutex IndexTree::_spinMutex;
+SpinMutex IndexTree::_spinMutex;
 
 IndexTree::IndexTree(const string &tableName, const string &fileName,
                      VectorDataValue &vctKey, VectorDataValue &vctVal) {
@@ -23,7 +23,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   }
 
   {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     while (true) {
       if (_setFiledId.find(_currFiledId) == _setFiledId.end()) {
         _setFiledId.insert(_currFiledId);
@@ -39,7 +39,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   _headPage = new HeadPage(this);
   if (!bExist) {
     {
-      unique_lock<utils::ReentrantSharedSpinMutex> lock(_headPage->GetLock());
+      unique_lock<ReentrantSharedSpinMutex> lock(_headPage->GetLock());
       memset(_headPage->GetBysPage(), 0, Configure::GetDiskClusterSize());
       _headPage->WriteFileVersion();
       _headPage->WriteRootPagePointer(0);
@@ -74,7 +74,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
 }
 
 IndexTree::~IndexTree() {
-  unique_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
+  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
   if (_headPage->IsDirty()) {
     _headPage->WritePage();
   }
@@ -104,7 +104,7 @@ void IndexTree::Close(bool bWait) {
     this_thread::sleep_for(chrono::milliseconds(1));
   }
 
-  unique_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
+  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
   _rootPage->DecRefCount();
   if (!bWait)
     return;
@@ -150,7 +150,7 @@ void IndexTree::CloneValues(VectorDataValue &vct) {
 PageFile *IndexTree::ApplyPageFile() {
   while (true) {
     {
-      lock_guard<utils::SpinMutex> lock(_fileMutex);
+      lock_guard<SpinMutex> lock(_fileMutex);
       if (_fileQueue.size() > 0) {
         PageFile *rpf = _fileQueue.front();
         _fileQueue.pop();
@@ -165,9 +165,9 @@ PageFile *IndexTree::ApplyPageFile() {
   }
 }
 
-utils::ErrorMsg *IndexTree::InsertRecord(LeafRecord *rr) {
+ErrorMsg *IndexTree::InsertRecord(LeafRecord *rr) {
   LeafPage *page = SearchRecursively(*rr);
-  utils::ErrorMsg *err = page->InsertRecord(rr);
+  ErrorMsg *err = page->InsertRecord(rr);
 
   if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 3U) {
     page->PageDivide();
@@ -234,7 +234,7 @@ IndexPage *IndexTree::GetPage(uint64_t pageId, bool bLeafPage) {
 }
 
 void IndexTree::UpdateRootPage(IndexPage *root) {
-  unique_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
+  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
   _rootPage->DecRefCount();
   _headPage->WriteRootPagePointer(root->GetPageId());
   _rootPage = root;
@@ -388,7 +388,7 @@ LeafPage *IndexTree::SearchRecursively(const RawKey &key) {
   IndexPage *page = nullptr;
   while (true) {
     {
-      std::shared_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
+      std::shared_lock<SharedSpinMutex> lock(_rootSharedMutex);
       bool b = _rootPage->ReadTryLock();
 
       if (b) {
@@ -432,7 +432,7 @@ LeafPage *IndexTree::SearchRecursively(const LeafRecord &lr) {
   IndexPage *page = nullptr;
   while (true) {
     {
-      std::shared_lock<utils::SharedSpinMutex> lock(_rootSharedMutex);
+      std::shared_lock<SharedSpinMutex> lock(_rootSharedMutex);
       bool b = false;
       if (typeid(*_rootPage) == typeid(LeafPage)) {
         b = _rootPage->WriteTryLock();

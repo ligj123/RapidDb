@@ -33,6 +33,7 @@
     <ClCompile Include="..\..\src\core\RawKey.cpp" />
     <ClCompile Include="..\..\src\database\Database.cpp" />
     <ClCompile Include="..\..\src\database\Table.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueDigit.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueFixChar.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueBlob.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp" />
@@ -55,6 +56,7 @@
     <ClInclude Include="..\..\src\cache\AbsoleteBuffer.h" />
     <ClInclude Include="..\..\src\cache\CachePool.h" />
     <ClInclude Include="..\..\src\cache\BufferPool.h" />
+    <ClInclude Include="..\..\src\cache\Mallocator.h" />
     <ClInclude Include="..\..\src\cache\StrBuff.h" />
     <ClInclude Include="..\..\src\config\Configure.h" />
     <ClInclude Include="..\..\src\config\ErrorID.h" />

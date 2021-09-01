@@ -1,23 +1,10 @@
-#pragma once
+﻿#pragma once
 #include "../core/IndexPage.h"
 #include "../utils/SpinMutex.h"
-#include <unordered_map>
 
 namespace storage {
 using namespace std;
 class PageBufferPool {
-protected:
-  static unordered_map<uint64_t, IndexPage *> _mapCache;
-  static utils::SharedSpinMutex _rwLock;
-  static int64_t _maxCacheSize;
-  static thread _tIndexPageManager;
-  static int64_t _prevDelNum;
-  static thread *_pageBufferThread;
-  static bool _bSuspend;
-
-protected:
-  static void PoolManage();
-  static thread *CreateThread();
 
 public:
   static uint64_t GetMaxCacheSize() { return _maxCacheSize; }
@@ -35,5 +22,19 @@ public:
 
   static uint64_t GetCacheSize() { return _mapCache.size(); }
   static void SetSuspend(bool b) { _bSuspend = true; }
+
+protected:
+  static void PoolManage();
+  static thread *CreateThread();
+
+protected:
+  static MHashMap<uint64_t, IndexPage *>::Type _mapCache;
+  static SharedSpinMutex _rwLock;
+  static int64_t _maxCacheSize;
+  static thread _tIndexPageManager;
+  static int64_t _prevDelNum;
+  static thread *_pageBufferThread;
+  static bool _bSuspend;
+  static bool _bStop;
 };
 } // namespace storage

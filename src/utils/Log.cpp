@@ -1,7 +1,7 @@
 ﻿#include "Log.h"
 #include <filesystem>
 
-namespace utils {
+namespace storage {
 BOOST_LOG_ATTRIBUTE_KEYWORD(log_severity, "Severity", severity_level)
 BOOST_LOG_ATTRIBUTE_KEYWORD(log_timestamp, "TimeStamp",
                             boost::posix_time::ptime)
@@ -51,4 +51,4 @@ void Logger::init(severity_level filterFile, severity_level filterConsole) {
   logging::core::get()->add_sink(console_sink);
   logging::core::get()->add_sink(file_sink);
 }
-} // namespace utils
+} // namespace storage

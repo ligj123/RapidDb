@@ -1,7 +1,7 @@
 ﻿#include "ThreadPool.h"
 #include <stdexcept>
 
-namespace utils {
+namespace storage {
 thread_local string ThreadPool::_threadName = "main";
 
 ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
@@ -77,4 +77,4 @@ ThreadPool::~ThreadPool() {
 
   _mapThread.clear();
 }
-} // namespace utils
+} // namespace storage

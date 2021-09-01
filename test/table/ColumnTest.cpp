@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(PersistColumn_test) {
 }
 
 BOOST_AUTO_TEST_CASE(MiddleColumn_test) {
-  MiddleColumn clm("abcd", 10, DataType::VARCHAR, "a-2", 10, 1, 1);
+  TempColumn clm("abcd", 10, DataType::VARCHAR, "a-2", 10, 1, 1);
   BOOST_TEST(strcmp("abcd", clm.GetName().c_str()) == 0);
   BOOST_TEST(clm.GetPosition() == 10);
   BOOST_TEST(clm.GetDataType() == DataType::VARCHAR);

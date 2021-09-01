@@ -12,7 +12,7 @@ PageFile::PageFile(const string &path, bool overflowFile) {
   if (!_file.is_open()) {
     _file.open(path, ios::out);
     if (!_file.is_open())
-      throw utils::ErrorMsg(FILE_OPEN_FAILED, {path});
+      throw ErrorMsg(FILE_OPEN_FAILED, {path});
     _file.close();
     _file.open(path, ios::in | ios::out | ios::binary);
   }
@@ -30,7 +30,7 @@ uint32_t PageFile::ReadPage(uint64_t fileOffset, char *bys, uint32_t length) {
   assert(Length() > fileOffset);
   uint32_t len = 0;
   {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _file.seekp(fileOffset, ios::beg);
     _file.read(bys, length);
     uint32_t len = (uint32_t)_file.gcount();
@@ -43,7 +43,7 @@ uint32_t PageFile::ReadPage(uint64_t fileOffset, char *bys, uint32_t length) {
 void PageFile::WritePage(uint64_t fileOffset, char *bys, uint32_t length) {
   // assert(fileOffset % Configure::GetDiskClusterSize() == 0);
   {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _file.seekp(fileOffset, ios::beg);
     _file.write(bys, length);
   }
@@ -52,10 +52,10 @@ void PageFile::WritePage(uint64_t fileOffset, char *bys, uint32_t length) {
             << "  name=" << _path;
 }
 
-void PageFile::WriteDataValue(vector<IDataValue *> vctDv, uint32_t dvStart,
-                              uint64_t offset) {
+void PageFile::WriteDataValue(MVector<IDataValue *>::Type vctDv,
+                              uint32_t dvStart, uint64_t offset) {
   // assert(offset % Configure::GetDiskClusterSize() == 0);
-  lock_guard<utils::SpinMutex> lock(_spinMutex);
+  lock_guard<SpinMutex> lock(_spinMutex);
   _file.seekg(offset, ios::beg);
   char *buf = _ovfBuff.GetBuf();
 
@@ -79,10 +79,11 @@ void PageFile::WriteDataValue(vector<IDataValue *> vctDv, uint32_t dvStart,
   LOG_DEBUG << "Write overflow data, offset=" << offset << "  name=" << _path;
 }
 
-void PageFile::ReadDataValue(vector<IDataValue *> vctDv, uint32_t dvStart,
-                             uint64_t offset, uint32_t totalLen) {
+void PageFile::ReadDataValue(MVector<IDataValue *>::Type vctDv,
+                             uint32_t dvStart, uint64_t offset,
+                             uint32_t totalLen) {
   // assert(Length() >= offset + totalLen);
-  lock_guard<utils::SpinMutex> lock(_spinMutex);
+  lock_guard<SpinMutex> lock(_spinMutex);
   _file.seekg(offset, ios::beg);
   char *buf = _ovfBuff.GetBuf();
 
@@ -108,7 +109,7 @@ void PageFile::ReadDataValue(vector<IDataValue *> vctDv, uint32_t dvStart,
 
 void PageFile::MoveOverflowData(uint64_t fileOffsetSrc, uint64_t fileOffsetDest,
                                 uint32_t length) {
-  lock_guard<utils::SpinMutex> lock(_spinMutex);
+  lock_guard<SpinMutex> lock(_spinMutex);
   char *buf = _ovfBuff.GetBuf();
 
   while (length > 0) {

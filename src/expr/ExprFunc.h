@@ -1,13 +1,13 @@
+﻿#include "../cache/Mallocator.h"
 #include "BaseExpr.h"
-#include <vector>
 
 using namespace std;
 namespace storage {
 struct FuncStru {
   string _funcName;
-  vector<DataType> _parasType;
+  MVector<DataType>::Type _parasType;
   DataType _rtType;
-}
+};
 /*
  * @brief The parent class for all function expression.
  */
@@ -24,6 +24,6 @@ protected:
   // The function name, must convert to upper case
   string _funcName;
   // The parameters for this function
-  vector<BaseExpr *> _vctPara;
+  MVector<BaseExpr *>::Type _vctPara;
 };
 } // namespace storage

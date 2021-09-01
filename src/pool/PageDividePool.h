@@ -3,9 +3,7 @@
 #include "../core/IndexTree.h"
 #include "../utils/SpinMutex.h"
 #include "../utils/ThreadPool.h"
-#include <map>
 #include <thread>
-#include <unordered_map>
 
 namespace storage {
 using namespace std;
@@ -23,11 +21,12 @@ public:
   static size_t GetWaitingPageSize() { return _mapPage.size(); }
 
 protected:
-  static map<uint64_t, IndexPage *> _mapPage;
-  static unordered_map<uint64_t, IndexPage *> _mapTmp;
+  static MTreeMap<uint64_t, IndexPage *>::Type _mapPage;
+  static MHashMap<uint64_t, IndexPage *>::Type _mapTmp;
 
   static thread *_treeDivideThread;
   static bool _bSuspend;
-  static utils::SpinMutex _spinMutex;
+  static SpinMutex _spinMutex;
+  static bool _bStop;
 };
 } // namespace storage

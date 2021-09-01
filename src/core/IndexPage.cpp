@@ -94,7 +94,7 @@ bool IndexPage::PageDivide() {
   _totalDataLength = len;
   _recordNum = pos;
 
-  vector<IndexPage *> vctPage;
+  MVector<IndexPage *>::Type vctPage;
   IndexPage *newPage = nullptr;
 
   len = 0;

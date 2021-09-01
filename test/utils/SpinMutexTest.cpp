@@ -1,7 +1,7 @@
 ﻿#include "../../src/utils/SpinMutex.h"
 #include <boost/test/unit_test.hpp>
 
-namespace utils {
+namespace storage {
 BOOST_AUTO_TEST_SUITE(SpinMutexTest)
 
 BOOST_AUTO_TEST_CASE(SpinMutex_test) {
@@ -302,4 +302,4 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test) {
   BOOST_TEST(ms >= 10);
 }
 BOOST_AUTO_TEST_SUITE_END()
-} // namespace utils
+} // namespace storage

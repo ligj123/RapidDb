@@ -3,14 +3,14 @@
 #include <mutex>
 #include <string>
 #include <unordered_map>
-#include <vector>
+#include "../cache/Mallocator.h"
 
-namespace utils {
+namespace storage {
 using namespace std;
 
 class ErrorMsg : public exception {
 public:
-  ErrorMsg(int id, vector<string> paras = {}) {
+  ErrorMsg(int id, MVector<string>::Type paras = {}) {
     _errId = id;
     auto iter = _mapErrorMsg.find(id);
     if (iter == _mapErrorMsg.end()) {
@@ -37,4 +37,4 @@ protected:
   int _errId;
   string _errMsg;
 };
-} // namespace utils
+} // namespace storage

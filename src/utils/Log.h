@@ -20,22 +20,22 @@
 #include <string>
 
 #define LOG_DEBUG                                                              \
-  BOOST_LOG_SEV(utils::Logger::slg_, utils::DEBUG)                             \
-      << "<" << utils::ThreadPool::GetThreadName() << ">  "
+  BOOST_LOG_SEV(Logger::slg_, DEBUG)                             \
+      << "<" << ThreadPool::GetThreadName() << ">  "
 #define LOG_INFO                                                               \
-  BOOST_LOG_SEV(utils::Logger::slg_, utils::INFO)                              \
-      << "<" << utils::ThreadPool::GetThreadName() << ">  "
+  BOOST_LOG_SEV(Logger::slg_, INFO)                              \
+      << "<" << ThreadPool::GetThreadName() << ">  "
 #define LOG_WARN                                                               \
-  BOOST_LOG_SEV(utils::Logger::slg_, utils::WARN)                              \
-      << "<" << utils::ThreadPool::GetThreadName() << ">  "
+  BOOST_LOG_SEV(Logger::slg_, WARN)                              \
+      << "<" << ThreadPool::GetThreadName() << ">  "
 #define LOG_ERROR                                                              \
-  BOOST_LOG_SEV(utils::Logger::slg_, utils::ERROR)                             \
-      << "<" << utils::ThreadPool::GetThreadName() << ">  "
+  BOOST_LOG_SEV(Logger::slg_, ERROR)                             \
+      << "<" << ThreadPool::GetThreadName() << ">  "
 #define LOG_FATAL                                                              \
-  BOOST_LOG_SEV(utils::Logger::slg_, utils::FATAL)                             \
-      << "<" << utils::ThreadPool::GetThreadName() << ">  "
+  BOOST_LOG_SEV(Logger::slg_, FATAL)                             \
+      << "<" << ThreadPool::GetThreadName() << ">  "
 
-namespace utils {
+namespace storage {
 namespace logging = boost::log;
 namespace src = boost::log::sources;
 namespace expr = boost::log::expressions;
@@ -53,4 +53,4 @@ public:
 public:
   static src::severity_logger<severity_level> slg_;
 };
-} // namespace utils
+} // namespace storage

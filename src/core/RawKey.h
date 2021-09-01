@@ -4,7 +4,6 @@
 #include "../header.h"
 #include <cstdint>
 #include <cstring>
-#include <vector>
 
 namespace storage {
 class RawKey {
@@ -40,7 +39,7 @@ protected:
 };
 
 std::ostream &operator<<(std::ostream &os, const RawKey &dv);
-class VectorRawKey : public vector<RawKey *> {
+class VectorRawKey : public MVector<RawKey *>::Type {
 public:
   using vector::vector;
   ~VectorRawKey() {

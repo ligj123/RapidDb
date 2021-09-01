@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(BranchPage_test) {
   const string FILE_NAME =
-      "./dbTest/testBranchPage" + utils::StrMSTime() + ".dat";
+      "./dbTest/testBranchPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
 
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 
 BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   const string FILE_NAME =
-      "./dbTest/testBranchPageSave" + utils::StrMSTime() + ".dat";
+      "./dbTest/testBranchPageSave" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = BranchPage::MAX_DATA_LENGTH / 22;
 
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
 
 BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
   const string FILE_NAME =
-      "./dbTest/testBranchPage" + utils::StrMSTime() + ".dat";
+      "./dbTest/testBranchPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
 
@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
 
 BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
   const string FILE_NAME =
-      "./dbTest/testBranchPageSearchKey" + utils::StrMSTime() + ".dat";
+      "./dbTest/testBranchPageSearchKey" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueVarChar *dvKey = new DataValueVarChar(1000, true);

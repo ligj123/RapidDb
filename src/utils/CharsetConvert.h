@@ -4,7 +4,7 @@
 #include <iostream>
 #include <unordered_map>
 
-namespace utils {
+namespace storage {
 using namespace std;
 enum class Charsets : uint16_t { UNKNOWN = 0, UTF8, UTF16, UTF32, GBK };
 
@@ -117,8 +117,6 @@ protected:
   static unordered_map<Charsets, string> mapCharset;
 };
 
-// ostream& operator<< (ostream& os, const Charsets& set);
-
 ostream &operator<<(ostream &os, const ConvResult &rst);
 
-} // namespace utils
+} // namespace storage

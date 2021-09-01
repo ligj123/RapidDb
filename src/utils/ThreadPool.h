@@ -8,9 +8,8 @@
 #include <thread>
 #include <type_traits>
 #include <unordered_map>
-#include <vector>
 
-namespace utils {
+namespace storage {
 using namespace std;
 
 class ThreadPool {
@@ -93,6 +92,6 @@ auto ThreadPool::AddTask(F &&function, Args &&...args) {
     CreateThread(++_currId);
   }
 
-  return std::move(future);
+  return future;
 }
-} // namespace utils
+} // namespace storage

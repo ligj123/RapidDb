@@ -7,12 +7,9 @@
 #include "../dataType/IDataValue.h"
 #include "../utils/ErrorMsg.h"
 #include <unordered_set>
-#include <vector>
 
 using namespace std;
 namespace storage {
-enum class CompType { EQ, GT, GE, LT, LE, NE };
-
 enum class ExprType {
   // const type
   EXPR_ARRAY,
@@ -42,8 +39,8 @@ enum class ExprType {
   EXPR_LIKE,
   EXPR_NOT,
   EXPR_ISNULL,
-  EXPR_WHERE,
-  Expr_ON,
+  EXPR_CONDITION,
+  EXPR_ON,
 
   // Input or oupt value
   EXPR_VALUE_ARRAY_IN,
@@ -52,14 +49,9 @@ enum class ExprType {
   EXPR_VALUE_OUT,
 
   // Select
-  EXPR_ORDER_BY,
   EXPR_SELECT,
-  Expr_INNER_JOIN,
-  EXPR_LEFT_JOIN,
-  EXPR_RIGHT_JOIN,
-  EXPR_OUTTER_JOIN,
+  EXPR_JOIN,
   EXPR_GROUP_BY,
-  //
 
   EXPR_INSERT,
   EXPR_UPDATE,
@@ -142,7 +134,9 @@ public:
   bool Exist(IDataValue *pdv) { return (_setVal.find(pdv) != _setVal.end()); }
 
 protected:
-  unordered_set<IDataValue *, DataValueHash, DataValueEqual> _setVal;
+  unordered_set<IDataValue *, DataValueHash, DataValueEqual,
+                Mallocator<IDataValue *>>
+      _setVal;
 };
 
 } // namespace storage

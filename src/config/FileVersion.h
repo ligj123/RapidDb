@@ -5,7 +5,6 @@
 #include <string>
 
 namespace storage {
-using namespace utils;
 using namespace std;
 
 class FileVersion {

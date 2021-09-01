@@ -10,7 +10,7 @@
 
 namespace storage {
 void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
-  const string FILE_NAME = "./dbTest/testMTIP" + utils::StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testMTIP" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   if (threadCount < 1 || threadCount > 100)
@@ -28,7 +28,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
 
-  uint64_t dtStart = utils::MSTime();
+  uint64_t dtStart = MSTime();
 
   thread *tAr = new thread[threadCount];
   int *iAr = new int[threadCount];
@@ -56,7 +56,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
         indexTree->InsertRecord(rr);
 
         if (i % 1000000 == 0) {
-          uint64_t dt = utils::MSTime();
+          uint64_t dt = MSTime();
           std::cout << ThreadPool::_threadName << "  i=" << i
                     << "\tTotal Time=" << (dt - dtStart)
                     << "\tGap Time=" << (dt - dtPrev) << endl;
@@ -69,7 +69,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
   for (int k = 0; k < threadCount; k++) {
     tAr[k].join();
   }
-  uint64_t dtEnd = utils::MSTime();
+  uint64_t dtEnd = MSTime();
   std::cout << "Insert Used Time: " << (dtEnd - dtStart) << endl;
   PageDividePool::SetThreadStatus(false);
   StoragePool::SetWriteSuspend(false);
@@ -77,14 +77,14 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
   delete dvKey;
   delete dvVal;
   // PageBufferPool::ClearPool();
-  dtEnd = utils::MSTime();
+  dtEnd = MSTime();
   std::cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
   // std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
 //
 // void InsertSpeedUniqueTest(uint64_t row_count) {
 //  const string FILE_NAME =
-//    "./dbTest/testInsertSpeedUnique" + utils::StrMSTime() + ".dat";
+//    "./dbTest/testInsertSpeedUnique" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //
 //  // PageDividePool::SetThreadStatus(true);
@@ -102,7 +102,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
 //  vctKey.push_back(dvKey->Clone());
 //  vctVal.push_back(dvVal->Clone());
 //
-//  uint64_t dtStart = utils::MSTime();
+//  uint64_t dtStart = MSTime();
 //  uint64_t dtPrev = dtStart;
 //  Byte buf[100];
 //
@@ -117,19 +117,19 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
 //      (((by2 & 0xAA) + (by3 & 0x55)) << 8) +
 //      (((by1 & 0xAA) + (by4 & 0x55)));
 //    *((DataValueLong*)vctKey[0]) = priKey;
-//    utils::Int64ToBytes(i, buf, true);
+//    Int64ToBytes(i, buf, true);
 //    LeafRecord* rr = new LeafRecord(indexTree, vctKey, buf, 8);
 //    indexTree->InsertRecord(rr);
 //
 //    if (i % 1000000 == 0) {
-//      uint64_t dt = utils::MSTime();
+//      uint64_t dt = MSTime();
 //      cout << "i=" << i << "\tTotal Time=" << (dt - dtStart)
 //        << "\tGap Time=" << (dt - dtPrev) << endl;
 //      dtPrev = dt;
 //    }
 //  }
 //
-//  uint64_t dtEnd = utils::MSTime();
+//  uint64_t dtEnd = MSTime();
 //  cout << "Insert Used Time: " << (dtEnd - dtStart) << endl;
 //  PageDividePool::SetThreadStatus(false);
 //  StoragePool::SetWriteSuspend(false);
@@ -137,14 +137,14 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
 //  delete dvKey;
 //  delete dvVal;
 //  //PageBufferPool::ClearPool();
-//  dtEnd = utils::MSTime();
+//  dtEnd = MSTime();
 //  cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
 //  // std::filesystem::remove(std::filesystem::path(FILE_NAME));
 //}
 //
 // void InsertSpeedNonUniqueTest(uint64_t row_count) {
 //  const string FILE_NAME =
-//    "./dbTest/testInsertSpeedNonUnique" + utils::StrMSTime() + ".dat";
+//    "./dbTest/testInsertSpeedNonUnique" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //
 //  // PageDividePool::SetThreadStatus(true);
@@ -162,7 +162,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
 //  vctKey.push_back(dvKey->Clone());
 //  vctVal.push_back(dvVal->Clone());
 //
-//  uint64_t dtStart = utils::MSTime();
+//  uint64_t dtStart = MSTime();
 //  uint64_t dtPrev = dtStart;
 //  Byte buf[100];
 //
@@ -177,19 +177,19 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
 //      (((by2 & 0xAA) + (by3 & 0x55)) << 8) +
 //      (((by1 & 0xAA) + (by4 & 0x55)));
 //    *((DataValueLong*)vctKey[0]) = priKey;
-//    utils::Int64ToBytes(i, buf, true);
+//    Int64ToBytes(i, buf, true);
 //    LeafRecord* rr = new LeafRecord(indexTree, vctKey, buf, 8);
 //    indexTree->InsertRecord(rr);
 //
 //    if (i % 1000000 == 0) {
-//      uint64_t dt = utils::MSTime();
+//      uint64_t dt = MSTime();
 //      cout << "i=" << i << "\tTotal Time=" << (dt - dtStart)
 //        << "\tGap Time=" << (dt - dtPrev) << endl;
 //      dtPrev = dt;
 //    }
 //  }
 //
-//  uint64_t dtEnd = utils::MSTime();
+//  uint64_t dtEnd = MSTime();
 //  cout << "Insert Used Time: " << (dtEnd - dtStart) << endl;
 //  PageDividePool::SetThreadStatus(false);
 //  StoragePool::SetWriteSuspend(false);
@@ -197,7 +197,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
 //  delete dvKey;
 //  delete dvVal;
 //  //PageBufferPool::ClearPool();
-//  dtEnd = utils::MSTime();
+//  dtEnd = MSTime();
 //  cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
 //  // std::filesystem::remove(std::filesystem::path(FILE_NAME));
 //}

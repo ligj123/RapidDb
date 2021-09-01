@@ -13,7 +13,7 @@ BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(BranchRecord_test) {
   const string FILE_NAME =
-      "./dbTest/testBranchRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testBranchRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong *dvKey = new DataValueLong(100, true);
@@ -30,13 +30,13 @@ BOOST_AUTO_TEST_CASE(BranchRecord_test) {
   uint16_t len =
       (uint16_t)(sizeof(uint16_t) * 2 + dvKey->GetPersistenceLength(true) +
                  BranchRecord::PAGE_ID_LEN);
-  utils::UInt16ToBytes(len, buff + pos);
+  UInt16ToBytes(len, buff + pos);
   pos += 2;
-  utils::UInt16ToBytes(dvKey->GetPersistenceLength(true), buff + pos);
+  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff + pos, true);
-  utils::UInt64ToBytes(200, buff + pos);
+  UInt64ToBytes(200, buff + pos);
   pos += sizeof(uint64_t);
 
   BranchRecord *rr = new BranchRecord(bp, buff);
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_test) {
 
 BOOST_AUTO_TEST_CASE(BranchRecord_Equal_test) {
   const string FILE_NAME =
-      "./dbTest/testBranchRecordEqual" + utils::StrMSTime() + ".dat";
+      "./dbTest/testBranchRecordEqual" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong *dvKey = new DataValueLong(100LL, true);
@@ -90,24 +90,24 @@ BOOST_AUTO_TEST_CASE(BranchRecord_Equal_test) {
   uint16_t len =
       (uint16_t)(sizeof(uint16_t) * 2 + dvKey->GetPersistenceLength(true) +
                  BranchRecord::PAGE_ID_LEN);
-  utils::UInt16ToBytes(len, buff1 + pos);
+  UInt16ToBytes(len, buff1 + pos);
   pos += 2;
-  utils::UInt16ToBytes(dvKey->GetPersistenceLength(true), buff1 + pos);
+  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff1 + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff1 + pos, true);
-  utils::UInt64ToBytes(200, buff1 + pos);
+  UInt64ToBytes(200, buff1 + pos);
   pos += sizeof(uint64_t);
 
   Byte buff2[100];
   pos = 0;
-  utils::UInt16ToBytes(len, buff2 + pos);
+  UInt16ToBytes(len, buff2 + pos);
   pos += 2;
-  utils::UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
+  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff2 + pos, true);
-  utils::UInt64ToBytes(200, buff2 + pos);
+  UInt64ToBytes(200, buff2 + pos);
   pos += sizeof(uint64_t);
 
   BranchRecord *rr1 = new BranchRecord(bp, buff1);
@@ -120,13 +120,13 @@ BOOST_AUTO_TEST_CASE(BranchRecord_Equal_test) {
   BOOST_TEST(0 == rr1->CompareTo(*rr2));
 
   pos = 0;
-  utils::UInt16ToBytes(len, buff2 + pos);
+  UInt16ToBytes(len, buff2 + pos);
   pos += 2;
-  utils::UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
+  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff2 + pos, true);
-  utils::UInt64ToBytes(210, buff2 + pos);
+  UInt64ToBytes(210, buff2 + pos);
   pos += sizeof(uint64_t);
 
   BranchRecord *rr3 = new BranchRecord(bp, buff2);
@@ -140,13 +140,13 @@ BOOST_AUTO_TEST_CASE(BranchRecord_Equal_test) {
   delete dvKey;
   dvKey = new DataValueLong(110, true);
   pos = 0;
-  utils::UInt16ToBytes(len, buff2 + pos);
+  UInt16ToBytes(len, buff2 + pos);
   pos += 2;
-  utils::UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
+  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff2 + pos, true);
-  utils::UInt64ToBytes(200, buff2 + pos);
+  UInt64ToBytes(200, buff2 + pos);
   pos += sizeof(uint64_t);
 
   BranchRecord *rr4 = new BranchRecord(bp, buff2);

@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(DataValueBlobCopy_test) {
 
   try {
     dvb.Copy(dvi);
-  } catch (utils::ErrorMsg &err) {
+  } catch (ErrorMsg &err) {
     BOOST_TEST(err.getErrId() == DT_UNSUPPORT_CONVERT);
   }
 
@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(DataValueBlobCopy_test) {
 
   try {
     dvb.Copy(dvb2);
-  } catch (utils::ErrorMsg &err) {
+  } catch (ErrorMsg &err) {
     BOOST_TEST(err.getErrId() == DT_INPUT_OVER_LENGTH);
   }
 

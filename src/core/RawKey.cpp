@@ -13,7 +13,7 @@ RawKey::RawKey(VectorDataValue &vctKey) : _bSole(true) {
     _length += vctKey[i]->GetPersistenceLength(true);
   }
 
-  _bysVal = CachePool::ApplyBys(_length);
+  _bysVal = CachePool::Apply(_length);
 
   int pos = 0;
   for (int i = 0; i < vctKey.size(); i++) {
@@ -26,34 +26,34 @@ RawKey::RawKey(Byte *bys, uint32_t len, bool sole)
 
 RawKey::~RawKey() {
   if (_bSole)
-    CachePool::ReleaseBys(_bysVal, _length);
+    CachePool::Release(_bysVal, _length);
 }
 
 bool RawKey::operator>(const RawKey &key) const {
-  return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) > 0;
+  return BytesCompare(_bysVal, _length, key._bysVal, key._length) > 0;
 }
 bool RawKey::operator<(const RawKey &key) const {
-  return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) < 0;
+  return BytesCompare(_bysVal, _length, key._bysVal, key._length) < 0;
 }
 
 bool RawKey::operator>=(const RawKey &key) const {
-  return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) >= 0;
+  return BytesCompare(_bysVal, _length, key._bysVal, key._length) >= 0;
 }
 
 bool RawKey::operator<=(const RawKey &key) const {
-  return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) <= 0;
+  return BytesCompare(_bysVal, _length, key._bysVal, key._length) <= 0;
 }
 
 bool RawKey::operator==(const RawKey &key) const {
-  return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) == 0;
+  return BytesCompare(_bysVal, _length, key._bysVal, key._length) == 0;
 }
 
 bool RawKey::operator!=(const RawKey &key) const {
-  return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length) != 0;
+  return BytesCompare(_bysVal, _length, key._bysVal, key._length) != 0;
 }
 
 int RawKey::CompareTo(const RawKey &key) const {
-  return utils::BytesCompare(_bysVal, _length, key._bysVal, key._length);
+  return BytesCompare(_bysVal, _length, key._bysVal, key._length);
 }
 
 std::ostream &operator<<(std::ostream &os, const RawKey &key) {

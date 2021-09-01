@@ -8,13 +8,15 @@
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
 #include <unordered_set>
-#include <vector>
 
 using namespace std;
 namespace storage {
+enum class CompType { EQ, GT, GE, LT, LE, NE };
+
 class ExprAnd : public ExprLogic {
 public:
-  ExprAnd(vector<ExprLogic *> &vctChild) : ExprLogic(ExprType::EXPR_AND) {
+  ExprAnd(MVector<ExprLogic *>::Type &vctChild)
+      : ExprLogic(ExprType::EXPR_AND) {
     _vctChild.swap(vctChild);
   }
   ~ExprAnd() {
@@ -32,12 +34,12 @@ public:
   }
 
 protected:
-  vector<ExprLogic *> _vctChild;
+  MVector<ExprLogic *>::Type _vctChild;
 };
 
 class ExprOr : public ExprLogic {
 public:
-  ExprOr(vector<ExprLogic *> vctChild) : ExprLogic(ExprType::EXPR_OR) {
+  ExprOr(MVector<ExprLogic *>::Type vctChild) : ExprLogic(ExprType::EXPR_OR) {
     _vctChild.swap(vctChild);
   }
   ~ExprOr() {
@@ -55,7 +57,7 @@ public:
   }
 
 protected:
-  vector<ExprLogic *> _vctChild;
+  MVector<ExprLogic *>::Type _vctChild;
 };
 
 class ExprIn : public ExprLogic {
@@ -220,12 +222,12 @@ protected:
   ExprData *_exprRight;
 };
 
-class ExprWhere : public ExprLogic {
+class ExprCondition : public ExprLogic {
 public:
-  ExprWhere(ExprLogic *child, ExprLogic *indexExpr, string indexName)
-      : ExprLogic(ExprType::EXPR_WHERE), _child(child), _indexExpr(indexExpr),
-        _indexName(indexName) {}
-  ~ExprWhere() { delete _child; }
+  ExprCondition(ExprLogic *child, ExprLogic *indexExpr, string indexName)
+      : ExprLogic(ExprType::EXPR_CONDITION), _child(child),
+        _indexExpr(indexExpr), _indexName(indexName) {}
+  ~ExprCondition() { delete _child; }
   bool CalcBool(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     if (_child == nullptr)
       return true;
@@ -250,7 +252,7 @@ protected:
 
 class ExprOn : public ExprLogic {
 public:
-  ExprOn(vector<ExprComp *> vctChild) : ExprLogic(ExprType::EXPR_ON) {
+  ExprOn(MVector<ExprComp *>::Type vctChild) : ExprLogic(ExprType::EXPR_ON) {
     _vctChild.swap(vctChild);
   }
   ~ExprOn() {
@@ -265,6 +267,6 @@ public:
   }
 
 protected:
-  vector<ExprComp *> _vctChild;
+  MVector<ExprComp *>::Type _vctChild;
 };
 } // namespace storage

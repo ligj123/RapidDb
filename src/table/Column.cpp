@@ -64,7 +64,7 @@ uint32_t PersistColumn::ReadData(Byte *pBuf) {
   _bNullable = (*p == 0);
   p++;
 
-  _charset = (utils::Charsets) * ((uint32_t *)p);
+  _charset = (Charsets) * ((uint32_t *)p);
   p += sizeof(uint32_t);
 
   _maxLength = *((uint32_t *)p);
@@ -91,7 +91,7 @@ uint32_t PersistColumn::ReadData(Byte *pBuf) {
   return (uint32_t)(p - pBuf);
 }
 
-int MiddleColumn::GetLength(Byte *bys) {
+int TempColumn::GetLength(Byte *bys) {
   if ((bys[UI32_LEN + _position / BYTE_SIZE] &
        (Byte)(1 << (_position % BYTE_SIZE))) == 0) {
     return 0;
@@ -129,7 +129,7 @@ int MiddleColumn::GetLength(Byte *bys) {
   }
 }
 
-int MiddleColumn::CompareTo(Byte *bys1, Byte *bys2) {
+int TempColumn::CompareTo(Byte *bys1, Byte *bys2) {
   int pos1 = CalcPosition(bys1);
   int pos2 = CalcPosition(bys2);
   if (pos1 < 0) {

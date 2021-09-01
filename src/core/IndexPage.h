@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../cache/AbsoleteBuffer.h"
+#include "../cache/Mallocator.h"
 #include "CachePage.h"
 #include "IndexType.h"
 #include "RawRecord.h"
@@ -50,7 +51,7 @@ public:
 
 protected:
   AbsoleteBuffer *_absoBuf = nullptr;
-  vector<RawRecord *> _vctRecord;
+  MVector<RawRecord *>::Type _vctRecord;
   uint64_t _parentPageId = 0;
   uint64_t _dtPageLastUpdate = 0;
   int32_t _totalDataLength = 0;

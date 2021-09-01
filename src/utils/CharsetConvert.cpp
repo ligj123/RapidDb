@@ -1,10 +1,6 @@
-#include "CharsetConvert.h"
+﻿#include "CharsetConvert.h"
 
-namespace utils {
-/*ostream& operator<< (ostream& os, const Charsets& set);
-{
-
-}*/
+namespace storage {
 
 ostream &operator<<(ostream &os, const ConvResult &res) {
   switch (res) {
@@ -28,4 +24,4 @@ ostream &operator<<(ostream &os, const ConvResult &res) {
 unordered_map<Charsets, string> CodeConvert::mapCharset = {
     {Charsets::GBK, "gbk"}, {Charsets::UTF8, "utf-8"}};
 
-} // namespace utils
+} // namespace storage

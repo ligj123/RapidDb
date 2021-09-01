@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(DataValueVarCharCopy_test) {
 
   try {
     dvc.Copy(dvc2);
-  } catch (utils::ErrorMsg &err) {
+  } catch (ErrorMsg &err) {
     BOOST_TEST(err.getErrId() == DT_INPUT_OVER_LENGTH);
   }
 

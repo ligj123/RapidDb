@@ -8,7 +8,6 @@
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
 #include <unordered_set>
-#include <vector>
 
 using namespace std;
 namespace storage {

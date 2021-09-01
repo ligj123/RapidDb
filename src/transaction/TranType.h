@@ -1,11 +1,11 @@
-#pragma once
+﻿#pragma once
 #include <ostream>
 
 namespace storage {
 enum class TranType : uint8_t {
   /**Automated create a transaction for a single task*/
   AUTOMATE = 0,
-  /**Manual create a transaction, execute the tasks after committed*/
+  /**Manual create a transaction. The tasks will be executed after committed*/
   MANUAL_DELAY,
   /**Manual create a transaction, execute the tasks at once after add */
   MANUAL_ATONCE

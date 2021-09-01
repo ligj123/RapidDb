@@ -1,10 +1,10 @@
-#include "../../src/utils/ErrorMsg.h"
+﻿#include "../../src/utils/ErrorMsg.h"
 #include <boost/test/unit_test.hpp>
 #include <string>
 
 using namespace std;
 
-namespace utils {
+namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(ErrorMsg_test) {
@@ -15,4 +15,4 @@ BOOST_AUTO_TEST_CASE(ErrorMsg_test) {
   BOOST_TEST(err2.what(), "table error1-e1, error2-e2");
 }
 BOOST_AUTO_TEST_SUITE_END()
-} // namespace utils
+} // namespace storage

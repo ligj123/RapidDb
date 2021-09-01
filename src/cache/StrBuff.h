@@ -15,7 +15,7 @@ public:
 
   StrBuff(uint32_t len) : _strLen(0) {
     if (len > 0) {
-      _buf = (char *)CachePool::ApplyBys(len, _bufLen);
+      _buf = (char *)CachePool::Apply(len, _bufLen);
       _buf[0] = 0;
     } else {
       _buf = nullptr;
@@ -28,13 +28,13 @@ public:
     if (len + 1 < _strLen) {
       len = _strLen + 16;
     }
-    _buf = (char *)CachePool::ApplyBys(len, _bufLen);
+    _buf = (char *)CachePool::Apply(len, _bufLen);
     strcpy(_buf, src);
   }
 
   ~StrBuff() {
     if (_buf != nullptr) {
-      CachePool::ReleaseBys((Byte *)_buf, _bufLen);
+      CachePool::Release((Byte *)_buf, _bufLen);
     }
   }
 
@@ -42,10 +42,10 @@ public:
     if (len > _bufLen) {
       char *obuf = _buf;
       uint32_t olen = _bufLen;
-      _buf = (char *)CachePool::ApplyBys(len, _bufLen);
+      _buf = (char *)CachePool::Apply(len, _bufLen);
       if (obuf != nullptr) {
         strcpy(_buf, obuf);
-        CachePool::ReleaseBys((Byte *)obuf, olen);
+        CachePool::Release((Byte *)obuf, olen);
       }
     }
   }
@@ -55,10 +55,10 @@ public:
     if (len + 1 >= _bufLen) {
       char *obuf = _buf;
       uint32_t olen = _bufLen;
-      _buf = (char *)CachePool::ApplyBys(len, _bufLen);
+      _buf = (char *)CachePool::Apply(len, _bufLen);
 
       if (obuf != nullptr) {
-        CachePool::ReleaseBys((Byte *)obuf, olen);
+        CachePool::Release((Byte *)obuf, olen);
       }
     }
 
@@ -71,10 +71,10 @@ public:
     if (len + 1 >= _bufLen) {
       char *obuf = _buf;
       uint32_t olen = _bufLen;
-      _buf = (char *)CachePool::ApplyBys(len, _bufLen);
+      _buf = (char *)CachePool::Apply(len, _bufLen);
 
       if (obuf != nullptr) {
-        CachePool::ReleaseBys((Byte *)obuf, olen);
+        CachePool::Release((Byte *)obuf, olen);
         strcpy(_buf, obuf);
       } else {
         _buf[0] = 0;

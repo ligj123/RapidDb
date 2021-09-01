@@ -1,8 +1,8 @@
 ﻿#pragma once
+#include "../cache/Mallocator.h"
+#include "../config/FileVersion.h"
 #include "CachePage.h"
 #include "IndexType.h"
-#include "../config/FileVersion.h"
-#include <vector>
 
 namespace storage {
 class HeadPage : public CachePage {
@@ -28,7 +28,7 @@ public:
   static const uint16_t RECORD_STAMP_OFFSET;
   static const uint16_t RECORD_VERSION_STAMP_OFFSET;
   static const uint16_t FREE_PAGE_OFFSET;
- 
+
   static const uint64_t NO_PARENT_POINTER;
   static const uint64_t NO_PREV_PAGE_POINTER;
   static const uint64_t NO_NEXT_PAGE_POINTER;
@@ -44,19 +44,19 @@ protected:
   uint64_t _beginLeafPageId = 0;
   uint64_t _endLeafPageId = 0;
   uint64_t _totalRecordCount = 0;
-  /**In this table, any changes for a record will need a new record version stamp,
-  it start from 0, and will add one every time. This stamp will be used for log transport,
-  data snapshot etc.*/
+  /**In this table, any changes for a record will need a new record version
+  stamp, it start from 0, and will add one every time. This stamp will be used
+  for log transport, data snapshot etc.*/
   uint64_t _recordStamp = 0;
   uint64_t _autoPrimaryKey1 = 0;
   uint64_t _autoPrimaryKey2 = 0;
   uint64_t _autoPrimaryKey3 = 0;
   /***/
-  std::vector<uint64_t> _vctRecVer;
-  utils::SpinMutex _spinMutex;
+  MVector<uint64_t>::Type _vctRecVer;
+  SpinMutex _spinMutex;
 
 public:
-  HeadPage(IndexTree* indexTree) : CachePage(indexTree, UINT64_MAX) { }
+  HeadPage(IndexTree *indexTree) : CachePage(indexTree, UINT64_MAX) {}
 
   void ReadPage() override;
   void WritePage() override;
@@ -66,9 +66,10 @@ public:
   inline Byte ReadRecordVersionCount() { return _recordVerCount; }
 
   inline Byte AddNewRecordVersion(uint64_t ver) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     uint64_t min = 1;
-    if (_recordVerCount > 0) min = _vctRecVer[_recordVerCount - 1] + 1;
+    if (_recordVerCount > 0)
+      min = _vctRecVer[_recordVerCount - 1] + 1;
     assert(ver < min || ver > _recordStamp);
 
     _vctRecVer.push_back(ver);
@@ -88,108 +89,109 @@ public:
   }
 
   inline uint64_t GetLastVersionStamp() {
-    if (_recordVerCount == 0) return 0;
+    if (_recordVerCount == 0)
+      return 0;
     return _vctRecVer[_recordVerCount - 1];
   }
 
   inline uint64_t GetAndIncRecordStamp() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _bDirty = true;
     return _recordStamp++;
   }
 
   inline uint64_t ReadRecordStamp() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     return _recordStamp;
   }
 
   void WriteRecordStamp(uint64_t recordStamp) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _recordStamp = recordStamp;
     _bDirty = true;
   }
 
   inline uint64_t GetAndIncTotalPageCount() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _bDirty = true;
     return _totalPageCount++;
   }
 
   inline uint64_t ReadTotalPageCount() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     return _totalPageCount;
   }
 
   void WriteTotalPageCount(uint64_t totalPage) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _totalPageCount = totalPage;
     _bDirty = true;
   }
 
   inline uint64_t ReadTotalRecordCount() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     return _totalRecordCount;
   }
 
   inline void WriteTotalRecordCount(uint64_t totalRecNum) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _totalRecordCount = totalRecNum;
     _bDirty = true;
   }
 
   inline uint64_t GetAndIncTotalRecordCount() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _bDirty = true;
     return _totalRecordCount++;
   }
 
   inline void WriteRootPagePointer(uint64_t pointer) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _rootPageId = pointer;
     _bDirty = true;
   }
 
   inline uint64_t ReadRootPagePointer() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     return _rootPageId;
   }
 
   inline void WriteBeginLeafPagePointer(uint64_t pointer) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _beginLeafPageId = pointer;
     _bDirty = true;
   }
 
   inline uint64_t ReadBeginLeafPagePointer() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     return _beginLeafPageId;
   }
 
   inline void WriteEndLeafPagePointer(uint64_t pointer) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _endLeafPageId = pointer;
     _bDirty = true;
   }
 
   inline uint64_t ReadEndLeafPagePointer() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     return _endLeafPageId;
   }
 
   inline void WriteIndexType(IndexType type) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _indexType = type;
     WriteByte(INDEX_TYPE_OFFSET, (Byte)type);
     _bDirty = true;
   }
 
   inline IndexType ReadIndexType() {
-    //lock_guard<utils::SpinMutex> lock(_spinMutex);
+    // lock_guard<SpinMutex> lock(_spinMutex);
     return _indexType;
   }
 
   inline uint64_t GetAndAddAutoPrimaryKey(uint64_t step) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     uint64_t num = _autoPrimaryKey1;
     _autoPrimaryKey1 += step;
     _bDirty = true;
@@ -197,18 +199,18 @@ public:
   }
 
   inline uint64_t ReadAutoPrimaryKey() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     return _autoPrimaryKey1;
   }
 
   inline void WriteAutoPrimaryKey(uint64_t key) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _autoPrimaryKey1 = key;
     _bDirty = true;
   }
 
   inline uint64_t GetAndAddAutoPrimaryKey2(uint64_t step) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     uint64_t num = _autoPrimaryKey2;
     _autoPrimaryKey2 += step;
     _bDirty = true;
@@ -216,18 +218,18 @@ public:
   }
 
   inline uint64_t ReadAutoPrimaryKey2() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     return _autoPrimaryKey2;
   }
 
   inline void WriteAutoPrimaryKey2(uint64_t key) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _autoPrimaryKey2 = key;
     _bDirty = true;
   }
 
   inline uint64_t GetAndAddAutoPrimaryKey3(uint64_t step) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     uint64_t num = _autoPrimaryKey3;
     _autoPrimaryKey3 += step;
     _bDirty = true;
@@ -235,28 +237,28 @@ public:
   }
 
   inline uint64_t ReadAutoPrimaryKey3() {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     return _autoPrimaryKey3;
   }
 
   void WriteAutoPrimaryKey3(uint64_t key) {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     _autoPrimaryKey3 = key;
     _bDirty = true;
   }
 
   inline uint16_t ReadKeyVariableFieldCount() {
-    //lock_guard<utils::SpinMutex> lock(_spinMutex);
+    // lock_guard<SpinMutex> lock(_spinMutex);
     return _keyVariableFieldCount;
   }
 
   void WriteKeyVariableFieldCount(uint16_t num);
 
   inline uint16_t ReadValueVariableFieldCount() {
-    //lock_guard<utils::SpinMutex> lock(_spinMutex); 
+    // lock_guard<SpinMutex> lock(_spinMutex);
     return _valueVariableFieldCount;
   }
 
   void WriteValueVariableFieldCount(uint16_t num);
 };
-}
+} // namespace storage

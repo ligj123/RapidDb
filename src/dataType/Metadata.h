@@ -10,42 +10,42 @@ public:
 
 template <> class Case_T<DataType::CHAR> {
 public:
-  static inline auto Run() { return utils::Int8ToBytes; }
+  static inline auto Run() { return Int8ToBytes; }
 };
 
 template <> class Case_T<DataType::SHORT> {
 public:
-  static inline auto Run() { return utils::Int16ToBytes; }
+  static inline auto Run() { return Int16ToBytes; }
 };
 
 template <> class Case_T<DataType::INT> {
 public:
-  static inline auto Run() { return utils::Int32ToBytes; }
+  static inline auto Run() { return Int32ToBytes; }
 };
 
 template <> class Case_T<DataType::LONG> {
 public:
-  static inline auto Run() { return utils::Int64ToBytes; }
+  static inline auto Run() { return Int64ToBytes; }
 };
 
 template <> class Case_T<DataType::BYTE> {
 public:
-  static inline auto Run() { return utils::UInt8ToBytes; }
+  static inline auto Run() { return UInt8ToBytes; }
 };
 
 template <> class Case_T<DataType ::USHORT> {
 public:
-  static inline auto Run() { return utils::UInt16ToBytes; }
+  static inline auto Run() { return UInt16ToBytes; }
 };
 
 template <> class Case_T<DataType::UINT> {
 public:
-  static inline auto Run() { return utils::UInt32ToBytes; }
+  static inline auto Run() { return UInt32ToBytes; }
 };
 
 template <> class Case_T<DataType::ULONG> {
 public:
-  static inline auto Run() { return utils::UInt64ToBytes; }
+  static inline auto Run() { return UInt64ToBytes; }
 };
 
 template <> class Case_T<DataType::BOOL> {
@@ -57,17 +57,17 @@ public:
 
 template <> class Case_T<DataType::DATETIME> {
 public:
-  static inline auto Run() { return utils::UInt64ToBytes; }
+  static inline auto Run() { return UInt64ToBytes; }
 };
 
 template <> class Case_T<DataType::FLOAT> {
 public:
-  static inline auto Run() { return utils::FloatToBytes; }
+  static inline auto Run() { return FloatToBytes; }
 };
 
 template <> class Case_T<DataType::DOUBLE> {
 public:
-  static inline auto Run() { return utils::DoubleToBytes; }
+  static inline auto Run() { return DoubleToBytes; }
 };
 
 template <class T, DataType DT>
@@ -84,42 +84,42 @@ public:
 
 template <> class Case_F<DataType::CHAR> {
 public:
-  static inline auto Run() { return utils::Int8FromBytes; }
+  static inline auto Run() { return Int8FromBytes; }
 };
 
 template <> class Case_F<DataType::SHORT> {
 public:
-  static inline auto Run() { return utils::Int16FromBytes; }
+  static inline auto Run() { return Int16FromBytes; }
 };
 
 template <> class Case_F<DataType::INT> {
 public:
-  static inline auto Run() { return utils::Int32FromBytes; }
+  static inline auto Run() { return Int32FromBytes; }
 };
 
 template <> class Case_F<DataType::LONG> {
 public:
-  static inline auto Run() { return utils::Int64FromBytes; }
+  static inline auto Run() { return Int64FromBytes; }
 };
 
 template <> class Case_F<DataType::BYTE> {
 public:
-  static inline auto Run() { return utils::UInt8FromBytes; }
+  static inline auto Run() { return UInt8FromBytes; }
 };
 
 template <> class Case_F<DataType::USHORT> {
 public:
-  static inline auto Run() { return utils::UInt16FromBytes; }
+  static inline auto Run() { return UInt16FromBytes; }
 };
 
 template <> class Case_F<DataType::UINT> {
 public:
-  static inline auto Run() { return utils::UInt32FromBytes; }
+  static inline auto Run() { return UInt32FromBytes; }
 };
 
 template <> class Case_F<DataType::ULONG> {
 public:
-  static inline auto Run() { return utils::UInt64FromBytes; }
+  static inline auto Run() { return UInt64FromBytes; }
 };
 
 template <> class Case_F<DataType::BOOL> {
@@ -131,17 +131,17 @@ public:
 
 template <> class Case_F<DataType::DATETIME> {
 public:
-  static inline auto Run() { return utils::UInt64FromBytes; }
+  static inline auto Run() { return UInt64FromBytes; }
 };
 
 template <> class Case_F<DataType::FLOAT> {
 public:
-  static inline auto Run() { return utils::FloatFromBytes; }
+  static inline auto Run() { return FloatFromBytes; }
 };
 
 template <> class Case_F<DataType::DOUBLE> {
 public:
-  static inline auto Run() { return utils::DoubleFromBytes; }
+  static inline auto Run() { return DoubleFromBytes; }
 };
 
 template <class T, DataType DT>
@@ -397,4 +397,91 @@ public:
 template <class T, DataType DT> inline int Sprintf(char *dest, T val) {
   return Case_Pri<DT>::Sprintf(dest, val);
 }
+
+// Add
+template <DataType v> class Case_Add {
+public:
+  static inline void Add(int &val, const IDataValue &dv) {}
+};
+
+template <> class Case_Add<DataType::CHAR> {
+public:
+  static inline void Add(char &val, const IDataValue &dv) {
+    val += (char)dv.GetLong();
+  }
+};
+
+template <> class Case_Add<DataType::SHORT> {
+public:
+  static inline void Add(int16_t &val, const IDataValue &dv) {
+    val += (int16_t)dv.GetLong();
+  }
+};
+
+template <> class Case_Add<DataType::INT> {
+public:
+  static inline void Add(int32_t &val, const IDataValue &dv) {
+    val += (int32_t)dv.GetLong();
+  }
+};
+
+template <> class Case_Add<DataType::LONG> {
+public:
+  static inline void Add(int64_t &val, const IDataValue &dv) {
+    val += (int64_t)dv.GetLong();
+  }
+};
+
+template <> class Case_Add<DataType::BYTE> {
+public:
+  static inline void Add(Byte &val, const IDataValue &dv) {
+    val += (Byte)dv.GetLong();
+  }
+};
+
+template <> class Case_Add<DataType::USHORT> {
+public:
+  static inline void Add(uint16_t &val, const IDataValue &dv) {
+    val += (uint16_t)dv.GetLong();
+  }
+};
+
+template <> class Case_Add<DataType::UINT> {
+public:
+  static inline void Add(uint32_t &val, const IDataValue &dv) {
+    val += (uint32_t)dv.GetLong();
+  }
+};
+
+template <> class Case_Add<DataType::ULONG> {
+public:
+  static inline void Add(uint64_t &val, const IDataValue &dv) {
+    val += (uint64_t)dv.GetLong();
+  }
+};
+
+template <> class Case_Add<DataType::BOOL> {
+public:
+  static inline void Add(bool &val, const IDataValue &dv) {}
+};
+
+template <> class Case_Add<DataType::DATETIME> {
+public:
+  static inline void Add(uint64_t &val, const IDataValue &dv) {}
+};
+
+template <> class Case_Add<DataType::FLOAT> {
+public:
+  static inline void Add(float &val, const IDataValue &dv) {
+    val += (float)dv.GetDouble();
+  }
+};
+
+template <> class Case_Add<DataType::DOUBLE> {
+public:
+  static inline void Add(double &val, const IDataValue &dv) {
+    val += dv.GetDouble();
+  }
+};
+
 } // namespace storage

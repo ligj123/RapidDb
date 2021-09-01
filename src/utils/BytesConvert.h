@@ -4,7 +4,7 @@
 #include <cstdint>
 #include <cstring>
 
-namespace utils {
+namespace storage {
 inline int64_t Int64FromBytes(Byte *pArr, bool bkey = false) {
   int64_t val = 0;
 #ifdef BIGENDIAN
@@ -469,4 +469,4 @@ template <class T> inline T DigitalFromBytes(Byte *pArr, bool bkey = false) {
 
   abort();
 }
-} // namespace utils
+} // namespace storage

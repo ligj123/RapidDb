@@ -8,7 +8,6 @@
 #include <regex>
 
 namespace storage {
-using namespace utils;
 namespace fs = std::filesystem;
 
 PersistTableDesc::~PersistTableDesc() {
@@ -36,7 +35,7 @@ const PersistColumn *PersistTableDesc::GetColumn(int pos) {
 
 void PersistTableDesc::AddColumn(string &columnName, DataType dataType,
                                  bool nullable, uint32_t maxLen,
-                                 string &comment, utils::Charsets charset,
+                                 string &comment, Charsets charset,
                                  any &valDefault) {
   transform(columnName.begin(), columnName.end(), columnName.begin(),
             ::toupper);
@@ -57,13 +56,13 @@ void PersistTableDesc::AddColumn(string &columnName, DataType dataType,
 
   PersistColumn *cm = new PersistColumn(columnName, (uint32_t)_vctColumn.size(),
                                         dataType, comment, nullable, maxLen, -1,
-                                        -1, utils::Charsets::UTF8, dvDefault);
+                                        -1, Charsets::UTF8, dvDefault);
 
   _vctColumn.push_back(cm);
   _mapColumnPos.insert(pair<string, int>(columnName, cm->GetPosition()));
 }
 
-void PersistTableDesc::SetPrimaryKey(vector<string> priCols) {
+void PersistTableDesc::SetPrimaryKey(MVector<string>::Type priCols) {
   if (priCols.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {PRIMARY_KEY});
   }
@@ -72,7 +71,7 @@ void PersistTableDesc::SetPrimaryKey(vector<string> priCols) {
     throw ErrorMsg(TB_REPEATED_INDEX, {PRIMARY_KEY});
   }
 
-  vector<IndexProp::Column> vct;
+  MVector<IndexProp::Column>::Type vct;
   for (string col : priCols) {
     auto iter = _mapColumnPos.find(col);
     if (iter == _mapColumnPos.end()) {
@@ -99,7 +98,7 @@ void PersistTableDesc::SetPrimaryKey(vector<string> priCols) {
 }
 
 void PersistTableDesc::AddSecondaryKey(string indexName, IndexType indexType,
-                                       vector<string> colNames) {
+                                       MVector<string>::Type colNames) {
   if (colNames.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName});
   }
@@ -107,7 +106,7 @@ void PersistTableDesc::AddSecondaryKey(string indexName, IndexType indexType,
     throw ErrorMsg(TB_REPEATED_INDEX, {indexName});
   }
 
-  vector<IndexProp::Column> vct;
+  MVector<IndexProp::Column>::Type vct;
   for (string col : colNames) {
     auto iter = _mapColumnPos.find(col);
     if (iter == _mapColumnPos.end()) {
@@ -159,7 +158,7 @@ void PersistTableDesc::WriteData(string rootPath, string dbName) {
     fs.write(iter->first.c_str(), iter->first.size());
     fs << (int)iter->second.type;
 
-    vector<IndexProp::Column> &vctCol = iter->second.vctCol;
+    MVector<IndexProp::Column>::Type &vctCol = iter->second.vctCol;
     fs << (int)vctCol.size();
     for (int i = 0; i < vctCol.size(); i++) {
       fs << vctCol[i].colPos;

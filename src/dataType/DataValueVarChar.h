@@ -2,7 +2,6 @@
 #include "IDataValue.h"
 
 namespace storage {
-using namespace utils;
 using namespace std;
 
 class DataValueVarChar : public IDataValue {
@@ -15,11 +14,11 @@ public:
       : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey),
         maxLength_(maxLength), soleLength_(strLen + 1) {
     if (soleLength_ >= maxLength_) {
-      throw utils::ErrorMsg(DT_INPUT_OVER_LENGTH,
-                            {to_string(maxLength_), to_string(soleLength_)});
+      throw ErrorMsg(DT_INPUT_OVER_LENGTH,
+                     {to_string(maxLength_), to_string(soleLength_)});
     }
 
-    bysValue_ = CachePool::ApplyBys(soleLength_);
+    bysValue_ = CachePool::Apply(soleLength_);
     memcpy(bysValue_, val, soleLength_);
   }
 
@@ -30,7 +29,7 @@ public:
 
     switch (valType_) {
     case ValueType::SOLE_VALUE:
-      bysValue_ = CachePool::ApplyBys(soleLength_);
+      bysValue_ = CachePool::Apply(soleLength_);
       memcpy(bysValue_, src.bysValue_, soleLength_);
       break;
     case ValueType::BYTES_VALUE:
@@ -44,7 +43,7 @@ public:
   }
   ~DataValueVarChar() {
     if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::ReleaseBys((Byte *)bysValue_, soleLength_);
+      CachePool::Release((Byte *)bysValue_, soleLength_);
       valType_ = ValueType::NULL_VALUE;
     }
   }

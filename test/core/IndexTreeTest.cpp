@@ -13,7 +13,7 @@ BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexTreeInsertRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexTreeInsertRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 50000;
 
@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexRepeatedKey" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexRepeatedKey" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 30000;
 
@@ -73,7 +73,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i % (ROW_COUNT / 3);
-    utils::Int64ToBytes(i + 100, bys, true);
+    Int64ToBytes(i + 100, bys, true);
     LeafRecord *rr = new LeafRecord(indexTree, vctKey, bys, sizeof(int64_t));
     indexTree->InsertRecord(rr);
   }
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToUniqueIndex_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexRepeatedKey" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexRepeatedKey" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 30000;
 
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToUniqueIndex_test) {
   vctVal.push_back(new DataValueLong(100, true));
 
   LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, 0);
-  utils::ErrorMsg *err = indexTree->InsertRecord(rr);
+  ErrorMsg *err = indexTree->InsertRecord(rr);
   BOOST_TEST(err == nullptr);
 
   *((DataValueLong *)vctVal[0]) = 200;
@@ -135,7 +135,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToUniqueIndex_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexRepeatedRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexRepeatedRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong *dvKey = new DataValueLong(100, true);
@@ -150,9 +150,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
   Byte bys[100];
 
   *((DataValueLong *)vctKey[0]) = 10;
-  utils::Int64ToBytes(100, bys, true);
+  Int64ToBytes(100, bys, true);
   LeafRecord *rr = new LeafRecord(indexTree, vctKey, bys, sizeof(int64_t));
-  utils::ErrorMsg *err = indexTree->InsertRecord(rr);
+  ErrorMsg *err = indexTree->InsertRecord(rr);
   BOOST_TEST(err == nullptr);
 
   LeafRecord *rr2 = new LeafRecord(indexTree, vctKey, bys, sizeof(int64_t));
@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithUniqueIndex_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexRepeatedRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexRepeatedRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 2000;
 
@@ -213,7 +213,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithUniqueIndex_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexGetRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexGetRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 6000;
 
@@ -230,7 +230,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i % (ROW_COUNT / 3);
-    utils::Int64ToBytes(100 + i, bys, true);
+    Int64ToBytes(100 + i, bys, true);
     LeafRecord *rr = new LeafRecord(indexTree, vctKey, bys, sizeof(int64_t));
     indexTree->InsertRecord(rr);
   }
@@ -264,7 +264,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithUniqueIndex_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexRepeatedRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexRepeatedRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 1000;
 
@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithUniqueIndex_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeReadRecord_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexReadRecord" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexReadRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 6000;
 
@@ -403,7 +403,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadRecord_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysNoUnique_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexReadPrimaryKeys" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexReadPrimaryKeys" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 6000;
 
@@ -420,7 +420,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysNoUnique_test) {
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i % (ROW_COUNT / 3);
-    utils::Int64ToBytes(100 + i, bys, true);
+    Int64ToBytes(100 + i, bys, true);
     LeafRecord *rr = new LeafRecord(indexTree, vctKey, bys, sizeof(int64_t));
     indexTree->InsertRecord(rr);
   }
@@ -437,8 +437,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysNoUnique_test) {
     indexTree->ReadPrimaryKeys(key, vctRaw);
     BOOST_TEST(3 == vctRaw.size());
     for (int j = 0; j < 3; j++) {
-      utils::Int64ToBytes((i + 100 + ROW_COUNT / 3 * j), bys, true);
-      BOOST_TEST(utils::BytesCompare(bys, 8, vctRaw[j]->GetBysVal(),
+      Int64ToBytes((i + 100 + ROW_COUNT / 3 * j), bys, true);
+      BOOST_TEST(BytesCompare(bys, 8, vctRaw[j]->GetBysVal(),
                                      vctRaw[j]->GetLength()) == 0);
     }
   }
@@ -452,7 +452,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysNoUnique_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysUnique_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexReadPrimaryKeys" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexReadPrimaryKeys" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 6000;
 
@@ -469,7 +469,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysUnique_test) {
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
-    utils::Int64ToBytes(100 + i, bys, true);
+    Int64ToBytes(100 + i, bys, true);
     LeafRecord *rr = new LeafRecord(indexTree, vctKey, bys, sizeof(int64_t));
     indexTree->InsertRecord(rr);
   }
@@ -485,8 +485,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysUnique_test) {
     VectorRawKey vctRaw;
     indexTree->ReadPrimaryKeys(key, vctRaw);
     BOOST_TEST(1 == vctRaw.size());
-    utils::Int64ToBytes((i + 100), bys, true);
-    assert(utils::BytesCompare(bys, 8, vctRaw[0]->GetBysVal(),
+    Int64ToBytes((i + 100), bys, true);
+    assert(BytesCompare(bys, 8, vctRaw[0]->GetBysVal(),
                                vctRaw[0]->GetLength()) == 0);
   }
 
@@ -499,7 +499,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysUnique_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexPaimary_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexQueryIndex" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexQueryIndex" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 6000;
 
@@ -538,7 +538,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexPaimary_test) {
   BOOST_TEST((ROW_COUNT + 99) ==
              (int64_t)(*(DataValueLong *)(*vctRow[ROW_COUNT - 1])[0]));
 
-  utils::Int64ToBytes(ROW_COUNT / 2, buff, true);
+  Int64ToBytes(ROW_COUNT / 2, buff, true);
   indexTree->QueryIndex(&key, nullptr, false, false, vctRow);
   BOOST_TEST((ROW_COUNT / 2 - 1) == vctRow.size());
   BOOST_TEST((ROW_COUNT / 2 + 101) ==
@@ -558,7 +558,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexPaimary_test) {
   BOOST_TEST((ROW_COUNT / 2 + 100) ==
              (int64_t)(*(DataValueLong *)(*vctRow[ROW_COUNT / 2])[0]));
 
-  utils::Int64ToBytes(ROW_COUNT, buff, true);
+  Int64ToBytes(ROW_COUNT, buff, true);
   indexTree->QueryIndex(nullptr, &key, false, false, vctRow);
   BOOST_TEST((ROW_COUNT) == vctRow.size());
   BOOST_TEST(100 == (int64_t)(*(DataValueLong *)(*vctRow[0])[0]));
@@ -574,7 +574,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexPaimary_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexUnique_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexQueryIndex" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexQueryIndex" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 6000;
 
@@ -591,7 +591,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexUnique_test) {
   Byte buff[100];
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
-    utils::Int64ToBytes(i + 100, buff, true);
+    Int64ToBytes(i + 100, buff, true);
     LeafRecord *rr = new LeafRecord(indexTree, vctKey, buff, 8);
     indexTree->InsertRecord(rr);
   }
@@ -608,38 +608,38 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexUnique_test) {
   RawKey key(buff, 8, false);
   indexTree->QueryIndex(&key, nullptr, true, false, vctRaw);
   BOOST_TEST(ROW_COUNT == vctRaw.size());
-  BOOST_TEST(100 == utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+  BOOST_TEST(100 == Int64FromBytes(vctRaw[0]->GetBysVal(), true));
   BOOST_TEST((ROW_COUNT + 99) ==
-             utils::Int64FromBytes(vctRaw[ROW_COUNT - 1]->GetBysVal(), true));
+             Int64FromBytes(vctRaw[ROW_COUNT - 1]->GetBysVal(), true));
 
-  utils::Int64ToBytes(ROW_COUNT / 2, buff, true);
+  Int64ToBytes(ROW_COUNT / 2, buff, true);
   indexTree->QueryIndex(&key, nullptr, false, false, vctRaw);
   BOOST_TEST((ROW_COUNT / 2 - 1) == vctRaw.size());
   BOOST_TEST((ROW_COUNT / 2 + 101) ==
-             utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+             Int64FromBytes(vctRaw[0]->GetBysVal(), true));
   BOOST_TEST(
       (ROW_COUNT + 99) ==
-      utils::Int64FromBytes(vctRaw[ROW_COUNT / 2 - 2]->GetBysVal(), true));
+      Int64FromBytes(vctRaw[ROW_COUNT / 2 - 2]->GetBysVal(), true));
 
   indexTree->QueryIndex(nullptr, &key, false, false, vctRaw);
   BOOST_TEST((ROW_COUNT / 2) == vctRaw.size());
-  BOOST_TEST(100 == utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+  BOOST_TEST(100 == Int64FromBytes(vctRaw[0]->GetBysVal(), true));
   BOOST_TEST(
       (ROW_COUNT / 2 + 99) ==
-      utils::Int64FromBytes(vctRaw[ROW_COUNT / 2 - 1]->GetBysVal(), true));
+      Int64FromBytes(vctRaw[ROW_COUNT / 2 - 1]->GetBysVal(), true));
 
   indexTree->QueryIndex(nullptr, &key, false, true, vctRaw);
   BOOST_TEST((ROW_COUNT / 2 + 1) == vctRaw.size());
-  BOOST_TEST(100 == utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+  BOOST_TEST(100 == Int64FromBytes(vctRaw[0]->GetBysVal(), true));
   BOOST_TEST((ROW_COUNT / 2 + 100) ==
-             utils::Int64FromBytes(vctRaw[ROW_COUNT / 2]->GetBysVal(), true));
+             Int64FromBytes(vctRaw[ROW_COUNT / 2]->GetBysVal(), true));
 
-  utils::Int64ToBytes(ROW_COUNT, buff, true);
+  Int64ToBytes(ROW_COUNT, buff, true);
   indexTree->QueryIndex(nullptr, &key, false, false, vctRaw);
   BOOST_TEST((ROW_COUNT) == vctRaw.size());
-  BOOST_TEST(100 == utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+  BOOST_TEST(100 == Int64FromBytes(vctRaw[0]->GetBysVal(), true));
   BOOST_TEST((ROW_COUNT + 99) ==
-             utils::Int64FromBytes(vctRaw[ROW_COUNT - 1]->GetBysVal(), true));
+             Int64FromBytes(vctRaw[ROW_COUNT - 1]->GetBysVal(), true));
 
   indexTree->Close(true);
   delete dvKey;
@@ -650,7 +650,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexUnique_test) {
 
 BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexNonUnique_test) {
   const string FILE_NAME =
-      "./dbTest/testIndexQueryIndex" + utils::StrMSTime() + ".dat";
+      "./dbTest/testIndexQueryIndex" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 6000;
   const int KEY_COUNT = 2000;
@@ -667,7 +667,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexNonUnique_test) {
   Byte buff[100];
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i % KEY_COUNT;
-    utils::Int64ToBytes(i + 100, buff, true);
+    Int64ToBytes(i + 100, buff, true);
     LeafRecord *rr = new LeafRecord(indexTree, vctKey, buff, 8);
     indexTree->InsertRecord(rr);
   }
@@ -684,37 +684,37 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexNonUnique_test) {
   RawKey key(buff, 8, false);
   indexTree->QueryIndex(&key, nullptr, true, false, vctRaw);
   BOOST_TEST(ROW_COUNT == vctRaw.size());
-  BOOST_TEST(100 == utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+  BOOST_TEST(100 == Int64FromBytes(vctRaw[0]->GetBysVal(), true));
   BOOST_TEST((ROW_COUNT + 99) ==
-             utils::Int64FromBytes(vctRaw[ROW_COUNT - 1]->GetBysVal(), true));
+             Int64FromBytes(vctRaw[ROW_COUNT - 1]->GetBysVal(), true));
 
-  utils::Int64ToBytes(KEY_COUNT / 2, buff, true);
+  Int64ToBytes(KEY_COUNT / 2, buff, true);
   indexTree->QueryIndex(&key, nullptr, false, false, vctRaw);
   BOOST_TEST((ROW_COUNT / 2 - 3) == vctRaw.size());
   BOOST_TEST((KEY_COUNT / 2 + 101) ==
-             utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+             Int64FromBytes(vctRaw[0]->GetBysVal(), true));
   BOOST_TEST(
       (ROW_COUNT + 99) ==
-      utils::Int64FromBytes(vctRaw[ROW_COUNT / 2 - 4]->GetBysVal(), true));
+      Int64FromBytes(vctRaw[ROW_COUNT / 2 - 4]->GetBysVal(), true));
 
   indexTree->QueryIndex(nullptr, &key, false, false, vctRaw);
   BOOST_TEST((ROW_COUNT / 2) == vctRaw.size());
-  BOOST_TEST(100 == utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
-  BOOST_TEST(5099 == utils::Int64FromBytes(
+  BOOST_TEST(100 == Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+  BOOST_TEST(5099 == Int64FromBytes(
                          vctRaw[ROW_COUNT / 2 - 1]->GetBysVal(), true));
 
   indexTree->QueryIndex(nullptr, &key, false, true, vctRaw);
   BOOST_TEST((ROW_COUNT / 2 + 3) == vctRaw.size());
-  BOOST_TEST(100 == utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
-  BOOST_TEST(5100 == utils::Int64FromBytes(
+  BOOST_TEST(100 == Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+  BOOST_TEST(5100 == Int64FromBytes(
                          vctRaw[ROW_COUNT / 2 + 2]->GetBysVal(), true));
 
-  utils::Int64ToBytes(ROW_COUNT, buff, true);
+  Int64ToBytes(ROW_COUNT, buff, true);
   indexTree->QueryIndex(nullptr, &key, false, false, vctRaw);
   BOOST_TEST((ROW_COUNT) == vctRaw.size());
-  BOOST_TEST(100 == utils::Int64FromBytes(vctRaw[0]->GetBysVal(), true));
+  BOOST_TEST(100 == Int64FromBytes(vctRaw[0]->GetBysVal(), true));
   BOOST_TEST((ROW_COUNT + 99) ==
-             utils::Int64FromBytes(vctRaw[ROW_COUNT - 1]->GetBysVal(), true));
+             Int64FromBytes(vctRaw[ROW_COUNT - 1]->GetBysVal(), true));
 
   indexTree->Close(true);
   delete dvKey;

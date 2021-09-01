@@ -7,25 +7,26 @@ const uint32_t StoragePool::WRITE_DELAY_MS = 1 * 1000;
 const uint64_t StoragePool::MAX_QUEUE_SIZE =
     Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 
-utils::ThreadPool StoragePool::_threadReadPool("StoragePool",
-                                               (uint32_t)MAX_QUEUE_SIZE, 1);
+ThreadPool StoragePool::_threadReadPool("StoragePool", (uint32_t)MAX_QUEUE_SIZE,
+                                        1);
 
-unordered_map<uint64_t, CachePage *> StoragePool::_mapTmp;
-map<uint64_t, CachePage *> StoragePool::_mapWrite;
+MHashMap<uint64_t, CachePage *>::Type StoragePool::_mapTmp;
+MTreeMap<uint64_t, CachePage *>::Type StoragePool::_mapWrite;
 thread *StoragePool::_threadWrite = StoragePool::CreateWriteThread();
 bool StoragePool::_bWriteFlush = false;
 bool StoragePool::_bReadFirst = true;
-utils::SpinMutex StoragePool::_spinMutex;
+SpinMutex StoragePool::_spinMutex;
 bool StoragePool::_bWriteSuspend = false;
+bool StoragePool::_bStop = false;
 
 thread *StoragePool::CreateWriteThread() {
   thread *t = new thread([]() {
-    utils::ThreadPool::_threadName = "WriteThread";
+    ThreadPool::_threadName = "WriteThread";
     while (true) {
       try {
-        unordered_map<uint64_t, CachePage *> mapTmp2;
+        MHashMap<uint64_t, CachePage *>::Type mapTmp2;
         if (_mapTmp.size() > 0) {
-          unique_lock<utils::SpinMutex> lock(_spinMutex);
+          unique_lock<SpinMutex> lock(_spinMutex);
           mapTmp2.swap(_mapTmp);
         }
 
@@ -40,8 +41,11 @@ thread *StoragePool::CreateWriteThread() {
 
         if ((_bReadFirst && _threadReadPool.GetTaskCount() > 0) ||
             _mapWrite.size() == 0 || _bWriteSuspend) {
-          if (_mapWrite.size() == 0)
+          if (_mapWrite.size() == 0) {
+            if (_bStop)
+              break;
             _bWriteFlush = false;
+          }
 
           this_thread::sleep_for(std::chrono::milliseconds(1));
           continue;
@@ -80,7 +84,7 @@ thread *StoragePool::CreateWriteThread() {
 
 void StoragePool::WriteCachePage(CachePage *page) {
   {
-    lock_guard<utils::SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_spinMutex);
     if (_mapTmp.find(page->HashCode()) != _mapTmp.end()) {
       return;
     }

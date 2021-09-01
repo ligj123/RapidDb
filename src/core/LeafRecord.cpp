@@ -28,11 +28,11 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   }
 
   if (lenKey > Configure::GetMaxKeyLength()) {
-    throw utils::ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
+    throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
   }
 
   int totalLen = lenKey + lenPri + TWO_SHORT_LEN;
-  _bysVal = CachePool::ApplyBys(totalLen);
+  _bysVal = CachePool::Apply(totalLen);
   *((uint16_t *)_bysVal) = totalLen;
   *((uint16_t *)(_bysVal + SHORT_LEN)) = lenKey;
 
@@ -78,7 +78,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   }
 
   if (lenKey > Configure::GetMaxKeyLength()) {
-    throw utils::ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
+    throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
   }
 
   uint16_t lenVal = 0;
@@ -124,7 +124,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   if (!_priStru->bOvf)
     totalLen += snapLen;
 
-  _bysVal = CachePool::ApplyBys(totalLen);
+  _bysVal = CachePool::Apply(totalLen);
   if (type == ActionType::DELETE && rsCount == 1) {
     *((uint16_t *)_bysVal) = 0;
     return;
@@ -232,13 +232,13 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
       _priStru->ovfOffset = oldValStru->ovfOffset;
     }
 
-    utils::UInt64ToBytes(_priStru->ovfOffset, _bysVal + pos, false);
+    UInt64ToBytes(_priStru->ovfOffset, _bysVal + pos, false);
     pos += sizeof(uint64_t);
-    utils::UInt32ToBytes(_priStru->ovfRange, _bysVal + pos, false);
+    UInt32ToBytes(_priStru->ovfRange, _bysVal + pos, false);
     pos += sizeof(uint32_t);
-    utils::UInt16ToBytes(indexOvfStart, _bysVal + pos, false);
+    UInt16ToBytes(indexOvfStart, _bysVal + pos, false);
     pos += sizeof(uint16_t);
-    utils::UInt16ToBytes(lenVal, _bysVal + pos, false);
+    UInt16ToBytes(lenVal, _bysVal + pos, false);
     pos += sizeof(uint16_t);
 
     pos += sizeof(uint32_t) * rsCount;
@@ -394,20 +394,20 @@ void LeafRecord::GetListOverflow(VectorDataValue &vctVal) const {
 }
 
 int LeafRecord::CompareTo(const LeafRecord &lr) const {
-  return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
                              GetTotalLength() - _indexTree->GetKeyOffset(),
                              lr._bysVal + _indexTree->GetKeyOffset(),
                              lr.GetTotalLength() - _indexTree->GetKeyOffset());
 }
 
 int LeafRecord::CompareKey(const RawKey &key) const {
-  return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
                              GetKeyLength() - _indexTree->GetKeyVarLen(),
                              key.GetBysVal(), key.GetLength());
 }
 
 int LeafRecord::CompareKey(const LeafRecord &lr) const {
-  return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
                              GetKeyLength() - _indexTree->GetKeyVarLen(),
                              lr.GetBysValue() + _indexTree->GetKeyOffset(),
                              lr.GetKeyLength() - _indexTree->GetKeyVarLen());
@@ -421,7 +421,7 @@ RawKey *LeafRecord::GetKey() const {
 RawKey *LeafRecord::GetPrimayKey() const {
   int start = GetKeyLength() + _indexTree->GetValOffset();
   int len = GetTotalLength() - start;
-  Byte *buf = CachePool::ApplyBys(len);
+  Byte *buf = CachePool::Apply(len);
   memcpy(buf, _bysVal + start, len);
   return new RawKey(buf, len, true);
 }

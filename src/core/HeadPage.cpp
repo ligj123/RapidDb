@@ -28,7 +28,7 @@ const uint64_t HeadPage::NO_PREV_PAGE_POINTER = UINT64_MAX;
 const uint64_t HeadPage::NO_NEXT_PAGE_POINTER = UINT64_MAX;
 
 void HeadPage::ReadPage() {
-  lock_guard<utils::SpinMutex> lock(_spinMutex);
+  lock_guard<SpinMutex> lock(_spinMutex);
   CachePage::ReadPage();
 
   _indexType = (IndexType)ReadByte(INDEX_TYPE_OFFSET);
@@ -54,7 +54,7 @@ void HeadPage::ReadPage() {
 }
 
 void HeadPage::WritePage() {
-  lock_guard<utils::SpinMutex> lock(_spinMutex);
+  lock_guard<SpinMutex> lock(_spinMutex);
   WriteByte(RECORD_VER_COUNT_OFFSET, _recordVerCount);
   WriteLong(TOTAL_PAGES_COUNT_OFFSET, _totalPageCount);
   WriteLong(ROOT_PAGE_OFFSET, _rootPageId);
@@ -89,7 +89,7 @@ FileVersion HeadPage::ReadFileVersion() {
 }
 
 void HeadPage::WriteKeyVariableFieldCount(uint16_t num) {
-  lock_guard<utils::SpinMutex> lock(_spinMutex);
+  lock_guard<SpinMutex> lock(_spinMutex);
   _keyVariableFieldCount = num;
   WriteShort(KEY_VARIABLE_FIELD_COUNT, num);
   _bDirty = true;
@@ -99,7 +99,7 @@ void HeadPage::WriteKeyVariableFieldCount(uint16_t num) {
 }
 
 void HeadPage::WriteValueVariableFieldCount(uint16_t num) {
-  lock_guard<utils::SpinMutex> lock(_spinMutex);
+  lock_guard<SpinMutex> lock(_spinMutex);
   _valueVariableFieldCount = num;
   WriteShort(VALUE_VARIABLE_FIELD_COUNT, num);
   _bDirty = true;

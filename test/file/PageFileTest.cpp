@@ -8,8 +8,8 @@
 namespace storage {
 namespace fs = std::filesystem;
 string rootPath = "./dbTest";
-string pageName = rootPath + "/testPageFile" + utils::StrMSTime() + ".dat";
-string ovfName = rootPath + "/testOverflow" + utils::StrMSTime() + ".dat";
+string pageName = rootPath + "/testPageFile" + StrMSTime() + ".dat";
+string ovfName = rootPath + "/testOverflow" + StrMSTime() + ".dat";
 
 BOOST_AUTO_TEST_SUITE(PageFileTest)
 
@@ -19,7 +19,7 @@ BOOST_AUTO_TEST_CASE(PageFile_test) {
     string nofile = "./unexistdir/filename";
     PageFile errFile(nofile);
     throw "Here should have an exception!";
-  } catch (utils::ErrorMsg &msg) {
+  } catch (ErrorMsg &msg) {
     LOG_INFO << msg.what();
   }
 
@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(PageFile_test) {
 
 BOOST_AUTO_TEST_CASE(OverflowFile_test) {
   PageFile pf(ovfName, true);
-  vector<IDataValue *> vctDv;
+  MVector<IDataValue *>::Type vctDv;
   vctDv.push_back(DataValueFactory(DataType::LONG, false, 0, 0x12345678));
   vctDv.push_back(
       DataValueFactory(DataType::FIXCHAR, false, 100, "abcdefghigklmn"));
@@ -69,7 +69,7 @@ BOOST_AUTO_TEST_CASE(OverflowFile_test) {
   pf.close();
 
   PageFile pf2(ovfName, true);
-  vector<IDataValue *> vctDv2;
+  MVector<IDataValue *>::Type vctDv2;
   vctDv2.push_back(DataValueFactory(DataType::LONG, false, 0));
   vctDv2.push_back(DataValueFactory(DataType::FIXCHAR, false, 100));
   vctDv2.push_back(DataValueFactory(DataType::VARCHAR, false, 100));

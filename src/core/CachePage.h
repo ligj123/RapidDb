@@ -37,7 +37,7 @@ public:
   virtual ~CachePage();
   bool IsFileClosed() const;
 
-  inline utils::ReentrantSharedSpinMutex &GetLock() { return _rwLock; }
+  inline ReentrantSharedSpinMutex &GetLock() { return _rwLock; }
   inline bool IsDirty() const { return _bDirty; }
   inline void SetDirty(bool b) { _bDirty = b; }
   inline bool IsLocked() const { return _rwLock.is_locked(); }
@@ -75,38 +75,38 @@ public:
 
   inline int16_t ReadShort(uint32_t pos) const {
     assert(Configure::GetCachePageSize() > sizeof(int16_t) + pos);
-    return utils::Int16FromBytes(_bysPage + pos);
+    return Int16FromBytes(_bysPage + pos);
   }
 
   inline void WriteShort(uint32_t pos, int16_t value) {
     assert(Configure::GetCachePageSize() > sizeof(int16_t) + pos);
-    utils::Int16ToBytes(value, _bysPage + pos);
+    Int16ToBytes(value, _bysPage + pos);
   }
 
   inline int32_t ReadInt(uint32_t pos) const {
     assert(Configure::GetCachePageSize() > sizeof(int32_t) + pos);
-    return utils::Int32FromBytes(_bysPage + pos);
+    return Int32FromBytes(_bysPage + pos);
   }
 
   inline void WriteInt(uint32_t pos, int32_t value) {
     assert(Configure::GetCachePageSize() > sizeof(int32_t) + pos);
-    utils::Int32ToBytes(value, _bysPage + pos);
+    Int32ToBytes(value, _bysPage + pos);
   }
 
   uint64_t ReadLong(uint32_t pos) const {
     assert(Configure::GetCachePageSize() > sizeof(int64_t) + pos);
-    return utils::Int64FromBytes(_bysPage + pos);
+    return Int64FromBytes(_bysPage + pos);
   }
 
   void WriteLong(uint32_t pos, int64_t value) {
     assert(Configure::GetCachePageSize() > sizeof(int64_t) + pos);
-    utils::Int64ToBytes(value, _bysPage + pos);
+    Int64ToBytes(value, _bysPage + pos);
   }
 
 protected:
   Byte *_bysPage = nullptr;
-  utils::ReentrantSharedSpinMutex _rwLock;
-  utils::SpinMutex _pageLock;
+  ReentrantSharedSpinMutex _rwLock;
+  SpinMutex _pageLock;
   uint64_t _dtPageLastWrite = 0;
   uint64_t _dtPageLastAccess = 0;
   uint64_t _pageId = 0;

@@ -88,9 +88,9 @@ BufferPool::~BufferPool() {
 }
 
 void BufferPool::Apply(vector<Byte *> &vct) {
-  std::unique_lock<utils::SpinMutex> lock(_spinMutex);
-
-  while (vct.size() < vct.capacity() / 2) {
+  std::unique_lock<SpinMutex> lock(_spinMutex);
+  size_t cap = (vct.capacity() >> 2) + (vct.capacity() >> 1);
+  while (vct.size() < cap) {
     if (_mapFreeBuffer.size() == 0) {
       Buffer *buff = CachePool::AllocateBuffer(_eleSize);
       _mapBuffer.insert(pair<Byte *, Buffer *>(buff->GetBuf(), buff));
@@ -105,8 +105,8 @@ void BufferPool::Apply(vector<Byte *> &vct) {
 }
 
 void BufferPool::Release(vector<Byte *> &vct, bool bAll) {
-  std::unique_lock<utils::SpinMutex> lock(_spinMutex);
-  int sz = (bAll ? 0 : (int)vct.capacity() / 2);
+  std::unique_lock<SpinMutex> lock(_spinMutex);
+  size_t sz = (bAll ? 0 : (vct.capacity() >> 2));
   while (vct.size() > sz) {
     Byte *buf = Buffer::CalcAddr(vct[0]);
     auto iter = _mapBuffer.find(buf);
@@ -121,7 +121,7 @@ void BufferPool::Release(vector<Byte *> &vct, bool bAll) {
 }
 
 Byte *BufferPool::Apply() {
-  std::unique_lock<utils::SpinMutex> lock(_spinMutex);
+  std::unique_lock<SpinMutex> lock(_spinMutex);
   if (_mapFreeBuffer.size() == 0) {
     Buffer *buff = CachePool::AllocateBuffer(_eleSize);
     _mapBuffer.insert(pair<Byte *, Buffer *>(buff->GetBuf(), buff));
@@ -139,7 +139,7 @@ Byte *BufferPool::Apply() {
 }
 
 void BufferPool::Release(Byte *bys) {
-  std::unique_lock<utils::SpinMutex> lock(_spinMutex);
+  std::unique_lock<SpinMutex> lock(_spinMutex);
   Byte *buf = Buffer::CalcAddr(bys);
   auto iter = _mapBuffer.find(buf);
   iter->second->Release(bys);

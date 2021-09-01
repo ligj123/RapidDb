@@ -1,10 +1,10 @@
-#include "ErrorMsg.h"
+﻿#include "ErrorMsg.h"
 #include <fstream>
 #include <iostream>
 #include <regex>
 #include <string>
 
-namespace utils {
+namespace storage {
 
 unordered_map<int, string> ErrorMsg::_mapErrorMsg = ErrorMsg::LoadErrorMsg();
 
@@ -28,4 +28,4 @@ unordered_map<int, string> ErrorMsg::LoadErrorMsg() {
 
   return map;
 }
-} // namespace utils
+} // namespace storage

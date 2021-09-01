@@ -4,13 +4,14 @@
 #include <filesystem>
 #include <string>
 
+namespace storage {
 namespace fs = std::filesystem;
 static const std::string ROOT_PATH = "./dbTest";
 
 struct GlobalFixTure {
   GlobalFixTure() {
     std::cout << "Start global fixture." << std::endl;
-    utils::Logger::init(utils::ERROR);
+    Logger::init(ERROR);
 
     fs::path path(ROOT_PATH);
     if (!fs::exists(path))
@@ -21,3 +22,4 @@ struct GlobalFixTure {
 };
 // 定义全局夹具
 BOOST_GLOBAL_FIXTURE(GlobalFixTure);
+} // namespace storage

@@ -7,15 +7,16 @@ const uint64_t PageDividePool::MAX_QUEUE_SIZE =
 const uint32_t PageDividePool::BUFFER_FLUSH_INTEVAL_MS = 1 * 1000;
 const int PageDividePool::SLEEP_INTEVAL_MS = 100;
 
-map<uint64_t, IndexPage *> PageDividePool::_mapPage;
-unordered_map<uint64_t, IndexPage *> PageDividePool::_mapTmp;
+MTreeMap<uint64_t, IndexPage *>::Type PageDividePool::_mapPage;
+MHashMap<uint64_t, IndexPage *>::Type PageDividePool::_mapTmp;
 thread *PageDividePool::_treeDivideThread = PageDividePool::CreateThread();
 bool PageDividePool::_bSuspend = false;
-utils::SpinMutex PageDividePool::_spinMutex;
+SpinMutex PageDividePool::_spinMutex;
+bool PageDividePool::_bStop = false;
 
 thread *PageDividePool::CreateThread() {
   thread *t = new thread([]() {
-    utils::ThreadPool::_threadName = "PageDividePool";
+    ThreadPool::_threadName = "PageDividePool";
     _mapTmp.reserve(100000);
 
     while (true) {
@@ -24,9 +25,9 @@ thread *PageDividePool::CreateThread() {
         continue;
       }
 
-      unordered_map<uint64_t, IndexPage *> mapTmp;
+      MHashMap<uint64_t, IndexPage *>::Type mapTmp;
       {
-        unique_lock<utils::SpinMutex> lock(_spinMutex);
+        unique_lock<SpinMutex> lock(_spinMutex);
         _mapTmp.swap(mapTmp);
       }
 
@@ -41,6 +42,8 @@ thread *PageDividePool::CreateThread() {
 
       if (_mapPage.size() < 1000) {
         this_thread::sleep_for(std::chrono::milliseconds(10));
+        if (_mapPage.size() == 0 && _mapTmp.size() == 0 && _bStop)
+          break;
       }
 
       for (auto iter = _mapPage.begin(); iter != _mapPage.end();) {
@@ -78,7 +81,7 @@ thread *PageDividePool::CreateThread() {
 }
 
 void PageDividePool::AddCachePage(IndexPage *page) {
-  lock_guard<utils::SpinMutex> lock(_spinMutex);
+  lock_guard<SpinMutex> lock(_spinMutex);
   if (_mapTmp.find(page->GetPageId()) != _mapTmp.end()) {
     return;
   }

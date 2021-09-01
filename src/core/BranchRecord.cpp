@@ -19,7 +19,7 @@ BranchRecord::BranchRecord(IndexTree *indexTree, RawRecord *rec,
            ? rec->GetValueLength()
            : 0);
   uint16_t totalLen = lenKey + lenVal + PAGE_ID_LEN + TWO_SHORT_LEN;
-  _bysVal = CachePool::ApplyBys(totalLen);
+  _bysVal = CachePool::Apply(totalLen);
 
   *((uint16_t *)_bysVal) = totalLen;
   *((uint16_t *)(_bysVal + sizeof(uint16_t))) = lenKey;
@@ -74,12 +74,12 @@ void BranchRecord::GetListValue(VectorDataValue &vct) const {
 
 int BranchRecord::CompareTo(const RawRecord &rr) const {
   if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
-    return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+    return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
                                GetKeyLength() - _indexTree->GetKeyVarLen(),
                                rr.GetBysValue() + _indexTree->GetKeyOffset(),
                                rr.GetKeyLength() - _indexTree->GetKeyVarLen());
   } else {
-    return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+    return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
                                GetTotalLength() - _indexTree->GetKeyOffset(),
                                rr.GetBysValue() + _indexTree->GetKeyOffset(),
                                rr.GetTotalLength() -
@@ -88,13 +88,13 @@ int BranchRecord::CompareTo(const RawRecord &rr) const {
 }
 
 int BranchRecord::CompareKey(const RawKey &key) const {
-  return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
                              GetKeyLength() - _indexTree->GetKeyVarLen(),
                              key.GetBysVal(), key.GetLength());
 }
 
 int BranchRecord::CompareKey(const RawRecord &rr) const {
-  return utils::BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
+  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
                              GetKeyLength() - _indexTree->GetKeyVarLen(),
                              rr.GetBysValue() + _indexTree->GetKeyOffset(),
                              rr.GetKeyLength() - _indexTree->GetKeyVarLen());
@@ -102,7 +102,7 @@ int BranchRecord::CompareKey(const RawRecord &rr) const {
 
 bool BranchRecord::EqualPageId(const BranchRecord &br) const {
   return (
-      utils::BytesCompare(
+      BytesCompare(
           _bysVal + GetKeyLength() + GetValueLength() + TWO_SHORT_LEN,
           sizeof(uint64_t),
           br._bysVal + br.GetKeyLength() + br.GetValueLength() + TWO_SHORT_LEN,

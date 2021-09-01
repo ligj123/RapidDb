@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(DataValueLong_test) {
   dv6 = dv7;
   BOOST_TEST(dv6 == dv7);
 
-  DataValueLong dv9(std::any(100));
+  DataValueLong dv9(std::any(100), false);
   BOOST_TEST((int64_t)dv9 == 100);
 
   DataValueLong *pDv = dv9.Clone();

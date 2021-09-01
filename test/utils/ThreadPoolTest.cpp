@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace utils {
+namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(ThreadPool_test) {
@@ -60,4 +60,4 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   BOOST_TEST(tp.GetCurrId() == 15);
 }
 BOOST_AUTO_TEST_SUITE_END()
-} // namespace utils
+} // namespace storage

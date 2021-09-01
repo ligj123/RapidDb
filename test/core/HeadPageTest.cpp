@@ -13,7 +13,7 @@ BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(HeadPage_test) {
   const string FILE_NAME =
-      "./dbTest/testHeadPage" + utils::StrMSTime() + ".dat";
+      "./dbTest/testHeadPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   VectorDataValue vctKey;
   VectorDataValue vctVal;

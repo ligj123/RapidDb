@@ -108,7 +108,7 @@ bool LeafPage::SaveRecords() {
   return true;
 }
 
-utils::ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
+ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
   if (_recordNum > 0 && _vctRecord.size() == 0) {
     LoadRecords();
   }
@@ -124,7 +124,7 @@ utils::ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
     }
 
     if (bFind) {
-      return new utils::ErrorMsg(CORE_REPEATED_RECORD, {});
+      return new ErrorMsg(CORE_REPEATED_RECORD, {});
     }
   } else if (pos > _recordNum) {
     pos = _recordNum;
@@ -414,7 +414,7 @@ bool LeafPage::FetchRecords(const RawKey *startKey, const RawKey *endKey,
 
 int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
-  return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+  return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
                              ReadShort(start + SHORT_LEN) -
                                  _indexTree->GetKeyVarLen(),
                              key.GetBysVal(), key.GetLength());
@@ -423,13 +423,13 @@ int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {
 int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
   if (key) {
-    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+    return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
                                ReadShort(start + SHORT_LEN) -
                                    _indexTree->GetKeyVarLen(),
                                rr.GetBysValue() + _indexTree->GetKeyOffset(),
                                rr.GetKeyLength() - _indexTree->GetKeyVarLen());
   } else {
-    return utils::BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
+    return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
                                ReadShort(start) - _indexTree->GetKeyOffset(),
                                rr.GetBysValue() + _indexTree->GetKeyOffset(),
                                rr.GetTotalLength() -

@@ -4,7 +4,7 @@
 #include <sstream>
 #include <thread>
 
-namespace utils {
+namespace storage {
 static inline size_t get_thread_id() {
   std::stringstream ss;
   ss << std::this_thread::get_id();
@@ -455,4 +455,4 @@ protected:
 //  size_t _owner = 0;
 //  int32_t _reenCount = 0;
 //};
-} // namespace utils
+} // namespace storage

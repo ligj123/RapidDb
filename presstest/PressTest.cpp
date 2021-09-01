@@ -10,6 +10,7 @@
 
 namespace fs = std::filesystem;
 static const std::string ROOT_PATH = "./dbTest";
+using namespace storage;
 
 void help() {
   std::cout << "Press test parameters:\n";
@@ -19,7 +20,7 @@ void help() {
 
 int main(int argc, char *argv[]) {
   std::cout << "Initialize press test.\n";
-  utils::Logger::init(utils::ERROR, utils::INFO);
+  Logger::init(ERROR, INFO);
   fs::path path(ROOT_PATH);
   if (!fs::exists(path))
     fs::create_directories(path);

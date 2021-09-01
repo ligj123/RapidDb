@@ -1,11 +1,10 @@
 ﻿#pragma once
+#include "../cache/Mallocator.h"
 #include "../config/Configure.h"
 #include "../core/CachePage.h"
 #include "../utils/Log.h"
 #include "../utils/ThreadPool.h"
-#include <map>
 #include <queue>
-#include <unordered_map>
 
 namespace storage {
 using namespace std;
@@ -19,6 +18,7 @@ public:
   static uint32_t GetWaitingWriteTaskCount() {
     return (uint32_t)_mapWrite.size();
   }
+  static void SetStop() { _bStop = true; }
 
 protected:
   static thread *CreateWriteThread();
@@ -26,14 +26,15 @@ protected:
 protected:
   static const uint32_t WRITE_DELAY_MS;
   static const uint64_t MAX_QUEUE_SIZE;
-  static utils::ThreadPool _threadReadPool;
+  static ThreadPool _threadReadPool;
 
-  static unordered_map<uint64_t, CachePage *> _mapTmp;
-  static map<uint64_t, CachePage *> _mapWrite;
+  static MHashMap<uint64_t, CachePage *>::Type _mapTmp;
+  static MTreeMap<uint64_t, CachePage *>::Type _mapWrite;
   static thread *_threadWrite;
   static bool _bWriteFlush;
   static bool _bReadFirst;
-  static utils::SpinMutex _spinMutex;
+  static SpinMutex _spinMutex;
   static bool _bWriteSuspend;
+  static bool _bStop;
 };
 } // namespace storage

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../cache/CachePool.h"
+#include "../cache/Mallocator.h"
 #include "../cache/StrBuff.h"
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
@@ -148,7 +149,7 @@ protected:
   bool bReuse_;
 };
 
-class VectorDataValue : public vector<IDataValue *> {
+class VectorDataValue : public MVector<IDataValue *>::Type {
 public:
   using vector::vector;
   ~VectorDataValue() {
@@ -173,7 +174,7 @@ protected:
   bool bDelAll_ = false;
 };
 
-class VectorRow : public vector<VectorDataValue *> {
+class VectorRow : public MVector<VectorDataValue *>::Type {
 public:
   using vector::vector;
   ~VectorRow() {

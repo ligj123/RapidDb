@@ -23,36 +23,47 @@ protected:
 class CachePool {
 public:
   /**Apply a menory block for an Index page*/
-  static Byte *ApplyPage();
+  static Byte *ApplyPage() {
+    CachePool *pool = GetInstance();
+    return pool->_localMap.Pop((uint32_t)Configure::GetCachePageSize());
+  }
+
   /**Release an memory block for an index page*/
-  static void ReleasePage(Byte *page);
-  /**Apply a memory block with fixed size*/
-  static Byte *Apply(uint32_t eleSize);
-  /**Release a memory block with fixed size*/
-  static void Release(Byte *pBuf, uint32_t eleSize);
-  /**Apply a memory block with unfixed size*/
-  static inline Byte *ApplyBys(uint32_t bufSize) {
+  static void ReleasePage(Byte *page) {
+    CachePool *pool = GetInstance();
+    pool->_localMap.Push(page, (uint32_t)Configure::GetCachePageSize());
+  }
+
+  /**Apply a memory block from cache*/
+  static inline Byte *Apply(uint32_t bufSize) {
     uint32_t sz = CalcBufSize(bufSize);
     if (sz == UINT32_MAX)
       return new Byte[bufSize];
-    else
-      return Apply(sz);
+    else {
+      CachePool *pool = GetInstance();
+      return pool->_localMap.Pop(sz);
+    }
   }
-  static inline Byte *ApplyBys(uint32_t bufSize, uint32_t &realSize) {
+  /**Apply a memory block from cache and return the actual allocated size*/
+  static inline Byte *Apply(uint32_t bufSize, uint32_t &realSize) {
     realSize = CalcBufSize(bufSize);
     if (realSize == UINT32_MAX) {
       realSize = bufSize;
       return new Byte[realSize];
-    } else
-      return Apply(realSize);
+    } else {
+      CachePool *pool = GetInstance();
+      return pool->_localMap.Pop(realSize);
+    }
   }
   /**Release a memory block with unfixed size*/
-  static inline void ReleaseBys(Byte *pBuf, uint32_t bufSize) {
+  static inline void Release(Byte *pBuf, uint32_t bufSize) {
     uint32_t sz = CalcBufSize(bufSize);
     if (sz == UINT32_MAX)
       delete[] pBuf;
-    else
-      return Release(pBuf, sz);
+    else {
+      CachePool *pool = GetInstance();
+      pool->_localMap.Push(pBuf, sz);
+    }
   }
 
 public:
@@ -70,10 +81,12 @@ protected:
 
 protected:
   static uint32_t CalcBufSize(uint32_t sz) {
+    if (sz <= 64)
+      return ((sz + 7) & 0xFFF8);
+    if (sz <= 256)
+      return ((sz + 31) & 0xFFE0);
     if (sz > 16384)
       return UINT32_MAX;
-    if (sz <= 64)
-      return ((sz + 7) & 0xF8);
 
     uint32_t x = sz | (sz >> 1);
     x = x | (x >> 2);
@@ -93,7 +106,7 @@ protected:
   queue<Buffer *> _queueFreeBuf;
   /**Mutex for block memory,used to create IDataValue etc. One block can create
    * multi objects.*/
-  utils::SpinMutex _spinMutex;
+  SpinMutex _spinMutex;
 
   friend class BufferPool;
   friend class LocalMap;

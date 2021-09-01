@@ -46,6 +46,6 @@ protected:
   unordered_map<Byte *, Buffer *> _mapBuffer;
   unordered_map<Byte *, Buffer *> _mapFreeBuffer;
   uint32_t _eleSize;
-  utils::SpinMutex _spinMutex;
+  SpinMutex _spinMutex;
 };
 } // namespace storage

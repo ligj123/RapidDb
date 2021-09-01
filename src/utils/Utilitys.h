@@ -5,7 +5,7 @@
 #include <regex>
 #include <string>
 
-namespace utils {
+namespace storage {
 using namespace std;
 static const char *NAME_PATTERN =
     "^[_a-zA-Z\\\\u4E00-\\\\u9FA5][_a-zA-Z0-9\\\\u4E00-\\\\u9FA5]*?$";
@@ -14,7 +14,7 @@ static regex reg(""); // NAME_PATTERN);
 static void IsValidName(string name) {
   cmatch mt;
   if (!regex_match(name.c_str(), mt, reg)) {
-    throw utils::ErrorMsg(storage::TB_INVALID_FILE_VERSION, {name});
+    throw ErrorMsg(storage::TB_INVALID_FILE_VERSION, {name});
   }
 }
 
@@ -29,4 +29,4 @@ static std::string StrMSTime() {
                             std::chrono::system_clock::now().time_since_epoch())
                             .count());
 }
-} // namespace utils
+} // namespace storage

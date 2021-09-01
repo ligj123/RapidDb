@@ -1,4 +1,4 @@
-#ifndef EXCEPTION_EX_H
+﻿#ifndef EXCEPTION_EX_H
 #define EXCEPTION_EX_H
 #include <boost/stacktrace.hpp>
 #include <exception>
@@ -6,7 +6,7 @@
 #include <string>
 
 using namespace std;
-namespace utils {
+namespace storage {
 class BacktraceException : public exception {
 public:
   BacktraceException(string what) {
@@ -32,6 +32,6 @@ private:
   string m_strWhat;
   string m_strTrace;
 };
-} // namespace utils
+} // namespace storage
 
 #endif

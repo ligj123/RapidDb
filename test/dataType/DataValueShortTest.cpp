@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(DataValueShort_test) {
   dv6 = dv7;
   BOOST_TEST(dv6 == dv7);
 
-  DataValueShort dv9(std::any(100));
+  DataValueShort dv9(std::any(100), false);
   BOOST_TEST((int16_t)dv9 == 100);
 
   StrBuff sb(0);

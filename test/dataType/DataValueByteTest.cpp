@@ -87,7 +87,7 @@ BOOST_AUTO_TEST_CASE(DataValueByte_test) {
   dv6 = dv7;
   BOOST_TEST(dv6 == dv7);
 
-  DataValueByte dv9(std::any(100));
+  DataValueByte dv9(std::any(100), false);
   BOOST_TEST((uint8_t)dv9 == 100);
 
   StrBuff sb(0);

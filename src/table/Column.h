@@ -9,7 +9,6 @@
 
 namespace storage {
 using namespace std;
-using namespace utils;
 
 class BaseColumn {
 public:
@@ -48,18 +47,18 @@ public:
   int32_t GetMaxLength() const { return _maxLength; }
   int64_t GetInitVal() const { return _initVal; }
   int64_t GetIncStep() const { return _incStep; }
-  utils::Charsets GetCharset() { return _charset; }
+  Charsets GetCharset() { return _charset; }
   const IDataValue *GetDefaultVal() { return _pDefaultVal; }
   const string &GetComments() { return _comments; }
 
 protected:
-  bool _bNullable;          // Can bu null or not for this column
-  utils::Charsets _charset; // The charset for char data type
-  int32_t _maxLength;       // The max length for variable length data type
-  int64_t _initVal; // The initalize value for auto-increment column, the
-                    // default is 0
-  int64_t _incStep; // The step between two increment, the default is 1
-  string _comments; // Comments for this column
+  bool _bNullable;    // Can bu null or not for this column
+  Charsets _charset;  // The charset for char data type
+  int32_t _maxLength; // The max length for variable length data type
+  int64_t _initVal;   // The initalize value for auto-increment column, the
+                      // default is 0
+  int64_t _incStep;   // The step between two increment, the default is 1
+  string _comments;   // Comments for this column
   IDataValue *_pDefaultVal; // The default value if has or null
 };
 

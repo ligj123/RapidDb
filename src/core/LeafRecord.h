@@ -163,7 +163,7 @@ protected:
 };
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
-class VectorLeafRecord : public vector<LeafRecord *> {
+class VectorLeafRecord : public MVector<LeafRecord *>::Type {
 public:
   using vector::vector;
   ~VectorLeafRecord() {

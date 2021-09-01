@@ -36,7 +36,7 @@ public:
       else
         _value = (T)std::stod(std::any_cast<std::string>(val));
     } else
-      throw utils::ErrorMsg(2001, {val.type().name(), StrOfDataType(DT)});
+      throw ErrorMsg(2001, {val.type().name(), StrOfDataType(DT)});
   }
 
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
@@ -57,7 +57,7 @@ public:
       else
         _value = (T)std::atof(any_cast<string>(dv.GetValue()).c_str());
     } else if (!dv.IsDigital()) {
-      throw utils::ErrorMsg(
+      throw ErrorMsg(
           2001, {StrOfDataType(dv.GetDataType()), StrOfDataType(dataType_)});
     } else if (IsAutoPrimaryKey()) {
       _value = (T)dv.GetLong();
@@ -118,7 +118,7 @@ public:
   uint32_t WriteData(Byte *buf, bool key) const override {
     if (key) {
       if (valType_ == ValueType::SOLE_VALUE) {
-        utils::DigitalToBytes<T>(_value, buf, true);
+        DigitalToBytes<T>(_value, buf, true);
       }
       return sizeof(T);
     } else {
@@ -136,7 +136,7 @@ public:
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override {
     if (bKey_) {
       valType_ = ValueType::SOLE_VALUE;
-      _value = utils::DigitalFromBytes<T>(buf, bKey_);
+      _value = DigitalFromBytes<T>(buf, bKey_);
       return sizeof(T);
     } else {
       valType_ =
@@ -248,15 +248,7 @@ public:
     return _value == dv._value;
   }
   bool operator!=(const DataValueDigit &dv) const { return !(*this == dv); }
-  void Add(IDataValue &dv) override {
-    assert(dv.IsDigital());
-    if (IsAutoPrimaryKey())
-      _value += dv.GetLong();
-    else
-      _value += dv.GetDouble();
-  }
-  friend std::ostream &operator<<(std::ostream &os,
-                                  const DataValueDigit<T, DT> &dv);
+  void Add(IDataValue &dv) override { Case_Add<DT>::Add(_value, dv); }
 
 protected:
   T _value;

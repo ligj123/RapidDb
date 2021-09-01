@@ -4,7 +4,7 @@
 
 using namespace std;
 
-namespace utils {
+namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
@@ -49,4 +49,4 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
   BOOST_TEST(count == 500000);
 }
 BOOST_AUTO_TEST_SUITE_END()
-} // namespace utils
+} // namespace storage
