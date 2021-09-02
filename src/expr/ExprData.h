@@ -16,7 +16,9 @@ namespace storage {
  */
 class ExprColumn : public ExprData {
 public:
-  ExprColumn(int rowPos) : ExprData(ExprType::EXPR_COLUMN), _rowPos(rowPos) {}
+  ExprColumn(int rowPos) : _rowPos(rowPos) {}
+
+  ExprType GetType() { return ExprType::EXPR_COLUMN; }
   IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     return vdRow[_rowPos];
   }
@@ -30,8 +32,9 @@ protected:
  */
 class ExprParameter : public ExprData {
 public:
-  ExprParameter(int paraPos)
-      : ExprData(ExprType::EXPR_PARAMETER), _paraPos(paraPos) {}
+  ExprParameter(int paraPos) : _paraPos(paraPos) {}
+
+  ExprType GetType() { return ExprType::EXPR_PARAMETER; }
   IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     return vdRow[_paraPos];
   }
@@ -43,12 +46,13 @@ protected:
 class ExprAdd : public ExprData {
 public:
   ExprAdd(ExprData *left, ExprData *right)
-      : ExprData(ExprType::EXPR_ADD), _exprLeft(left), _exprRight(right) {}
+      : _exprLeft(left), _exprRight(right) {}
   ~ExprAdd() {
     delete _exprLeft;
     delete _exprRight;
   }
 
+  ExprType GetType() { return ExprType::EXPR_ADD; }
   IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
     IDataValue *right = _exprRight->Calc(vdPara, vdRow);
@@ -82,12 +86,13 @@ protected:
 class ExprSub : public ExprData {
 public:
   ExprSub(ExprData *left, ExprData *right)
-      : ExprData(ExprType::EXPR_SUB), _exprLeft(left), _exprRight(right) {}
+      : _exprLeft(left), _exprRight(right) {}
   ~ExprSub() {
     delete _exprLeft;
     delete _exprRight;
   }
 
+  ExprType GetType() { return ExprType::EXPR_SUB; }
   IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
     IDataValue *right = _exprRight->Calc(vdPara, vdRow);
@@ -116,12 +121,13 @@ protected:
 class ExprMul : public ExprData {
 public:
   ExprMul(ExprData *left, ExprData *right)
-      : ExprData(ExprType::EXPR_MUL), _exprLeft(left), _exprRight(right) {}
+      : _exprLeft(left), _exprRight(right) {}
   ~ExprMul() {
     delete _exprLeft;
     delete _exprRight;
   }
 
+  ExprType GetType() { return ExprType::EXPR_MUL; }
   IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
     IDataValue *right = _exprRight->Calc(vdPara, vdRow);
@@ -150,12 +156,13 @@ protected:
 class ExprDiv : public ExprData {
 public:
   ExprDiv(ExprData *left, ExprData *right)
-      : ExprData(ExprType::EXPR_DIV), _exprLeft(left), _exprRight(right) {}
+      : _exprLeft(left), _exprRight(right) {}
   ~ExprDiv() {
     delete _exprLeft;
     delete _exprRight;
   }
 
+  ExprType GetType() { return ExprType::EXPR_DIV; }
   IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
     IDataValue *right = _exprRight->Calc(vdPara, vdRow);

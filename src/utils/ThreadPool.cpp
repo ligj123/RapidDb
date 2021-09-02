@@ -22,6 +22,7 @@ void ThreadPool::CreateThread(int id) {
   thread *t = new thread([this, id]() {
     std::unique_lock<SpinMutex> queue_lock(_task_mutex, std::defer_lock);
     _threadName = _threadPrefix + "_" + to_string(id);
+    MVector<Task *>::Type vct;
 
     while (true) {
       queue_lock.lock();
@@ -41,12 +42,31 @@ void ThreadPool::CreateThread(int id) {
         }
       }
 
-      auto temp_task = std::move(_tasks.front());
-      _tasks.pop();
+      auto task = _tasks.front();
+      if (task->IsSmallTask()) {
+        while (true) {
+          vct.push_back(task);
+          _tasks.pop_front();
+          if (_tasks.size() == 0 || _tasks.front()->IsSmallTask())
+            break;
+          task = _tasks.front();
+        }
+      } else {
+        _tasks.pop_front();
+      }
       _freeThreads--;
       queue_lock.unlock();
 
-      (*temp_task)();
+      if (vct.size() > 0) {
+        for (auto task : vct) {
+          task->Run();
+          delete task;
+        }
+        vct.clear();
+      } else {
+        task->Run();
+        delete task;
+      }
     }
 
     std::unique_lock<SpinMutex> thread_lock(_threadMutex);
@@ -76,5 +96,32 @@ ThreadPool::~ThreadPool() {
   }
 
   _mapThread.clear();
+}
+
+void ThreadPool::AddTask(Task *task) {
+  std::unique_lock<SpinMutex> queue_lock(_task_mutex, std::defer_lock);
+  queue_lock.lock();
+  _tasks.push_back(task);
+  queue_lock.unlock();
+  _taskCv.notify_one();
+
+  if (_mapThread.size() < _maxThreads && _freeThreads <= 0) {
+    CreateThread(++_currId);
+  }
+}
+
+void ThreadPool::AddTasks(MVector<Task *>::Type &vct) {
+  std::unique_lock<SpinMutex> queue_lock(_task_mutex, std::defer_lock);
+  queue_lock.lock();
+  for (auto task : vct) {
+    _tasks.push_back(task);
+  }
+
+  queue_lock.unlock();
+  _taskCv.notify_one();
+
+  if (_mapThread.size() < _maxThreads && _freeThreads <= 0) {
+    CreateThread(++_currId);
+  }
 }
 } // namespace storage

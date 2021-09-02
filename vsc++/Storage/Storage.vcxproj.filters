@@ -91,12 +91,6 @@
     <ClCompile Include="..\..\src\database\Database.cpp">
       <Filter>database</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\expr\ExprFunc.cpp">
-      <Filter>expr</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueDigit.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />
@@ -261,24 +255,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\dataType\Metadata.h">
       <Filter>dataType</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\expr\ExprData.h">
-      <Filter>expr</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\expr\ExprAggr.h">
-      <Filter>expr</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\expr\ExprLogic.h">
-      <Filter>expr</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\expr\ExprValue.h">
-      <Filter>expr</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\expr\ExprSelect.h">
-      <Filter>expr</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\cache\Mallocator.h">
-      <Filter>cache</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

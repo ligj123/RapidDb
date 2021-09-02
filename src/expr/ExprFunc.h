@@ -13,12 +13,13 @@ struct FuncStru {
  */
 class ExprFunc : public BaseExpr {
 public:
-  ExprFunc(std::initializer_list<BaseExpr *> paras)
-      : BaseExpr(ExprType::EXPR_FUNCTION), _vctPara(paras) {}
+  ExprFunc(std::initializer_list<BaseExpr *> paras) : _vctPara(paras) {}
   ~ExprFunc() {
     for (auto iter : _vctPara)
       delete iter;
   }
+
+  ExprType GetType() { return ExprType::EXPR_FUNCTION; }
 
 protected:
   // The function name, must convert to upper case

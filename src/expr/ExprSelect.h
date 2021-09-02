@@ -34,10 +34,9 @@ public:
   ExprSelect(BaseTableDesc *sourTable, BaseTableDesc *destTable,
              ExprValueArrayOut *exprVAout, ExprCondition *where,
              MVector<OrderCol>::Type &vctOrder, bool bDistinct,
-             bool bCacheResult, ExprType exprType = ExprType::EXPR_SELECT)
-      : BaseExpr(exprType), _sourTable(sourTable), _destTable(destTable),
-        _exprVAout(exprVAout), _where(where), _bDistinct(bDistinct),
-        _bCacheResult(bCacheResult) {
+             bool bCacheResult)
+      : _sourTable(sourTable), _destTable(destTable), _exprVAout(exprVAout),
+        _where(where), _bDistinct(bDistinct), _bCacheResult(bCacheResult) {
     _vctOrder.swap(vctOrder);
   }
   ~ExprSelect() {
@@ -47,6 +46,7 @@ public:
     delete _where;
   }
 
+  ExprType GetType() { return ExprType::EXPR_SELECT; }
   const BaseTableDesc *GetSourTable() const { return _sourTable; }
   const BaseTableDesc *GetDestTable() const { return _destTable; }
   const ExprValueArrayOut *GetExprVAout() const { return _exprVAout; }
@@ -79,8 +79,14 @@ public:
            MVector<OrderCol>::Type &vctOrder, bool bDistinct, bool bCacheResult,
            BaseTableDesc *rightTable, ExprOn *exprOn, JoinType jType)
       : ExprSelect(sourTable, destTable, exprVAout, where, vctOrder, bDistinct,
-                   bCacheResult, ExprType::EXPR_JOIN),
+                   bCacheResult),
         _rightTable(rightTable), _exprOn(exprOn), _joinType(jType) {}
+  ~ExprJoin() {
+    delete _rightTable;
+    delete _exprOn;
+  }
+
+  ExprType GetType() { return ExprType::EXPR_JOIN; }
   const BaseTableDesc *GetRightTable() const { return _rightTable; }
   const ExprOn *GetExprOn() const { return _exprOn; }
   JoinType GetJoinType() { return _joinType; }
@@ -101,10 +107,21 @@ public:
               MVector<OrderCol>::Type &vctOrder, bool bDistinct,
               bool bCacheResult, ExprCondition *having)
       : ExprSelect(sourTable, destTable, nullptr, where, vctOrder, bDistinct,
-                   bCacheResult, ExprType::EXPR_GROUP_BY),
+                   bCacheResult),
         _having(having) {
     _vctChild.swap(vctAggr);
   }
+  ~ExprGroupBy() {
+    for (auto child : _vctChild)
+      delete child;
+
+    _vctChild.clear();
+    delete _having;
+  }
+
+  ExprType GetType() { return ExprType::EXPR_GROUP_BY; }
+  MVector<ExprAggr *>::Type GetVctChild() { return _vctChild; }
+  ExprCondition *GetHaving() { return _having; }
 
 protected:
   // This variable will replace _exprVAout to calc the values.
@@ -116,16 +133,15 @@ class ExprInsert : public BaseExpr {
 public:
   ExprInsert(PersistTableDesc *tableDesc, ExprValueArrayIn *exprVAin,
              ExprSelect *exprSelect)
-      : BaseExpr(ExprType::EXPR_INSERT), _tableDesc(tableDesc),
-        _exprVAin(exprVAin), _exprSelect(exprSelect) {}
+      : _tableDesc(tableDesc), _exprVAin(exprVAin), _exprSelect(exprSelect) {}
   ExprInsert(PersistTableDesc *tableDesc, ExprValueArrayIn *exprVAin)
-      : BaseExpr(ExprType::EXPR_INSERT), _tableDesc(tableDesc),
-        _exprVAin(exprVAin) {}
+      : _tableDesc(tableDesc), _exprVAin(exprVAin) {}
   ~ExprInsert() {
     delete _exprVAin;
     delete _exprSelect;
   }
 
+  ExprType GetType() { return ExprType::EXPR_INSERT; }
   PersistTableDesc *GetTableDesc() { return _tableDesc; }
   ExprValueArrayIn *GetExprValueArrayIn() { return _exprVAin; }
   ExprSelect *GetExprSelect() { return _exprSelect; }
@@ -141,13 +157,13 @@ class ExprUpdate : public BaseExpr {
 public:
   ExprUpdate(PersistTableDesc *tableDesc, ExprValueArrayIn *exprVAin,
              ExprCondition *where)
-      : BaseExpr(ExprType::EXPR_INSERT), _tableDesc(tableDesc),
-        _exprVAin(exprVAin), _where(where) {}
+      : _tableDesc(tableDesc), _exprVAin(exprVAin), _where(where) {}
   ~ExprUpdate() {
     delete _exprVAin;
     delete _where;
   }
 
+  ExprType GetType() { return ExprType::EXPR_UPDATE; }
   PersistTableDesc *GetTableDesc() { return _tableDesc; }
   ExprValueArrayIn *GetExprValueArrayIn() { return _exprVAin; }
   ExprCondition *GetWhere() { return _where; }
@@ -164,9 +180,10 @@ protected:
 class ExprDelete : public BaseExpr {
 public:
   ExprDelete(PersistTableDesc *tableDesc, ExprCondition *where)
-      : BaseExpr(ExprType::EXPR_INSERT), _tableDesc(tableDesc), _where(where) {}
+      : _tableDesc(tableDesc), _where(where) {}
   ~ExprDelete() { delete _where; }
 
+  ExprType GetType() { return ExprType::EXPR_DELETE; }
   PersistTableDesc *GetTableDesc() { return _tableDesc; }
   ExprCondition *GetWhere() { return _where; }
 

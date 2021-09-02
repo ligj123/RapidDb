@@ -11,6 +11,7 @@
 using namespace std;
 namespace storage {
 enum class ExprType {
+  EXPR_BASE,
   // const type
   EXPR_ARRAY,
   EXPR_CONST,
@@ -66,13 +67,15 @@ enum class ExprType {
  */
 class BaseExpr {
 public:
-  BaseExpr(ExprType t) : _exprType(t) {}
   virtual ~BaseExpr() {}
-  ExprType GetType() { return _exprType; }
+  ExprType GetType() { return ExprType::EXPR_BASE; }
 
-protected:
-  // Every expression must set one of type in ExprType.
-  ExprType _exprType;
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
 };
 
 /**
@@ -99,29 +102,30 @@ public:
   virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
 };
 
-class ExprConst : public BaseExpr {
-public:
-  ExprConst(IDataValue *val) : BaseExpr(ExprType::EXPR_CONST), _val(val) {}
-  ~ExprConst() { delete _val; }
-
-  IDataValue *GetVal() { return _val; }
-
-protected:
-  IDataValue *_val;
-};
-
 // The base class for values of input or output
 class ExprValue : public BaseExpr {
 public:
   using BaseExpr::BaseExpr;
   virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
 };
+
+class ExprConst : public BaseExpr {
+public:
+  ExprConst(IDataValue *val) : _val(val) {}
+  ~ExprConst() { delete _val; }
+  ExprType GetType() { return ExprType::EXPR_CONST; }
+  IDataValue *GetVal() { return _val; }
+
+protected:
+  IDataValue *_val;
+};
+
 /**
  * @brief To save array values, used to follow expression IN.
  */
 class ExprArray : public BaseExpr {
 public:
-  ExprArray(VectorDataValue &vctVal) : BaseExpr(ExprType::EXPR_ARRAY) {
+  ExprArray(VectorDataValue &vctVal) {
     _setVal.insert(vctVal.begin(), vctVal.end());
     vctVal.clear();
   }
@@ -131,6 +135,7 @@ public:
     }
   }
 
+  ExprType GetType() { return ExprType::EXPR_ARRAY; }
   bool Exist(IDataValue *pdv) { return (_setVal.find(pdv) != _setVal.end()); }
 
 protected:

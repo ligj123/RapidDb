@@ -16,9 +16,11 @@ public:
   Byte *GetBysVal() const { return _bysVal; }
   uint32_t GetLength() const { return _length; }
 
-  void *operator new(size_t size) { return CachePool::Apply((uint32_t)size); }
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
 
-  void operator delete(void *ptr, size_t size) {
+  static void operator delete(void *ptr, size_t size) {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 

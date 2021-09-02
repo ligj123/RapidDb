@@ -19,12 +19,12 @@ public:
   // index: the order from zero for this column in value array
   // rowPos: For simple type, to use which element in parameter array
   ExprValueIn(int index, int rowPos)
-      : ExprValue(ExprType::EXPR_VALUE_IN), _index(index), _bSimple(true),
-        _child(nullptr), _rowPos(rowPos) {}
+      : _index(index), _bSimple(true), _child(nullptr), _rowPos(rowPos) {}
   ExprValueIn(int index, ExprData *child)
-      : ExprValue(ExprType::EXPR_VALUE_IN), _index(index), _bSimple(false),
-        _child(child), _rowPos(-1) {}
+      : _index(index), _bSimple(false), _child(child), _rowPos(-1) {}
   ~ExprValueIn() { delete _child; }
+
+  ExprType GetType() { return ExprType::EXPR_VALUE_IN; }
   void Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     if (_bSimple) {
       vdRow[_index]->Copy(*vdPara[_rowPos], false);
@@ -54,11 +54,11 @@ protected:
  */
 class ExprValueArrayIn : public ExprValue {
 public:
-  ExprValueArrayIn(MVector<ExprValueIn *>::Type &vctVal)
-      : ExprValue(ExprType::EXPR_VALUE_ARRAY_IN) {
+  ExprValueArrayIn(MVector<ExprValueIn *>::Type &vctVal) {
     _vctVal.swap(vctVal);
   }
 
+  ExprType GetType() { return ExprType::EXPR_VALUE_ARRAY_IN; }
   void Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     for (auto iter : _vctVal) {
       iter->Calc(vdPara, vdRow);
@@ -77,12 +77,12 @@ public:
   // index: the order from zero for this column in value array
   // rowPos: For simple type, to use which element in source table
   ExprValueOut(int index, int rowPos)
-      : ExprValue(ExprType::EXPR_VALUE_OUT), _index(index), _bSimple(true),
-        _child(nullptr), _rowPos(rowPos) {}
+      : _index(index), _bSimple(true), _child(nullptr), _rowPos(rowPos) {}
   ExprValueOut(int index, ExprData *child)
-      : ExprValue(ExprType::EXPR_VALUE_OUT), _index(index), _bSimple(false),
-        _child(child), _rowPos(-1) {}
+      : _index(index), _bSimple(false), _child(child), _rowPos(-1) {}
   ~ExprValueOut() { delete _child; }
+
+  ExprType GetType() { return ExprType::EXPR_VALUE_OUT; }
   void Calc(VectorDataValue &vdSour, VectorDataValue &vdDest) {
     if (_bSimple) {
       vdDest[_index] = vdSour[_rowPos];
@@ -107,11 +107,11 @@ protected:
  */
 class ExprValueArrayOut : public ExprValue {
 public:
-  ExprValueArrayOut(MVector<ExprValueOut *>::Type &vctVal)
-      : ExprValue(ExprType::EXPR_VALUE_ARRAY_OUT) {
+  ExprValueArrayOut(MVector<ExprValueOut *>::Type &vctVal) {
     _vctVal.swap(vctVal);
   }
 
+  ExprType GetType() { return ExprType::EXPR_VALUE_ARRAY_OUT; }
   void Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     for (auto iter : _vctVal) {
       iter->Calc(vdPara, vdRow);

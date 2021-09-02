@@ -8,7 +8,7 @@ const uint64_t StoragePool::MAX_QUEUE_SIZE =
     Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 
 ThreadPool StoragePool::_threadReadPool("StoragePool", (uint32_t)MAX_QUEUE_SIZE,
-                                        1);
+                                        1, 1);
 
 MHashMap<uint64_t, CachePage *>::Type StoragePool::_mapTmp;
 MTreeMap<uint64_t, CachePage *>::Type StoragePool::_mapWrite;
@@ -100,12 +100,9 @@ void StoragePool::WriteCachePage(CachePage *page) {
 }
 
 future<int> StoragePool::ReadCachePage(CachePage *page) {
-  future<int> fut = _threadReadPool.AddTask([page]() {
-    page->ReadPage();
-    return 1;
-  });
+  PageReadTask *task = new PageReadTask(page);
+  _threadReadPool.AddTask(task);
 
-  return fut;
+  return task->GetFuture();
 }
-
 } // namespace storage

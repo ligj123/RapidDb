@@ -15,11 +15,11 @@ namespace storage {
 class ExprCount : public ExprAggr {
 public:
   ExprCount(int index, int colPos)
-      : ExprAggr(ExprType::EXPR_COUNT), _index(index), _colPos(colPos),
-        _bAsterisk(false) {}
+      : _index(index), _colPos(colPos), _bAsterisk(false) {}
   ExprCount(int index, bool bAsterisk)
-      : ExprAggr(ExprType::EXPR_COUNT), _index(index), _colPos(-1),
-        _bAsterisk(bAsterisk) {}
+      : _index(index), _colPos(-1), _bAsterisk(bAsterisk) {}
+
+  ExprType GetType() { return ExprType::EXPR_COUNT; }
   void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
     DataValueLong dv(1L, false);
     if (_bAsterisk) {
@@ -42,8 +42,9 @@ protected:
 
 class ExprSum : public ExprAggr {
 public:
-  ExprSum(int index, int colPos)
-      : ExprAggr(ExprType::EXPR_SUM), _index(index), _colPos(colPos) {}
+  ExprSum(int index, int colPos) : _index(index), _colPos(colPos) {}
+
+  ExprType GetType() { return ExprType::EXPR_SUM; }
   void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
     IDataValue *pdv = vdSrc[_colPos];
     if (!pdv->IsNull()) {
@@ -58,8 +59,9 @@ protected:
 
 class ExprMax : public ExprAggr {
 public:
-  ExprMax(int index, int colPos)
-      : ExprAggr(ExprType::EXPR_MAX), _index(index), _colPos(colPos) {}
+  ExprMax(int index, int colPos) : _index(index), _colPos(colPos) {}
+
+  ExprType GetType() { return ExprType::EXPR_MAX; }
   void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
     if (!vdSrc[_colPos]->IsNull() && *vdDst[_index] < *vdSrc[_colPos]) {
       vdDst[_index]->Copy(*vdSrc[_colPos]);
@@ -74,7 +76,9 @@ protected:
 class ExprMin : public ExprAggr {
 public:
   ExprMin(int index, int colPos, int countPos)
-      : ExprAggr(ExprType::EXPR_MIN), _index(index), _colPos(colPos) {}
+      : _index(index), _colPos(colPos) {}
+
+  ExprType GetType() { return ExprType::EXPR_MIN; }
   void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
     if (!vdSrc[_colPos]->IsNull() && *vdDst[_index] > *vdSrc[_colPos]) {
       vdDst[_index]->Copy(*vdSrc[_colPos]);
@@ -89,8 +93,9 @@ protected:
 class ExprAvg : public ExprAggr {
 public:
   ExprAvg(int index, int colPos, int countPos)
-      : ExprAggr(ExprType::EXPR_AVG), _index(index), _colPos(colPos),
-        _countPos(countPos) {}
+      : _index(index), _colPos(colPos), _countPos(countPos) {}
+
+  ExprType GetType() { return ExprType::EXPR_AVG; }
   void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
     if (!vdSrc[_colPos]->IsNull()) {
       vdDst[_index]->Add(*vdSrc[_colPos]);

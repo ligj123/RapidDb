@@ -8,6 +8,18 @@
 
 namespace storage {
 using namespace std;
+class PageReadTask : public Task {
+public:
+  PageReadTask(CachePage *page) : _page(page) {}
+  void Run() override {
+    _page->ReadPage();
+    _promise.set_value(0);
+  }
+  bool IsSmallTask() override { return false; }
+
+protected:
+  CachePage *_page;
+};
 
 class StoragePool {
 public:

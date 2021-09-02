@@ -15,16 +15,14 @@ enum class CompType { EQ, GT, GE, LT, LE, NE };
 
 class ExprAnd : public ExprLogic {
 public:
-  ExprAnd(MVector<ExprLogic *>::Type &vctChild)
-      : ExprLogic(ExprType::EXPR_AND) {
-    _vctChild.swap(vctChild);
-  }
+  ExprAnd(MVector<ExprLogic *>::Type &vctChild) { _vctChild.swap(vctChild); }
   ~ExprAnd() {
     for (auto ele : _vctChild) {
       delete ele;
     }
   }
 
+  ExprType GetType() { return ExprType::EXPR_AND; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     bool b = true;
     for (ExprLogic *expr : _vctChild) {
@@ -39,15 +37,14 @@ protected:
 
 class ExprOr : public ExprLogic {
 public:
-  ExprOr(MVector<ExprLogic *>::Type vctChild) : ExprLogic(ExprType::EXPR_OR) {
-    _vctChild.swap(vctChild);
-  }
+  ExprOr(MVector<ExprLogic *>::Type vctChild) { _vctChild.swap(vctChild); }
   ~ExprOr() {
     for (auto ele : _vctChild) {
       delete ele;
     }
   }
 
+  ExprType GetType() { return ExprType::EXPR_OR; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     bool b = false;
     for (ExprLogic *expr : _vctChild) {
@@ -63,13 +60,13 @@ protected:
 class ExprIn : public ExprLogic {
 public:
   ExprIn(ExprColumn *exprColumn, ExprArray *exprArray)
-      : ExprLogic(ExprType::EXPR_IN), _exprColumn(exprColumn),
-        _exprArray(exprArray) {}
+      : _exprColumn(exprColumn), _exprArray(exprArray) {}
   ~ExprIn() {
     delete _exprColumn;
     delete _exprArray;
   }
 
+  ExprType GetType() { return ExprType::EXPR_IN; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     IDataValue *pdv = _exprColumn->Calc(vdPara, vdRow);
     bool b = _exprArray->Exist(pdv);
@@ -85,8 +82,7 @@ protected:
 class ExprLike : public ExprLogic {
 public:
   ExprLike(ExprColumn *exprColumn, ExprConst *exprPatten)
-      : ExprLogic(ExprType::EXPR_LIKE), _exprColumn(exprColumn),
-        _exprPatten(exprPatten) {
+      : _exprColumn(exprColumn), _exprPatten(exprPatten) {
     IDataValue *patt = exprPatten->GetVal();
     if (!patt->IsStringType()) {
       throw ErrorMsg(DT_UNSUPPORT_OPER,
@@ -116,6 +112,7 @@ public:
     delete _exprPatten;
   }
 
+  ExprType GetType() { return ExprType::EXPR_LIKE; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     IDataValue *left = _exprColumn->Calc(vdPara, vdRow);
 
@@ -155,9 +152,10 @@ protected:
 
 class ExprNot : public ExprLogic {
 public:
-  ExprNot(ExprLogic *child) : ExprLogic(ExprType::EXPR_NOT), _child(child) {}
+  ExprNot(ExprLogic *child) : _child(child) {}
   ~ExprNot() { delete _child; }
 
+  ExprType GetType() { return ExprType::EXPR_NOT; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     return !_child->Calc(vdPara, vdRow);
   }
@@ -168,10 +166,10 @@ protected:
 
 class ExprIsNull : public ExprLogic {
 public:
-  ExprIsNull(ExprData *child)
-      : ExprLogic(ExprType::EXPR_ISNULL), _child(child) {}
+  ExprIsNull(ExprData *child) : _child(child) {}
   ~ExprIsNull() { delete _child; }
 
+  ExprType GetType() { return ExprType::EXPR_ISNULL; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     IDataValue *pdv = _child->Calc(vdPara, vdRow);
     bool b = pdv->IsNull();
@@ -187,8 +185,9 @@ protected:
 class ExprComp : public ExprLogic {
 public:
   ExprComp(CompType type, ExprData *l, ExprData *r)
-      : ExprLogic(ExprType::EXPR_COMP), _compType(type), _exprLeft(l),
-        _exprRight(r) {}
+      : _compType(type), _exprLeft(l), _exprRight(r) {}
+
+  ExprType GetType() { return ExprType::EXPR_COMP; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
     IDataValue *right = _exprRight->Calc(vdPara, vdRow);
@@ -225,9 +224,10 @@ protected:
 class ExprCondition : public ExprLogic {
 public:
   ExprCondition(ExprLogic *child, ExprLogic *indexExpr, string indexName)
-      : ExprLogic(ExprType::EXPR_CONDITION), _child(child),
-        _indexExpr(indexExpr), _indexName(indexName) {}
+      : _child(child), _indexExpr(indexExpr), _indexName(indexName) {}
   ~ExprCondition() { delete _child; }
+
+  ExprType GetType() { return ExprType::EXPR_CONDITION; }
   bool CalcBool(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     if (_child == nullptr)
       return true;
@@ -252,13 +252,13 @@ protected:
 
 class ExprOn : public ExprLogic {
 public:
-  ExprOn(MVector<ExprComp *>::Type vctChild) : ExprLogic(ExprType::EXPR_ON) {
-    _vctChild.swap(vctChild);
-  }
+  ExprOn(MVector<ExprComp *>::Type vctChild) : { _vctChild.swap(vctChild); }
   ~ExprOn() {
     for (auto c : _vctChild)
       delete c;
   }
+
+  ExprType GetType() { return ExprType::EXPR_ON; }
   bool CalcBool(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     bool b = true;
     for (auto expr : _vctChild)

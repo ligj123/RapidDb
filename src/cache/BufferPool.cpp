@@ -54,8 +54,8 @@ void Buffer::Release(Byte *bys) {
 
 void Buffer::Apply(vector<Byte *> &vct) {
   assert(!IsEmpty());
-
-  while (vct.size() < vct.capacity() / 2 && !IsEmpty()) {
+  size_t cap = (vct.capacity() >> 2) + (vct.capacity() >> 1);
+  while (vct.size() < cap && !IsEmpty()) {
     uint32_t index = _stackFree.top();
     _stackFree.pop();
     vct.push_back(&_pBuf[_eleSize * index]);
@@ -63,6 +63,7 @@ void Buffer::Apply(vector<Byte *> &vct) {
 }
 
 void Buffer::Release(vector<Byte *> &vct, bool bAll) {
+  size_t cap = (vct.capacity() >> 2);
   for (int i = (int)vct.size() - 1; i >= 0; i--) {
     Byte *bys = vct[i];
     if ((((uint64_t)bys) ^ ((uint64_t)_pBuf)) > Configure::GetCacheBlockSize())
@@ -74,7 +75,7 @@ void Buffer::Release(vector<Byte *> &vct, bool bAll) {
     _stackFree.push(index);
 
     vct.erase(vct.begin() + i);
-    if (vct.size() < vct.capacity() / 2 && !bAll)
+    if (!bAll && vct.size() < cap)
       break;
   }
 }
