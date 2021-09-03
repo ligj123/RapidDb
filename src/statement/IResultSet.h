@@ -131,7 +131,7 @@ class IResultSet {
    * @param fieldIndex the filed index
    * @return the field value
    */
-  virtual IDataValue GetDataValue(int fieldIndex) = 0;
+  virtual IDataValue *GetDataValue(int fieldIndex) = 0;
   /**
    * Get the field long value from field name
    * @param fieldName the field name
@@ -195,7 +195,7 @@ class IResultSet {
    * @return the field value
    * @throws StorageInvalidFiledNameException
    */
-  virtual IDataValue GetDataValue(string fieldName) = 0;
+  virtual IDataValue *GetDataValue(string fieldName) = 0;
 
   /**
    * Get the current row with DataValue type

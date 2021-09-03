@@ -6,10 +6,7 @@
 
 namespace storage {
 // class CachePool
-CachePool *CachePool::_gCachePool = []() {
-  cout << "_gCachePool" << endl;
-  return new CachePool;
-}();
+CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
 thread_local LocalMap CachePool::_localMap;
 
 // class IndexTree

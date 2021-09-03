@@ -23,13 +23,13 @@ protected:
 
 class CachePool {
 public:
-  /**Apply a menory block for an Index page*/
+  /**Apply a menory block for an index page*/
   static Byte *ApplyPage() {
     CachePool *pool = GetInstance();
     return pool->_localMap.Pop((uint32_t)Configure::GetCachePageSize());
   }
 
-  /**Release an memory block for an index page*/
+  /**Release a memory block for an index page*/
   static void ReleasePage(Byte *page) {
     CachePool *pool = GetInstance();
     pool->_localMap.Push(page, (uint32_t)Configure::GetCachePageSize());

@@ -9,37 +9,37 @@
 #include <vector>
 
 namespace storage {
-// template <class T> class Mallocator {
-// public:
-//  typedef T value_type;
-//
-//  Mallocator() = default;
-//  template <class U> constexpr Mallocator(const Mallocator<U> &) noexcept {}
-//  T *allocate(std::size_t n) {
-//    // return (T *)::operator new(n * sizeof(T));
-//    return (T *)(CachePool::Apply((uint32_t)(n * sizeof(T))));
-//  }
-//
-//  void deallocate(T *p, std::size_t n) noexcept {
-//    //::operator delete((void *)p);
-//    CachePool::Release((Byte *)p, (uint32_t)(n * sizeof(T)));
-//  }
-//};
-//
-// template <class T, class U>
-// inline bool operator==(const Mallocator<T> &, const Mallocator<U> &) {
-//  return true;
-//}
-// template <class T, class U>
-// inline bool operator!=(const Mallocator<T> &, const Mallocator<U> &) {
-//  return false;
-//}
-//
-// template <class V> struct MVector {
-// public:
-//  typedef std::vector<V, Mallocator<V>> Type;
-//};
-//
+template <class T> class Mallocator {
+public:
+  typedef T value_type;
+
+  Mallocator() = default;
+  template <class U> constexpr Mallocator(const Mallocator<U> &) noexcept {}
+  T *allocate(std::size_t n) {
+    // return (T *)::operator new(n * sizeof(T));
+    return (T *)(CachePool::Apply((uint32_t)(n * sizeof(T))));
+  }
+
+  void deallocate(T *p, std::size_t n) noexcept {
+    //::operator delete((void *)p);
+    CachePool::Release((Byte *)p, (uint32_t)(n * sizeof(T)));
+  }
+};
+
+template <class T, class U>
+inline bool operator==(const Mallocator<T> &, const Mallocator<U> &) {
+  return true;
+}
+template <class T, class U>
+inline bool operator!=(const Mallocator<T> &, const Mallocator<U> &) {
+  return false;
+}
+
+template <class V> struct MVector {
+public:
+  typedef std::vector<V, Mallocator<V>>   Type;
+};
+
 // template <class Key, class T> struct MHashMap {
 // public:
 //  typedef std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
@@ -60,12 +60,12 @@ namespace storage {
 //  T>>>
 //      Type;
 //};
-
-template <class V> struct MVector {
-public:
-  typedef std::vector<V> Type;
-};
-
+//
+// template <class V> struct MVector {
+// public:
+//  typedef std::vector<V> Type;
+//};
+ 
 template <class Key, class T> struct MHashMap {
 public:
   typedef std::unordered_map<Key, T> Type;

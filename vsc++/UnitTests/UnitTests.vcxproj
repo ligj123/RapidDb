@@ -27,7 +27,7 @@
     <ClCompile Include="..\..\test\core\LeafPageTest.cpp" />
     <ClCompile Include="..\..\test\core\LeafRecordTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueBlobTest.cpp" />
-    <ClCompile Include="..\..\test\dataType\DataValueBoolTest .cpp" />
+    <ClCompile Include="..\..\test\dataType\DataValueBoolTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueByteTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueCharTest.cpp" />
     <ClCompile Include="..\..\test\dataType\DataValueDateTest.cpp" />
