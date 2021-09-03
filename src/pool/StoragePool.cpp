@@ -3,22 +3,6 @@
 #include "../core/IndexTree.h"
 
 namespace storage {
-const uint32_t StoragePool::WRITE_DELAY_MS = 1 * 1000;
-const uint64_t StoragePool::MAX_QUEUE_SIZE =
-    Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
-
-ThreadPool StoragePool::_threadReadPool("StoragePool", (uint32_t)MAX_QUEUE_SIZE,
-                                        1, 1);
-
-MHashMap<uint64_t, CachePage *>::Type StoragePool::_mapTmp;
-MTreeMap<uint64_t, CachePage *>::Type StoragePool::_mapWrite;
-thread *StoragePool::_threadWrite = StoragePool::CreateWriteThread();
-bool StoragePool::_bWriteFlush = false;
-bool StoragePool::_bReadFirst = true;
-SpinMutex StoragePool::_spinMutex;
-bool StoragePool::_bWriteSuspend = false;
-bool StoragePool::_bStop = false;
-
 thread *StoragePool::CreateWriteThread() {
   thread *t = new thread([]() {
     ThreadPool::_threadName = "WriteThread";

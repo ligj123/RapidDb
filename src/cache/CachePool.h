@@ -18,6 +18,7 @@ public:
 
 protected:
   unordered_map<uint32_t, vector<Byte *>> _map;
+  bool bStoped = false;
 };
 
 class CachePool {

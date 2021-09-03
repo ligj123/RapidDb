@@ -8,9 +8,7 @@ namespace storage {
 using namespace std;
 template <class Key, class T> class ConcurrentHashMap {
 public:
-  typedef unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
-                        Mallocator<std::pair<const Key, T>>>
-      ConHashMap;
+  typedef unordered_map<Key, T> ConHashMap;
   ConcurrentHashMap(int groupCount, uint64_t maxCount)
       : _groupCount(groupCount) {
     _vctMap.reserve(groupCount);

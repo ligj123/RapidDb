@@ -2,20 +2,23 @@
 #include "../config/Configure.h"
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
+#include <iostream>
 #include <string>
 
 namespace storage {
-CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
-thread_local LocalMap CachePool::_localMap;
 
 LocalMap::~LocalMap() {
   for (auto iter = _map.begin(); iter != _map.end(); iter++) {
     CachePool::BatchRelease(iter->first, iter->second, true);
   }
+
+  bStoped = true;
 }
 
 void LocalMap::Push(Byte *pBuf, uint32_t eleSize) {
   assert(eleSize % 8 == 0);
+  if (bStoped)
+    return;
 
   auto iter = _map.find(eleSize);
   if (iter == _map.end()) {
@@ -35,6 +38,7 @@ void LocalMap::Push(Byte *pBuf, uint32_t eleSize) {
 
 Byte *LocalMap::Pop(uint32_t eleSize) {
   assert(eleSize % 8 == 0);
+
   auto iter = _map.find(eleSize);
   if (iter == _map.end()) {
     _map.insert({eleSize, vector<Byte *>()});

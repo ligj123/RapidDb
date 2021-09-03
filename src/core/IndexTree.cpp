@@ -9,7 +9,7 @@
 #include <shared_mutex>
 
 namespace storage {
-MHashSet<uint16_t>::Type IndexTree::_setFiledId;
+
 uint16_t IndexTree::_currFiledId = 0;
 SpinMutex IndexTree::_spinMutex;
 

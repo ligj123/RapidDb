@@ -33,10 +33,13 @@
     <ClCompile Include="..\..\src\core\RawKey.cpp" />
     <ClCompile Include="..\..\src\database\Database.cpp" />
     <ClCompile Include="..\..\src\database\Table.cpp" />
+    <ClCompile Include="..\..\src\dataType\DataValueDigit.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueFixChar.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueBlob.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp" />
+    <ClCompile Include="..\..\src\expr\ExprFunc.cpp" />
     <ClCompile Include="..\..\src\file\PageFile.cpp" />
+    <ClCompile Include="..\..\src\GlobalInit.cpp" />
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp" />
     <ClCompile Include="..\..\src\pool\PageDividePool.cpp" />
     <ClCompile Include="..\..\src\pool\StoragePool.cpp" />
@@ -54,6 +57,7 @@
     <ClInclude Include="..\..\src\cache\AbsoleteBuffer.h" />
     <ClInclude Include="..\..\src\cache\CachePool.h" />
     <ClInclude Include="..\..\src\cache\BufferPool.h" />
+    <ClInclude Include="..\..\src\cache\Mallocator.h" />
     <ClInclude Include="..\..\src\cache\StrBuff.h" />
     <ClInclude Include="..\..\src\config\Configure.h" />
     <ClInclude Include="..\..\src\config\ErrorID.h" />
@@ -82,7 +86,12 @@
     <ClInclude Include="..\..\src\dataType\IDataValue.h" />
     <ClInclude Include="..\..\src\dataType\Metadata.h" />
     <ClInclude Include="..\..\src\expr\BaseExpr.h" />
+    <ClInclude Include="..\..\src\expr\ExprAggr.h" />
+    <ClInclude Include="..\..\src\expr\ExprData.h" />
     <ClInclude Include="..\..\src\expr\ExprFunc.h" />
+    <ClInclude Include="..\..\src\expr\ExprLogic.h" />
+    <ClInclude Include="..\..\src\expr\ExprSelect.h" />
+    <ClInclude Include="..\..\src\expr\ExprValue.h" />
     <ClInclude Include="..\..\src\file\PageFile.h" />
     <ClInclude Include="..\..\src\header.h" />
     <ClInclude Include="..\..\src\pool\PageBufferPool.h" />

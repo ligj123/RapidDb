@@ -6,15 +6,6 @@
 #include <shared_mutex>
 
 namespace storage {
-MHashMap<uint64_t, IndexPage *>::Type PageBufferPool::_mapCache;
-SharedSpinMutex PageBufferPool::_rwLock;
-int64_t PageBufferPool::_maxCacheSize =
-    Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
-thread PageBufferPool::_tIndexPageManager;
-int64_t PageBufferPool::_prevDelNum = 100;
-thread *PageBufferPool::_pageBufferThread = PageBufferPool::CreateThread();
-bool PageBufferPool::_bSuspend = false;
-bool PageBufferPool::_bStop = false;
 
 void PageBufferPool::AddPage(IndexPage *page) {
   unique_lock<SharedSpinMutex> lock(_rwLock);

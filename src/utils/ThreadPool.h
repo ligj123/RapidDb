@@ -66,7 +66,7 @@ public:
 
 private:
   unordered_map<int, std::thread *> _mapThread;
-  deque<Task *, Mallocator<Task *>> _tasks;
+  deque<Task *> _tasks;
   SpinMutex _task_mutex;
   SpinMutex _threadMutex;
   condition_variable_any _taskCv;
