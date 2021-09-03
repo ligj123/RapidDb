@@ -17,6 +17,7 @@ using namespace std;
 // All tasks need to be run in thread pool must inherit this class.
 class Task {
 public:
+  virtual ~Task() {}
   virtual void Run() = 0;
   // All child class will return int after call Run, 0: passed; -1: Failed;
   // If need throw exception, it will throw ErrorMsg;

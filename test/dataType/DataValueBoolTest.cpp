@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
 
   Byte buf[100];
   *((uint8_t *)buf) = 1;
-  DataValueBool dv5(buf, false);
+  DataValueBool dv5(*buf, false);
   BOOST_TEST(std::any_cast<bool>(dv5.GetValue()) == true);
   BOOST_TEST(dv5.GetValueType() == ValueType::SOLE_VALUE);
 
