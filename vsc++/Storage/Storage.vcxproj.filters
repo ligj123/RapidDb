@@ -73,17 +73,11 @@
     <ClCompile Include="..\..\src\table\TableDesc.cpp">
       <Filter>table</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\transaction\TranTask.cpp">
+    <ClCompile Include="..\..\src\transaction\Transaction.cpp">
       <Filter>transaction</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp">
       <Filter>pool</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\statement\CacheResultSet.cpp">
-      <Filter>statement</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\statement\TableResultSet.cpp">
-      <Filter>statement</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\database\Table.cpp">
       <Filter>database</Filter>
@@ -94,10 +88,16 @@
     <ClCompile Include="..\..\src\expr\ExprFunc.cpp">
       <Filter>expr</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\dataType\DataValueDigit.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\GlobalInit.cpp" />
+    <ClCompile Include="..\..\src\resultset\CacheResultSet.cpp">
+      <Filter>resultset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\resultset\TableResultSet.cpp">
+      <Filter>resultset</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\statement\InsertStatement.cpp">
+      <Filter>statement</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />
@@ -215,7 +215,7 @@
     <ClInclude Include="..\..\src\transaction\TranStatus.h">
       <Filter>transaction</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\transaction\TranTask.h">
+    <ClInclude Include="..\..\src\transaction\Transaction.h">
       <Filter>transaction</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transaction\TranType.h">
@@ -227,16 +227,7 @@
     <ClInclude Include="..\..\src\cache\AbsoleteBuffer.h">
       <Filter>cache</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\statement\CacheResultSet.h">
-      <Filter>statement</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\statement\IResultSet.h">
-      <Filter>statement</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\statement\Statement.h">
-      <Filter>statement</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\statement\TableResultSet.h">
       <Filter>statement</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\expr\BaseExpr.h">
@@ -275,11 +266,23 @@
     <ClInclude Include="..\..\src\expr\ExprValue.h">
       <Filter>expr</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\expr\ExprSelect.h">
+    <ClInclude Include="..\..\src\expr\ExprStatement.h">
       <Filter>expr</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\cache\Mallocator.h">
       <Filter>cache</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\resultset\CacheResultSet.h">
+      <Filter>resultset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\resultset\IResultSet.h">
+      <Filter>resultset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\resultset\TableResultSet.h">
+      <Filter>resultset</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\statement\InsertStatement.h">
+      <Filter>statement</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -321,6 +324,9 @@
     </Filter>
     <Filter Include="database">
       <UniqueIdentifier>{301a3148-59cd-447c-a0fe-977503949427}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="resultset">
+      <UniqueIdentifier>{f8de8529-ea33-465a-a47a-b5ce5922f131}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

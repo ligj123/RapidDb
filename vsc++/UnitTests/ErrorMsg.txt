@@ -35,3 +35,8 @@
 #Core error
 5001	The index key's length exceed the limit of configure. Length={1}.
 5002	Try to insert repeated records into unique index.
+
+#Expression
+6001  The index {1} is out of range of expression parameter. Here is only {2} parameters.
+6002  Input error datatype {1} for expression parameter, expected datatype {2}.
+6003  The length of parameter is {1}, exceed the max length {2}.

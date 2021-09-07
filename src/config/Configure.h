@@ -34,7 +34,11 @@ public:
   // static const uint64_t DEFAULT_DISK_CACHE_PAGE_SIZE = 1024 * 1024;
   // static const uint64_t MAX_DISK_CACHE_PAGE_COUNT = 2048;
   // static const char* DEFAULT_DISK_CACHE_FILE = { "./" };
-  // //System.getProperty("java.io.tmpdir");
+
+  // The default wait time for automate transaction type, unit is millisecond.
+  static const uint64_t AUTOMATE_TASK_OVERTIME;
+  // The default wait time for manual transaction type, unit is millisecond.
+  static const uint64_t MANUAL_TASK_OVERTIME;
 
 public:
   Configure();
@@ -80,5 +84,10 @@ protected:
   uint64_t _countMaxFreeBuff;
   uint64_t _countMaxPageFile;
   uint64_t _maxOverflowCache;
+
+  uint64_t _autoTaskOvertime;
+  uint64_t _manualTaskOvertime;
+  // If to record time for transaction
+  bool _tranTimeWait = false;
 };
 } // namespace storage

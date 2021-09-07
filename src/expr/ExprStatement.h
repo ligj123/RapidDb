@@ -34,10 +34,11 @@ public:
   ExprSelect(BaseTableDesc *sourTable, BaseTableDesc *destTable,
              ExprValueArrayOut *exprVAout, ExprCondition *where,
              MVector<OrderCol>::Type &vctOrder, bool bDistinct,
-             bool bCacheResult)
+             bool bCacheResult, VectorDataValue &vctPara)
       : _sourTable(sourTable), _destTable(destTable), _exprVAout(exprVAout),
         _where(where), _bDistinct(bDistinct), _bCacheResult(bCacheResult) {
     _vctOrder.swap(vctOrder);
+    _vctPara.swap(vctPara);
   }
   ~ExprSelect() {
     delete _sourTable;
@@ -54,6 +55,7 @@ public:
   const MVector<OrderCol>::Type GetVctOrder() const { return _vctOrder; }
   bool IsDistinct() const { return _bDistinct; }
   bool IsCacheResult() const { return _bCacheResult; }
+  const VectorDataValue &GetParameters() { return _vctPara; }
 
 protected:
   // The source table information.
@@ -70,6 +72,8 @@ protected:
   bool _bDistinct;
   // If save the result to cache and reused next time
   bool _bCacheResult;
+  // Used to save parameters
+  VectorDataValue _vctPara;
 };
 
 class ExprJoin : public ExprSelect {
@@ -77,9 +81,10 @@ public:
   ExprJoin(BaseTableDesc *sourTable, BaseTableDesc *destTable,
            ExprValueArrayOut *exprVAout, ExprCondition *where,
            MVector<OrderCol>::Type &vctOrder, bool bDistinct, bool bCacheResult,
-           BaseTableDesc *rightTable, ExprOn *exprOn, JoinType jType)
+           BaseTableDesc *rightTable, ExprOn *exprOn, JoinType jType,
+           VectorDataValue &vctPara)
       : ExprSelect(sourTable, destTable, exprVAout, where, vctOrder, bDistinct,
-                   bCacheResult),
+                   bCacheResult, vctPara),
         _rightTable(rightTable), _exprOn(exprOn), _joinType(jType) {}
   ~ExprJoin() {
     delete _rightTable;
@@ -105,9 +110,10 @@ public:
   ExprGroupBy(BaseTableDesc *sourTable, BaseTableDesc *destTable,
               MVector<ExprAggr *>::Type &vctAggr, ExprCondition *where,
               MVector<OrderCol>::Type &vctOrder, bool bDistinct,
-              bool bCacheResult, ExprCondition *having)
+              bool bCacheResult, ExprCondition *having,
+              VectorDataValue &vctPara)
       : ExprSelect(sourTable, destTable, nullptr, where, vctOrder, bDistinct,
-                   bCacheResult),
+                   bCacheResult, vctPara),
         _having(having) {
     _vctChild.swap(vctAggr);
   }
@@ -132,10 +138,15 @@ protected:
 class ExprInsert : public BaseExpr {
 public:
   ExprInsert(PersistTableDesc *tableDesc, ExprValueArrayIn *exprVAin,
-             ExprSelect *exprSelect)
-      : _tableDesc(tableDesc), _exprVAin(exprVAin), _exprSelect(exprSelect) {}
-  ExprInsert(PersistTableDesc *tableDesc, ExprValueArrayIn *exprVAin)
-      : _tableDesc(tableDesc), _exprVAin(exprVAin) {}
+             ExprSelect *exprSelect, VectorDataValue &vctPara)
+      : _tableDesc(tableDesc), _exprVAin(exprVAin), _exprSelect(exprSelect) {
+    _vctPara.swap(vctPara);
+  }
+  ExprInsert(PersistTableDesc *tableDesc, ExprValueArrayIn *exprVAin,
+             VectorDataValue &vctPara)
+      : _tableDesc(tableDesc), _exprVAin(exprVAin) {
+    _vctPara.swap(vctPara);
+  }
   ~ExprInsert() {
     delete _exprVAin;
     delete _exprSelect;
@@ -145,19 +156,24 @@ public:
   PersistTableDesc *GetTableDesc() { return _tableDesc; }
   ExprValueArrayIn *GetExprValueArrayIn() { return _exprVAin; }
   ExprSelect *GetExprSelect() { return _exprSelect; }
+  const VectorDataValue &GetParameters() { return _vctPara; }
 
 protected:
   // The destion persistent table, managed by database, can not delete here.
   PersistTableDesc *_tableDesc;
   ExprValueArrayIn *_exprVAin;
   ExprSelect *_exprSelect;
+  // Used to save parameters
+  VectorDataValue _vctPara;
 };
 
 class ExprUpdate : public BaseExpr {
 public:
   ExprUpdate(PersistTableDesc *tableDesc, ExprValueArrayIn *exprVAin,
-             ExprCondition *where)
-      : _tableDesc(tableDesc), _exprVAin(exprVAin), _where(where) {}
+             ExprCondition *where, VectorDataValue &vctPara)
+      : _tableDesc(tableDesc), _exprVAin(exprVAin), _where(where) {
+    _vctPara.swap(vctPara);
+  }
   ~ExprUpdate() {
     delete _exprVAin;
     delete _where;
@@ -167,6 +183,7 @@ public:
   PersistTableDesc *GetTableDesc() { return _tableDesc; }
   ExprValueArrayIn *GetExprValueArrayIn() { return _exprVAin; }
   ExprCondition *GetWhere() { return _where; }
+  const VectorDataValue &GetParameters() { return _vctPara; }
 
 protected:
   // The destion persistent table, managed by database, can not delete here.
@@ -175,22 +192,30 @@ protected:
   ExprValueArrayIn *_exprVAin;
   // Where condition
   ExprCondition *_where;
+  // Used to save parameters
+  VectorDataValue _vctPara;
 };
 
 class ExprDelete : public BaseExpr {
 public:
-  ExprDelete(PersistTableDesc *tableDesc, ExprCondition *where)
-      : _tableDesc(tableDesc), _where(where) {}
+  ExprDelete(PersistTableDesc *tableDesc, ExprCondition *where,
+             VectorDataValue &vctPara)
+      : _tableDesc(tableDesc), _where(where) {
+    _vctPara.swap(vctPara);
+  }
   ~ExprDelete() { delete _where; }
 
   ExprType GetType() { return ExprType::EXPR_DELETE; }
   PersistTableDesc *GetTableDesc() { return _tableDesc; }
   ExprCondition *GetWhere() { return _where; }
+  const VectorDataValue &GetParameters() { return _vctPara; }
 
 protected:
   // The destion persistent table, managed by database, can not delete here.
   PersistTableDesc *_tableDesc;
   // Where condition
   ExprCondition *_where;
+  // Used to save parameters
+  VectorDataValue _vctPara;
 };
 } // namespace storage

@@ -16,7 +16,7 @@ public:
   ~DataValueFixChar();
 
 public:
-  void Copy(IDataValue &dv, bool bMove = true) override;
+  void Copy(const IDataValue &dv, bool bMove = true) override;
   DataValueFixChar *Clone(bool incVal = false) override {
     if (incVal) {
       return new DataValueFixChar(*this);
@@ -95,6 +95,7 @@ public:
   }
 
   DataValueFixChar &operator=(const char *val);
+  DataValueFixChar &operator=(const string val);
   DataValueFixChar &operator=(const DataValueFixChar &src);
 
   bool operator>(const DataValueFixChar &dv) const {

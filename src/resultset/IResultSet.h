@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
+#include <utility>
 
 namespace storage {
 using namespace std;
@@ -92,10 +93,9 @@ class IResultSet {
   /**
    * Get the field blob value
    * @param fieldIndex the filed index
-   * @return the field blob value, the first 4 bytes is the length of blob.The
-   * length not include the 4 bytes.
+   * @return the field blob value, pair<blob length, blob value>
    */
-  virtual Byte *GetBlob(int fieldIndex) = 0;
+  virtual pair<uint32_t, char *> &GetBlob(int fieldIndex) = 0;
   /**
    * Get the filed string value
    * @param fieldIndex the filed index
@@ -153,10 +153,9 @@ class IResultSet {
   /**
    * Get the field blob value from field name
    * @param fieldName the field name
-   * @return the field blob value, the first 4 bytes is the length of blob, not
-   * include the 4 bytes.
+   * @return the field blob value, pair<blob length, blob value>
    */
-  virtual Byte *GetBlob(string fieldName) = 0;
+  virtual pair<uint32_t, char *> &GetBlob(string fieldName) = 0;
   /**
    * Get the field string value from field name
    * @param fieldName the field name

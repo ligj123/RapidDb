@@ -44,7 +44,7 @@ public:
   }
   ~DataValueDigit() {}
 
-  void Copy(IDataValue &dv, bool bMove = false) override {
+  void Copy(const IDataValue &dv, bool bMove = false) override {
     if (dv.IsNull()) {
       valType_ = ValueType::NULL_VALUE;
       return;

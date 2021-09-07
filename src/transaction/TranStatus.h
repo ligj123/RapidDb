@@ -1,8 +1,8 @@
-#pragma once
+﻿#pragma once
 #include <ostream>
 
 namespace storage {
-enum class TranStatus {
+enum class TranStatus : uint8_t {
   CREATED = 0,
   COMMITTED,
   ROLLBACK,

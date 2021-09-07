@@ -49,7 +49,7 @@ public:
   }
 
 public:
-  void Copy(IDataValue &dv, bool bMove = true) override;
+  void Copy(const IDataValue &dv, bool bMove = true) override;
   DataValueVarChar *Clone(bool incVal = false) override {
     if (incVal) {
       return new DataValueVarChar(*this);
@@ -133,8 +133,9 @@ public:
 
     return "";
   }
-  DataValueVarChar &operator=(char *val);
+
   DataValueVarChar &operator=(const char *val);
+  DataValueVarChar &operator=(const string val);
   DataValueVarChar &operator=(const DataValueVarChar &src);
 
   bool operator>(const DataValueVarChar &dv) const {

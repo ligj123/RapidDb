@@ -252,7 +252,7 @@ protected:
 
 class ExprOn : public ExprLogic {
 public:
-  ExprOn(MVector<ExprComp *>::Type vctChild) : { _vctChild.swap(vctChild); }
+  ExprOn(MVector<ExprComp *>::Type vctChild) { _vctChild.swap(vctChild); }
   ~ExprOn() {
     for (auto c : _vctChild)
       delete c;

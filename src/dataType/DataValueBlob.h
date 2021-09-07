@@ -17,7 +17,7 @@ public:
   ~DataValueBlob();
 
 public:
-  void Copy(IDataValue &dv, bool bMove = true) override;
+  void Copy(const IDataValue &dv, bool bMove = true) override;
 
   DataValueBlob *Clone(bool incVal = false) override {
     if (incVal) {

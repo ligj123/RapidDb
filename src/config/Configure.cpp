@@ -19,6 +19,9 @@ Configure *Configure::instance = nullptr;
 // const uint64_t MAX_DISK_CACHE_PAGE_COUNT = 2048;
 // const char* DEFAULT_DISK_CACHE_FILE = { "./" };
 
+const uint64_t Configure::AUTOMATE_TASK_OVERTIME = 10 * 1000;
+const uint64_t Configure::MANUAL_TASK_OVERTIME = 10 * 60 * 1000;
+
 Configure::Configure() {
   _szDiskCluster = DEFULT_DISK_CLUSTER_SIZE;
   _szCachePage = DEFAULT_CACHE_PAGE_SIZE;
@@ -31,5 +34,8 @@ Configure::Configure() {
   _countMaxFreeBuff = DEFAULT_MAX_FREE_BUFFER_COUNT;
   _countMaxPageFile = MAX_PAGE_FILE_COUNT;
   _maxOverflowCache = MAX_OVERFLOW_CACHE_SIZE;
+
+  _autoTaskOvertime = AUTOMATE_TASK_OVERTIME;
+  _manualTaskOvertime = MANUAL_TASK_OVERTIME;
 }
 } // namespace storage
