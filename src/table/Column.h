@@ -20,6 +20,14 @@ public:
   int32_t GetPosition() { return _position; }
   DataType GetDataType() { return _dataType; }
 
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
 protected:
   string _name;       // The column's name
   int32_t _position;  // The position that start from 0

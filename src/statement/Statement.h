@@ -9,17 +9,17 @@
 #include "../dataType/IDataValue.h"
 #include "../header.h"
 #include "../resultset/IResultSet.h"
-#include "../transaction/Transaction.h"
 #include "../utils/ErrorMsg.h"
 #include <chrono>
 #include <future>
 #include <string>
 
 namespace storage {
+class Transaction;
 class Statement {
 public:
   Statement() {
-    if (_bSaveTime)
+    if (_bStatTime)
       _createTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::system_clock::now().time_since_epoch());
   }
@@ -388,6 +388,14 @@ public:
   std::chrono::nanoseconds GetStopTime() { return _stopTime; }
   bool IsFinished() { return _tinyTasks == _finishedTask; }
 
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
 protected:
   VectorDataValue _vctPara;
   // The create time for this statement
@@ -405,7 +413,7 @@ protected:
   int _finishedTask = 0;
   // The transaction to run this task, not nullable.
   Transaction *_transaction;
-  // If get the time when run this task.
-  bool _bSaveTime;
+  // If get the time for statistics.
+  bool _bStatTime = false;
 };
 } // namespace storage

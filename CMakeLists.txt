@@ -2,6 +2,7 @@
 cmake_minimum_required(VERSION 3.16)
 #SET(CMAKE_C_COMPILER /usr/bin/clang)
 #SET(CMAKE_CXX_COMPILER /usr/bin/clang++)
+set(CMAKE_EXPORT_COMPILECOMMANDS ON)
 project(RapidDB)
 
 if(NOT CMAKE_BUILD_TYPE)
