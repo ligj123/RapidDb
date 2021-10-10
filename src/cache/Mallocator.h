@@ -16,12 +16,10 @@ public:
   Mallocator() = default;
   template <class U> constexpr Mallocator(const Mallocator<U> &) noexcept {}
   T *allocate(std::size_t n) {
-    // return (T *)::operator new(n * sizeof(T));
     return (T *)(CachePool::Apply((uint32_t)(n * sizeof(T))));
   }
 
   void deallocate(T *p, std::size_t n) noexcept {
-    //::operator delete((void *)p);
     CachePool::Release((Byte *)p, (uint32_t)(n * sizeof(T)));
   }
 };
@@ -42,23 +40,32 @@ public:
 
 template <class Key, class T> struct MHashMap {
 public:
- typedef std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
-                            Mallocator<std::pair<const Key, T>>>
-     Type;
+  typedef std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
+                             Mallocator<std::pair<const Key, T>>>
+      Type;
 };
 
 template <class Key> struct MHashSet {
 public:
- typedef std::unordered_set<Key, std::hash<Key>, std::equal_to<Key>,
-                            Mallocator<Key>>
-     Type;
+  typedef std::unordered_set<Key, std::hash<Key>, std::equal_to<Key>,
+                             Mallocator<Key>>
+      Type;
 };
 
 template <class Key, class T> struct MTreeMap {
 public:
- typedef std::map<Key, T, std::less<Key>, Mallocator<std::pair<const Key,
- T>>>
-     Type;
+  typedef std::map<Key, T, std::less<Key>, Mallocator<std::pair<const Key, T>>>
+      Type;
+};
+
+template <class Key> struct MTreeSet {
+public:
+  typedef std::set<Key, std::less<Key>, Mallocator<Key>> Type;
+};
+
+template <class T> struct MList {
+public:
+  typedef std::list<T, Mallocator<T>> Type;
 };
 
 // template <class V> struct MVector {

@@ -1,20 +1,20 @@
 #!/bin/bash
 
-if [ -d ./Release ] ; then 
-  rm -r ./Release
+if [ -d ./release ] ; then 
+  rm -r ./release
 fi
 
-mkdir ./Release
-cd Release
+mkdir ./release
+cd release
 cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ ..
 cd ..
 
-if [ -d ./Debug ] ; then 
-  rm -r ./Debug
+if [ -d ./debug ] ; then 
+  rm -r ./debug
 fi
 
-mkdir ./Debug
-cd Debug
+mkdir ./debug
+cd debug
 cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ .. 
 cd ..
 

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../dataType/IDataValue.h"
+#include "../transaction/TranStatus.h"
 #include "RawKey.h"
 #include "RawRecord.h"
 #include <cstring>
@@ -68,23 +69,26 @@ public:
 };
 
 class LeafPage;
+class Transaction;
 class LeafRecord : public RawRecord {
 protected:
   ~LeafRecord();
 
 public:
+  // Load LeafRecord from LeafPage
   LeafRecord(LeafPage *indexPage, Byte *bys);
+  // No used now, only for test
   LeafRecord(IndexTree *indexTree, Byte *bys);
   LeafRecord(const LeafRecord &src) = delete;
-  /**Constructor for not primary key*/
+  // Constructor for secondary index LeafRecord
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey, Byte *bysPri,
              uint32_t lenPri, ActionType type = ActionType::UNKNOWN,
-             uint64_t tranId = 0, LeafRecord *old = nullptr);
+             Transaction *tran = nullptr);
+  // Constructor for primary index LeafRecord
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
              const VectorDataValue &vctVal, uint64_t recStamp,
-             ActionType type = ActionType::UNKNOWN, uint64_t tranId = 0,
+             ActionType type = ActionType::UNKNOWN, Transaction *tran = nullptr,
              LeafRecord *old = nullptr);
-  void CleanUndoRecord();
   /**To calc the length of snapshot for multi versions' record. To add last
   version record or not,
   decide by its record stamp < last version stamp in head page or not*/
@@ -100,9 +104,7 @@ public:
     return this;
   }
   inline ActionType GetActionType() { return _actionType; }
-  inline uint64_t GetTrasactionId() { return _tranId; }
-  inline bool IsTranFinished() { return _bTranFinished; }
-  inline void SetTranFinished(bool bFinished) { _bTranFinished = bFinished; }
+  inline Transaction *GetTrasaction() { return _tran; }
 
   void GetListKey(VectorDataValue &vct) const;
   /**
@@ -110,11 +112,17 @@ public:
    * @param vct The vector to save the data values.
    * @param verStamp The version stamp for primary index.If not primary, not to
    * use.
+   * @param tran To judge if it is the same transaction
+   * @param bQuery If it is only query. If not only query, it will return record
+   * with same transaction or return fail. If only query, it will return old
+   * record with different transaction and new record with same transaction.
    * @return -1: Failed to read values due to no right version stamp for
-   * primary; 0: Passed to read values with all fields. 1: Passed to read part
+   * primary or locked; 0: Passed to read values with all fields. 1: Passed to
+   read part
    * of values due to same of fields saved in overflow file.
    */
-  int GetListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX) const;
+  int GetListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX,
+                   Transaction *tran = nullptr, bool bQuery = true) const;
   void GetListOverflow(VectorDataValue &vctVal) const;
 
   int CompareTo(const LeafRecord &lr) const;
@@ -150,17 +158,22 @@ public:
   bool IsSole() const override {
     return _undoRecords == nullptr ? _bSole : _undoRecords->IsSole();
   }
-  bool IsTransaction() const override { return _tranId > 0; }
+  bool IsTransaction() const override { return _tran != nullptr; }
 
 protected:
   /**Save old records for recover*/
-  LeafRecord *_undoRecords;
-  /**The transaction id if it is running in a transaction, or UINT64_MAX*/
-  uint64_t _tranId;
+  LeafRecord *_undoRecords = nullptr;
+  /**The transaction if it is running in a transaction, or nullptr*/
+  Transaction *_tran = nullptr;
   mutable PriValStruct *_priStru = nullptr;
 
   friend std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
+  friend bool operator<(const LeafRecord &llr, const LeafRecord &rlr);
 };
+
+inline bool operator<(const LeafRecord &llr, const LeafRecord &rlr) {
+  return llr < rlr;
+}
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
 class VectorLeafRecord : public MVector<LeafRecord *>::Type {

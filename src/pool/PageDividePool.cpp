@@ -40,7 +40,7 @@ thread *PageDividePool::CreateThread() {
         auto page = iter2->second;
         if (page->GetRecordTranCount() > 0 ||
             (!page->IsOverTime(BUFFER_FLUSH_INTEVAL_MS) &&
-             !page->IsOverlength())) {
+             !page->IsOverlength() && !page->GetIndexTree()->IsClosed())) {
           continue;
         }
 

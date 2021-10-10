@@ -64,7 +64,5 @@ protected:
   /**Normal time its value is unknown, in transaction time, it is the actual
    * action*/
   ActionType _actionType = ActionType::UNKNOWN;
-  /**In current transaction if this record has been executed.*/
-  bool _bTranFinished = false;
 };
 } // namespace storage

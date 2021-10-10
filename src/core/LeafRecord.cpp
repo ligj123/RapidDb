@@ -1,24 +1,22 @@
 ﻿#include "LeafRecord.h"
 #include "../config/ErrorID.h"
 #include "../dataType/DataValueFactory.h"
+#include "../transaction/Transaction.h"
 #include "../utils/ErrorMsg.h"
 #include "IndexTree.h"
 #include "LeafPage.h"
 
 namespace storage {
 LeafRecord::LeafRecord(LeafPage *parentPage, Byte *bys)
-    : RawRecord(parentPage->GetIndexTree(), parentPage, bys, false),
-      _undoRecords(nullptr), _tranId(0) {}
+    : RawRecord(parentPage->GetIndexTree(), parentPage, bys, false) {}
 
 LeafRecord::LeafRecord(IndexTree *indexTree, Byte *bys)
-    : RawRecord(indexTree, nullptr, bys, false), _undoRecords(nullptr),
-      _tranId(0) {}
+    : RawRecord(indexTree, nullptr, bys, false) {}
 
 LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
                        Byte *bysPri, uint32_t lenPri, ActionType type,
-                       uint64_t tranId, LeafRecord *old)
-    : RawRecord(indexTree, nullptr, nullptr, true), _undoRecords(old),
-      _tranId(tranId) {
+                       Transaction *tran)
+    : RawRecord(indexTree, nullptr, nullptr, true), _tran(tran) {
   _actionType = type;
 
   int i;
@@ -55,9 +53,9 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 
 LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
-                       ActionType type, uint64_t tranId, LeafRecord *old)
+                       ActionType type, Transaction *tran, LeafRecord *old)
     : RawRecord(indexTree, nullptr, nullptr, true), _undoRecords(old),
-      _tranId(tranId) {
+      _tran(tran) {
   _actionType = type;
   PriValStruct *oldValStru =
       (old == nullptr ? nullptr : old->GetPriValStruct());
@@ -279,13 +277,6 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 }
 
 LeafRecord::~LeafRecord() {
-  CleanUndoRecord();
-  if (_priStru != nullptr)
-    delete _priStru;
-}
-
-void LeafRecord::CleanUndoRecord() {
-  _tranId = UINT64_MAX;
   LeafRecord *rec = _undoRecords;
   while (rec != nullptr) {
     LeafRecord *next = rec->_undoRecords;
@@ -293,7 +284,8 @@ void LeafRecord::CleanUndoRecord() {
     rec = next;
   }
 
-  _undoRecords = nullptr;
+  if (_priStru != nullptr)
+    delete _priStru;
 }
 
 void LeafRecord::GetListKey(VectorDataValue &vctKey) const {
@@ -312,11 +304,15 @@ void LeafRecord::GetListKey(VectorDataValue &vctKey) const {
   }
 }
 
-int LeafRecord::GetListValue(VectorDataValue &vctVal, uint64_t verStamp) const {
+int LeafRecord::GetListValue(VectorDataValue &vctVal, uint64_t verStamp,
+                             Transaction *tran, bool bQuery) const {
   _indexTree->CloneValues(vctVal);
   bool bPri =
       (_indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY);
   if (!bPri) {
+    if (_tran != nullptr && _tran != tran)
+      return -1;
+
     uint16_t lenPos = TWO_SHORT_LEN + GetKeyLength();
     uint16_t pos = lenPos + _indexTree->GetValVarLen();
     uint16_t len = 0;
@@ -333,7 +329,28 @@ int LeafRecord::GetListValue(VectorDataValue &vctVal, uint64_t verStamp) const {
     return 0;
   }
 
-  PriValStruct *priStru = GetPriValStruct();
+  const LeafRecord *lr = nullptr;
+  if (_tran == nullptr || _tran == tran ||
+      _tran->GetTransactionStatus() == TranStatus::COMMITTED ||
+      (bQuery && _actionType == ActionType::QUERY_UPDATE)) {
+    lr = this;
+  } else if (tran->GetTransactionStatus() == TranStatus::FAILED ||
+             tran->GetTransactionStatus() == TranStatus::ROLLBACK ||
+             (bQuery && (_actionType == ActionType::INSERT ||
+                         _actionType == ActionType::UPDATE ||
+                         _actionType == ActionType::DELETE))) {
+    lr = this;
+    while (lr->_undoRecords != nullptr) {
+      lr = lr->_undoRecords;
+    }
+    if (lr->_tran != nullptr && lr->_actionType != ActionType::QUERY_UPDATE) {
+      return -1;
+    }
+  } else {
+    return -1;
+  }
+
+  PriValStruct *priStru = lr->GetPriValStruct();
   Byte ver = 0;
   for (; ver < priStru->verCount; ver++) {
     if (priStru->arrStamp[ver] <= verStamp) {
@@ -351,7 +368,7 @@ int LeafRecord::GetListValue(VectorDataValue &vctVal, uint64_t verStamp) const {
     int pos = 0;
     int len = 0;
     if (ver == 0) {
-      indexOvfStart = GetIndexOvfStart();
+      indexOvfStart = lr->GetIndexOvfStart();
       if (indexOvfStart >= vctVal.size()) {
         indexOvfStart = (int)vctVal.size();
       } else {
@@ -368,7 +385,7 @@ int LeafRecord::GetListValue(VectorDataValue &vctVal, uint64_t verStamp) const {
       vctVal.RemoveAll();
     } else {
       for (uint16_t i = 0; i < indexOvfStart; i++) {
-        pos += vctVal[i]->ReadData(_bysVal + pos, -1);
+        pos += vctVal[i]->ReadData(lr->_bysVal + pos, -1);
       }
     }
   } else {
@@ -395,22 +412,22 @@ void LeafRecord::GetListOverflow(VectorDataValue &vctVal) const {
 
 int LeafRecord::CompareTo(const LeafRecord &lr) const {
   return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                             GetTotalLength() - _indexTree->GetKeyOffset(),
-                             lr._bysVal + _indexTree->GetKeyOffset(),
-                             lr.GetTotalLength() - _indexTree->GetKeyOffset());
+                      GetTotalLength() - _indexTree->GetKeyOffset(),
+                      lr._bysVal + _indexTree->GetKeyOffset(),
+                      lr.GetTotalLength() - _indexTree->GetKeyOffset());
 }
 
 int LeafRecord::CompareKey(const RawKey &key) const {
   return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                             GetKeyLength() - _indexTree->GetKeyVarLen(),
-                             key.GetBysVal(), key.GetLength());
+                      GetKeyLength() - _indexTree->GetKeyVarLen(),
+                      key.GetBysVal(), key.GetLength());
 }
 
 int LeafRecord::CompareKey(const LeafRecord &lr) const {
   return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                             GetKeyLength() - _indexTree->GetKeyVarLen(),
-                             lr.GetBysValue() + _indexTree->GetKeyOffset(),
-                             lr.GetKeyLength() - _indexTree->GetKeyVarLen());
+                      GetKeyLength() - _indexTree->GetKeyVarLen(),
+                      lr.GetBysValue() + _indexTree->GetKeyOffset(),
+                      lr.GetKeyLength() - _indexTree->GetKeyVarLen());
 }
 
 RawKey *LeafRecord::GetKey() const {

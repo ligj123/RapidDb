@@ -171,7 +171,6 @@ ErrorMsg *IndexTree::InsertRecord(LeafRecord *rr) {
 
   if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 3U) {
     page->PageDivide();
-    // page->clear();
   }
 
   page->WriteUnlock();
