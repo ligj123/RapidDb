@@ -5,7 +5,7 @@ namespace storage {
 enum class TranStatus : uint8_t {
   // Just create the transaction and has not following action
   CREATED = 0,
-  // Already commit, the tasks are running.
+  // Already submit commit, the tasks are running.
   COMMITTING,
   // User stoped the transaction before it finished
   ROLLBACK,
@@ -13,8 +13,9 @@ enum class TranStatus : uint8_t {
   FAILED,
   // Exceed the deadline time before commit or not finish.
   TIMEOUT,
-  // All tasks finished and the log write to disk
-  COMMITTED
+  // All tasks finished and the log write to disk, and all resource will be
+  // released.
+  CLOSED
 };
 
 inline std::ostream &operator<<(std::ostream &os, const TranStatus &status) {
@@ -35,8 +36,8 @@ inline std::ostream &operator<<(std::ostream &os, const TranStatus &status) {
   case TranStatus::TIMEOUT:
     os << "TIMEOUT(" << (int)TranStatus::TIMEOUT << ")";
     break;
-  case TranStatus::COMMITTED:
-    os << "COMMITTED(" << (int)TranStatus::COMMITTED << ")";
+  case TranStatus::CLOSED:
+    os << "CLOSED(" << (int)TranStatus::CLOSED << ")";
     break;
   default:
     os << "UNKNOWN(" << (int)status << ")";

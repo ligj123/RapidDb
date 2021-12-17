@@ -9,6 +9,8 @@
 #include "../dataType/IDataValue.h"
 #include "../header.h"
 #include "../resultset/IResultSet.h"
+#include "../transaction/TranType.h"
+#include "../transaction/Transaction.h"
 #include "../utils/ErrorMsg.h"
 #include <chrono>
 #include <future>
@@ -18,26 +20,48 @@ namespace storage {
 class Transaction;
 class Statement {
 public:
-  Statement() {
+  /**
+   * Constuctor for statement
+   * @param tran The transaction own this statement, maybe null and create it
+   * automately
+   * @param vct Used to save the parameters types, maxlength etc.
+   * @param statTime If save create, execute and stop time for statistics
+   */
+  Statement(Transaction *tran, const VectorDataValue *vct, bool statTime)
+      : _transaction(tran), _bAutoTran(tran == nullptr), _vctParaSour(vct),
+        _bStatTime(statTime) {
+    if (_transaction == nullptr) {
+      _transaction = new Transaction(TranType::AUTOMATE,
+                                     Configure::GetAutoTaskOvertime(), false);
+    }
+
+    _vctPara.reserve(vct->size());
+    for (auto dv : *vct) {
+      _vctPara.push_back(dv->Clone());
+    }
+
     if (_bStatTime)
       _createTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
           std::chrono::system_clock::now().time_since_epoch());
   }
-  ~Statement() {}
+
+  ~Statement() {
+    if (_bAutoTran && _transaction != nullptr) {
+      delete _transaction;
+    }
+  }
   /**
    * Get which action will to do
-   *
    * @return action type
    */
   virtual ActionType GetActionType() { return ActionType::UNKNOWN; }
 
   /**
    * Get the field's data type
-   *
    * @param paraIndex the field index, start from 0;
    * @return data type
    */
-  virtual DataType GetDataType(int paraIndex) {
+  DataType GetDataType(int paraIndex) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -46,11 +70,10 @@ public:
 
   /**
    * Get the max length for a field
-   *
    * @param paraIndex the field index, start from 0;
    * @return the max length
    */
-  virtual int GetMaxLength(int paraIndex) {
+  int GetMaxLength(int paraIndex) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -59,11 +82,10 @@ public:
 
   /**
    * set a long value
-   *
    * @param paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetLong(int paraIndex, int64_t val) {
+  void SetLong(int paraIndex, int64_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -76,11 +98,10 @@ public:
 
   /**
    * Set a int value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetInt(int paraIndex, int32_t val) {
+  void SetInt(int paraIndex, int32_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -93,11 +114,10 @@ public:
 
   /**
    * Set a short value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetShort(int paraIndex, int16_t val) {
+  void SetShort(int paraIndex, int16_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -110,11 +130,10 @@ public:
 
   /**
    * Set a char value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetChar(int paraIndex, char val) {
+  void SetChar(int paraIndex, char val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -127,11 +146,10 @@ public:
 
   /**
    * set a ulong value
-   *
    * @param paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetULong(int paraIndex, uint64_t val) {
+  void SetULong(int paraIndex, uint64_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -144,11 +162,10 @@ public:
 
   /**
    * Set a uint value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetUInt(int paraIndex, uint32_t val) {
+  void SetUInt(int paraIndex, uint32_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -161,11 +178,10 @@ public:
 
   /**
    * Set a ushort value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetUShort(int paraIndex, uint16_t val) {
+  void SetUShort(int paraIndex, uint16_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -178,11 +194,10 @@ public:
 
   /**
    * Set a Byte value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetByte(int paraIndex, Byte val) {
+  void SetByte(int paraIndex, Byte val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -195,12 +210,10 @@ public:
 
   /**
    * Set a boolean value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
-   * @throws StorageInvalidDataTypeException
    */
-  virtual void SetBool(int paraIndex, bool val) {
+  void SetBool(int paraIndex, bool val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -213,13 +226,10 @@ public:
 
   /**
    * Set a string value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
-   * @throws StorageInvalidDataTypeException
-   * @throws StorageOverLengthException
    */
-  virtual void SetString(int paraIndex, const std::string &val) {
+  void SetString(int paraIndex, const std::string &val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -239,12 +249,11 @@ public:
 
   /**
    * Set a byte array value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param len the length for blob
    * @param val       the value to set
    */
-  virtual void SetBlob(int paraIndex, uint32_t len, char *val) {
+  void SetBlob(int paraIndex, uint32_t len, char *val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -261,11 +270,10 @@ public:
 
   /**
    * Set a double value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetDouble(int paraIndex, double val) {
+  void SetDouble(int paraIndex, double val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -278,11 +286,10 @@ public:
 
   /**
    * Set a float value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  virtual void SetFloat(int paraIndex, float val) {
+  void SetFloat(int paraIndex, float val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -295,11 +302,10 @@ public:
 
   /**
    * Set a Date value
-   *
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the milliseconds from the start of the Clock's epoch.
    */
-  virtual void SetDate(int paraIndex, uint64_t val) {
+  void SetDate(int paraIndex, uint64_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -312,11 +318,10 @@ public:
 
   /**
    * Set a value by index
-   *
    * @param paraIndex fieldName the field name
    * @param val       the value to set
    */
-  virtual void SetDataValue(int paraIndex, const IDataValue &val) {
+  void SetDataValue(int paraIndex, const IDataValue &val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(paraIndex), to_string(_vctPara.size())});
@@ -326,10 +331,9 @@ public:
 
   /**
    * One time set all fields values, order by fields order
-   *
    * @param vals, the data values will be copied, not moved
    */
-  virtual void SetValues(const VectorDataValue &vals) {
+  void SetValues(const VectorDataValue &vals) {
     if (vals.size() != _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
                      {to_string(vals.size()), to_string(_vctPara.size())});
@@ -338,48 +342,77 @@ public:
   }
 
   /**
+   * load parameters from byte array, maybe 1~N rows.
+   * param bys: The byte array, the struct is below:
+   * 4 bytes how many rows in bytes array, 2 bytes how many fields in one row.
+   * following are the values for all parameters.
+   * param len: bys length, used to verify byte array.
+   */
+  void LoadParams(Byte *bys, int len) {
+    int rows = *(int *)bys;
+    bys += sizeof(int);
+    len -= sizeof(int);
+    int fields = *(short *)bys;
+    bys += sizeof(short);
+    len -= sizeof(short);
+
+    if (fields != _vctParaSour->size()) {
+      throw ErrorMsg(TRAN_ADD_TASK_FAILED, {});
+    }
+
+    for (int i = 0; i < rows; i++) {
+      for (IDataValue *dv : _vctPara) {
+        int rl = dv->ReadData(bys, 0);
+        bys += rl;
+        len -= rl;
+      }
+    }
+
+    if (len != 0) {
+      throw ErrorMsg(TRAN_ADD_TASK_FAILED, {});
+    }
+  }
+  /**
    * Add current row to a batch array, all rows in a batch will submit one time
    */
-  virtual void AddBatch() = 0;
+  void AddBatch() {
+    VectorDataValue *vct = new VectorDataValue();
+    vct->swap(_vctPara);
+    _vctRow.push_back(vct);
 
-  /**
-   * Submit one row or a batch of rows to insert, update or delete
-   *
-   * @return How much records have been affected.
-   */
-  virtual int ExecuteUpdate() { return 0; }
-
-  virtual future<int> ExecuteUpdateAsyn() {
-    return std::promise<int>().get_future();
+    _vctPara.reserve(_vctParaSour->size());
+    for (auto dv : *_vctParaSour) {
+      _vctPara.push_back(dv->Clone());
+    }
   }
 
   /**
    * Submit one row or a batch of rows to insert, update or delete
-   *
-   * @param vals
    * @return How much records have been affected.
    */
-  virtual int ExecuteUpdate(VectorDataValue &vals) { return 0; }
+  virtual int ExecuteUpdate() { abort(); }
 
-  virtual future<int> ExecuteUpdateAsyn(VectorDataValue &vals) {
-    return std::promise<int>().get_future();
-  }
   /**
-   * Execute query statement and return the result
-   *
-   * @return The query result
+   * Execute the update task asychronous, get the result by future.
+   * @return future
    */
-  virtual IResultSet *ExecuteQuery() { return nullptr; }
+  virtual future<int> ExecuteUpdateAsyn() { abort(); }
 
   /**
    * Execute query statement and return the result
+   * @return The query result
+   */
+  virtual IResultSet *ExecuteQuery() { abort(); }
+
+  /**
+   * Execute query task asychronous and get the result by future
    *
    * @return The query result
    */
-  virtual IResultSet *ExecuteQuery(VectorDataValue &vals) { return nullptr; }
+  virtual future<IResultSet *> ExecuteQueryAsyn() { abort(); }
 
   /**
-   * Close this instance
+   * Close this instance, used to release resource in child class.
    */
   virtual void Close() {}
 
@@ -397,10 +430,13 @@ public:
   }
 
 protected:
+  // The point of vactor datavalue from expression
+  const VectorDataValue *_vctParaSour;
+  // To save one row of data values
   VectorDataValue _vctPara;
+  // To save rows of data values
+  VectorRow _vctRow;
   // The create time for this statement
-  // If multi statement to update one record, they will run one by one according
-  // create time
   std::chrono::nanoseconds _createTime;
   // The start time to execute for this statement
   std::chrono::nanoseconds _startTime;
@@ -411,9 +447,15 @@ protected:
   int _tinyTasks = 0;
   // The number of finished tiny tasks.
   int _finishedTask = 0;
-  // The transaction to run this task, not nullable.
+  // The transaction to run this task, no nullable.
   Transaction *_transaction;
+  // If current statement meet error, save the reason here
+  ErrorMsg _errorMsg;
+  // True, it will incoming the transaction from outside when construct this
+  // statement; False, no transaction incoming and need this statement to create
+  // a new transaction.
+  bool _bAutoTran = false;
   // If get the time for statistics.
-  bool _bStatTime = false;
+  bool _bStatTime;
 };
 } // namespace storage

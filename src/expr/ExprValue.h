@@ -16,18 +16,19 @@ namespace storage {
  */
 class ExprValueIn : public ExprValue {
 public:
-  // index: the order from zero for this column in value array
-  // rowPos: For simple type, to use which element in parameter array
-  ExprValueIn(int index, int rowPos)
-      : _index(index), _bSimple(true), _child(nullptr), _rowPos(rowPos) {}
+  // index: the order from zero for this column in expression value array
+  // dvConst: The const parameter
+  ExprValueIn(int index, IDataValue *dvConst)
+      : _index(index), valConst(true), _child(nullptr), _dvConst(dvConst) {}
+  // child: For normal parameter, it will tell how to get parameter.
   ExprValueIn(int index, ExprData *child)
-      : _index(index), _bSimple(false), _child(child), _rowPos(-1) {}
+      : _index(index), valConst(false), _child(child), _dvConst(nullptr) {}
   ~ExprValueIn() { delete _child; }
 
   ExprType GetType() { return ExprType::EXPR_VALUE_IN; }
   void Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
-    if (_bSimple) {
-      vdRow[_index]->Copy(*vdPara[_rowPos], false);
+    if (valConst) {
+      vdRow[_index]->Copy(*_dvConst, false);
     } else {
       IDataValue *pDv = _child->Calc(vdPara, vdRow);
       vdRow[_index]->Copy(*pDv, !pDv->IsReuse());
@@ -37,16 +38,16 @@ public:
   }
 
   int GetIndex() { return _index; }
-  bool IsSimple() { return _bSimple; }
 
 protected:
-  int _index; // The index in value array
-  /* True, get or set value directionaly from input array or table rows
-   * False, need to use function to calc before get the value
-   */
-  bool _bSimple;
-  ExprData *_child; // Only used when _bSimple=false
-  int _rowPos;      // Only used when _bSimple=true, the position in parameter
+  int _index; // The index in table's columns array
+  // true: the parameter is const value and saved in variable _dvConst.
+  // false: The parameter's value come from outside input, get by _child
+  bool valConst;
+  // For no const type, to tell how to get parameter from array.
+  ExprData *_child;
+  // For const type, to save the const parameter value.
+  IDataValue *_dvConst;
 };
 
 /**
@@ -75,32 +76,20 @@ protected:
 class ExprValueOut : public ExprValue {
 public:
   // index: the order from zero for this column in value array
-  // rowPos: For simple type, to use which element in source table
-  ExprValueOut(int index, int rowPos)
-      : _index(index), _bSimple(true), _child(nullptr), _rowPos(rowPos) {}
-  ExprValueOut(int index, ExprData *child)
-      : _index(index), _bSimple(false), _child(child), _rowPos(-1) {}
+  // child: To tell how to get parameter
+  ExprValueOut(int index, ExprData *child) : _index(index), _child(child) {}
   ~ExprValueOut() { delete _child; }
 
   ExprType GetType() { return ExprType::EXPR_VALUE_OUT; }
   void Calc(VectorDataValue &vdSour, VectorDataValue &vdDest) {
-    if (_bSimple) {
-      vdDest[_index] = vdSour[_rowPos];
-    } else {
-      vdDest[_index] = _child->Calc(vdSour, vdDest);
-    }
+    vdDest[_index] = _child->Calc(vdSour, vdDest);
   }
 
   int GetIndex() { return _index; }
 
 protected:
-  int _index; // The index in value array
-  /* True, get or set value directionaly from input array or table rows
-   * False, need to use function to calc before get the value
-   */
-  bool _bSimple;
-  ExprData *_child; // Only used when _bSimple=false
-  int _rowPos;      // Only used when _bSimple=true, the position in parameter
+  int _index;       // The index in value array
+  ExprData *_child; // To tell how to get parameter.
 };
 /**
  *@brief For insert or update inpout values or select output values.

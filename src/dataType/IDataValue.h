@@ -80,9 +80,9 @@ public:
   bool IsReuse() const { return bReuse_; }
   void SetReuse(bool b) { bReuse_ = b; }
   // Only copy value from the dv, not include maxlength, bKey. If bMove=true,
-  // array type will move byte pointer to this and dv will set to null. They are
-  // maybe not same data type. All digital type will convert each other and all
-  // types can be converted to string.
+  // array type will move byte pointer to this and source dv will set to null.
+  // They are maybe not same data type. All digital type will convert each other
+  // and all types can be converted to string.
   virtual void Copy(const IDataValue &dv, bool bMove = false) = 0;
   virtual IDataValue *Clone(bool incVal = false) = 0;
   virtual std::any GetValue() const = 0;

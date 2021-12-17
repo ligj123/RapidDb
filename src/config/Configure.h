@@ -61,6 +61,12 @@ public:
   static uint64_t GetMaxOverflowCache() {
     return GetInstance()._maxOverflowCache;
   }
+  static uint64_t GetAutoTaskOvertime() {
+    return GetInstance()._autoTaskOvertime;
+  }
+  static uint64_t GetManualTaskOvertime() {
+    return GetInstance()._manualTaskOvertime;
+  }
 
 protected:
   static Configure &GetInstance() {
@@ -87,7 +93,5 @@ protected:
 
   uint64_t _autoTaskOvertime;
   uint64_t _manualTaskOvertime;
-  // If to record time for transaction
-  bool _tranTimeWait = false;
 };
 } // namespace storage

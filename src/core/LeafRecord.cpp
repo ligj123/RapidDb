@@ -331,7 +331,7 @@ int LeafRecord::GetListValue(VectorDataValue &vctVal, uint64_t verStamp,
 
   const LeafRecord *lr = nullptr;
   if (_tran == nullptr || _tran == tran ||
-      _tran->GetTransactionStatus() == TranStatus::COMMITTED ||
+      _tran->GetTransactionStatus() == TranStatus::CLOSED ||
       (bQuery && _actionType == ActionType::QUERY_UPDATE)) {
     lr = this;
   } else if (tran->GetTransactionStatus() == TranStatus::FAILED ||

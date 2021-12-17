@@ -1,4 +1,4 @@
-﻿#include "TableDesc.h"
+﻿#include "PersistTable.h"
 #include "../config/ErrorID.h"
 #include "../config/FileVersion.h"
 #include "../dataType/DataValueFactory.h"
@@ -10,13 +10,20 @@
 namespace storage {
 namespace fs = std::filesystem;
 
-PersistTableDesc::~PersistTableDesc() {
+PersistTable::PersistTable(string &rootPath, string &dbName, string &tableName,
+                           string &tableAlias, string &description)
+    : BaseTable(tableName, tableAlias, description), _rootPath(rootPath),
+      _dbName(dbName) {
+  ReadData();
+};
+
+PersistTable::~PersistTable() {
   for (auto iter = _vctColumn.begin(); iter != _vctColumn.end(); iter++) {
     delete *iter;
   }
 }
 
-const PersistColumn *PersistTableDesc::GetColumn(string fieldName) const {
+const PersistColumn *PersistTable::GetColumn(string &fieldName) const {
   auto iter = _mapColumnPos.find(fieldName);
   if (iter == _mapColumnPos.end()) {
     return nullptr;
@@ -25,7 +32,7 @@ const PersistColumn *PersistTableDesc::GetColumn(string fieldName) const {
   }
 }
 
-const PersistColumn *PersistTableDesc::GetColumn(int pos) {
+const PersistColumn *PersistTable::GetColumn(int pos) {
   if (pos < 0 || pos > _vctColumn.size()) {
     return nullptr;
   } else {
@@ -33,10 +40,9 @@ const PersistColumn *PersistTableDesc::GetColumn(int pos) {
   }
 }
 
-void PersistTableDesc::AddColumn(string &columnName, DataType dataType,
-                                 bool nullable, uint32_t maxLen,
-                                 string &comment, Charsets charset,
-                                 any &valDefault) {
+void PersistTable::AddColumn(string &columnName, DataType dataType,
+                             bool nullable, uint32_t maxLen, string &comment,
+                             Charsets charset, any &valDefault) {
   transform(columnName.begin(), columnName.end(), columnName.begin(),
             ::toupper);
   IsValidName(columnName);
@@ -62,7 +68,7 @@ void PersistTableDesc::AddColumn(string &columnName, DataType dataType,
   _mapColumnPos.insert(pair<string, int>(columnName, cm->GetPosition()));
 }
 
-void PersistTableDesc::SetPrimaryKey(MVector<string>::Type priCols) {
+void PersistTable::SetPrimaryKey(MVector<string>::Type &priCols) {
   if (priCols.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {PRIMARY_KEY});
   }
@@ -97,8 +103,8 @@ void PersistTableDesc::SetPrimaryKey(MVector<string>::Type priCols) {
   _mapIndexFirstField.insert({vct[0].colPos, PRIMARY_KEY});
 }
 
-void PersistTableDesc::AddSecondaryKey(string indexName, IndexType indexType,
-                                       MVector<string>::Type colNames) {
+void PersistTable::AddSecondaryKey(string &indexName, IndexType indexType,
+                                   MVector<string>::Type &colNames) {
   if (colNames.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName});
   }
@@ -131,8 +137,8 @@ void PersistTableDesc::AddSecondaryKey(string indexName, IndexType indexType,
   _mapIndexFirstField.insert({vct[0].colPos, indexName});
 }
 
-void PersistTableDesc::WriteData(string rootPath, string dbName) {
-  string path = rootPath + "/" + dbName + "/" + _name + "/metafile.dat";
+void PersistTable::WriteData() {
+  string path = _rootPath + "/" + _dbName + "/" + _name + "/metafile.dat";
   ofstream fs(path, ios::out | ios::binary | ios::trunc);
   fs << CURRENT_FILE_VERSION.GetMajorVersion()
      << CURRENT_FILE_VERSION.GetMinorVersion()
@@ -168,29 +174,27 @@ void PersistTableDesc::WriteData(string rootPath, string dbName) {
   fs.close();
 }
 
-PersistTableDesc *PersistTableDesc::ReadData(string rootPath, string dbName,
-                                             string tblName) {
-  string path = rootPath + "/" + dbName + "/" + tblName + "/metafile.dat";
+void PersistTable::ReadData() {
+  string path = _rootPath + "/" + _dbName + "/" + _name + "/metafile.dat";
   ifstream fs(path, ios::in | ios::binary);
   char buf[10240];
 
   fs.read(buf, 4);
   FileVersion fv(*(int16_t *)buf, *(uint8_t *)(buf + 2), *(uint8_t *)(buf + 3));
   if (!(fv == CURRENT_FILE_VERSION)) {
-    throw ErrorMsg(TB_ERROR_INDEX_VERSION, {rootPath});
+    throw ErrorMsg(TB_ERROR_INDEX_VERSION, {path});
   }
 
-  PersistTableDesc *tbl = new PersistTableDesc();
   int len;
   fs >> len;
   fs.read(buf, len);
   buf[len] = 0;
-  tbl->_name = buf;
+  _name = buf;
 
   fs >> len;
   fs.read(buf, len);
   buf[len] = 0;
-  tbl->_desc = buf;
+  _desc = buf;
 
   fs >> len;
   for (int i = 0; i < len; i++) {
@@ -199,8 +203,8 @@ PersistTableDesc *PersistTableDesc::ReadData(string rootPath, string dbName,
     fs.read(buf, len2);
     PersistColumn *col = new PersistColumn();
     col->ReadData((Byte *)buf);
-    tbl->_vctColumn.push_back(col);
-    tbl->_mapColumnPos.insert({col->GetName(), i});
+    _vctColumn.push_back(col);
+    _mapColumnPos.insert({col->GetName(), i});
   }
 
   fs >> len;
@@ -219,14 +223,74 @@ PersistTableDesc *PersistTableDesc::ReadData(string rootPath, string dbName,
     for (int j = 0; j < len2; j++) {
       IndexProp::Column clm;
       fs >> clm.colPos;
-      clm.colName = tbl->_vctColumn[clm.colPos]->GetName();
+      clm.colName = _vctColumn[clm.colPos]->GetName();
       iprop.vctCol.push_back(clm);
     }
 
-    tbl->_mapIndex.insert({str, iprop});
-    tbl->_mapIndexFirstField.insert({iprop.vctCol[0].colPos, str});
+    _mapIndex.insert({str, iprop});
+    _mapIndexFirstField.insert({iprop.vctCol[0].colPos, str});
+  }
+}
+
+void PersistTable::OpenTable() {
+  Clear();
+  ReadData();
+  string path = _rootPath + "/" + _dbName + "/" + _name + "/";
+  for (auto iter = _mapIndex.begin(); iter != _mapIndex.end(); iter++) {
+    path += iter->first;
+    VectorDataValue &key = GenIndexDataValues(iter->second);
+    IndexTree *tree;
+    if (iter->first == PRIMARY_KEY) {
+      VectorDataValue &val = GenColumsDataValues();
+      tree = new IndexTree(_name, path, key, val);
+      _primaryTree = tree;
+    } else {
+      VectorDataValue &val = GenIndexDataValues(_mapIndex[PRIMARY_KEY]);
+      tree = new IndexTree(_name, path, key, val);
+    }
+    _mapTree.insert({iter->first, tree});
+  }
+}
+
+void PersistTable::CloseTable() { Clear(); }
+
+void PersistTable::Clear() {
+  _primaryTree = nullptr;
+
+  for (auto iter = _mapTree.begin(); iter != _mapTree.end(); iter++) {
+    iter->second->Close(true);
   }
 
-  return tbl;
+  _mapTree.clear();
+
+  for (auto iter : _vctColumn) {
+    delete iter;
+  }
+  _vctColumn.clear();
+}
+
+VectorDataValue &PersistTable::GenIndexDataValues(IndexProp prop) {
+  VectorDataValue vct;
+  vct.reserve(prop.vctCol.size());
+  for (auto iter : prop.vctCol) {
+    PersistColumn *col = _vctColumn[iter.colPos];
+    IDataValue *dv =
+        DataValueFactory(col->GetDataType(), true, col->GetMaxLength());
+    vct.push_back(dv);
+  }
+
+  return vct;
+}
+
+VectorDataValue &PersistTable::GenColumsDataValues() {
+  VectorDataValue vct;
+  vct.reserve(_vctColumn.size());
+  for (PersistColumn *col : _vctColumn) {
+    IDataValue *dv =
+        DataValueFactory(col->GetDataType(), false, col->GetMaxLength());
+    vct.push_back(dv);
+  }
+
+  return vct;
 }
 } // namespace storage

@@ -46,7 +46,8 @@
     <ClCompile Include="..\..\src\resultset\TableResultSet.cpp" />
     <ClCompile Include="..\..\src\statement\InsertStatement.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
-    <ClCompile Include="..\..\src\table\TableDesc.cpp" />
+    <ClCompile Include="..\..\src\table\PersistTable.cpp" />
+    <ClCompile Include="..\..\src\table\BaseTable.cpp" />
     <ClCompile Include="..\..\src\transaction\Transaction.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
     <ClCompile Include="..\..\src\utils\ErrorMsg.cpp" />
@@ -103,7 +104,8 @@
     <ClInclude Include="..\..\src\statement\InsertStatement.h" />
     <ClInclude Include="..\..\src\statement\Statement.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
-    <ClInclude Include="..\..\src\table\TableDesc.h" />
+    <ClInclude Include="..\..\src\table\PersistTable.h" />
+    <ClInclude Include="..\..\src\table\BaseTable.h" />
     <ClInclude Include="..\..\src\transaction\TranStatus.h" />
     <ClInclude Include="..\..\src\transaction\Transaction.h" />
     <ClInclude Include="..\..\src\transaction\TranType.h" />
@@ -177,12 +179,12 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Boost\include\boost-1_74;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Boost\include\boost-1_78;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Boost\include\boost-1_74;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Boost\include\boost-1_78;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">

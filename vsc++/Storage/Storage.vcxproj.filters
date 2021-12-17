@@ -70,7 +70,7 @@
     <ClCompile Include="..\..\src\table\Column.cpp">
       <Filter>table</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\table\TableDesc.cpp">
+    <ClCompile Include="..\..\src\table\BaseTable.cpp">
       <Filter>table</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transaction\Transaction.cpp">
@@ -97,6 +97,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\statement\InsertStatement.cpp">
       <Filter>statement</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\table\PersistTable.cpp">
+      <Filter>table</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -209,7 +212,7 @@
     <ClInclude Include="..\..\src\table\Column.h">
       <Filter>table</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\table\TableDesc.h">
+    <ClInclude Include="..\..\src\table\BaseTable.h">
       <Filter>table</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transaction\TranStatus.h">
@@ -283,6 +286,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\statement\InsertStatement.h">
       <Filter>statement</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\table\PersistTable.h">
+      <Filter>table</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

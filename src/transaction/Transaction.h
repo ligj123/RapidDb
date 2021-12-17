@@ -3,7 +3,6 @@
 #include "../core/ActionType.h"
 #include "../core/LeafRecord.h"
 #include "../header.h"
-#include "../statement/Statement.h"
 #include "../utils/SpinMutex.h"
 #include "../utils/Utilitys.h"
 #include "TranStatus.h"
@@ -14,7 +13,7 @@
 namespace storage {
 using namespace std;
 using namespace std::chrono;
-
+class Statement;
 class Transaction {
 public:
   static void *operator new(size_t size) {
@@ -27,11 +26,19 @@ public:
     lock_guard<SpinMutex> lock(_mutexTran);
     _mapTransaction.insert({tran->_tranId, tran});
   }
-  static void eraseTransacton(uint64_t id) {
+  static void EraseTransacton(uint64_t id) {
     lock_guard<SpinMutex> lock(_mutexTran);
     Transaction *tran = _mapTransaction.find(id)->second;
     delete tran;
   }
+  static void SetLocalErrorMsg(ErrorMsg *msg) {
+    if (_localErrorMsg != nullptr) {
+      delete _localErrorMsg;
+    }
+
+    _localErrorMsg = msg;
+  }
+  static ErrorMsg *GetLocalErrorMsg() { return _localErrorMsg; }
 
 public:
   Transaction(TranType tType, uint32_t maxMillsSec, bool bStatTime)
@@ -69,6 +76,12 @@ public:
       return false;
     }
   }
+  uint64_t GetTranId() { return _tranId; }
+  bool AbleAddTask() { return _tranStatus == TranStatus::CREATED; }
+  void Rollback();
+  void Failed();
+  void TimeOut();
+  void Commited();
 
 protected:
   // Used to generate id for transactions.
@@ -77,6 +90,8 @@ protected:
   static SpinMutex _mutexTran;
   // To keep transactions until close them
   static MHashMap<uint64_t, Transaction *>::Type _mapTransaction;
+  // thread local error msg, it will be replaced by following error
+  static thread_local ErrorMsg *_localErrorMsg;
 
 protected:
   TranType _tranType;
