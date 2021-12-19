@@ -19,7 +19,7 @@ public:
   PersistTable(){};
   ~PersistTable();
 
-  const string &GetPrimaryKey() const { return PRIMARY_KEY; }
+  const char* GetPrimaryKey() const { return PRIMARY_KEY; }
   const IndexProp &GetPrimaryKeyColumns() const {
     return _mapIndex.at(PRIMARY_KEY);
   }
@@ -67,8 +67,8 @@ public:
 
   void OpenTable();
   void CloseTable();
-  VectorDataValue &GenIndexDataValues(IndexProp prop);
-  VectorDataValue &GenColumsDataValues();
+  VectorDataValue &GenIndexDataValues(IndexProp& prop) const;
+  VectorDataValue &GenColumsDataValues() const;
 
 protected:
   inline bool IsExistedColumn(string name) {

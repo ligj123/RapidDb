@@ -43,5 +43,7 @@ inline std::ostream &operator<<(std::ostream &os, const TranStatus &status) {
     os << "UNKNOWN(" << (int)status << ")";
     break;
   }
+
+  return os;
 }
 } // namespace storage

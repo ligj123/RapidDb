@@ -27,5 +27,7 @@ inline std::ostream &operator<<(std::ostream &os, const TranType &type) {
     os << "UNKNOWN(" << (int)type << ")";
     break;
   }
+
+  return os;
 }
 } // namespace storage

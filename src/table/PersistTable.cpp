@@ -269,7 +269,7 @@ void PersistTable::Clear() {
   _vctColumn.clear();
 }
 
-VectorDataValue &PersistTable::GenIndexDataValues(IndexProp prop) {
+ VectorDataValue &PersistTable::GenIndexDataValues(IndexProp& prop) const {
   VectorDataValue vct;
   vct.reserve(prop.vctCol.size());
   for (auto iter : prop.vctCol) {
@@ -282,7 +282,7 @@ VectorDataValue &PersistTable::GenIndexDataValues(IndexProp prop) {
   return vct;
 }
 
-VectorDataValue &PersistTable::GenColumsDataValues() {
+ VectorDataValue &PersistTable::GenColumsDataValues() const {
   VectorDataValue vct;
   vct.reserve(_vctColumn.size());
   for (PersistColumn *col : _vctColumn) {
@@ -292,5 +292,5 @@ VectorDataValue &PersistTable::GenColumsDataValues() {
   }
 
   return vct;
-}
+ }
 } // namespace storage
