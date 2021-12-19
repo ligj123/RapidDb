@@ -238,14 +238,17 @@ void PersistTable::OpenTable() {
   string path = _rootPath + "/" + _dbName + "/" + _name + "/";
   for (auto iter = _mapIndex.begin(); iter != _mapIndex.end(); iter++) {
     path += iter->first;
-    VectorDataValue &key = GenIndexDataValues(iter->second);
+    VectorDataValue key;
+     GenIndexDataValues(iter->second, key);
     IndexTree *tree;
     if (iter->first == PRIMARY_KEY) {
-      VectorDataValue &val = GenColumsDataValues();
+      VectorDataValue val;
+      GenColumsDataValues(val);
       tree = new IndexTree(_name, path, key, val);
       _primaryTree = tree;
     } else {
-      VectorDataValue &val = GenIndexDataValues(_mapIndex[PRIMARY_KEY]);
+      VectorDataValue val;
+      GenIndexDataValues(_mapIndex[PRIMARY_KEY], val);
       tree = new IndexTree(_name, path, key, val);
     }
     _mapTree.insert({iter->first, tree});
@@ -269,8 +272,8 @@ void PersistTable::Clear() {
   _vctColumn.clear();
 }
 
- VectorDataValue &PersistTable::GenIndexDataValues(IndexProp& prop) const {
-  VectorDataValue vct;
+ void PersistTable::GenIndexDataValues(IndexProp& prop, VectorDataValue &vct) const {
+  vct.clear();
   vct.reserve(prop.vctCol.size());
   for (auto iter : prop.vctCol) {
     PersistColumn *col = _vctColumn[iter.colPos];
@@ -278,19 +281,15 @@ void PersistTable::Clear() {
         DataValueFactory(col->GetDataType(), true, col->GetMaxLength());
     vct.push_back(dv);
   }
-
-  return vct;
 }
 
- VectorDataValue &PersistTable::GenColumsDataValues() const {
-  VectorDataValue vct;
+ void PersistTable::GenColumsDataValues(VectorDataValue &vct) const {
+  vct.clear();
   vct.reserve(_vctColumn.size());
   for (PersistColumn *col : _vctColumn) {
     IDataValue *dv =
         DataValueFactory(col->GetDataType(), false, col->GetMaxLength());
     vct.push_back(dv);
   }
-
-  return vct;
  }
 } // namespace storage

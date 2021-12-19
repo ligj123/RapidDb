@@ -23,11 +23,14 @@ int InsertStatement::ExecuteUpdate() {
   IndexTree *priTree = table->GetPrimaryIndexTree();
 
   for (VectorDataValue *row : _vctRow) {
-    VectorDataValue &rowPri = table->GenColumsDataValues();
+    VectorDataValue rowPri;
+    table->GenColumsDataValues(rowPri);
     vAin->Calc(*row, rowPri);
 
    // LeafRecord *priRec = new LeafRecord(priTree, )
   }
+
+  return 0;
 }
 
 future<int> InsertStatement::ExecuteUpdateAsyn() {
