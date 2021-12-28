@@ -67,8 +67,8 @@ public:
 
   void OpenTable();
   void CloseTable();
-  VectorDataValue &GenIndexDataValues(IndexProp& prop) const;
-  VectorDataValue &GenColumsDataValues() const;
+  void GenIndexDataValues(IndexProp& prop, VectorDataValue & vct) const;
+  void GenColumsDataValues(VectorDataValue &vct) const;
 
 protected:
   inline bool IsExistedColumn(string name) {
