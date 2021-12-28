@@ -2,9 +2,10 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\..\presstest\InsertSpeedTest.cpp" />
-    <ClCompile Include="..\..\presstest\PressTest.cpp" />
     <ClCompile Include="..\..\presstest\ArrayTest.cpp" />
     <ClCompile Include="..\..\presstest\MultiThreadInsertSpeedTest.cpp" />
+    <ClCompile Include="..\..\presstest\MutexTest.cpp" />
+    <ClCompile Include="..\..\presstest\PressTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\presstest\PressTest.h" />

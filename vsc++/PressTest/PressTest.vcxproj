@@ -78,12 +78,12 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Boost\include\boost-1_78;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Boost\include\boost-1_75;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Boost\include\boost-1_78;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Boost\include\boost-1_75;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Boost\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -154,6 +154,7 @@
     <ClCompile Include="..\..\presstest\ArrayTest.cpp" />
     <ClCompile Include="..\..\presstest\InsertSpeedTest.cpp" />
     <ClCompile Include="..\..\presstest\MultiThreadInsertSpeedTest.cpp" />
+    <ClCompile Include="..\..\presstest\MutexTest.cpp" />
     <ClCompile Include="..\..\presstest\PressTest.cpp" />
   </ItemGroup>
   <ItemGroup>

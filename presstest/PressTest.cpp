@@ -35,6 +35,8 @@ int main(int argc, char *argv[]) {
 
   if (str == "0") {
     storage::ArrayTest();
+  } else if (str == "1") {
+    storage::MutexTest();
   } else if (str == "11") {
     storage::InsertSpeedPrimaryTest(argc >= 3 ? atol(argv[2]) : 0);
   } else if (str == "12") {
