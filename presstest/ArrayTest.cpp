@@ -11,28 +11,52 @@
 #include <thread>
 #include <unordered_map>
 
+#ifdef _MSVC_LANG
+#include <stdlib.h>
+#define BytesSwap16 _byteswap_ushort
+#define BytesSwap32 _byteswap_ulong
+#define BytesSwap64 _byteswap_uint64
+#else
+#include <byteswap.h>
+#define BytesSwap16 bswap_16
+#define BytesSwap32 bswap_32
+#define BytesSwap64 bswap_64
+#endif // _MSVC_LANG
+
 namespace storage {
 using namespace std;
 static int64_t times = 10000000;
 static int map_size = 1000;
 
 int BytesCompare(char *bys1, uint32_t len1, char *bys2, uint32_t len2) {
-   int minLen = min(len1, len2);
 
-   for (int i = 0; i < minLen; i++) {
-     int a = (unsigned char)bys1[i];
-     int b = (unsigned char)bys2[i];
-     if (a != b) {
-       return a - b;
-     }
-   }
+  int minLen = min(len1, len2);
 
-   return len1 - len2;
+  int min8 = minLen & 0xFFFFFFF8;
+  int i = 0;
+  for (; i < min8; i += 8) {
+    int64_t hr = BytesSwap64(*(uint64_t *)(bys1 + i)) -
+                 BytesSwap64(*(uint64_t *)(bys2 + i));
+    if (hr != 0)
+      return hr > 0 ? 1 : -1;
+  }
 
-  //int hr = memcmp(bys1, bys2, std::min(len1, len2));
-  //if (hr != 0)
+  unsigned char *ubs1 = (unsigned char *)bys1;
+  unsigned char *ubs2 = (unsigned char *)bys2;
+  for (; i < minLen; i++) {
+    if (*ubs1 != *ubs2) {
+      return *ubs1 - *ubs2;
+    }
+
+    ubs1++;
+    ubs2++;
+  }
+  return len1 - len2;
+
+  // int hr = memcmp(bys1, bys2, std::min(len1, len2));
+  // if (hr != 0)
   //  return hr;
-  //return len1 - len2;
+  // return len1 - len2;
 }
 
 void Int64ToBytes(int64_t val, char *pArr, bool bkey = false) {

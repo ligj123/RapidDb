@@ -89,6 +89,9 @@
     <ClCompile Include="..\..\test\table\TableDescTest.cpp">
       <Filter>table</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\test\utils\BytesConvertTest.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cache">

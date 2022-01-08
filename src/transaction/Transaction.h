@@ -55,7 +55,7 @@ public:
         while (true) {
           std::this_thread::yield();
           _tranId = atomicTranId.fetch_add(1);
-          if ((_tranId && 0xffffff) < 0xfff000)
+          if ((_tranId & 0xffffff) < 0xfff000)
             break;
         }
       }

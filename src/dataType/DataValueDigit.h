@@ -118,7 +118,7 @@ public:
   uint32_t WriteData(Byte *buf, bool key) const override {
     if (key) {
       if (valType_ == ValueType::SOLE_VALUE) {
-        DigitalToBytes<T>(_value, buf, true);
+        DigitalToBytes<T, DT>(_value, buf, true);
       }
       return sizeof(T);
     } else {
@@ -136,7 +136,7 @@ public:
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override {
     if (bKey_) {
       valType_ = ValueType::SOLE_VALUE;
-      _value = DigitalFromBytes<T>(buf, bKey_);
+      _value = DigitalFromBytes<T, DT>(buf, bKey_);
       return sizeof(T);
     } else {
       valType_ =

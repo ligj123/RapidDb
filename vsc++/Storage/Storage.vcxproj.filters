@@ -290,6 +290,9 @@
     <ClInclude Include="..\..\src\table\PersistTable.h">
       <Filter>table</Filter>
     </ClInclude>
+    <ClInclude Include="ByteSwap.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dataType">

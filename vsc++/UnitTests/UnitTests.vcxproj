@@ -44,6 +44,7 @@
     <ClCompile Include="..\..\test\table\ColumnTest.cpp" />
     <ClCompile Include="..\..\test\table\TableDescTest.cpp" />
     <ClCompile Include="..\..\test\TestMain.cpp" />
+    <ClCompile Include="..\..\test\utils\BytesConvertTest.cpp" />
     <ClCompile Include="..\..\test\utils\CharsetConvertTest.cpp" />
     <ClCompile Include="..\..\test\utils\ConcurrentHashMapTest.cpp" />
     <ClCompile Include="..\..\test\utils\ErrorMsgTest.cpp" />
