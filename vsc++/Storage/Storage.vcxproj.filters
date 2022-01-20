@@ -290,7 +290,7 @@
     <ClInclude Include="..\..\src\table\PersistTable.h">
       <Filter>table</Filter>
     </ClInclude>
-    <ClInclude Include="ByteSwap.h">
+    <ClInclude Include="..\..\src\utils\BytesSwap.h">
       <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>

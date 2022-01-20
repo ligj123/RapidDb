@@ -27,7 +27,7 @@ int InsertStatement::ExecuteUpdate() {
     table->GenColumsDataValues(rowPri);
     vAin->Calc(*row, rowPri);
 
-   // LeafRecord *priRec = new LeafRecord(priTree, )
+    // LeafRecord *priRec = new LeafRecord(priTree, )
   }
 
   return 0;

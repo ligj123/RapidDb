@@ -144,15 +144,16 @@ class ExprInsert : public BaseExpr {
 public:
   ExprInsert(PersistTable *tableDesc, ExprValueArrayIn *exprVAin,
              ExprSelect *exprSelect, VectorDataValue &vctPara,
-             bool statTime = false)
+             bool bUpsert = false, bool statTime = false)
       : _tableDesc(tableDesc), _exprVAin(exprVAin), _exprSelect(exprSelect),
-        _bStatTime(statTime) {
+        _bUpsert(bUpsert), _bStatTime(statTime) {
     _vctPara.swap(vctPara);
   }
   ExprInsert(PersistTable *tableDesc, ExprValueArrayIn *exprVAin,
-             VectorDataValue &vctPara, bool statTime = false)
-      : _tableDesc(tableDesc), _exprVAin(exprVAin), _bStatTime(statTime),
-        _exprSelect(nullptr) {
+             VectorDataValue &vctPara, bool bUpsert = false,
+             bool statTime = false)
+      : _tableDesc(tableDesc), _exprVAin(exprVAin), _bUpsert(bUpsert),
+        _bStatTime(statTime), _exprSelect(nullptr) {
     _vctPara.swap(vctPara);
   }
   ~ExprInsert() {
@@ -166,6 +167,7 @@ public:
   ExprSelect *GetExprSelect() { return _exprSelect; }
   const VectorDataValue &GetParameters() { return _vctPara; }
   bool IsStatTime() { return _bStatTime; }
+  bool IsUpsert() { return _bUpsert; }
 
 protected:
   // The destion persistent table, managed by database, can not delete here.
@@ -176,6 +178,8 @@ protected:
   VectorDataValue _vctPara;
   // if record time for statistics
   bool _bStatTime;
+  // True, update if the key has exist
+  bool _bUpsert;
 };
 
 class ExprUpdate : public BaseExpr {
