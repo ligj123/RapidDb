@@ -10,6 +10,7 @@ public:
   typedef std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
                              Mallocator<std::pair<const Key, T>>>
       ConHashMap;
+      
   ConcurrentHashMap(int groupCount, uint64_t maxCount)
       : _groupCount(groupCount) {
     _vctMap.reserve(groupCount);
@@ -26,7 +27,7 @@ public:
       delete _vctLock[i];
     }
   }
-  size_t size() {
+  size_t Size() {
     size_t sz = 0;
     for (int i = 0; i < _vctMap.size(); i++) {
       sz += _vctMap[i]->size();
@@ -35,13 +36,13 @@ public:
     return sz;
   }
 
-  bool insert(Key key, T val) {
+  bool Insert(Key key, T val) {
     int pos = std::hash<Key>{}(key) % _groupCount;
     unique_lock<SpinMutex> lock(*_vctLock[pos]);
     return _vctMap[pos]->insert({key, val}).second;
   }
 
-  bool find(Key key, T &val) {
+  bool Find(Key key, T &val) {
     int pos = std::hash<Key>{}(key) % _groupCount;
     unique_lock<SpinMutex> lock(*_vctLock[pos]);
     auto iter = _vctMap[pos]->find(key);
@@ -53,14 +54,14 @@ public:
     }
   }
 
-  auto begin(int pos) {
+  ConHashMap::iterator Begin(int pos) {
     _vctLock[pos]->lock();
     return _vctMap[pos]->begin();
   }
 
-  auto end(int pos) { return _vctMap[pos]->end(); }
+  ConHashMap::iterator End(int pos) { return _vctMap[pos]->end(); }
 
-  void unlock(int pos) { _vctLock[pos]->unlock(); }
+  void Unlock(int pos) { _vctLock[pos]->unlock(); }
 
 protected:
   vector<ConHashMap *> _vctMap;

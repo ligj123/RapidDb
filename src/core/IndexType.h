@@ -2,7 +2,7 @@
 #include <ostream>
 
 namespace storage {
-enum class IndexType : int16_t { UNKNOWN = 0, PRIMARY, UNIQUE, NON_UNIQUE };
+enum class IndexType : int8_t { UNKNOWN = 0, PRIMARY, UNIQUE, NON_UNIQUE };
 
 inline std::ostream &operator<<(std::ostream &os, const IndexType &it) {
   switch (it) {

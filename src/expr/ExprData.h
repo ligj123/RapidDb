@@ -36,7 +36,7 @@ public:
 
   ExprType GetType() { return ExprType::EXPR_PARAMETER; }
   IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    return vdRow[_paraPos];
+    return vdPara[_paraPos];
   }
 
 protected:
@@ -171,11 +171,11 @@ public:
     if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
       int64_t r = right->GetLong();
       if (r != 0)
-        rt = new DataValueLong(left->GetLong() * r);
+        rt = new DataValueLong(left->GetLong() / r);
     } else if (left->IsDigital() && right->IsDigital()) {
       double r = right->GetDouble();
       if (r != 0)
-        rt = new DataValueDouble(left->GetDouble() * r);
+        rt = new DataValueDouble(left->GetDouble() / r);
     }
     if (rt == nullptr) {
       rt = left->Clone();

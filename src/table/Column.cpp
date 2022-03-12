@@ -9,7 +9,7 @@ uint32_t PersistColumn::WriteData(Byte *pBuf) {
   Byte *p = pBuf;
   *((uint32_t *)p) = (uint32_t)_name.size();
   p += sizeof(uint32_t);
-  std::memcpy(p, _name.c_str(), _name.size());
+  BytesCopy(p, _name.c_str(), _name.size());
   p += _name.size();
 
   *((uint32_t *)p) = _position;
@@ -35,7 +35,7 @@ uint32_t PersistColumn::WriteData(Byte *pBuf) {
 
   *((uint32_t *)p) = (uint32_t)_comments.size();
   p += sizeof(uint32_t);
-  std::memcpy(p, _comments.c_str(), _comments.size());
+  BytesCopy(p, _comments.c_str(), _comments.size());
   p += _comments.size();
 
   *p = (_pDefaultVal == nullptr ? 0 : 1);

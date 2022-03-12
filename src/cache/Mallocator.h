@@ -69,6 +69,7 @@ public:
   typedef std::list<T, Mallocator<T>> Type;
 };
 
+typedef std::basic_string<char, std::char_traits<char>, Mallocator<char>> MString;
 // template <class V> struct MVector {
 // public:
 //  typedef std::vector<V> Type;

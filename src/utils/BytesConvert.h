@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "../header.h"
-#include "BytesSwap.h"
+#include "BytesMicro.h"
 #include "Log.h"
 #include <cstdint>
 #include <cstring>
@@ -305,14 +305,15 @@ inline void FloatToBytes(float dval, Byte *pArr, bool bkey = false) {
 }
 
 inline int BytesCompare(Byte *bys1, uint32_t len1, Byte *bys2, uint32_t len2) {
-  // int hr = std::memcmp(bys1, bys2, std::min(len1, len2));
-  // if (hr != 0)
-  //  return hr;
-  // return len1 - len2;
-
-  int minLen = min(len1, len2);
-  int min8 = minLen & 0xFFFFFFF8;
-  int i = 0;
+#ifdef STD_MEM
+  int hr = std::memcmp(bys1, bys2, std::min(len1, len2));
+  if (hr != 0)
+    return hr;
+  return len1 - len2;
+#else
+  uint32_t minLen = min(len1, len2);
+  uint32_t min8 = minLen & 0xFFFFFFF8;
+  uint32_t i = 0;
   for (; i < min8; i += 8) {
     int64_t hr =
         BytesSwap64(*(uint64_t *)bys1) - BytesSwap64(*(uint64_t *)bys2);
@@ -331,5 +332,24 @@ inline int BytesCompare(Byte *bys1, uint32_t len1, Byte *bys2, uint32_t len2) {
   }
 
   return len1 - len2;
+#endif // STD_MEM
+}
+
+inline void *BytesCpy(void *dst, const void *src, size_t count) {
+  size_t c8 = count & 0xFFFFFFF8;
+  size_t i = 0;
+  Byte *pdst = (Byte *)dst;
+  const Byte *psrc = (Byte *)src;
+  for (; i < c8; i += 8) {
+    *((uint64_t *)pdst) = *((uint64_t *)src);
+    pdst += 8;
+    psrc += 8;
+  }
+
+  for (; i < count; i++) {
+    *pdst++ = *psrc++;
+  }
+
+  return dst;
 }
 } // namespace storage

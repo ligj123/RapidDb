@@ -1,14 +1,16 @@
 ﻿#include "HeadPage.h"
 #include "IndexTree.h"
+#include "PageType.h"
 
 namespace storage {
 const uint32_t HeadPage::HEAD_PAGE_LENGTH =
     (uint32_t)Configure::GetDiskClusterSize();
-const uint16_t HeadPage::MAX_RECORD_VER_COUNT = 8;
+const uint16_t HeadPage::MAX_RECORD_STAMPS_COUNT = 8;
 
-const uint16_t HeadPage::VERSION_OFFSET = 0;
-const uint16_t HeadPage::INDEX_TYPE_OFFSET = 4;
-const uint16_t HeadPage::RECORD_VER_COUNT_OFFSET = 5;
+const uint16_t HeadPage::PAGE_TYPE_OFFSET = 0;
+const uint16_t HeadPage::INDEX_TYPE_OFFSET = 1;
+const uint16_t HeadPage::RECORD_STAMPS_COUNT_OFFSET = 2;
+const uint16_t HeadPage::VERSION_OFFSET = 4;
 const uint16_t HeadPage::KEY_VARIABLE_FIELD_COUNT = 8;
 const uint16_t HeadPage::VALUE_VARIABLE_FIELD_COUNT = 10;
 const uint16_t HeadPage::TOTAL_PAGES_COUNT_OFFSET = 16;
@@ -30,9 +32,11 @@ const uint64_t HeadPage::NO_NEXT_PAGE_POINTER = UINT64_MAX;
 void HeadPage::ReadPage() {
   lock_guard<SpinMutex> lock(_spinMutex);
   CachePage::ReadPage();
+  assert((PageType)ReadByte(PAGE_TYPE_OFFSET) == PageType::HEAD_PAGE);
+  assert(CURRENT_FILE_VERSION == ReadFileVersion());
 
   _indexType = (IndexType)ReadByte(INDEX_TYPE_OFFSET);
-  _recordVerCount = ReadByte(RECORD_VER_COUNT_OFFSET);
+  _recordVerCount = ReadByte(RECORD_STAMPS_COUNT_OFFSET);
   _keyVariableFieldCount = ReadShort(KEY_VARIABLE_FIELD_COUNT);
   _valueVariableFieldCount = ReadShort(VALUE_VARIABLE_FIELD_COUNT);
 
@@ -55,8 +59,10 @@ void HeadPage::ReadPage() {
 
 void HeadPage::WritePage() {
   lock_guard<SpinMutex> lock(_spinMutex);
-  WriteByte(RECORD_VER_COUNT_OFFSET, _recordVerCount);
+  WriteByte(PAGE_TYPE_OFFSET, (Byte)PageType::HEAD_PAGE);
+  WriteByte(RECORD_STAMPS_COUNT_OFFSET, _recordVerCount);
   WriteLong(TOTAL_PAGES_COUNT_OFFSET, _totalPageCount);
+  WriteFileVersion();
   WriteLong(ROOT_PAGE_OFFSET, _rootPageId);
   WriteLong(BEGIN_LEAF_PAGE_OFFSET, _beginLeafPageId);
   WriteLong(END_LEAF_PAGE_OFFSET, _endLeafPageId);

@@ -61,7 +61,7 @@ public:
   inline void WriteUnlock() { _rwLock.unlock(); }
   void IncRefCount();
   void DecRefCount();
-  inline int32_t GetRefCount() { return _refCount; }
+  inline int32_t GetRefCount() { return _refCount.load(memory_order_relaxed); }
 
   inline Byte ReadByte(uint32_t pos) const {
     assert(Configure::GetCachePageSize() > sizeof(Byte) + pos);
@@ -116,5 +116,6 @@ protected:
   atomic<int32_t> _refCount = 0;
   bool _bDirty = false;
   bool _bRecordUpdate = false;
+  bool _bLastPage = false;
 };
 } // namespace storage

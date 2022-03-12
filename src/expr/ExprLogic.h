@@ -27,6 +27,8 @@ public:
     bool b = true;
     for (ExprLogic *expr : _vctChild) {
       b = b && expr->Calc(vdPara, vdRow);
+      if (!b)
+        break;
     }
     return b;
   }
@@ -49,6 +51,8 @@ public:
     bool b = false;
     for (ExprLogic *expr : _vctChild) {
       b = b || expr->Calc(vdPara, vdRow);
+      if (b)
+        break;
     }
     return b;
   }

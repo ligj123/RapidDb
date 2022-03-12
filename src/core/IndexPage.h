@@ -9,6 +9,7 @@ namespace storage {
 class IndexPage : public CachePage {
 public:
   static const float LOAD_FACTOR;
+  static const uint16_t PAGE_TYPE_OFFSET;
   static const uint16_t PAGE_LEVEL_OFFSET;
   static const uint16_t PAGE_REFERENCE_COUNT;
   static const uint16_t NUM_RECORD_OFFSET;

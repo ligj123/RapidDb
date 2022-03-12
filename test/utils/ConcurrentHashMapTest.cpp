@@ -24,26 +24,26 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
   BOOST_TEST(hMap._vctMap[0]->bucket_count() >= 10000);
 
   for (int i = 0; i < 500000; i++) {
-    BOOST_TEST(hMap.insert(i, to_string(i)));
+    BOOST_TEST(hMap.Insert(i, to_string(i)));
   }
 
-  BOOST_TEST(hMap.size() == 500000);
+  BOOST_TEST(hMap.Size() == 500000);
 
   for (int i = 0; i < 500000; i++) {
     string str;
-    BOOST_TEST(hMap.find(i, str));
+    BOOST_TEST(hMap.Find(i, str));
     BOOST_TEST(str == to_string(i));
   }
 
   int count = 0;
   for (int i = 0; i < 100; i++) {
-    auto iter = hMap.begin(i);
-    auto end = hMap.end(i);
+    auto iter = hMap.Begin(i);
+    auto end = hMap.End(i);
     while (iter != end) {
       count++;
       iter++;
     }
-    hMap.unlock(i);
+    hMap.Unlock(i);
   }
 
   BOOST_TEST(count == 500000);

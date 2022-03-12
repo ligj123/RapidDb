@@ -9,11 +9,14 @@ class HeadPage : public CachePage {
 public:
   static const uint32_t HEAD_PAGE_LENGTH;
   /**The max versions can be support at the same time in a table*/
-  static const uint16_t MAX_RECORD_VER_COUNT;
-  static const uint16_t VERSION_OFFSET;
+  static const uint16_t MAX_RECORD_STAMPS_COUNT;
+
+  static const uint16_t PAGE_TYPE_OFFSET;
   static const uint16_t INDEX_TYPE_OFFSET;
-  /**How much versions have been saved to this table*/
-  static const uint16_t RECORD_VER_COUNT_OFFSET;
+  /**How much stamps have been saved to this table*/
+  static const uint16_t RECORD_STAMPS_COUNT_OFFSET;
+  /**Index file version*/
+  static const uint16_t VERSION_OFFSET;
   static const uint16_t KEY_VARIABLE_FIELD_COUNT;
   static const uint16_t VALUE_VARIABLE_FIELD_COUNT;
 

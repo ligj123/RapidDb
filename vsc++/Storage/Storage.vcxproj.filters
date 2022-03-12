@@ -101,6 +101,15 @@
     <ClCompile Include="..\..\src\table\PersistTable.cpp">
       <Filter>table</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\binlog\LogServer.cpp">
+      <Filter>binlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\GarbagePage.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\OverflowPage.cpp">
+      <Filter>core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />
@@ -290,8 +299,23 @@
     <ClInclude Include="..\..\src\table\PersistTable.h">
       <Filter>table</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\utils\BytesSwap.h">
+    <ClInclude Include="..\..\src\utils\BytesMicro.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\binlog\LogType.h">
+      <Filter>binlog</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\binlog\LogServer.h">
+      <Filter>binlog</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\GarbagePage.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\OverflowPage.h">
+      <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\PageType.h">
+      <Filter>core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -336,6 +360,9 @@
     </Filter>
     <Filter Include="resultset">
       <UniqueIdentifier>{f8de8529-ea33-465a-a47a-b5ce5922f131}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="binlog">
+      <UniqueIdentifier>{19c2c33f-2456-40f7-89b7-0606b5c552cb}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

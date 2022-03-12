@@ -10,8 +10,7 @@ namespace fs = std::filesystem;
 BOOST_AUTO_TEST_SUITE(PoolTest)
 
 BOOST_AUTO_TEST_CASE(StoragePool_test) {
-  const string FILE_NAME =
-      "./dbTest/testStoragePool" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testStoragePool" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int NUM = 10000;
   VectorDataValue vctKey;
@@ -27,9 +26,9 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
   for (int i = 1; i <= NUM; i++) {
     CachePage *page = new CachePage(indexTree, i);
     page->WriteInt(0, i);
-    memcpy(page->GetBysPage() + 4, pStrTest, size);
-    memcpy(page->GetBysPage() + Configure::GetCachePageSize() - size, pStrTest,
-           size);
+    BytesCopy(page->GetBysPage() + 4, pStrTest, size);
+    BytesCopy(page->GetBysPage() + Configure::GetCachePageSize() - size,
+              pStrTest, size);
     page->SetDirty(true);
     StoragePool::WriteCachePage(page);
     vctPage.push_back(page);

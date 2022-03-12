@@ -8,7 +8,8 @@
 
 namespace storage {
 const float IndexPage::LOAD_FACTOR = 0.8f;
-const uint16_t IndexPage::PAGE_LEVEL_OFFSET = 0;
+const uint16_t IndexPage::PAGE_TYPE_OFFSET = 0;
+const uint16_t IndexPage::PAGE_LEVEL_OFFSET = 1;
 const uint16_t IndexPage::PAGE_REFERENCE_COUNT = 2;
 const uint16_t IndexPage::NUM_RECORD_OFFSET = 4;
 const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;

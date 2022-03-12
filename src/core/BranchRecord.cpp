@@ -25,7 +25,7 @@ BranchRecord::BranchRecord(IndexTree *indexTree, RawRecord *rec,
   *((uint16_t *)(_bysVal + sizeof(uint16_t))) = lenKey;
 
   uint16_t offset = TWO_SHORT_LEN;
-  std::memcpy(_bysVal + TWO_SHORT_LEN, rec->GetBysValue() + TWO_SHORT_LEN,
+  BytesCopy(_bysVal + TWO_SHORT_LEN, rec->GetBysValue() + TWO_SHORT_LEN,
               lenKey + lenVal);
   *((uint64_t *)(_bysVal + lenKey + lenVal + TWO_SHORT_LEN)) = childPageId;
 }

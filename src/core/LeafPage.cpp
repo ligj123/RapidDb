@@ -7,6 +7,7 @@
 #include "HeadPage.h"
 #include "IndexTree.h"
 #include "LeafRecord.h"
+#include "PageType.h"
 
 namespace storage {
 uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 16;
@@ -21,6 +22,7 @@ LeafPage::LeafPage(IndexTree *indexTree, uint64_t pageId, uint64_t parentPageId)
       _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
       _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
   _vctRecord.reserve(256);
+  _bysPage[PAGE_TYPE_OFFSET] = (Byte)PageType::LEAF_PAGE;
 }
 
 LeafPage::LeafPage(IndexTree *indexTree, uint64_t pageId)
@@ -415,25 +417,23 @@ bool LeafPage::FetchRecords(const RawKey *startKey, const RawKey *endKey,
 int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
   return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                             ReadShort(start + SHORT_LEN) -
-                                 _indexTree->GetKeyVarLen(),
-                             key.GetBysVal(), key.GetLength());
+                      ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
+                      key.GetBysVal(), key.GetLength());
 }
 
 int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
   if (key) {
     return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                               ReadShort(start + SHORT_LEN) -
-                                   _indexTree->GetKeyVarLen(),
-                               rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                               rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+                        ReadShort(start + SHORT_LEN) -
+                            _indexTree->GetKeyVarLen(),
+                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
+                        rr.GetKeyLength() - _indexTree->GetKeyVarLen());
   } else {
     return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                               ReadShort(start) - _indexTree->GetKeyOffset(),
-                               rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                               rr.GetTotalLength() -
-                                   _indexTree->GetKeyOffset());
+                        ReadShort(start) - _indexTree->GetKeyOffset(),
+                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
+                        rr.GetTotalLength() - _indexTree->GetKeyOffset());
   }
 }
 } // namespace storage

@@ -48,7 +48,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   }
 
   pos = TWO_SHORT_LEN + lenKey;
-  std::memcpy(_bysVal + pos, bysPri, lenPri);
+  BytesCopy(_bysVal + pos, bysPri, lenPri);
 }
 
 LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
@@ -155,7 +155,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   _priStru->arrStamp[0] = recStamp;
 
   if (rsCount > 1) {
-    std::memcpy(&_priStru->arrStamp[1], &oldValStru->arrStamp[bOldAll ? 0 : 1],
+    BytesCopy(&_priStru->arrStamp[1], &oldValStru->arrStamp[bOldAll ? 0 : 1],
                 sizeof(uint64_t) * (rsCount - 1));
   }
 
@@ -181,7 +181,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
     oldStart = (bOldAll ? 0 : oldValStru->arrPageLen[0]);
     oldIndex = (bOldAll ? 0 : 1);
     for (int i = 1; i < rsCount; i++) {
-      std::memcpy(_bysVal + _priStru->pageValOffset +
+      BytesCopy(_bysVal + _priStru->pageValOffset +
                       _priStru->arrPageLen[i - 1],
                   old->_bysVal + oldValStru->pageValOffset + oldStart,
                   _priStru->arrPageLen[i] - _priStru->arrPageLen[i - 1]);
@@ -439,7 +439,7 @@ RawKey *LeafRecord::GetPrimayKey() const {
   int start = GetKeyLength() + _indexTree->GetValOffset();
   int len = GetTotalLength() - start;
   Byte *buf = CachePool::Apply(len);
-  memcpy(buf, _bysVal + start, len);
+  BytesCopy(buf, _bysVal + start, len);
   return new RawKey(buf, len, true);
 }
 

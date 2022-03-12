@@ -53,7 +53,7 @@ public:
 
   uint64_t GetOffsetAddLength(uint32_t len) {
     assert(_bOverflowFile);
-    return _overFileLength.fetch_add(len);
+    return _overFileLength.fetch_add(len, memory_order_relaxed);
   }
 
   void close() { _file.close(); }

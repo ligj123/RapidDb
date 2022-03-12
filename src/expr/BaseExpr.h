@@ -95,7 +95,7 @@ public:
   // bool value.
   virtual bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
 };
-
+ 
 class ExprAggr : public BaseExpr {
 public:
   using BaseExpr::BaseExpr;

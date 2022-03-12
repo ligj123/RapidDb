@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../utils/BytesConvert.h"
 #include "IDataValue.h"
 
 namespace storage {
@@ -19,7 +20,7 @@ public:
     }
 
     bysValue_ = CachePool::Apply(soleLength_);
-    memcpy(bysValue_, val, soleLength_);
+    BytesCopy(bysValue_, val, soleLength_);
   }
 
   DataValueVarChar(uint32_t maxLength, bool bKey, std::any val);
@@ -30,12 +31,12 @@ public:
     switch (valType_) {
     case ValueType::SOLE_VALUE:
       bysValue_ = CachePool::Apply(soleLength_);
-      memcpy(bysValue_, src.bysValue_, soleLength_);
+      BytesCopy(bysValue_, src.bysValue_, soleLength_);
       break;
     case ValueType::BYTES_VALUE:
       bysValue_ = src.bysValue_;
       break;
-    case ValueType::NULL_VALUE:
+    case ValueType::NULL_VALUE: 
     default:
       bysValue_ = nullptr;
       break;

@@ -19,17 +19,20 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\binlog\LogServer.cpp" />
     <ClCompile Include="..\..\src\cache\CachePool.cpp" />
     <ClCompile Include="..\..\src\cache\BufferPool.cpp" />
     <ClCompile Include="..\..\src\config\Configure.cpp" />
     <ClCompile Include="..\..\src\core\BranchPage.cpp" />
     <ClCompile Include="..\..\src\core\BranchRecord.cpp" />
     <ClCompile Include="..\..\src\core\CachePage.cpp" />
+    <ClCompile Include="..\..\src\core\GarbagePage.cpp" />
     <ClCompile Include="..\..\src\core\HeadPage.cpp" />
     <ClCompile Include="..\..\src\core\IndexPage.cpp" />
     <ClCompile Include="..\..\src\core\IndexTree.cpp" />
     <ClCompile Include="..\..\src\core\LeafPage.cpp" />
     <ClCompile Include="..\..\src\core\LeafRecord.cpp" />
+    <ClCompile Include="..\..\src\core\OverflowPage.cpp" />
     <ClCompile Include="..\..\src\core\RawKey.cpp" />
     <ClCompile Include="..\..\src\database\Database.cpp" />
     <ClCompile Include="..\..\src\database\Table.cpp" />
@@ -55,6 +58,8 @@
     <ClCompile Include="..\..\src\utils\ThreadPool.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\binlog\LogServer.h" />
+    <ClInclude Include="..\..\src\binlog\LogType.h" />
     <ClInclude Include="..\..\src\cache\AbsoleteBuffer.h" />
     <ClInclude Include="..\..\src\cache\CachePool.h" />
     <ClInclude Include="..\..\src\cache\BufferPool.h" />
@@ -67,12 +72,15 @@
     <ClInclude Include="..\..\src\core\BranchPage.h" />
     <ClInclude Include="..\..\src\core\BranchRecord.h" />
     <ClInclude Include="..\..\src\core\CachePage.h" />
+    <ClInclude Include="..\..\src\core\GarbagePage.h" />
     <ClInclude Include="..\..\src\core\HeadPage.h" />
     <ClInclude Include="..\..\src\core\IndexPage.h" />
     <ClInclude Include="..\..\src\core\IndexTree.h" />
     <ClInclude Include="..\..\src\core\IndexType.h" />
     <ClInclude Include="..\..\src\core\LeafPage.h" />
     <ClInclude Include="..\..\src\core\LeafRecord.h" />
+    <ClInclude Include="..\..\src\core\OverflowPage.h" />
+    <ClInclude Include="..\..\src\core\PageType.h" />
     <ClInclude Include="..\..\src\core\RawKey.h" />
     <ClInclude Include="..\..\src\core\RawRecord.h" />
     <ClInclude Include="..\..\src\database\Database.h" />
@@ -110,7 +118,7 @@
     <ClInclude Include="..\..\src\transaction\Transaction.h" />
     <ClInclude Include="..\..\src\transaction\TranType.h" />
     <ClInclude Include="..\..\src\utils\BytesConvert.h" />
-    <ClInclude Include="..\..\src\utils\BytesSwap.h" />
+    <ClInclude Include="..\..\src\utils\BytesMicro.h" />
     <ClInclude Include="..\..\src\utils\CharsetConvert.h" />
     <ClInclude Include="..\..\src\utils\ConcurrentHashMap.h" />
     <ClInclude Include="..\..\src\utils\ErrorMsg.h" />

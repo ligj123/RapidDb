@@ -58,11 +58,11 @@ protected:
   IndexTree *_indexTree;
   /**How many times this record is referenced*/
   atomic<int32_t> _refCount = 1;
-  /**If this record' value is saved to solely buffer or branch page*/
+  /**If this record' value is saved to solely buffer or index page*/
   bool _bSole;
   /**Below variables only used for LeafRecord, put here to save 8 bytes memory*/
-  /**Normal time its value is unknown, in transaction time, it is the actual
-   * action*/
+  /**Normal time its value is unknown. But if this record is locked in
+   * transaction time, it is the actual action for this record.*/
   ActionType _actionType = ActionType::UNKNOWN;
 };
 } // namespace storage

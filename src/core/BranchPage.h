@@ -1,5 +1,6 @@
 #pragma once
 #include "IndexPage.h"
+#include "PageType.h"
 #include "RawKey.h"
 
 namespace storage {
@@ -13,7 +14,9 @@ public:
 public:
   BranchPage(IndexTree *indexTree, uint64_t pageId, Byte pageLevel,
              uint64_t parentId)
-      : IndexPage(indexTree, pageId, pageLevel, parentId) {}
+      : IndexPage(indexTree, pageId, pageLevel, parentId) {
+    _bysPage[PAGE_TYPE_OFFSET] = (Byte)PageType::BRANCH_PAGE;
+  }
 
   BranchPage(IndexTree *indexTree, uint64_t pageId)
       : IndexPage(indexTree, pageId) {}

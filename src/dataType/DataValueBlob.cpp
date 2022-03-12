@@ -20,7 +20,7 @@ DataValueBlob::DataValueBlob(const char *val, uint32_t len, uint32_t maxLength,
   }
 
   bysValue_ = CachePool::Apply(soleLength_);
-  memcpy(bysValue_, val, soleLength_);
+  BytesCopy(bysValue_, val, soleLength_);
 }
 
 DataValueBlob::DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength,
@@ -41,7 +41,7 @@ DataValueBlob::DataValueBlob(const DataValueBlob &src) : IDataValue(src) {
   switch (valType_) {
   case ValueType::SOLE_VALUE:
     bysValue_ = CachePool::Apply(soleLength_);
-    memcpy(bysValue_, src.bysValue_, soleLength_);
+    BytesCopy(bysValue_, src.bysValue_, soleLength_);
     break;
   case ValueType::BYTES_VALUE:
     bysValue_ = src.bysValue_;
@@ -82,7 +82,7 @@ void DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
     bysValue_ = CachePool::Apply(soleLength_);
     valType_ = ValueType::SOLE_VALUE;
     soleLength_ = dv.GetDataLength();
-    memcpy(bysValue_, ((DataValueBlob &)dv).bysValue_, soleLength_);
+    BytesCopy(bysValue_, ((DataValueBlob &)dv).bysValue_, soleLength_);
   } else {
     valType_ = ValueType::NULL_VALUE;
     soleLength_ = 0;
@@ -108,14 +108,14 @@ uint32_t DataValueBlob::WriteData(Byte *buf, bool key) const {
     buf++;
     *((uint32_t *)buf) = soleLength_;
     buf += sizeof(uint32_t);
-    std::memcpy(buf, bysValue_, soleLength_);
+    BytesCopy(buf, bysValue_, soleLength_);
     return soleLength_ + sizeof(uint32_t) + 1;
   } else {
     *buf = VALUE_TYPE | ((Byte)DataType::BLOB & DATE_TYPE);
     buf++;
     *((uint32_t *)buf) = soleLength_;
     buf += sizeof(uint32_t);
-    std::memcpy(buf, bysValue_, soleLength_);
+    BytesCopy(buf, bysValue_, soleLength_);
     return (uint32_t)soleLength_ + sizeof(uint32_t) + 1;
   }
 }
@@ -165,7 +165,7 @@ uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len, bool bSole) {
   buf += sizeof(uint32_t);
   if (bSole) {
     bysValue_ = CachePool::Apply(soleLength_);
-    memcpy(bysValue_, buf, soleLength_);
+    BytesCopy(bysValue_, buf, soleLength_);
     valType_ = ValueType::SOLE_VALUE;
   } else {
     valType_ = ValueType::BYTES_VALUE;
@@ -229,7 +229,7 @@ DataValueBlob &DataValueBlob::operator=(const char *val) {
   soleLength_ = len;
   valType_ = ValueType::SOLE_VALUE;
   bysValue_ = CachePool::Apply(soleLength_);
-  memcpy(bysValue_, val + sizeof(uint32_t), soleLength_);
+  BytesCopy(bysValue_, val + sizeof(uint32_t), soleLength_);
   return *this;
 }
 
@@ -243,7 +243,7 @@ void DataValueBlob::Put(uint32_t len, char *val) {
   soleLength_ = len;
   valType_ = ValueType::SOLE_VALUE;
   bysValue_ = CachePool::Apply(soleLength_);
-  memcpy(bysValue_, val, soleLength_);
+  BytesCopy(bysValue_, val, soleLength_);
 }
 
 DataValueBlob &DataValueBlob::operator=(const DataValueBlob &src) {
@@ -259,7 +259,7 @@ DataValueBlob &DataValueBlob::operator=(const DataValueBlob &src) {
   switch (valType_) {
   case ValueType::SOLE_VALUE:
     bysValue_ = CachePool::Apply(soleLength_);
-    memcpy(bysValue_, src.bysValue_, soleLength_);
+    BytesCopy(bysValue_, src.bysValue_, soleLength_);
     break;
   case ValueType::BYTES_VALUE:
     bysValue_ = src.bysValue_;

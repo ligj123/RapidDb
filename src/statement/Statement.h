@@ -41,8 +41,7 @@ public:
     }
 
     if (_bStatTime)
-      _createTime = std::chrono::duration_cast<std::chrono::nanoseconds>(
-          std::chrono::system_clock::now().time_since_epoch());
+      _createTime = std::chrono::system_clock::now();
   }
 
   ~Statement() {
@@ -416,9 +415,9 @@ public:
    */
   virtual void Close() {}
 
-  std::chrono::nanoseconds GetCreateTime() { return _createTime; }
-  std::chrono::nanoseconds GetStartTime() { return _startTime; }
-  std::chrono::nanoseconds GetStopTime() { return _stopTime; }
+  time_point<system_clock> GetCreateTime() { return _createTime; }
+  time_point<system_clock> GetStartTime() { return _startTime; }
+  time_point<system_clock> GetStopTime() { return _stopTime; }
   bool IsFinished() { return _tinyTasks == _finishedTask; }
 
 public:
@@ -430,18 +429,18 @@ public:
   }
 
 protected:
-  // The point of vactor datavalue from expression
+  // The vactor of data value from sql expression
   const VectorDataValue *_vctParaSour;
   // To save one row of data values
   VectorDataValue _vctPara;
   // To save rows of data values
   VectorRow _vctRow;
   // The create time for this statement
-  std::chrono::nanoseconds _createTime;
+  time_point<system_clock> _createTime;
   // The start time to execute for this statement
-  std::chrono::nanoseconds _startTime;
+  time_point<system_clock> _startTime;
   // The finished or abort time to execute for this statement
-  std::chrono::nanoseconds _stopTime;
+  time_point<system_clock> _stopTime;
   // The number of tiny taks. One statement maybe splite serveral tiny tasks to
   // run. Here used to save how much tiny tasks in total.
   int _tinyTasks = 0;
@@ -451,8 +450,8 @@ protected:
   Transaction *_transaction;
   // If current statement meet error, save the reason here
   ErrorMsg _errorMsg;
-  // True, it will incoming the transaction from outside when construct this
-  // statement; False, no transaction incoming and need this statement to create
+  // False, it will input the transaction from outside when construct this
+  // statement; True , no transaction incoming and need this statement to create
   // a new transaction.
   bool _bAutoTran = false;
   // If get the time for statistics.

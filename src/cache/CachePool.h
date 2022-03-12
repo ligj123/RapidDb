@@ -45,7 +45,7 @@ public:
       return pool->_localMap.Pop(sz);
     }
   }
-  /**Apply a memory block from cache and return the actual allocated size*/
+  /**Apply a memory block from cache and set the actual allocated size*/
   static inline Byte *Apply(uint32_t bufSize, uint32_t &realSize) {
     realSize = CalcBufSize(bufSize);
     if (realSize == UINT32_MAX) {

@@ -92,7 +92,7 @@ BOOST_AUTO_TEST_CASE(DataValueBlobCopy_test) {
   char buf[100];
   buf[0] = VALUE_TYPE | ((Byte)DataType::BLOB & DATE_TYPE);
   *(int *)(buf + 1) = 7;
-  memcpy(buf + 5, "abcdefg", 7);
+  BytesCopy(buf + 5, "abcdefg", 7);
 
   dvb2.ReadData((Byte *)buf, 0, false);
   dvb.Copy(dvb2);

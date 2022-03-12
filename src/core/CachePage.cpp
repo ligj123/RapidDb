@@ -29,12 +29,12 @@ CachePage::~CachePage() {
 
 void CachePage::IncRefCount() {
   _indexTree->IncTask();
-  _refCount.fetch_add(1);
+  _refCount.fetch_add(1, memory_order_relaxed);
 }
 
 void CachePage::DecRefCount() {
   _indexTree->DecTask();
-  _refCount.fetch_sub(1);
+  _refCount.fetch_sub(1, memory_order_relaxed);
 }
 
 bool CachePage::IsFileClosed() const { return _indexTree->IsClosed(); }
@@ -61,7 +61,7 @@ void CachePage::WritePage() {
   char *tmp = PageFile::_ovfBuff.GetBuf();
   {
     unique_lock<SpinMutex> lock(_pageLock);
-    memcpy(tmp, _bysPage,
+    BytesCopy(tmp, _bysPage,
            (_pageId != UINT64_MAX ? Configure::GetCachePageSize()
                                   : Configure::GetDiskClusterSize()));
     _bDirty = false;

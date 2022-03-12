@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "../dataType/IDataValue.h"
 #include "../transaction/TranStatus.h"
+#include "../utils/BytesConvert.h"
 #include "RawKey.h"
 #include "RawRecord.h"
 #include <cstring>
@@ -105,6 +106,8 @@ public:
   }
   inline ActionType GetActionType() { return _actionType; }
   inline Transaction *GetTrasaction() { return _tran; }
+  inline void SetActionType(ActionType type) { _actionType = type; }
+  inline void SetTrasaction(Transaction *tran) { _tran = tran; }
 
   void GetListKey(VectorDataValue &vct) const;
   /**
@@ -144,7 +147,7 @@ public:
 
   inline uint16_t SaveData(Byte *bysPage) {
     uint16_t len = GetTotalLength();
-    std::memcpy(bysPage, _bysVal, len);
+    BytesCopy(bysPage, _bysVal, len);
     return len;
   }
 
@@ -163,7 +166,8 @@ public:
 protected:
   /**Save old records for recover*/
   LeafRecord *_undoRecords = nullptr;
-  /**The transaction if it is running in a transaction, or nullptr*/
+  /**The transaction own the write lock for this record, or nullptr without
+   * write lock*/
   Transaction *_tran = nullptr;
   mutable PriValStruct *_priStru = nullptr;
 

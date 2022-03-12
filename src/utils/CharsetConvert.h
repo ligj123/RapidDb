@@ -1,9 +1,9 @@
 ﻿#pragma once
+#include "../utils/BytesConvert.h"
 #include <boost/locale/encoding.hpp>
 #include <cstring>
 #include <iostream>
 #include <unordered_map>
-
 namespace storage {
 using namespace std;
 enum class Charsets : uint16_t { UNKNOWN = 0, UTF8, UTF16, UTF32, GBK };
@@ -41,11 +41,11 @@ public:
     string str = boost::locale::conv::between(
         inFrom, inFrom + inLen, mapCharset[Charsets::UTF8], mapCharset[cset]);
     if (str.size() > outLen) {
-      std::memcpy(outFrom, str.c_str(), outLen);
+      BytesCopy(outFrom, str.c_str(), outLen);
       return ConvResult::PARTIAL;
     }
 
-    std::memcpy(outFrom, str.c_str(), str.size());
+    BytesCopy(outFrom, str.c_str(), str.size());
     if (bZero) {
       std::memset(outFrom + str.size(), 0, outLen - str.size());
     }
@@ -60,11 +60,11 @@ public:
     string str = boost::locale::conv::between(
         inFrom, inFrom + inLen, mapCharset[cset], mapCharset[Charsets::UTF8]);
     if (str.size() > outLen) {
-      std::memcpy(outFrom, str.c_str(), outLen);
+      BytesCopy(outFrom, str.c_str(), outLen);
       return ConvResult::PARTIAL;
     }
 
-    std::memcpy(outFrom, str.c_str(), str.size());
+    BytesCopy(outFrom, str.c_str(), str.size());
     if (bZero) {
       std::memset(outFrom + str.size(), 0, outLen - str.size());
     }
@@ -80,11 +80,11 @@ public:
     wstring str = boost::locale::conv::to_utf<wchar_t>(inFrom, inFrom + inLen,
                                                        mapCharset[cset]);
     if (str.size() > outLen) {
-      std::memcpy(outFrom, str.c_str(), (size_t)outLen * WCHAR_SIZE);
+      BytesCopy(outFrom, str.c_str(), (size_t)outLen * WCHAR_SIZE);
       return ConvResult::PARTIAL;
     }
 
-    std::memcpy(outFrom, str.c_str(), str.size() * WCHAR_SIZE);
+    BytesCopy(outFrom, str.c_str(), str.size() * WCHAR_SIZE);
     if (bZero) {
       std::memset((char *)outFrom + str.size() * WCHAR_SIZE, 0,
                   (outLen - str.size()) * WCHAR_SIZE);
@@ -101,11 +101,11 @@ public:
     string str =
         boost::locale::conv::from_utf(inFrom, inFrom + inLen, mapCharset[cset]);
     if (str.size() > outLen) {
-      std::memcpy(outFrom, str.c_str(), outLen);
+      BytesCopy(outFrom, str.c_str(), outLen);
       return ConvResult::PARTIAL;
     }
 
-    std::memcpy(outFrom, str.c_str(), str.size());
+    BytesCopy(outFrom, str.c_str(), str.size());
     if (bZero) {
       std::memset(outFrom + str.size(), 0, outLen - str.size());
     }

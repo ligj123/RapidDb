@@ -46,18 +46,15 @@ public:
     if (bStatTime)
       _createTime = system_clock::now();
 
-    _tranId = atomicTranId.fetch_add(1);
-    if ((_tranId & 0xffffff) >= 0xfff000) {
-      if ((_tranId & 0xffffff) >= 0xfff000) {
-        _tranId = (MSTime() & 0xffffff) << 24;
-        atomicTranId.store(_tranId + 1);
-      } else {
-        while (true) {
-          std::this_thread::yield();
-          _tranId = atomicTranId.fetch_add(1);
-          if ((_tranId & 0xffffff) < 0xfff000)
-            break;
-        }
+    if (tType == TranType::AUTOMATE) {
+      _tranId = _atomicAutoTranId.fetch_add(1, memory_order_relaxed);
+      if ((_tranId & 0xffffff) == 0xffff00) {
+        _atomicAutoTranId.store((MSTime() & 0xffffff) << 24);
+      }
+    } else {
+      _tranId = _atomicManualTranId.fetch_add(0xff, memory_order_relaxed);
+      if ((_tranId & 0xffffff) == 0xfff000) {
+        _atomicAutoTranId.store((MSTime() & 0xffffff) << 24);
       }
     }
   }
@@ -84,8 +81,10 @@ public:
   void Commited();
 
 protected:
-  // Used to generate id for transactions.
-  static atomic_uint64_t atomicTranId;
+  // Used to generate id for automated transactions.
+  static atomic_uint64_t _atomicAutoTranId;
+  // Used to generate id for manual transactions.
+  static atomic_uint64_t _atomicManualTranId;
   // To lock atomicTranId and generate new transaction id
   static SpinMutex _mutexTran;
   // To keep transactions until close them
@@ -101,9 +100,14 @@ protected:
   // Max milliseconds to finish for this transaction.
   uint32_t _maxMillsSec;
   // Transaction id
-  // One transaction is 64 bits uint64_t, the highest 16 bits is reserve for
-  // distributed version. The following 24 bits is remainder of seconds since
-  // epoch. The last 24 bit is self increasing integer from atomicTranId.
+  // One transaction is 64 bits uint64_t. Thee highest bit is automate(0) or
+  // manual(1) type. The following 15 bits is reserve for distributed version,
+  // it will related to node. The following 24 bits is remainder of seconds
+  // since epoch. The last 24 bit is self increasing integer from atomicTranId.
+  // For automate type, one transaction only has one statement, so tran id will
+  // increase 1 every time. For manual type, One tansaction can has many
+  // statements, so every time tran id will increase 256 to accept more
+  // statements.
   uint64_t _tranId;
   // To save the failed reason if the transaction failed or nullptr.
   ErrorMsg *_errorMsg = nullptr;

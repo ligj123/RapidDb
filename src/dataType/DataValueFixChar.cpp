@@ -1,5 +1,6 @@
 ﻿#include "DataValueFixChar.h"
 #include "../config/ErrorID.h"
+#include "../utils/BytesConvert.h"
 #include "../utils/ErrorMsg.h"
 #include <cstring>
 #include <stdexcept>
@@ -19,7 +20,7 @@ DataValueFixChar::DataValueFixChar(const char *val, uint32_t strLen,
   }
 
   bysValue_ = CachePool::Apply(maxLength_);
-  memcpy(bysValue_, val, strLen);
+  BytesCopy(bysValue_, val, strLen);
   memset(bysValue_ + strLen, ' ', maxLength - strLen - 1);
   bysValue_[maxLength_ - 1] = 0;
 }
@@ -66,7 +67,7 @@ DataValueFixChar::DataValueFixChar(uint32_t maxLength, bool bKey, std::any val)
                    {to_string(maxLength_), to_string(len)});
 
   bysValue_ = CachePool::Apply(maxLength_);
-  memcpy(bysValue_, str.c_str(), len);
+  BytesCopy(bysValue_, str.c_str(), len);
   memset(bysValue_ + len, ' ', maxLength_ - len - 1);
   bysValue_[maxLength_ - 1] = 0;
 }
@@ -78,7 +79,7 @@ DataValueFixChar::DataValueFixChar(const DataValueFixChar &src)
   switch (valType_) {
   case ValueType::SOLE_VALUE:
     bysValue_ = CachePool::Apply(maxLength_);
-    memcpy(bysValue_, src.bysValue_, maxLength_);
+    BytesCopy(bysValue_, src.bysValue_, maxLength_);
     break;
   case ValueType::BYTES_VALUE:
     bysValue_ = src.bysValue_;
@@ -118,7 +119,7 @@ void DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
 
     int len = sb.GetStrLen();
     valType_ = ValueType::SOLE_VALUE;
-    memcpy(bysValue_, sb.GetBuff(), len);
+    BytesCopy(bysValue_, sb.GetBuff(), len);
     memset(bysValue_ + len, ' ', maxLength_ - len - 1);
     bysValue_[maxLength_ - 1] = 0;
     return;
@@ -151,7 +152,7 @@ void DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
       bysValue_ = CachePool::Apply(maxLength_);
     }
     valType_ = ValueType::SOLE_VALUE;
-    memcpy(bysValue_, ((DataValueFixChar &)dv).bysValue_, dv.GetMaxLength());
+    BytesCopy(bysValue_, ((DataValueFixChar &)dv).bysValue_, dv.GetMaxLength());
     if (maxLength_ > dv.GetMaxLength()) {
       memset(bysValue_ + dv.GetMaxLength() - 1, ' ',
              maxLength_ - dv.GetMaxLength());
@@ -174,7 +175,7 @@ std::any DataValueFixChar::GetValue() const {
 uint32_t DataValueFixChar::WriteData(Byte *buf, bool key) const {
   if (key) {
     assert(valType_ != ValueType::NULL_VALUE);
-    std::memcpy(buf, bysValue_, maxLength_);
+    BytesCopy(buf, bysValue_, maxLength_);
 
     return maxLength_;
   } else {
@@ -184,7 +185,7 @@ uint32_t DataValueFixChar::WriteData(Byte *buf, bool key) const {
     } else {
       *buf = VALUE_TYPE | ((Byte)DataType::FIXCHAR & DATE_TYPE);
       buf++;
-      std::memcpy(buf, bysValue_, maxLength_);
+      BytesCopy(buf, bysValue_, maxLength_);
       return maxLength_ + 1;
     }
   }
@@ -223,7 +224,7 @@ uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
         bysValue_ = CachePool::Apply(maxLength_);
       }
       valType_ = ValueType::SOLE_VALUE;
-      memcpy(bysValue_, buf, maxLength_);
+      BytesCopy(bysValue_, buf, maxLength_);
     } else {
       if (valType_ == ValueType::SOLE_VALUE) {
         CachePool::Release(bysValue_, maxLength_);
@@ -246,7 +247,7 @@ uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
       if (valType_ != ValueType::SOLE_VALUE)
         bysValue_ = CachePool::Apply(maxLength_);
       valType_ = ValueType::SOLE_VALUE;
-      memcpy(bysValue_, buf, maxLength_);
+      BytesCopy(bysValue_, buf, maxLength_);
     } else {
       if (valType_ == ValueType::SOLE_VALUE)
         CachePool::Release(bysValue_, maxLength_);
@@ -295,7 +296,7 @@ DataValueFixChar &DataValueFixChar::operator=(const char *val) {
     bysValue_ = CachePool::Apply(maxLength_);
 
   valType_ = ValueType::SOLE_VALUE;
-  memcpy(bysValue_, val, len);
+  BytesCopy(bysValue_, val, len);
   memset(bysValue_ + len, ' ', maxLength_ - len - 1);
   bysValue_[maxLength_ - 1] = 0;
   return *this;
@@ -310,7 +311,7 @@ DataValueFixChar &DataValueFixChar::operator=(const string val) {
     bysValue_ = CachePool::Apply(maxLength_);
 
   valType_ = ValueType::SOLE_VALUE;
-  memcpy(bysValue_, val.c_str(), len);
+  BytesCopy(bysValue_, val.c_str(), len);
   memset(bysValue_ + len, ' ', maxLength_ - len - 1);
   bysValue_[maxLength_ - 1] = 0;
   return *this;
@@ -328,7 +329,7 @@ DataValueFixChar &DataValueFixChar::operator=(const DataValueFixChar &src) {
   switch (valType_) {
   case ValueType::SOLE_VALUE:
     bysValue_ = CachePool::Apply(maxLength_);
-    memcpy(bysValue_, src.bysValue_, maxLength_);
+    BytesCopy(bysValue_, src.bysValue_, maxLength_);
     break;
   case ValueType::BYTES_VALUE:
     bysValue_ = src.bysValue_;

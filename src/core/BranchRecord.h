@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../dataType/IDataValue.h"
+#include "../utils/BytesConvert.h"
 #include "RawKey.h"
 #include "RawRecord.h"
 #include <cstring>
@@ -44,7 +45,7 @@ public:
   }
   uint16_t SaveData(Byte *bysPage) {
     uint16_t len = GetTotalLength();
-    std::memcpy(bysPage, _bysVal, len);
+    BytesCopy(bysPage, _bysVal, len);
     return len;
   }
 
