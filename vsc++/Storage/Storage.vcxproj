@@ -26,7 +26,7 @@
     <ClCompile Include="..\..\src\core\BranchPage.cpp" />
     <ClCompile Include="..\..\src\core\BranchRecord.cpp" />
     <ClCompile Include="..\..\src\core\CachePage.cpp" />
-    <ClCompile Include="..\..\src\core\GarbagePage.cpp" />
+    <ClCompile Include="..\..\src\core\GarbageOwner.cpp" />
     <ClCompile Include="..\..\src\core\HeadPage.cpp" />
     <ClCompile Include="..\..\src\core\IndexPage.cpp" />
     <ClCompile Include="..\..\src\core\IndexTree.cpp" />
@@ -72,7 +72,7 @@
     <ClInclude Include="..\..\src\core\BranchPage.h" />
     <ClInclude Include="..\..\src\core\BranchRecord.h" />
     <ClInclude Include="..\..\src\core\CachePage.h" />
-    <ClInclude Include="..\..\src\core\GarbagePage.h" />
+    <ClInclude Include="..\..\src\core\GarbageOwner.h" />
     <ClInclude Include="..\..\src\core\HeadPage.h" />
     <ClInclude Include="..\..\src\core\IndexPage.h" />
     <ClInclude Include="..\..\src\core\IndexTree.h" />

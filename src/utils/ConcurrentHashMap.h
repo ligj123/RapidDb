@@ -10,7 +10,7 @@ public:
   typedef std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
                              Mallocator<std::pair<const Key, T>>>
       ConHashMap;
-      
+
   ConcurrentHashMap(int groupCount, uint64_t maxCount)
       : _groupCount(groupCount) {
     _vctMap.reserve(groupCount);
@@ -54,12 +54,12 @@ public:
     }
   }
 
-  ConHashMap::iterator Begin(int pos) {
+  auto Begin(int pos) {
     _vctLock[pos]->lock();
     return _vctMap[pos]->begin();
   }
 
-  ConHashMap::iterator End(int pos) { return _vctMap[pos]->end(); }
+  auto End(int pos) { return _vctMap[pos]->end(); }
 
   void Unlock(int pos) { _vctLock[pos]->unlock(); }
 

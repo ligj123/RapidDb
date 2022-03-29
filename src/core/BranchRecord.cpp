@@ -5,13 +5,13 @@
 #include <memory>
 
 namespace storage {
-const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(uint64_t);
+const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(uint32_t);
 
 BranchRecord::BranchRecord(BranchPage *parentPage, Byte *bys)
     : RawRecord(parentPage->GetIndexTree(), parentPage, bys, false) {}
 
 BranchRecord::BranchRecord(IndexTree *indexTree, RawRecord *rec,
-                           uint64_t childPageId)
+                           uint32_t childPageId)
     : RawRecord(indexTree, nullptr, nullptr, true) {
   uint16_t lenKey = rec->GetKeyLength();
   uint16_t lenVal =
@@ -26,8 +26,8 @@ BranchRecord::BranchRecord(IndexTree *indexTree, RawRecord *rec,
 
   uint16_t offset = TWO_SHORT_LEN;
   BytesCopy(_bysVal + TWO_SHORT_LEN, rec->GetBysValue() + TWO_SHORT_LEN,
-              lenKey + lenVal);
-  *((uint64_t *)(_bysVal + lenKey + lenVal + TWO_SHORT_LEN)) = childPageId;
+            lenKey + lenVal);
+  *((uint32_t *)(_bysVal + lenKey + lenVal + TWO_SHORT_LEN)) = childPageId;
 }
 
 RawKey *BranchRecord::GetKey() const {
@@ -75,38 +75,37 @@ void BranchRecord::GetListValue(VectorDataValue &vct) const {
 int BranchRecord::CompareTo(const RawRecord &rr) const {
   if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
     return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                               GetKeyLength() - _indexTree->GetKeyVarLen(),
-                               rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                               rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+                        GetKeyLength() - _indexTree->GetKeyVarLen(),
+                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
+                        rr.GetKeyLength() - _indexTree->GetKeyVarLen());
   } else {
     return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                               GetTotalLength() - _indexTree->GetKeyOffset(),
-                               rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                               rr.GetTotalLength() -
-                                   _indexTree->GetKeyOffset());
+                        GetTotalLength() - _indexTree->GetKeyOffset(),
+                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
+                        rr.GetTotalLength() - _indexTree->GetKeyOffset());
   }
 }
 
 int BranchRecord::CompareKey(const RawKey &key) const {
   return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                             GetKeyLength() - _indexTree->GetKeyVarLen(),
-                             key.GetBysVal(), key.GetLength());
+                      GetKeyLength() - _indexTree->GetKeyVarLen(),
+                      key.GetBysVal(), key.GetLength());
 }
 
 int BranchRecord::CompareKey(const RawRecord &rr) const {
   return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                             GetKeyLength() - _indexTree->GetKeyVarLen(),
-                             rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                             rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+                      GetKeyLength() - _indexTree->GetKeyVarLen(),
+                      rr.GetBysValue() + _indexTree->GetKeyOffset(),
+                      rr.GetKeyLength() - _indexTree->GetKeyVarLen());
 }
 
 bool BranchRecord::EqualPageId(const BranchRecord &br) const {
   return (
-      BytesCompare(
-          _bysVal + GetKeyLength() + GetValueLength() + TWO_SHORT_LEN,
-          sizeof(uint64_t),
-          br._bysVal + br.GetKeyLength() + br.GetValueLength() + TWO_SHORT_LEN,
-          sizeof(uint64_t)) == 0);
+      BytesCompare(_bysVal + GetKeyLength() + GetValueLength() + TWO_SHORT_LEN,
+                   sizeof(uint64_t),
+                   br._bysVal + br.GetKeyLength() + br.GetValueLength() +
+                       TWO_SHORT_LEN,
+                   sizeof(uint64_t)) == 0);
 }
 
 std::ostream &operator<<(std::ostream &os, const BranchRecord &br) {

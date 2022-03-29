@@ -104,7 +104,7 @@
     <ClCompile Include="..\..\src\binlog\LogServer.cpp">
       <Filter>binlog</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\GarbagePage.cpp">
+    <ClCompile Include="..\..\src\core\GarbageOwner.cpp">
       <Filter>core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\OverflowPage.cpp">
@@ -308,7 +308,7 @@
     <ClInclude Include="..\..\src\binlog\LogServer.h">
       <Filter>binlog</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\GarbagePage.h">
+    <ClInclude Include="..\..\src\core\GarbageOwner.h">
       <Filter>core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\OverflowPage.h">

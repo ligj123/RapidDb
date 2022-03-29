@@ -147,6 +147,8 @@ protected:
   // If true, the instance will be used in multi place, please ensure it will be
   // deleted once.
   bool bReuse_;
+  /**If its value cross different pages.*/
+  bool bCrossPage;
 };
 
 class VectorDataValue : public MVector<IDataValue *>::Type {

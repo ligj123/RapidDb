@@ -12,9 +12,9 @@ void PageBufferPool::AddPage(IndexPage *page) {
   _mapCache.insert(pair<uint64_t, IndexPage *>(page->HashCode(), page));
 }
 
-IndexPage *PageBufferPool::GetPage(uint64_t pageId) {
+IndexPage *PageBufferPool::GetPage(uint64_t hashId) {
   shared_lock<SharedSpinMutex> lock(_rwLock);
-  auto iter = _mapCache.find(pageId);
+  auto iter = _mapCache.find(hashId);
   if (iter != _mapCache.end()) {
     iter->second->UpdateAccessTime();
     iter->second->IncRefCount();

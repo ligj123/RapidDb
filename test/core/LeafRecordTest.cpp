@@ -14,8 +14,7 @@ namespace fs = std::filesystem;
 BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(LeafRecord_test) {
-  const string FILE_NAME =
-      "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   DataValueLong *dvKey = new DataValueLong(100LL, true);
   DataValueLong *dvVal = new DataValueLong(200LL, false);
@@ -52,8 +51,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   Byte buff[100] = {};
   int pos = 0;
   UInt16ToBytes((uint16_t)(15 + dvKey->GetPersistenceLength(true) +
-                                  dvVal->GetPersistenceLength(false)),
-                       buff + pos);
+                           dvVal->GetPersistenceLength(false)),
+                buff + pos);
   pos += 2;
   UInt16ToBytes(dvKey->GetPersistenceLength(true), buff + pos);
   pos += 2;
@@ -102,8 +101,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 }
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
-  const string FILE_NAME =
-      "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong *dvKey = new DataValueLong(100, true);
@@ -114,16 +112,15 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(
-      HeadPage::NO_PARENT_POINTER, (Byte)0);
+      HeadPage::PAGE_NULL_POINTER, (Byte)0);
 
   Byte buff1[100] = {0};
   uint32_t pos = 0;
   UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
-                           dvVal->GetPersistenceLength(false),
-                       buff1 + pos);
+                    dvVal->GetPersistenceLength(false),
+                buff1 + pos);
   pos += 2;
-  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true),
-                       buff1 + pos);
+  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true), buff1 + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff1 + pos, true);
@@ -140,8 +137,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
   Byte buff2[100] = {0};
   pos = 0;
   UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
-                           dvVal->GetPersistenceLength(false),
-                       buff2 + pos);
+                    dvVal->GetPersistenceLength(false),
+                buff2 + pos);
   pos += 2;
   UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
   pos += 2;
@@ -170,11 +167,10 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
   dvVal = new DataValueLong(210, false);
   pos = 0;
   UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
-                           dvVal->GetPersistenceLength(false),
-                       buff2 + pos);
+                    dvVal->GetPersistenceLength(false),
+                buff2 + pos);
   pos += 2;
-  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true),
-                       buff2 + pos);
+  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true), buff2 + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff2 + pos, true);
@@ -202,11 +198,10 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
   dvKey = new DataValueLong(110, true);
   pos = 0;
   UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
-                           dvVal->GetPersistenceLength(false),
-                       buff2 + pos);
+                    dvVal->GetPersistenceLength(false),
+                buff2 + pos);
   pos += 2;
-  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true),
-                       buff2 + pos);
+  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true), buff2 + pos);
   pos += 2;
 
   pos += dvKey->WriteData(buff2 + pos, true);
@@ -241,8 +236,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
 }
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Block_test) {
-  const string FILE_NAME =
-      "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   char *blockData = new char[1024 * 10];
   for (int i = 0; i < 1024 * 10; i++) {
@@ -304,8 +298,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Block_test) {
 }
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Snapshot_test) {
-  const string FILE_NAME =
-      "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   char *blockData1 = new char[1024 * 2];
   for (int i = 0; i < 1024 * 2; i++) {

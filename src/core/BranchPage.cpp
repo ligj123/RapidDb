@@ -5,10 +5,10 @@
 #include <shared_mutex>
 
 namespace storage {
-const uint16_t BranchPage::DATA_BEGIN_OFFSET = 16;
+const uint16_t BranchPage::DATA_BEGIN_OFFSET = 12;
 const uint16_t BranchPage::MAX_DATA_LENGTH =
     (uint16_t)(Configure::GetCachePageSize() - DATA_BEGIN_OFFSET -
-               sizeof(uint64_t));
+               sizeof(uint32_t));
 
 BranchPage::~BranchPage() { CleanRecords(); }
 
@@ -20,14 +20,9 @@ void BranchPage::CleanRecords() {
   _vctRecord.clear();
 }
 
-void BranchPage::ReadPage() {
+void BranchPage::Init() {
   CleanRecords();
-  CachePage::ReadPage();
-
-  _recordNum = ReadShort(NUM_RECORD_OFFSET);
-  _totalDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
-  _parentPageId = ReadLong(PARENT_PAGE_POINTER_OFFSET);
-  _dtPageLastUpdate = GetMsFromEpoch();
+  IndexPage::Init();
 }
 
 void BranchPage::LoadRecords() {
@@ -228,16 +223,15 @@ int BranchPage::CompareTo(uint32_t recPos, const BranchRecord &rr) const {
 
   if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
     return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                               ReadShort(start + SHORT_LEN) -
-                                   _indexTree->GetKeyVarLen(),
-                               rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                               rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+                        ReadShort(start + SHORT_LEN) -
+                            _indexTree->GetKeyVarLen(),
+                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
+                        rr.GetKeyLength() - _indexTree->GetKeyVarLen());
   } else {
     return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                               ReadShort(start) - _indexTree->GetKeyOffset(),
-                               rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                               rr.GetTotalLength() -
-                                   _indexTree->GetKeyOffset());
+                        ReadShort(start) - _indexTree->GetKeyOffset(),
+                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
+                        rr.GetTotalLength() - _indexTree->GetKeyOffset());
   }
 }
 
@@ -245,9 +239,8 @@ int BranchPage::CompareTo(uint32_t recPos, const RawKey &key) const {
   uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
 
   return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                             ReadShort(start + SHORT_LEN) -
-                                 _indexTree->GetKeyVarLen(),
-                             key.GetBysVal(), key.GetLength());
+                      ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
+                      key.GetBysVal(), key.GetLength());
 }
 
 BranchRecord *BranchPage::GetRecordByPos(int32_t pos, bool bAutoLast) {

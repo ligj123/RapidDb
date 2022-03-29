@@ -55,5 +55,5 @@ inline std::ostream &operator<<(std::ostream &os, const FileVersion &fv) {
      << "\tPatchVer:" << fv._patchVer;
   return os;
 }
-static const FileVersion CURRENT_FILE_VERSION = {1, 0, 0};
+static FileVersion CURRENT_FILE_VERSION = {1, 0, 0};
 } // namespace storage

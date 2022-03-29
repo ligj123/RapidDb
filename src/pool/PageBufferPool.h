@@ -12,11 +12,11 @@ public:
 
   static void AddPage(IndexPage *page);
 
-  static IndexPage *GetPage(uint64_t fileId, uint64_t offset) {
-    return GetPage(CachePage::CalcHashCode(fileId, offset));
+  static IndexPage *GetPage(uint64_t fileId, uint32_t pageId) {
+    return GetPage(CachePage::CalcHashCode(fileId, pageId));
   }
 
-  static IndexPage *GetPage(uint64_t pageId);
+  static IndexPage *GetPage(uint64_t hashId);
   /**Only used for test to remove results from previous test cases*/
   static void ClearPool();
 

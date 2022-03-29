@@ -10,33 +10,34 @@
 #include "PageType.h"
 
 namespace storage {
-uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 16;
-uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 24;
-uint16_t LeafPage::DATA_BEGIN_OFFSET = 32;
+uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 12;
+uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 16;
+uint16_t LeafPage::DATA_BEGIN_OFFSET = 20;
 uint16_t LeafPage::MAX_DATA_LENGTH =
     (uint16_t)(Configure::GetCachePageSize() - LeafPage::DATA_BEGIN_OFFSET -
                sizeof(uint64_t));
 
-LeafPage::LeafPage(IndexTree *indexTree, uint64_t pageId, uint64_t parentPageId)
+LeafPage::LeafPage(IndexTree *indexTree, uint32_t pageId, uint32_t parentPageId)
     : IndexPage(indexTree, pageId, 0, parentPageId),
-      _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
-      _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
+      _prevPageId(HeadPage::PAGE_NULL_POINTER),
+      _nextPageId(HeadPage::PAGE_NULL_POINTER) {
   _vctRecord.reserve(256);
   _bysPage[PAGE_TYPE_OFFSET] = (Byte)PageType::LEAF_PAGE;
 }
 
-LeafPage::LeafPage(IndexTree *indexTree, uint64_t pageId)
-    : IndexPage(indexTree, pageId), _prevPageId(HeadPage::NO_PREV_PAGE_POINTER),
-      _nextPageId(HeadPage::NO_NEXT_PAGE_POINTER) {
+LeafPage::LeafPage(IndexTree *indexTree, uint32_t pageId)
+    : IndexPage(indexTree, pageId), _prevPageId(HeadPage::PAGE_NULL_POINTER),
+      _nextPageId(HeadPage::PAGE_NULL_POINTER) {
   _vctRecord.reserve(256);
 }
 
 LeafPage::~LeafPage() { CleanRecord(); }
 
 void LeafPage::Init() {
+  CleanRecord();
   IndexPage::Init();
-  _prevPageId = ReadLong(PREV_PAGE_POINTER_OFFSET);
-  _nextPageId = ReadLong(NEXT_PAGE_POINTER_OFFSET);
+  _prevPageId = ReadInt(PREV_PAGE_POINTER_OFFSET);
+  _nextPageId = ReadInt(NEXT_PAGE_POINTER_OFFSET);
 }
 void LeafPage::LoadRecords() {
   CleanRecord();
@@ -100,8 +101,8 @@ bool LeafPage::SaveRecords() {
 
   WriteLong(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
   WriteShort(TOTAL_DATA_LENGTH_OFFSET, _totalDataLength);
-  WriteLong(PREV_PAGE_POINTER_OFFSET, _prevPageId);
-  WriteLong(NEXT_PAGE_POINTER_OFFSET, _nextPageId);
+  WriteInt(PREV_PAGE_POINTER_OFFSET, _prevPageId);
+  WriteInt(NEXT_PAGE_POINTER_OFFSET, _nextPageId);
   WriteShort(NUM_RECORD_OFFSET, _recordNum);
   _bRecordUpdate = false;
   _bDirty = true;

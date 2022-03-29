@@ -7,8 +7,9 @@ enum class PageType : uint8_t {
   HEAD_PAGE,
   LEAF_PAGE,
   BRANCH_PAGE,
-  OVERFLOW_PAGE,
-  GARBAGE_PAGE
+  OVERFLOW_PAGE,       // LeafRecord save overflow data to this type pages.
+  GARBAGE_FREE_PAGE,   // free garbage page
+  GARBAGE_COLLECT_PAGE // The page to collect and manage grabage page.
 };
 
 inline std::ostream &operator<<(std::ostream &os, const PageType &type) {
@@ -25,12 +26,17 @@ inline std::ostream &operator<<(std::ostream &os, const PageType &type) {
   case PageType::OVERFLOW_PAGE:
     os << "OVERFLOW_PAGE(" << (int)PageType::OVERFLOW_PAGE << ")";
     break;
-  case PageType::GARBAGE_PAGE:
-    os << "GARBAGE_PAGE(" << (int)PageType::GARBAGE_PAGE << ")";
+  case PageType::GARBAGE_FREE_PAGE:
+    os << "GARBAGE_FREE_PAGE(" << (int)PageType::GARBAGE_FREE_PAGE << ")";
+    break;
+  case PageType::GARBAGE_COLLECT_PAGE:
+    os << "GARBAGE_COLLECT_PAGE(" << (int)PageType::GARBAGE_COLLECT_PAGE << ")";
     break;
   case PageType::UNKNOWN:
-  default:
     os << "UNKNOWN(" << (int)PageType::UNKNOWN << ")";
+    break;
+  default:
+    os << "UNKNOWN(" << (int)type << ")";
     break;
   }
 

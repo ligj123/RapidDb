@@ -14,7 +14,7 @@ public:
 
 public:
   BranchRecord(BranchPage *parentPage, Byte *bys);
-  BranchRecord(IndexTree *indexTree, RawRecord *rec, uint64_t childPageId);
+  BranchRecord(IndexTree *indexTree, RawRecord *rec, uint32_t childPageId);
   BranchRecord(const BranchRecord &src) = delete;
   ~BranchRecord() {}
 
@@ -40,8 +40,8 @@ public:
                       *((uint16_t *)(_bysVal + sizeof(uint16_t))));
   }
 
-  uint64_t GetChildPageId() const {
-    return *((uint64_t *)(_bysVal + GetTotalLength() - PAGE_ID_LEN));
+  uint32_t GetChildPageId() const {
+    return *((uint32_t *)(_bysVal + GetTotalLength() - PAGE_ID_LEN));
   }
   uint16_t SaveData(Byte *bysPage) {
     uint16_t len = GetTotalLength();

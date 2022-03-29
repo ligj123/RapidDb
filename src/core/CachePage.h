@@ -15,8 +15,8 @@ class CachePage {
 public:
   static const uint32_t CRC32_INDEX_OFFSET;
   static const uint32_t CRC32_HEAD_OFFSET;
-  inline static uint64_t CalcHashCode(uint64_t fileId, uint64_t pageId) {
-    return (fileId << 48) + (pageId & 0xffffffffffffLL);
+  inline static uint64_t CalcHashCode(uint64_t fileId, uint32_t pageId) {
+    return (fileId << 32) + pageId;
   }
   inline static uint64_t GetMsFromEpoch() {
     return std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -33,7 +33,7 @@ public:
   }
 
 public:
-  CachePage(IndexTree *indexTree, uint64_t pageId);
+  CachePage(IndexTree *indexTree, PageID pageId);
   virtual ~CachePage();
   bool IsFileClosed() const;
 
@@ -41,7 +41,7 @@ public:
   inline bool IsDirty() const { return _bDirty; }
   inline void SetDirty(bool b) { _bDirty = b; }
   inline bool IsLocked() const { return _rwLock.is_locked(); }
-  inline uint64_t GetPageId() const { return _pageId; }
+  inline PageID GetPageId() const { return _pageId; }
   inline void UpdateAccessTime() { _dtPageLastAccess = GetMsFromEpoch(); }
   inline uint64_t GetAccessTime() const { return _dtPageLastAccess; }
   inline uint64_t HashCode() const { return CalcHashCode(_fileId, _pageId); }
@@ -52,6 +52,7 @@ public:
   inline Byte *GetBysPage() const { return _bysPage; }
   virtual void ReadPage();
   virtual void WritePage();
+  virtual bool Releaseable() { return _refCount == 0; }
 
   inline void ReadLock() { _rwLock.lock_shared(); }
   inline bool ReadTryLock() { return _rwLock.try_lock_shared(); }
@@ -109,10 +110,10 @@ protected:
   SpinMutex _pageLock;
   uint64_t _dtPageLastWrite = 0;
   uint64_t _dtPageLastAccess = 0;
-  uint64_t _pageId = 0;
-  uint64_t _fileId = 0;
   IndexTree *_indexTree = nullptr;
 
+  PageID _pageId = 0;
+  uint16_t _fileId = 0;
   atomic<int32_t> _refCount = 0;
   bool _bDirty = false;
   bool _bRecordUpdate = false;

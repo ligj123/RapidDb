@@ -4,15 +4,15 @@
 
 namespace storage {
 const uint32_t CachePage::CRC32_INDEX_OFFSET =
-    (uint32_t)(Configure::GetCachePageSize() - sizeof(uint64_t));
+    (uint32_t)(Configure::GetCachePageSize() - sizeof(uint32_t));
 const uint32_t CachePage::CRC32_HEAD_OFFSET =
-    (uint32_t)(Configure::GetDiskClusterSize() - sizeof(uint64_t));
+    (uint32_t)(Configure::GetDiskClusterSize() - sizeof(uint32_t));
 
-CachePage::CachePage(IndexTree *indexTree, uint64_t pageId) {
+CachePage::CachePage(IndexTree *indexTree, PageID pageId) {
   _indexTree = indexTree;
   _pageId = pageId;
   _fileId = _indexTree->GetFileId();
-  if (pageId == UINT64_MAX) {
+  if (pageId == HeadPage::PAGE_NULL_POINTER) {
     _bysPage = new Byte[Configure::GetDiskClusterSize()];
   } else {
     _bysPage = CachePool::ApplyPage();
@@ -20,7 +20,7 @@ CachePage::CachePage(IndexTree *indexTree, uint64_t pageId) {
 }
 
 CachePage::~CachePage() {
-  if (_pageId == UINT64_MAX) {
+  if (_pageId == HeadPage::PAGE_NULL_POINTER) {
     delete[] _bysPage;
   } else {
     CachePool::ReleasePage(_bysPage);
@@ -43,7 +43,7 @@ void CachePage::ReadPage() {
   unique_lock<SpinMutex> lock(_pageLock);
 
   PageFile *pageFile = _indexTree->ApplyPageFile();
-  if (_pageId != UINT64_MAX) {
+  if (_pageId != HeadPage::PAGE_NULL_POINTER) {
     pageFile->ReadPage(Configure::GetDiskClusterSize() +
                            _pageId * Configure::GetCachePageSize(),
                        (char *)_bysPage,
@@ -62,8 +62,8 @@ void CachePage::WritePage() {
   {
     unique_lock<SpinMutex> lock(_pageLock);
     BytesCopy(tmp, _bysPage,
-           (_pageId != UINT64_MAX ? Configure::GetCachePageSize()
-                                  : Configure::GetDiskClusterSize()));
+              (_pageId != UINT64_MAX ? Configure::GetCachePageSize()
+                                     : Configure::GetDiskClusterSize()));
     _bDirty = false;
   }
 

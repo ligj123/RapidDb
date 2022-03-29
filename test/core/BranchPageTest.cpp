@@ -13,8 +13,7 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(BranchPage_test) {
-  const string FILE_NAME =
-      "./dbTest/testBranchPage" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testBranchPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
 
@@ -25,7 +24,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   BranchPage *bp =
-      (BranchPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
+      (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
   vctKey.push_back(new DataValueLong(1LL, true));
   vctVal.push_back(new DataValueLong(1LL, true));
@@ -83,8 +82,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
-  const string FILE_NAME =
-      "./dbTest/testBranchPageSave" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testBranchPageSave" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = BranchPage::MAX_DATA_LENGTH / 22;
 
@@ -95,7 +93,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   BranchPage *bp =
-      (BranchPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
+      (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
@@ -135,8 +133,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
-  const string FILE_NAME =
-      "./dbTest/testBranchPage" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testBranchPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
 
@@ -147,7 +144,7 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   BranchPage *bp =
-      (BranchPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
+      (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
@@ -199,7 +196,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   indexTree->GetHeadPage()->WriteKeyVariableFieldCount((short)1);
   BranchPage *bp =
-      (BranchPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
+      (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));

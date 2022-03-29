@@ -30,10 +30,10 @@ public:
             VectorDataValue &vctKey, VectorDataValue &vctVal);
   ErrorMsg *InsertRecord(LeafRecord *rr);
   void UpdateRootPage(IndexPage *root);
-  IndexPage *AllocateNewPage(uint64_t parentId, Byte pageLevel);
+  IndexPage *AllocateNewPage(uint32_t parentId, Byte pageLevel);
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
-  IndexPage *GetPage(uint64_t pageId, bool bLeafPage);
+  IndexPage *GetPage(uint32_t pageId, bool bLeafPage);
   PageFile *ApplyPageFile();
 
   /**
@@ -82,7 +82,7 @@ public:
     return _headPage->ReadTotalRecordCount();
   }
   inline string &GetFileName() { return _fileName; }
-  inline uint64_t GetFileId() { return _fileId; }
+  inline uint16_t GetFileId() { return _fileId; }
   inline bool IsClosed() { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
   void Close(bool bWait);
@@ -140,7 +140,7 @@ protected:
   SpinMutex _fileMutex;
   /**How much page files were opened for this index tree*/
   uint32_t _rpfCount = 0;
-  uint64_t _fileId;
+  uint16_t _fileId;
   PageFile *_ovfFile = nullptr;
   bool _bClosed = false;
   /** Head page */

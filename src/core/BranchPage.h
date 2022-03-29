@@ -12,18 +12,17 @@ public:
   static const uint16_t MAX_DATA_LENGTH;
 
 public:
-  BranchPage(IndexTree *indexTree, uint64_t pageId, Byte pageLevel,
-             uint64_t parentId)
+  BranchPage(IndexTree *indexTree, uint32_t pageId, Byte pageLevel,
+             uint32_t parentId)
       : IndexPage(indexTree, pageId, pageLevel, parentId) {
     _bysPage[PAGE_TYPE_OFFSET] = (Byte)PageType::BRANCH_PAGE;
   }
 
-  BranchPage(IndexTree *indexTree, uint64_t pageId)
+  BranchPage(IndexTree *indexTree, uint32_t pageId)
       : IndexPage(indexTree, pageId) {}
   ~BranchPage();
 
   bool SaveRecords() override;
-  void ReadPage() override;
 
   void CleanRecords();
   void LoadRecords();
@@ -40,6 +39,7 @@ public:
 
   bool IsPageFull() const { return _totalDataLength >= MAX_DATA_LENGTH; }
   uint16_t GetMaxDataLength() const override { return MAX_DATA_LENGTH; }
+  void Init() override;
 
 protected:
   inline BranchRecord *GetVctRecord(int pos) const {

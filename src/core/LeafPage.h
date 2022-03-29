@@ -21,22 +21,23 @@ public:
     _recordNum = 0;
     _totalDataLength = 0;
   }
-  LeafPage(IndexTree *indexTree, uint64_t pageId, uint64_t parentPageId);
-  LeafPage(IndexTree *indexTree, uint64_t pageId);
+  LeafPage(IndexTree *indexTree, uint32_t pageId, uint32_t parentPageId);
+  LeafPage(IndexTree *indexTree, uint32_t pageId);
   ~LeafPage();
 
-  inline void SetPrevPageId(uint64_t id) { _prevPageId = id; }
-  inline uint64_t GetPrevPageId() { return _prevPageId; }
-  inline void SetNextPageId(uint64_t id) { _nextPageId = id; }
-  inline uint64_t GetNextPageId() { return _nextPageId; }
+  inline void SetPrevPageId(uint32_t id) { _prevPageId = id; }
+  inline uint32_t GetPrevPageId() { return _prevPageId; }
+  inline void SetNextPageId(uint32_t id) { _nextPageId = id; }
+  inline uint32_t GetNextPageId() { return _nextPageId; }
   inline bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH; }
   inline bool IsLastPage() {
-    return _nextPageId == HeadPage::NO_NEXT_PAGE_POINTER;
+    return _nextPageId == HeadPage::PAGE_NULL_POINTER;
   }
 
   void LoadRecords();
   void CleanRecord();
   bool SaveRecords() override;
+
   /**Insert a leaf record to this page, if pos < 0, use SearchRecord to find the
   position, if pos>=0, insert the position or add to end; If passed to insert
   record to this page, return nullptr, else return error massage.*/
@@ -74,7 +75,7 @@ protected:
   int CompareTo(uint32_t recPos, const LeafRecord &rr, bool key);
 
 protected:
-  uint64_t _prevPageId;
-  uint64_t _nextPageId;
+  uint32_t _prevPageId;
+  uint32_t _nextPageId;
 };
 } // namespace storage

@@ -14,8 +14,7 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(LeafPage_test) {
-  const string FILE_NAME =
-      "./dbTest/testLeafPage" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testLeafPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
 
@@ -26,7 +25,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
+  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)0);
 
   BOOST_TEST(nullptr == lp->GetLastRecord());
 
@@ -126,7 +125,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
+  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)0);
 
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
@@ -214,9 +213,9 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
       count++;
     }
 
-    uint64_t lNext = lp->GetNextPageId();
+    uint32_t lNext = lp->GetNextPageId();
     lp->DecRefCount();
-    if (lNext == HeadPage::NO_NEXT_PAGE_POINTER) {
+    if (lNext == HeadPage::PAGE_NULL_POINTER) {
       break;
     }
 
@@ -261,14 +260,14 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
       count++;
     }
 
-    uint64_t lNext = lp->GetNextPageId();
+    uint32_t lNext = lp->GetNextPageId();
     lp->DecRefCount();
-    if (lNext == HeadPage::NO_NEXT_PAGE_POINTER) {
+    if (lNext == HeadPage::PAGE_NULL_POINTER) {
       break;
     }
 
     lpNext = (LeafPage *)indexTree->GetPage(lNext, true);
-    BOOST_TEST(lpNext->GetRecordNum() > 0);
+    BOOST_TEST(lpNext->GetRecordNum() > 0U);
 
     lp = lpNext;
   }
@@ -297,7 +296,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSearchKey_test) {
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::NON_UNIQUE);
-  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)0);
+  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)0);
 
   vctKey.push_back(dvKey->Clone());
   Byte buff[100];

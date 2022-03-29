@@ -3,265 +3,267 @@
 #include "../config/FileVersion.h"
 #include "CachePage.h"
 #include "IndexType.h"
+#include <map>
 
 namespace storage {
+/**The stamps only valid for primary index*/
 class HeadPage : public CachePage {
 public:
   static const uint32_t HEAD_PAGE_LENGTH;
   /**The max versions can be support at the same time in a table*/
-  static const uint16_t MAX_RECORD_STAMPS_COUNT;
+  static const uint16_t MAX_RECORD_VERSION_COUNT;
+  /**Invalid page id = UINT32_MAX*/
+  static const uint32_t PAGE_NULL_POINTER;
 
+  /**Offset to save page type*/
   static const uint16_t PAGE_TYPE_OFFSET;
+  /**Offfset tosave index type*/
   static const uint16_t INDEX_TYPE_OFFSET;
-  /**How much stamps have been saved to this table*/
-  static const uint16_t RECORD_STAMPS_COUNT_OFFSET;
-  /**Index file version*/
+  /**Offset to save how many versions for record can saved to this table*/
+  static const uint16_t RECORD_VERSION_COUNT_OFFSET;
+  /**Offset to save this file version*/
   static const uint16_t VERSION_OFFSET;
-  static const uint16_t KEY_VARIABLE_FIELD_COUNT;
-  static const uint16_t VALUE_VARIABLE_FIELD_COUNT;
+  /**The offset to save how many length alterable columns in this key*/
+  static const uint16_t KEY_ALTERABLE_FIELD_COUNT_OFFSET;
+  /**The offset to save how many length alterable columns in this value*/
+  static const uint16_t VALUE_ALTERABLE_FIELD_COUNT_OFFSET;
+  /**The offset the first page to save garbage page id, this page and the
+   * following pages used to save all garbage pages ids.*/
+  static const uint16_t GARBAGE_PAGE_OFFSET;
+  /**How many series pages have been used to save the garbage page ids*/
+  static const uint16_t GARBAGE_SAVE_PAGES_NUM_OFFSET;
+  /**There have how many garbage in total*/
+  static const uint16_t GRABAGE_TOTAL_PAGES_OFFSET;
 
+  /**The offset to save the total page count by this index*/
   static const uint16_t TOTAL_PAGES_COUNT_OFFSET;
+  /**The offset to save the root page id*/
   static const uint16_t ROOT_PAGE_OFFSET;
+  /**The offset to save the begin leaf page id*/
   static const uint16_t BEGIN_LEAF_PAGE_OFFSET;
+  /**The offset to save the end leaf page id*/
   static const uint16_t END_LEAF_PAGE_OFFSET;
+  /**The offset to save how many records in this index*/
   static const uint16_t TOTAL_RECORD_COUNT_OFFSET;
-  static const uint16_t AUTO_PRIMARY_KEY;
-  static const uint16_t AUTO_PRIMARY_KEY2;
-  static const uint16_t AUTO_PRIMARY_KEY3;
-  static const uint16_t RECORD_STAMP_OFFSET;
+  /**The offset to save auto increment key*/
+  static const uint16_t AUTO_INCREMENT_KEY;
+  /**The offset to save auto increment key2*/
+  static const uint16_t AUTO_INCREMENT_KEY2;
+  /**The offset to save auto increment key3*/
+  static const uint16_t AUTO_INCREMENT_KEY3;
+  /**The offset to save current record stamp for new record*/
+  static const uint16_t CURRENT_RECORD_STAMP_OFFSET;
+  /**The offset to save the version's stamps and time for this table*/
   static const uint16_t RECORD_VERSION_STAMP_OFFSET;
-  static const uint16_t FREE_PAGE_OFFSET;
-
-  static const uint64_t NO_PARENT_POINTER;
-  static const uint64_t NO_PREV_PAGE_POINTER;
-  static const uint64_t NO_NEXT_PAGE_POINTER;
 
 protected:
-  uint16_t _keyVariableFieldCount = 0;
-  uint16_t _valueVariableFieldCount = 0;
+  /**How many length alterable columns in key*/
+  uint16_t _keyAlterableFieldCount = 0;
+  /**How many length alterable columns in value*/
+  uint16_t _valueAlterableFieldCount = 0;
   /**The versions that this table support in current time*/
-  uint8_t _recordVerCount = 0;
+  // uint8_t _recordVerCount = 0;
+  /**Index type, primary, unique or non-unique*/
   IndexType _indexType = IndexType::PRIMARY;
-  uint64_t _totalPageCount = 0;
-  uint64_t _rootPageId = 0;
-  uint64_t _beginLeafPageId = 0;
-  uint64_t _endLeafPageId = 0;
-  uint64_t _totalRecordCount = 0;
+  uint32_t _garbagePageId = UINT32_MAX;
+  /**the count of total pages in this index*/
+  atomic<uint32_t> _totalPageCount = 0;
+  /**The root page id for this index*/
+  atomic<PageID> _rootPageId = 0;
+  /**The begin leaf page for this index*/
+  atomic<PageID> _beginLeafPageId = 0;
+  /**The end leaf page for this index*/
+  atomic<PageID> _endLeafPageId = 0;
+  /**The count of total records in this index*/
+  atomic_uint64_t _totalRecordCount = 0;
   /**In this table, any changes for a record will need a new record version
   stamp, it start from 0, and will add one every time. This stamp will be used
   for log transport, data snapshot etc.*/
-  uint64_t _recordStamp = 0;
-  uint64_t _autoPrimaryKey1 = 0;
-  uint64_t _autoPrimaryKey2 = 0;
-  uint64_t _autoPrimaryKey3 = 0;
-  /***/
-  MVector<uint64_t>::Type _vctRecVer;
+  atomic_uint64_t _currRecordStamp = 0;
+  /**To generate the auto increment ids, the value is current id*/
+  atomic_uint64_t _autoIncrementKey1 = 0;
+  atomic_uint64_t _autoIncrementKey2 = 0;
+  atomic_uint64_t _autoIncrementKey3 = 0;
+  /**The map contains the pair of timestamp and record stamps in this table,
+   * only valid for primary index in a table. It saved in head page after
+   * RECORD_VERSION_STAMP_OFFSET and save the pairs from small to big one by one
+   */
+  map<uint64_t, uint64_t> _mapVerStamp;
   SpinMutex _spinMutex;
 
 public:
-  HeadPage(IndexTree *indexTree) : CachePage(indexTree, UINT64_MAX) {}
+  HeadPage(IndexTree *indexTree) : CachePage(indexTree, UINT32_MAX) {}
 
   void ReadPage() override;
   void WritePage() override;
   void WriteFileVersion();
   FileVersion ReadFileVersion();
 
-  inline Byte ReadRecordVersionCount() { return _recordVerCount; }
+  inline Byte ReadRecordVersionCount() { return (Byte)_mapVerStamp.size(); }
 
-  inline Byte AddNewRecordVersion(uint64_t ver) {
+  inline void AddNewRecordVersion(uint64_t timeStamp) {
     lock_guard<SpinMutex> lock(_spinMutex);
-    uint64_t min = 1;
-    if (_recordVerCount > 0)
-      min = _vctRecVer[_recordVerCount - 1] + 1;
-    assert(ver < min || ver > _recordStamp);
+    assert(_mapVerStamp.size() < MAX_RECORD_VERSION_COUNT);
+    uint64_t ver = _currRecordStamp.load(memory_order_relaxed);
+    if (_mapVerStamp.size() > 0) {
+      auto iter = _mapVerStamp.rbegin();
+      assert(timeStamp > iter->first && ver > iter->second);
+    }
 
-    _vctRecVer.push_back(ver);
-    _recordVerCount++;
-    _bDirty = true;
-    return _recordVerCount;
+    _mapVerStamp.insert({timeStamp, ver});
   }
-
-  inline uint64_t GetRecordVersionStamp(Byte ver) {
-    assert(ver < _recordVerCount);
-    return _vctRecVer[ver];
+  /**Now only support input the time of version. It maybe change in following
+   * time*/
+  inline uint64_t GetRecordVersionStamp(uint64_t tm) {
+    auto iter = _mapVerStamp.find(tm);
+    assert(iter != _mapVerStamp.end());
+    return iter->second;
   }
 
   inline void RemoveRecordVersionStamp(Byte ver) {
-    assert(ver < _recordVerCount);
-    _vctRecVer.erase(_vctRecVer.begin() + ver);
+    lock_guard<SpinMutex> lock(_spinMutex);
+    assert(ver < _mapVerStamp.size());
+    for (auto iter = _mapVerStamp.begin(); iter != _mapVerStamp.end(); iter++) {
+      ver--;
+      if (ver == 0) {
+        _mapVerStamp.erase(iter);
+        break;
+      }
+    }
   }
 
   inline uint64_t GetLastVersionStamp() {
-    if (_recordVerCount == 0)
+    if (_mapVerStamp.size() == 0)
       return 0;
-    return _vctRecVer[_recordVerCount - 1];
+    return _mapVerStamp.rbegin()->second;
   }
 
   inline uint64_t GetAndIncRecordStamp() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _bDirty = true;
-    return _recordStamp++;
+    return _currRecordStamp.fetch_add(1, memory_order_relaxed);
   }
 
   inline uint64_t ReadRecordStamp() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    return _recordStamp;
+    return _currRecordStamp.load(memory_order_relaxed);
   }
 
   void WriteRecordStamp(uint64_t recordStamp) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _recordStamp = recordStamp;
-    _bDirty = true;
+    _currRecordStamp.store(recordStamp, memory_order_relaxed);
   }
 
-  inline uint64_t GetAndIncTotalPageCount() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _bDirty = true;
-    return _totalPageCount++;
+  inline uint32_t GetAndIncTotalPageCount(uint32_t pageNum = 1) {
+    return _totalPageCount.fetch_add(pageNum, memory_order_relaxed);
   }
 
-  inline uint64_t ReadTotalPageCount() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    return _totalPageCount;
+  inline uint32_t ReadTotalPageCount() {
+    return _totalPageCount.load(memory_order_relaxed);
   }
 
-  void WriteTotalPageCount(uint64_t totalPage) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _totalPageCount = totalPage;
-    _bDirty = true;
+  void WriteTotalPageCount(uint32_t totalPage) {
+    _totalPageCount.store(totalPage, memory_order_relaxed);
   }
 
   inline uint64_t ReadTotalRecordCount() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    return _totalRecordCount;
+    return _totalRecordCount.load(memory_order_relaxed);
   }
 
   inline void WriteTotalRecordCount(uint64_t totalRecNum) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _totalRecordCount = totalRecNum;
-    _bDirty = true;
+    _totalRecordCount.store(totalRecNum, memory_order_relaxed);
   }
 
   inline uint64_t GetAndIncTotalRecordCount() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _bDirty = true;
-    return _totalRecordCount++;
+    return _totalRecordCount.fetch_add(1, memory_order_relaxed);
   }
 
-  inline void WriteRootPagePointer(uint64_t pointer) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _rootPageId = pointer;
-    _bDirty = true;
+  inline void WriteRootPagePointer(uint32_t pointer) {
+    _rootPageId.store(pointer, memory_order_relaxed);
   }
 
-  inline uint64_t ReadRootPagePointer() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    return _rootPageId;
+  inline uint32_t ReadRootPagePointer() {
+    return _rootPageId.load(memory_order_relaxed);
   }
 
-  inline void WriteBeginLeafPagePointer(uint64_t pointer) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _beginLeafPageId = pointer;
-    _bDirty = true;
+  inline void WriteBeginLeafPagePointer(uint32_t pointer) {
+    _beginLeafPageId.store(pointer, memory_order_relaxed);
   }
 
-  inline uint64_t ReadBeginLeafPagePointer() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    return _beginLeafPageId;
+  inline uint32_t ReadBeginLeafPagePointer() {
+    return _beginLeafPageId.load(memory_order_relaxed);
   }
 
-  inline void WriteEndLeafPagePointer(uint64_t pointer) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _endLeafPageId = pointer;
-    _bDirty = true;
+  inline void WriteEndLeafPagePointer(uint32_t pointer) {
+    _endLeafPageId.store(pointer, memory_order_relaxed);
   }
 
   inline uint64_t ReadEndLeafPagePointer() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    return _endLeafPageId;
+    return _endLeafPageId.load(memory_order_relaxed);
   }
 
   inline void WriteIndexType(IndexType type) {
     lock_guard<SpinMutex> lock(_spinMutex);
     _indexType = type;
     WriteByte(INDEX_TYPE_OFFSET, (Byte)type);
-    _bDirty = true;
   }
 
-  inline IndexType ReadIndexType() {
-    // lock_guard<SpinMutex> lock(_spinMutex);
-    return _indexType;
+  inline IndexType ReadIndexType() { return _indexType; }
+
+  inline uint64_t GetAndAddAutoIncrementKey(uint64_t step) {
+    return _autoIncrementKey1.fetch_add(step, memory_order_relaxed);
   }
 
-  inline uint64_t GetAndAddAutoPrimaryKey(uint64_t step) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    uint64_t num = _autoPrimaryKey1;
-    _autoPrimaryKey1 += step;
-    _bDirty = true;
-    return num;
+  inline uint64_t ReadAutoIncrementKey() {
+    return _autoIncrementKey1.load(memory_order_relaxed);
   }
 
-  inline uint64_t ReadAutoPrimaryKey() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    return _autoPrimaryKey1;
+  inline void WriteAutoIncrementKey(uint64_t key) {
+    _autoIncrementKey1.store(key, memory_order_relaxed);
   }
 
-  inline void WriteAutoPrimaryKey(uint64_t key) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _autoPrimaryKey1 = key;
-    _bDirty = true;
+  inline uint64_t GetAndAddAutoIncrementKey2(uint64_t step) {
+    return _autoIncrementKey2.fetch_add(step, memory_order_relaxed);
   }
 
-  inline uint64_t GetAndAddAutoPrimaryKey2(uint64_t step) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    uint64_t num = _autoPrimaryKey2;
-    _autoPrimaryKey2 += step;
-    _bDirty = true;
-    return num;
+  inline uint64_t ReadAutoIncrementKey2() {
+    return _autoIncrementKey2.load(memory_order_relaxed);
   }
 
-  inline uint64_t ReadAutoPrimaryKey2() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    return _autoPrimaryKey2;
+  inline void WriteAutoIncrementKey2(uint64_t key) {
+    _autoIncrementKey2.store(key, memory_order_relaxed);
   }
 
-  inline void WriteAutoPrimaryKey2(uint64_t key) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _autoPrimaryKey2 = key;
-    _bDirty = true;
+  inline uint64_t GetAndAddAutoIncrementKey3(uint64_t step) {
+    return _autoIncrementKey3.fetch_add(step, memory_order_relaxed);
   }
 
-  inline uint64_t GetAndAddAutoPrimaryKey3(uint64_t step) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    uint64_t num = _autoPrimaryKey3;
-    _autoPrimaryKey3 += step;
-    _bDirty = true;
-    return num;
+  inline uint64_t ReadAutoIncrementKey3() {
+    return _autoIncrementKey3.load(memory_order_relaxed);
   }
 
-  inline uint64_t ReadAutoPrimaryKey3() {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    return _autoPrimaryKey3;
-  }
-
-  void WriteAutoPrimaryKey3(uint64_t key) {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _autoPrimaryKey3 = key;
-    _bDirty = true;
+  void WriteAutoIncrementKey3(uint64_t key) {
+    _autoIncrementKey3.store(key, memory_order_relaxed);
   }
 
   inline uint16_t ReadKeyVariableFieldCount() {
-    // lock_guard<SpinMutex> lock(_spinMutex);
-    return _keyVariableFieldCount;
+    return _keyAlterableFieldCount;
   }
 
   void WriteKeyVariableFieldCount(uint16_t num);
 
   inline uint16_t ReadValueVariableFieldCount() {
-    // lock_guard<SpinMutex> lock(_spinMutex);
-    return _valueVariableFieldCount;
+    return _valueAlterableFieldCount;
   }
 
   void WriteValueVariableFieldCount(uint16_t num);
+
+  void ReadGarbage(uint32_t &totalPage, PageID &pageId, uint16_t &usedPage) {
+    pageId = ReadInt(GARBAGE_PAGE_OFFSET);
+    usedPage = ReadShort(GARBAGE_SAVE_PAGES_NUM_OFFSET);
+    totalPage = ReadInt(GRABAGE_TOTAL_PAGES_OFFSET);
+  }
+
+  void WriteGabage(uint32_t totalPage, PageID pageId, int16_t usedPage) {
+    WriteInt(GARBAGE_PAGE_OFFSET, pageId);
+    WriteShort(GARBAGE_SAVE_PAGES_NUM_OFFSET, usedPage);
+    WriteInt(GRABAGE_TOTAL_PAGES_OFFSET, totalPage);
+  }
 };
 } // namespace storage

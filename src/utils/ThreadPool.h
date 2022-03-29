@@ -26,6 +26,7 @@ public:
   // execute
   virtual bool IsSmallTask() { return false; }
 
+
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
   }
@@ -34,7 +35,10 @@ public:
   }
 
 protected:
+  /**Return int value after finished.*/
   promise<int> _promise;
+  /**Waiting tasks for this task*/
+  vector<Task *> _vctWaitTasks;
 };
 
 class ThreadPool {

@@ -45,11 +45,13 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
       _headPage->WriteRootPagePointer(0);
       _headPage->WriteTotalPageCount(0);
       _headPage->WriteTotalRecordCount(0);
-      _headPage->WriteAutoPrimaryKey(0);
+      _headPage->WriteAutoIncrementKey(0);
+      _headPage->WriteAutoIncrementKey2(0);
+      _headPage->WriteAutoIncrementKey3(0);
     }
 
     StoragePool::WriteCachePage(_headPage);
-    _rootPage = AllocateNewPage(HeadPage::NO_PARENT_POINTER, 0);
+    _rootPage = AllocateNewPage(HeadPage::PAGE_NULL_POINTER, 0);
     StoragePool::WriteCachePage(_rootPage);
   } else {
     _headPage->ReadPage();
@@ -58,7 +60,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
       throw ErrorMsg(TB_ERROR_INDEX_VERSION, {_fileName});
     }
 
-    uint64_t rootId = _headPage->ReadRootPagePointer();
+    uint32_t rootId = _headPage->ReadRootPagePointer();
     _rootPage = GetPage(rootId, rootId == 0);
   }
 
@@ -178,7 +180,7 @@ ErrorMsg *IndexTree::InsertRecord(LeafRecord *rr) {
   return err;
 }
 
-IndexPage *IndexTree::GetPage(uint64_t pageId, bool bLeafPage) {
+IndexPage *IndexTree::GetPage(uint32_t pageId, bool bLeafPage) {
   assert(pageId < _headPage->ReadTotalPageCount());
   IndexPage *page = PageBufferPool::GetPage(_fileId, pageId);
   if (page != nullptr)
@@ -262,8 +264,8 @@ void IndexTree::GetRecords(const RawKey &key, VectorLeafRecord &vct) {
     if (!bLast)
       break;
 
-    uint64_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)
+    uint32_t nextId = page->GetNextPageId();
+    if (nextId == HeadPage::PAGE_NULL_POINTER)
       break;
 
     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
@@ -283,7 +285,7 @@ void IndexTree::QueryRecord(RawKey *keyStart, RawKey *keyEnd, bool bIncLeft,
   LeafPage *page = nullptr;
   uint32_t pos = 0;
   if (keyStart == nullptr) {
-    uint64_t id = _headPage->ReadBeginLeafPagePointer();
+    uint32_t id = _headPage->ReadBeginLeafPagePointer();
     page = (LeafPage *)GetPage(id, true);
     page->ReadLock();
   } else {
@@ -309,8 +311,8 @@ void IndexTree::QueryRecord(RawKey *keyStart, RawKey *keyEnd, bool bIncLeft,
       }
 
       if (pos >= vct.size()) {
-        uint64_t idNext = page->GetNextPageId();
-        if (idNext == HeadPage::NO_NEXT_PAGE_POINTER) {
+        uint32_t idNext = page->GetNextPageId();
+        if (idNext == HeadPage::PAGE_NULL_POINTER) {
           break;
         }
         LeafPage *pageNext = (LeafPage *)GetPage(idNext, true);
@@ -349,8 +351,8 @@ void IndexTree::QueryRecord(RawKey *keyStart, RawKey *keyEnd, bool bIncLeft,
     }
 
     vct.clear();
-    uint64_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::NO_PARENT_POINTER)
+    uint32_t nextId = page->GetNextPageId();
+    if (nextId == HeadPage::PAGE_NULL_POINTER)
       break;
 
     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
@@ -365,8 +367,8 @@ void IndexTree::QueryRecord(RawKey *keyStart, RawKey *keyEnd, bool bIncLeft,
   page->DecRefCount();
 }
 
-IndexPage *IndexTree::AllocateNewPage(uint64_t parentId, Byte pageLevel) {
-  uint64_t newPageId = _headPage->GetAndIncTotalPageCount();
+IndexPage *IndexTree::AllocateNewPage(uint32_t parentId, Byte pageLevel) {
+  uint32_t newPageId = _headPage->GetAndIncTotalPageCount();
   IndexPage *page = nullptr;
   if (0 != pageLevel) {
     page = new BranchPage(this, newPageId, pageLevel, parentId);
@@ -413,7 +415,7 @@ LeafPage *IndexTree::SearchRecursively(const RawKey &key) {
     bool bFind;
     uint32_t pos = bPage->SearchKey(key, bFind);
     BranchRecord *br = bPage->GetRecordByPos(pos, true);
-    uint64_t pageId = ((BranchRecord *)br)->GetChildPageId();
+    uint32_t pageId = ((BranchRecord *)br)->GetChildPageId();
     br->ReleaseRecord();
 
     IndexPage *childPage =
@@ -462,7 +464,7 @@ LeafPage *IndexTree::SearchRecursively(const LeafRecord &lr) {
     bool bFind;
     uint32_t pos = bPage->SearchRecord(br, bFind);
     BranchRecord *br = bPage->GetRecordByPos(pos, true);
-    uint64_t pageId = br->GetChildPageId();
+    uint32_t pageId = br->GetChildPageId();
     br->ReleaseRecord();
 
     IndexPage *childPage =
@@ -532,8 +534,8 @@ bool IndexTree::ReadPrimaryKeys(const RawKey &key, VectorRawKey &vctKey) {
     if (!bLast || _headPage->ReadIndexType() != IndexType::NON_UNIQUE)
       break;
 
-    uint64_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)
+    uint32_t nextId = page->GetNextPageId();
+    if (nextId == HeadPage::PAGE_NULL_POINTER)
       break;
 
     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
@@ -557,7 +559,7 @@ void IndexTree::QueryIndex(const RawKey *keyStart, const RawKey *keyEnd,
   LeafPage *page = nullptr;
   uint32_t pos = 0;
   if (keyStart == nullptr) {
-    uint64_t id = _headPage->ReadBeginLeafPagePointer();
+    uint32_t id = _headPage->ReadBeginLeafPagePointer();
     page = (LeafPage *)GetPage(id, true);
     page->ReadLock();
   } else {
@@ -575,8 +577,8 @@ void IndexTree::QueryIndex(const RawKey *keyStart, const RawKey *keyEnd,
     if (!bLast)
       break;
 
-    uint64_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)
+    uint32_t nextId = page->GetNextPageId();
+    if (nextId == HeadPage::PAGE_NULL_POINTER)
       break;
 
     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
@@ -599,7 +601,7 @@ void IndexTree::QueryIndex(const RawKey *keyStart, const RawKey *keyEnd,
   vctRow.reserve(1024);
   LeafPage *page = nullptr;
   if (keyStart == nullptr) {
-    uint64_t id = _headPage->ReadBeginLeafPagePointer();
+    uint32_t id = _headPage->ReadBeginLeafPagePointer();
     page = (LeafPage *)GetPage(id, true);
     page->ReadLock();
   } else {
@@ -620,8 +622,8 @@ void IndexTree::QueryIndex(const RawKey *keyStart, const RawKey *keyEnd,
     if (!bLast)
       break;
 
-    uint64_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::NO_NEXT_PAGE_POINTER)
+    uint32_t nextId = page->GetNextPageId();
+    if (nextId == HeadPage::PAGE_NULL_POINTER)
       break;
 
     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);

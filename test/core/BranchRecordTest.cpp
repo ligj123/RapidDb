@@ -12,8 +12,7 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(BranchRecord_test) {
-  const string FILE_NAME =
-      "./dbTest/testBranchRecord" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testBranchRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong *dvKey = new DataValueLong(100, true);
@@ -23,7 +22,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_test) {
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   BranchPage *bp =
-      (BranchPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
+      (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
   Byte buff[100];
   uint16_t pos = 0;
@@ -83,7 +82,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_Equal_test) {
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
   indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
   BranchPage *bp =
-      (BranchPage *)indexTree->AllocateNewPage(UINT64_MAX, (Byte)1);
+      (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
   Byte buff1[100];
   uint16_t pos = 0;

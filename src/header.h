@@ -2,6 +2,7 @@
 #include <stdint.h>
 
 typedef unsigned char Byte;
+typedef uint32_t PageID;
 const int VALUE_TYPE = 0x80;
 const int DATE_TYPE = 0x7F;
 const int UI16_LEN = sizeof(uint16_t);

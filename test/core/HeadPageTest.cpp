@@ -12,8 +12,7 @@ namespace fs = std::filesystem;
 BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(HeadPage_test) {
-  const string FILE_NAME =
-      "./dbTest/testHeadPage" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testHeadPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   VectorDataValue vctKey;
   VectorDataValue vctVal;
@@ -41,12 +40,12 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
   headPage->WriteRecordStamp(100);
   BOOST_TEST(100 == headPage->GetAndIncRecordStamp());
 
-  headPage->WriteAutoPrimaryKey(100);
-  BOOST_TEST(100 == headPage->GetAndAddAutoPrimaryKey(3));
-  headPage->WriteAutoPrimaryKey2(100);
-  BOOST_TEST(100 == headPage->GetAndAddAutoPrimaryKey2(3));
-  headPage->WriteAutoPrimaryKey3(100);
-  BOOST_TEST(100 == headPage->GetAndAddAutoPrimaryKey3(3));
+  headPage->WriteAutoIncrementKey(100);
+  BOOST_TEST(100 == headPage->GetAndAddAutoIncrementKey(3));
+  headPage->WriteAutoIncrementKey2(100);
+  BOOST_TEST(100 == headPage->GetAndAddAutoIncrementKey2(3));
+  headPage->WriteAutoIncrementKey3(100);
+  BOOST_TEST(100 == headPage->GetAndAddAutoIncrementKey3(3));
 
   headPage->WritePage();
 
@@ -69,9 +68,9 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
   BOOST_TEST(101 == headPage->ReadTotalRecordCount());
   BOOST_TEST(101 == headPage->ReadRecordStamp());
 
-  BOOST_TEST(103 == headPage->ReadAutoPrimaryKey());
-  BOOST_TEST(103 == headPage->ReadAutoPrimaryKey2());
-  BOOST_TEST(103 == headPage->ReadAutoPrimaryKey3());
+  BOOST_TEST(103 == headPage->ReadAutoIncrementKey());
+  BOOST_TEST(103 == headPage->ReadAutoIncrementKey2());
+  BOOST_TEST(103 == headPage->ReadAutoIncrementKey3());
 
   delete headPage;
   indexTree->Close(true);

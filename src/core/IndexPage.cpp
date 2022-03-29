@@ -15,13 +15,13 @@ const uint16_t IndexPage::NUM_RECORD_OFFSET = 4;
 const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;
 const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
 
-IndexPage::IndexPage(IndexTree *indexTree, uint64_t pageId)
+IndexPage::IndexPage(IndexTree *indexTree, uint32_t pageId)
     : CachePage(indexTree, pageId) {
   _dtPageLastUpdate = GetMsFromEpoch();
 }
 
-IndexPage::IndexPage(IndexTree *indexTree, uint64_t pageId, uint8_t pageLevel,
-                     uint64_t parentPageId)
+IndexPage::IndexPage(IndexTree *indexTree, uint32_t pageId, uint8_t pageLevel,
+                     uint32_t parentPageId)
     : CachePage(indexTree, pageId) {
   _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
   _dtPageLastUpdate = GetMsFromEpoch();
@@ -31,11 +31,10 @@ IndexPage::IndexPage(IndexTree *indexTree, uint64_t pageId, uint8_t pageLevel,
 IndexPage::~IndexPage() {}
 
 void IndexPage::Init() {
-  _vctRecord.clear();
   _tranCount = 0;
   _recordNum = ReadShort(NUM_RECORD_OFFSET);
   _totalDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
-  _parentPageId = ReadLong(PARENT_PAGE_POINTER_OFFSET);
+  _parentPageId = ReadInt(PARENT_PAGE_POINTER_OFFSET);
   _dtPageLastUpdate = GetMsFromEpoch();
 }
 
@@ -43,9 +42,9 @@ bool IndexPage::PageDivide() {
   BranchRecord *brParentOld = nullptr;
   BranchPage *parentPage = nullptr;
   int posInParent = 0;
-  if (_parentPageId == HeadPage::NO_PARENT_POINTER) {
+  if (_parentPageId == HeadPage::PAGE_NULL_POINTER) {
     parentPage = (BranchPage *)_indexTree->AllocateNewPage(
-        HeadPage::NO_PARENT_POINTER, GetPageLevel() + 1);
+        HeadPage::PAGE_NULL_POINTER, GetPageLevel() + 1);
     parentPage->WriteLock();
     _parentPageId = parentPage->GetPageId();
     _indexTree->UpdateRootPage(parentPage);
@@ -185,10 +184,10 @@ bool IndexPage::PageDivide() {
 
   if (level == 0) {
     // if is leaf page, set left and right page
-    uint64_t lastPointer = ((LeafPage *)this)->GetNextPageId();
+    uint32_t lastPointer = ((LeafPage *)this)->GetNextPageId();
 
     ((LeafPage *)this)->SetNextPageId(vctPage[0]->GetPageId());
-    uint64_t prevPointer = GetPageId();
+    uint32_t prevPointer = GetPageId();
 
     for (int i = 0; i < vctPage.size() - 1; i++) {
       ((LeafPage *)vctPage[i])->SetPrevPageId(prevPointer);
@@ -199,7 +198,7 @@ bool IndexPage::PageDivide() {
     ((LeafPage *)vctPage[vctPage.size() - 1])->SetPrevPageId(prevPointer);
     ((LeafPage *)vctPage[vctPage.size() - 1])->SetNextPageId(lastPointer);
 
-    if (lastPointer == HeadPage::NO_NEXT_PAGE_POINTER) {
+    if (lastPointer == HeadPage::PAGE_NULL_POINTER) {
       _indexTree->GetHeadPage()->WriteEndLeafPagePointer(
           ((LeafPage *)vctPage[vctPage.size() - 1])->GetPageId());
     } else {
