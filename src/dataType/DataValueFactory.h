@@ -153,7 +153,6 @@ inline bool operator==(const IDataValue &dv1, const IDataValue &dv2) {
 
   assert(dv1.GetDataType() == dv2.GetDataType());
   switch (dv1.dataType_) {
-
   case DataType::DATETIME:
     return (const DataValueDate &)dv1 == (const DataValueDate &)dv2;
     break;
@@ -186,7 +185,6 @@ inline bool operator>(const IDataValue &dv1, const IDataValue &dv2) {
 
   assert(dv1.GetDataType() == dv2.GetDataType());
   switch (dv1.dataType_) {
-
   case DataType::DATETIME:
     return (const DataValueDate &)dv1 > (const DataValueDate &)dv2;
     break;
@@ -219,7 +217,6 @@ inline bool operator>=(const IDataValue &dv1, const IDataValue &dv2) {
 
   assert(dv1.GetDataType() == dv2.GetDataType());
   switch (dv1.dataType_) {
-
   case DataType::DATETIME:
     return (const DataValueDate &)dv1 >= (const DataValueDate &)dv2;
     break;

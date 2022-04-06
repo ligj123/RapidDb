@@ -5,7 +5,7 @@
 #include <memory>
 
 namespace storage {
-const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(uint32_t);
+const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(PageID);
 
 BranchRecord::BranchRecord(BranchPage *parentPage, Byte *bys)
     : RawRecord(parentPage->GetIndexTree(), parentPage, bys, false) {}
@@ -102,10 +102,10 @@ int BranchRecord::CompareKey(const RawRecord &rr) const {
 bool BranchRecord::EqualPageId(const BranchRecord &br) const {
   return (
       BytesCompare(_bysVal + GetKeyLength() + GetValueLength() + TWO_SHORT_LEN,
-                   sizeof(uint64_t),
+                   PAGE_ID_LEN,
                    br._bysVal + br.GetKeyLength() + br.GetValueLength() +
                        TWO_SHORT_LEN,
-                   sizeof(uint64_t)) == 0);
+                   PAGE_ID_LEN) == 0);
 }
 
 std::ostream &operator<<(std::ostream &os, const BranchRecord &br) {

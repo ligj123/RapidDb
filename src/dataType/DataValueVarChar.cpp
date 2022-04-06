@@ -102,27 +102,19 @@ void DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
 
 uint32_t DataValueVarChar::WriteData(Byte *buf, bool key) const {
   if (bKey_) {
-    assert(valType_ != ValueType::NULL_VALUE);
+    // Write default value if is null for key
+    if (valType_ == ValueType::NULL_VALUE) {
+      *buf = 0;
+      return 1;
+    }
     BytesCopy(buf, bysValue_, soleLength_);
     return soleLength_;
   } else {
     if (valType_ == ValueType::NULL_VALUE) {
-      *buf = (Byte)DataType::VARCHAR & DATE_TYPE;
-      return 1;
-    } else if (valType_ == ValueType::BYTES_VALUE) {
-      *buf = VALUE_TYPE | ((Byte)DataType::VARCHAR & DATE_TYPE);
-      buf++;
-      *((uint32_t *)buf) = soleLength_;
-      buf += sizeof(uint32_t);
-      BytesCopy(buf, bysValue_, soleLength_);
-      return soleLength_ + sizeof(uint32_t) + 1;
+      return 0;
     } else {
-      *buf = VALUE_TYPE | ((Byte)DataType::VARCHAR & DATE_TYPE);
-      buf++;
-      *((uint32_t *)buf) = soleLength_;
-      buf += sizeof(uint32_t);
       BytesCopy(buf, bysValue_, soleLength_);
-      return (uint32_t)soleLength_ + sizeof(uint32_t) + 1;
+      return soleLength_;
     }
   }
 }
@@ -175,14 +167,10 @@ uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
 
     return len;
   } else {
-    if ((*buf & VALUE_TYPE) == 0) {
+    if (len == 0) {
       valType_ = ValueType::NULL_VALUE;
-      return 1;
+      return 0;
     }
-
-    buf++;
-    soleLength_ = *((uint32_t *)buf);
-    buf += sizeof(uint32_t);
 
     if (bSole) {
       bysValue_ = CachePool::Apply(soleLength_);
@@ -192,7 +180,7 @@ uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
       bysValue_ = buf;
       valType_ = ValueType::BYTES_VALUE;
     }
-    return soleLength_ + sizeof(uint32_t) + 1;
+    return soleLength_;
   }
 }
 

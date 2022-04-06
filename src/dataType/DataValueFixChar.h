@@ -24,23 +24,21 @@ public:
       return new DataValueFixChar(maxLength_, bKey_);
     }
   }
-  uint32_t WriteData(Byte *buf) const override {
-    return WriteData(buf, bKey_);
-  };
   uint32_t WriteData(Byte *buf, bool key) const override;
-  uint32_t GetPersistenceLength() const override {
-    return GetPersistenceLength(bKey_);
-  }
+  uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
+  uint32_t WriteData(fstream &fs) const override;
+  uint32_t ReadData(fstream &fs) override;
   uint32_t GetPersistenceLength(bool key) const override {
     if (key) {
       return maxLength_;
     } else {
       switch (valType_) {
       case ValueType::SOLE_VALUE:
-        return maxLength_ + 1;
+      case ValueType::BYTES_VALUE:
+        return maxLength_;
       case ValueType::NULL_VALUE:
       default:
-        return 1;
+        return 0;
       }
     }
   }
@@ -60,14 +58,15 @@ public:
   }
 
   std::any GetValue() const override;
-  uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
-  uint32_t WriteData(fstream &fs) const override;
-  uint32_t ReadData(fstream &fs) override;
   uint32_t GetDataLength() const override {
-    if (!bKey_ && valType_ == ValueType::NULL_VALUE)
-      return 0;
-    else
+    if (bKey_) {
       return maxLength_;
+    } else {
+      if (valType_ == ValueType::NULL_VALUE)
+        return 0;
+      else
+        return maxLength_;
+    }
   }
   uint32_t GetMaxLength() const override { return maxLength_; }
 
@@ -136,7 +135,6 @@ public:
 
 protected:
   uint32_t maxLength_;
-  // uint32_t soleLength_;
   Byte *bysValue_;
 };
 

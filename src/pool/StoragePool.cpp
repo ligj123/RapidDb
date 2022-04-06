@@ -55,7 +55,9 @@ thread *StoragePool::CreateWriteThread() {
             page->WritePage();
           }
 
-          page->DecRefCount();
+          if (page->DecRefCount() == 1) {
+            delete page;
+          }
           _mapWrite.erase(iter2);
         }
       } catch (...) {

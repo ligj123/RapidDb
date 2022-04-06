@@ -12,7 +12,8 @@ public:
                 uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
   DataValueBlob(Byte *byArray, uint32_t len,
                 uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
-  DataValueBlob(uint32_t maxLength, bool bKey, std::any val);
+  DataValueBlob(MVector<Byte>::Type &vct, uint32_t maxLength,
+                bool bKey = false);
   DataValueBlob(const DataValueBlob &src);
   ~DataValueBlob();
 
@@ -27,18 +28,18 @@ public:
     }
   }
   uint32_t WriteData(Byte *buf, bool key) const override;
-  uint32_t GetPersistenceLength() const override {
-    return GetPersistenceLength(bKey_);
-  }
+  uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = false) override;
+  uint32_t WriteData(fstream &fs) const override;
+  uint32_t ReadData(fstream &fs) override;
   uint32_t GetPersistenceLength(bool key) const override {
     assert(!bKey_);
     switch (valType_) {
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return soleLength_ + 1 + sizeof(uint32_t);
+      return soleLength_;
     case ValueType::NULL_VALUE:
     default:
-      return 1;
+      return 0;
     }
   }
   size_t Hash() const override {
@@ -68,12 +69,6 @@ public:
     }
   }
 
-  uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = false) override;
-  uint32_t WriteData(Byte *buf) const override {
-    return WriteData(buf, bKey_);
-  };
-  uint32_t WriteData(fstream &fs) const override;
-  uint32_t ReadData(fstream &fs) override;
   uint32_t GetDataLength() const override {
     assert(!bKey_);
     return (valType_ == ValueType::NULL_VALUE ? 0 : soleLength_);
@@ -83,11 +78,7 @@ public:
   void SetMinValue() override;
   void SetMaxValue() override;
   void SetDefaultValue() override;
-  void ToString(StrBuff &sb) const override;
   operator const char *() const;
-
-  /**Only for byte array that first 4 bytes is lenght*/
-  DataValueBlob &operator=(const char *val);
   void Put(uint32_t len, char *val);
   char *Get(uint32_t &len) {
     len = soleLength_;
@@ -96,6 +87,7 @@ public:
   DataValueBlob &operator=(const DataValueBlob &src);
   bool operator==(const DataValueBlob &dv) const;
   Byte *GetBuff() const override { return bysValue_; }
+  void ToString(StrBuff &sb) const override;
   friend std::ostream &operator<<(std::ostream &os, const DataValueBlob &dv);
 
 protected:

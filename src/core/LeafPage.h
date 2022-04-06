@@ -30,9 +30,6 @@ public:
   inline void SetNextPageId(uint32_t id) { _nextPageId = id; }
   inline uint32_t GetNextPageId() { return _nextPageId; }
   inline bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH; }
-  inline bool IsLastPage() {
-    return _nextPageId == HeadPage::PAGE_NULL_POINTER;
-  }
 
   void LoadRecords();
   void CleanRecord();

@@ -14,12 +14,11 @@ public:
 public:
   BranchPage(IndexTree *indexTree, uint32_t pageId, Byte pageLevel,
              uint32_t parentId)
-      : IndexPage(indexTree, pageId, pageLevel, parentId) {
-    _bysPage[PAGE_TYPE_OFFSET] = (Byte)PageType::BRANCH_PAGE;
-  }
+      : IndexPage(indexTree, pageId, pageLevel, parentId,
+                  PageType::BRANCH_PAGE) {}
 
   BranchPage(IndexTree *indexTree, uint32_t pageId)
-      : IndexPage(indexTree, pageId) {}
+      : IndexPage(indexTree, pageId, PageType::BRANCH_PAGE) {}
   ~BranchPage();
 
   bool SaveRecords() override;

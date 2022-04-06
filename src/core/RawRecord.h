@@ -23,7 +23,7 @@ public:
 
   inline Byte *GetBysValue() const { return _bysVal; }
   /**Only the bytes' length in IndexPage, key length + value length without
-   * overflow fields*/
+   * overflow page content*/
   inline uint16_t GetTotalLength() const { return *((uint16_t *)_bysVal); }
   inline uint16_t GetKeyLength() const {
     return *((uint16_t *)(_bysVal + sizeof(uint16_t)));
@@ -33,7 +33,10 @@ public:
   inline IndexTree *GetTreeFile() const { return _indexTree; }
   virtual uint16_t GetValueLength() const = 0;
   virtual bool IsSole() const { return _bSole; }
-  virtual bool IsTransaction() const { return false; }
+  virtual ~RawRecord() {
+    if (_bSole && _bysVal != nullptr)
+      CachePool::Release(_bysVal, GetTotalLength());
+  }
 
 public:
   static void *operator new(size_t size) {
@@ -41,12 +44,6 @@ public:
   }
   static void operator delete(void *ptr, size_t size) {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
-  }
-
-protected:
-  virtual ~RawRecord() {
-    if (_bSole && _bysVal != nullptr)
-      CachePool::Release(_bysVal, GetTotalLength());
   }
 
 protected:
@@ -60,9 +57,5 @@ protected:
   atomic<int32_t> _refCount = 1;
   /**If this record' value is saved to solely buffer or index page*/
   bool _bSole;
-  /**Below variables only used for LeafRecord, put here to save 8 bytes memory*/
-  /**Normal time its value is unknown. But if this record is locked in
-   * transaction time, it is the actual action for this record.*/
-  ActionType _actionType = ActionType::UNKNOWN;
 };
 } // namespace storage

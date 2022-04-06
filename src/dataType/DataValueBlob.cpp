@@ -28,10 +28,17 @@ DataValueBlob::DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength,
     : IDataValue(DataType::BLOB, ValueType::BYTES_VALUE, bKey),
       bysValue_(byArray), maxLength_(maxLength), soleLength_(len) {}
 
-DataValueBlob::DataValueBlob(uint32_t maxLength, bool bKey, std::any val)
+DataValueBlob::DataValueBlob(MVector<Byte>::Type &vct, uint32_t maxLength,
+                             bool bKey)
     : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey),
-      maxLength_(maxLength) {
-  throw ErrorMsg(DT_UNSUPPORT_CONVERT, {val.type().name(), "DataValueBlob"});
+      maxLength_(maxLength), soleLength_(vct.size()) {
+  if (soleLength_ > maxLength_) {
+    throw ErrorMsg(DT_INPUT_OVER_LENGTH,
+                   {to_string(maxLength_), to_string(soleLength_)});
+  }
+
+  bysValue_ = CachePool::Apply(soleLength_);
+  BytesCopy(bysValue_, vct.data(), soleLength_);
 }
 
 DataValueBlob::DataValueBlob(const DataValueBlob &src) : IDataValue(src) {
@@ -50,6 +57,13 @@ DataValueBlob::DataValueBlob(const DataValueBlob &src) : IDataValue(src) {
   default:
     bysValue_ = nullptr;
     break;
+  }
+}
+
+DataValueBlob::~DataValueBlob() {
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::Release(bysValue_, soleLength_);
+    valType_ = ValueType::NULL_VALUE;
   }
 }
 
@@ -90,34 +104,39 @@ void DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
   }
 }
 
-DataValueBlob::~DataValueBlob() {
-  if (valType_ == ValueType::SOLE_VALUE) {
-    CachePool::Release(bysValue_, soleLength_);
-    valType_ = ValueType::NULL_VALUE;
-  }
-}
-
 uint32_t DataValueBlob::WriteData(Byte *buf, bool key) const {
   assert(!key);
 
   if (valType_ == ValueType::NULL_VALUE) {
-    *buf = ((Byte)DataType::BLOB & DATE_TYPE);
-    return 1;
-  } else if (valType_ == ValueType::BYTES_VALUE) {
-    *buf = VALUE_TYPE | ((Byte)DataType::BLOB & DATE_TYPE);
-    buf++;
-    *((uint32_t *)buf) = soleLength_;
-    buf += sizeof(uint32_t);
-    BytesCopy(buf, bysValue_, soleLength_);
-    return soleLength_ + sizeof(uint32_t) + 1;
+    return 0;
   } else {
-    *buf = VALUE_TYPE | ((Byte)DataType::BLOB & DATE_TYPE);
-    buf++;
-    *((uint32_t *)buf) = soleLength_;
-    buf += sizeof(uint32_t);
     BytesCopy(buf, bysValue_, soleLength_);
-    return (uint32_t)soleLength_ + sizeof(uint32_t) + 1;
+    return soleLength_;
   }
+}
+
+uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len, bool bSole) {
+  assert(!bKey_);
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::Release(bysValue_, soleLength_);
+  }
+
+  if (len == 0) {
+    valType_ = ValueType::NULL_VALUE;
+    return 1;
+  }
+
+  soleLength_ = len;
+  if (bSole) {
+    bysValue_ = CachePool::Apply(soleLength_);
+    BytesCopy(bysValue_, buf, soleLength_);
+    valType_ = ValueType::SOLE_VALUE;
+  } else {
+    valType_ = ValueType::BYTES_VALUE;
+    bysValue_ = buf;
+  }
+
+  return soleLength_;
 }
 
 uint32_t DataValueBlob::WriteData(fstream &fs) const {
@@ -149,32 +168,6 @@ uint32_t DataValueBlob::ReadData(fstream &fs) {
   return soleLength_ + sizeof(uint32_t) + 1;
 }
 
-uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len, bool bSole) {
-  assert(!bKey_);
-  if (valType_ == ValueType::SOLE_VALUE) {
-    CachePool::Release(bysValue_, soleLength_);
-  }
-
-  if ((*buf & VALUE_TYPE) == 0) {
-    valType_ = ValueType::NULL_VALUE;
-    return 1;
-  }
-
-  buf++;
-  soleLength_ = *((uint32_t *)buf);
-  buf += sizeof(uint32_t);
-  if (bSole) {
-    bysValue_ = CachePool::Apply(soleLength_);
-    BytesCopy(bysValue_, buf, soleLength_);
-    valType_ = ValueType::SOLE_VALUE;
-  } else {
-    valType_ = ValueType::BYTES_VALUE;
-    bysValue_ = buf;
-  }
-
-  return soleLength_ + sizeof(uint32_t) + 1;
-}
-
 void DataValueBlob::SetMinValue() {
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
@@ -192,8 +185,7 @@ void DataValueBlob::SetMaxValue() {
   valType_ = ValueType::SOLE_VALUE;
   soleLength_ = 4;
   bysValue_ = CachePool::Apply(soleLength_);
-  bysValue_[0] = bysValue_[1] = bysValue_[2] = -1;
-  bysValue_[3] = 0;
+  bysValue_[0] = bysValue_[1] = bysValue_[2] = bysValue_[3] = 0xff;
 }
 
 void DataValueBlob::SetDefaultValue() {
@@ -216,21 +208,6 @@ DataValueBlob::operator const char *() const {
   }
 
   return nullptr;
-}
-
-DataValueBlob &DataValueBlob::operator=(const char *val) {
-  uint32_t len = *(uint32_t *)val;
-  if (len >= maxLength_)
-    throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
-  if (valType_ == ValueType::SOLE_VALUE)
-    CachePool::Release(bysValue_, soleLength_);
-
-  soleLength_ = len;
-  valType_ = ValueType::SOLE_VALUE;
-  bysValue_ = CachePool::Apply(soleLength_);
-  BytesCopy(bysValue_, val + sizeof(uint32_t), soleLength_);
-  return *this;
 }
 
 void DataValueBlob::Put(uint32_t len, char *val) {

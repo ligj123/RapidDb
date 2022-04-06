@@ -98,6 +98,7 @@ DataValueFixChar::~DataValueFixChar() {
 }
 
 void DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
+
   if (dv.IsNull()) {
     if (valType_ == ValueType::SOLE_VALUE) {
       CachePool::Release(bysValue_, maxLength_);
@@ -165,7 +166,7 @@ std::any DataValueFixChar::GetValue() const {
   switch (valType_) {
   case ValueType::SOLE_VALUE:
   case ValueType::BYTES_VALUE:
-    return string((char *)bysValue_);
+    return string((char *)bysValue_, maxLength_);
   case ValueType::NULL_VALUE:
   default:
     return std::any();
@@ -174,19 +175,18 @@ std::any DataValueFixChar::GetValue() const {
 
 uint32_t DataValueFixChar::WriteData(Byte *buf, bool key) const {
   if (key) {
-    assert(valType_ != ValueType::NULL_VALUE);
-    BytesCopy(buf, bysValue_, maxLength_);
-
+    if (valType_ == ValueType::NULL_VALUE) {
+      memset(buf, 0, maxLength_);
+    } else {
+      BytesCopy(buf, bysValue_, maxLength_);
+    }
     return maxLength_;
   } else {
     if (valType_ == ValueType::NULL_VALUE) {
-      *buf = (Byte)DataType::FIXCHAR & DATE_TYPE;
-      return 1;
+      return 0;
     } else {
-      *buf = VALUE_TYPE | ((Byte)DataType::FIXCHAR & DATE_TYPE);
-      buf++;
       BytesCopy(buf, bysValue_, maxLength_);
-      return maxLength_ + 1;
+      return maxLength_;
     }
   }
 }
@@ -219,6 +219,7 @@ uint32_t DataValueFixChar::ReadData(fstream &fs) {
 
 uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
   if (bKey_) {
+    assert(len > 0);
     if (bSole) {
       if (valType_ != ValueType::SOLE_VALUE) {
         bysValue_ = CachePool::Apply(maxLength_);
@@ -234,14 +235,13 @@ uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
     }
     return maxLength_;
   } else {
-    if ((*buf & VALUE_TYPE) == 0) {
+    if (len == 0) {
       if (valType_ == ValueType::SOLE_VALUE) {
         CachePool::Release(bysValue_, maxLength_);
       }
       valType_ = ValueType::NULL_VALUE;
-      return 1;
+      return 0;
     }
-    buf++;
 
     if (bSole) {
       if (valType_ != ValueType::SOLE_VALUE)
@@ -255,7 +255,7 @@ uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
       bysValue_ = buf;
     }
 
-    return maxLength_ + 1;
+    return maxLength_;
   }
 }
 

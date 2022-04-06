@@ -9,9 +9,25 @@ namespace storage {
 class RawKey {
 public:
   RawKey() : _bysVal(nullptr), _length(0), _bSole(false) {}
-  RawKey(VectorDataValue &vctKey);
-  RawKey(Byte *bys, uint32_t len, bool sole = false);
-  ~RawKey();
+  RawKey(VectorDataValue &vctKey) : _bSole(true) {
+    _length = 0;
+    for (size_t i = 0; i < vctKey.size(); i++) {
+      _length += vctKey[i]->GetPersistenceLength(true);
+    }
+
+    _bysVal = CachePool::Apply(_length);
+
+    int pos = 0;
+    for (int i = 0; i < vctKey.size(); i++) {
+      pos += vctKey[i]->WriteData(_bysVal + pos, true);
+    }
+  }
+  RawKey(Byte *bys, uint32_t len, bool sole = false)
+      : _bysVal(bys), _length(len), _bSole(sole) {}
+  ~RawKey() {
+    if (_bSole)
+      CachePool::Release(_bysVal, _length);
+  }
 
   Byte *GetBysVal() const { return _bysVal; }
   uint32_t GetLength() const { return _length; }
@@ -24,13 +40,27 @@ public:
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
-  bool operator>(const RawKey &key) const;
-  bool operator<(const RawKey &key) const;
-  bool operator>=(const RawKey &key) const;
-  bool operator<=(const RawKey &key) const;
-  bool operator==(const RawKey &key) const;
-  bool operator!=(const RawKey &key) const;
-  int CompareTo(const RawKey &key) const;
+  bool operator>(const RawKey &key) const {
+    return BytesCompare(_bysVal, _length, key._bysVal, key._length) > 0;
+  }
+  bool operator<(const RawKey &key) const {
+    return BytesCompare(_bysVal, _length, key._bysVal, key._length) < 0;
+  }
+  bool operator>=(const RawKey &key) const {
+    return BytesCompare(_bysVal, _length, key._bysVal, key._length) >= 0;
+  }
+  bool operator<=(const RawKey &key) const {
+    return BytesCompare(_bysVal, _length, key._bysVal, key._length) <= 0;
+  }
+  bool operator==(const RawKey &key) const {
+    return BytesCompare(_bysVal, _length, key._bysVal, key._length) == 0;
+  }
+  bool operator!=(const RawKey &key) const {
+    return BytesCompare(_bysVal, _length, key._bysVal, key._length) != 0;
+  }
+  int CompareTo(const RawKey &key) const {
+    return BytesCompare(_bysVal, _length, key._bysVal, key._length);
+  }
 
 protected:
   Byte *_bysVal;
@@ -40,7 +70,18 @@ protected:
   friend std::ostream &operator<<(std::ostream &os, const RawKey &key);
 };
 
-std::ostream &operator<<(std::ostream &os, const RawKey &dv);
+inline std::ostream &operator<<(std::ostream &os, const RawKey &dv) {
+  os << "Length=" << key._length << std::uppercase << std::hex
+     << std::setfill('0') << "\tKey=0x";
+  for (uint32_t i = 0; i < key._length; i++) {
+    os << std::setw(2) << key._bysVal[i];
+    if (i % 4 == 0)
+      os << ' ';
+  }
+
+  return os;
+}
+
 class VectorRawKey : public MVector<RawKey *>::Type {
 public:
   using vector::vector;

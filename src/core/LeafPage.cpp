@@ -15,18 +15,18 @@ uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 16;
 uint16_t LeafPage::DATA_BEGIN_OFFSET = 20;
 uint16_t LeafPage::MAX_DATA_LENGTH =
     (uint16_t)(Configure::GetCachePageSize() - LeafPage::DATA_BEGIN_OFFSET -
-               sizeof(uint64_t));
+               sizeof(uint32_t));
 
 LeafPage::LeafPage(IndexTree *indexTree, uint32_t pageId, uint32_t parentPageId)
-    : IndexPage(indexTree, pageId, 0, parentPageId),
+    : IndexPage(indexTree, pageId, 0, parentPageId, PageType::LEAF_PAGE),
       _prevPageId(HeadPage::PAGE_NULL_POINTER),
       _nextPageId(HeadPage::PAGE_NULL_POINTER) {
   _vctRecord.reserve(256);
-  _bysPage[PAGE_TYPE_OFFSET] = (Byte)PageType::LEAF_PAGE;
 }
 
 LeafPage::LeafPage(IndexTree *indexTree, uint32_t pageId)
-    : IndexPage(indexTree, pageId), _prevPageId(HeadPage::PAGE_NULL_POINTER),
+    : IndexPage(indexTree, pageId, PageType::LEAF_PAGE),
+      _prevPageId(HeadPage::PAGE_NULL_POINTER),
       _nextPageId(HeadPage::PAGE_NULL_POINTER) {
   _vctRecord.reserve(256);
 }

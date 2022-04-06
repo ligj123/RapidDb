@@ -36,7 +36,8 @@ public:
       else
         _value = (T)std::stod(std::any_cast<std::string>(val));
     } else
-      throw ErrorMsg(2001, {val.type().name(), StrOfDataType(DT)});
+      throw ErrorMsg(DT_UNSUPPORT_CONVERT,
+                     {val.type().name(), StrOfDataType(DT)});
   }
 
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
@@ -72,12 +73,9 @@ public:
     return new DataValueDigit(*this);
   }
 
-  uint32_t GetPersistenceLength() const override {
-    return GetPersistenceLength(bKey_);
-  }
   uint32_t GetPersistenceLength(bool key) const override {
     return key ? sizeof(T)
-               : (valType_ == ValueType::NULL_VALUE ? 1 : 1 + sizeof(T));
+               : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(T));
   };
   uint32_t GetDataLength() const override {
     return bKey_ ? sizeof(T)
@@ -102,34 +100,35 @@ public:
     else
       return (double)_value;
   }
-  size_t Hash() const override { return std::hash<T>{}((T) * this); }
+  size_t Hash() const override { return std::hash<T>{}(_value); }
   bool Equal(const IDataValue &dv) const override {
+    if (dataType_ == dv.dataType_) {
+      return _value == (T)dv;
+    }
     if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
       return (GetLong() == dv.GetLong());
-    } else {
+    } else if (dv.IsDigital()) {
       return (GetDouble() == dv.GetDouble());
+    } else {
+      throw ErrorMsg(DT_UNSUPPORT_CONVERT,
+                     {val.type().name(), StrOfDataType(DT)});
     }
   }
 
-  uint32_t WriteData(Byte *buf) const override {
-    return WriteData(buf, bKey_);
-  };
-
   uint32_t WriteData(Byte *buf, bool key) const override {
     if (key) {
-      if (valType_ == ValueType::SOLE_VALUE) {
+      if (valType_ == ValueType::NULL_VALUE) {
+        DigitalToBytes<T, DT>(0, buf, true);
+      } else {
         DigitalToBytes<T, DT>(_value, buf, true);
       }
       return sizeof(T);
     } else {
       if (valType_ == ValueType::NULL_VALUE) {
-        *buf = ((Byte)dataType_ & DATE_TYPE);
-        return 1;
+        return 0;
       } else {
-        *buf = (VALUE_TYPE | ((Byte)dataType_ & DATE_TYPE));
-        buf++;
         DigitalToBytes<T, DT>(_value, buf, false);
-        return sizeof(T) + 1;
+        return sizeof(T);
       }
     }
   }
@@ -139,15 +138,12 @@ public:
       _value = DigitalFromBytes<T, DT>(buf, bKey_);
       return sizeof(T);
     } else {
-      valType_ =
-          (*buf & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
-      buf++;
-
+      valType_ = (len == 0 ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
       if (valType_ == ValueType::NULL_VALUE)
-        return 1;
+        return 0;
 
       _value = DigitalFromBytes<T, DT>(buf, bKey_);
-      return sizeof(T) + 1;
+      return sizeof(T);
     }
   }
   uint32_t WriteData(fstream &fs) const override {

@@ -36,12 +36,15 @@ public:
     return this;
   }
   uint16_t GetValueLength() const override {
+    if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE)
+      return 0;
+
     return (uint16_t)(*((uint16_t *)_bysVal) - TWO_SHORT_LEN - PAGE_ID_LEN -
                       *((uint16_t *)(_bysVal + sizeof(uint16_t))));
   }
 
-  uint32_t GetChildPageId() const {
-    return *((uint32_t *)(_bysVal + GetTotalLength() - PAGE_ID_LEN));
+  PageID GetChildPageId() const {
+    return *((PageID *)(_bysVal + GetTotalLength() - PAGE_ID_LEN));
   }
   uint16_t SaveData(Byte *bysPage) {
     uint16_t len = GetTotalLength();

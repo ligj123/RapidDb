@@ -4,7 +4,8 @@
 namespace storage {
 class OverflowPage : public CachePage {
 public:
-  static const uint16_t PAGE_TYPE_OFFSET;
+  OverflowPage(IndexTree *indexTree, PageID pid)
+      : CachePage(indexTree, pid, PageType::OVERFLOW_PAGE) {}
 
 protected:
 };

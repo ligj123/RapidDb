@@ -1,4 +1,5 @@
 #include "GarbageOwner.h"
+#include "../pool/StoragePool.h"
 #include "CachePage.h"
 
 namespace storage {
@@ -13,7 +14,8 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree) : _indexTree(indexTree) {
   uint32_t sz = (uint32_t)Configure::GetDiskClusterSize() - 10;
   int count = 0;
   for (int32_t i = 0; i < _usedPageNum && count < _totalGarbagePages; i++) {
-    CachePage *page = new CachePage(indexTree, _firstPageId + i);
+    CachePage *page = new CachePage(indexTree, _firstPageId + i,
+                                    PageType::GARBAGE_COLLECT_PAGE);
     page->ReadPage();
 
     for (int32_t i = 0; i < sz && count < _totalGarbagePages; i += 6) {
@@ -114,8 +116,8 @@ void GarbageOwner::SavePage() {
                                            _usedPageNum);
     return;
   }
-  // Every 4 bytes to save one page id, the last 4 bytes save crc32 code for
-  // verify
+  // Every 6 bytes to save the first page id and range size, the last 4 bytes
+  // save crc32 code for verify
   int pNum = (Configure::GetCachePageSize() - 4) / 6;
   _usedPageNum = (uint16_t)((_treeFreePage.size() + pNum - 1) / pNum);
   _firstPageId = ApplyPage(_usedPageNum);
@@ -124,9 +126,23 @@ void GarbageOwner::SavePage() {
         _indexTree->GetHeadPage()->GetAndIncTotalPageCount(_usedPageNum);
   }
 
-  CachePage *cpage = new CachePage(_indexTree, _firstPageId);
+  CachePage *cpage =
+      new CachePage(_indexTree, _firstPageId, PageType::GARBAGE_COLLECT_PAGE);
+  int count = 0;
   for (auto iter = _treeFreePage.begin(); iter != _treeFreePage.end(); iter++) {
+    cpage->WriteInt((count % pNum) * 6, iter->first);
+    cpage->WriteShort((count % pNum) * 6 + 4, iter->second);
+    count++;
+    if (count % pNum == 0) {
+      StoragePool::WriteCachePage(cpage);
+
+      cpage = new CachePage(_indexTree, _firstPageId + count / pNum,
+                            PageType::GARBAGE_COLLECT_PAGE);
+    }
   }
+
+  cpage->DecRefCount();
+  StoragePool::WriteCachePage(cpage);
 }
 
 void GarbageOwner::InsertPage(PageID pageId, int16_t num) {

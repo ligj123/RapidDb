@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../cache/Mallocator.h"
 #include "../dataType/IDataValue.h"
 #include "../transaction/TranStatus.h"
 #include "../utils/BytesConvert.h"
@@ -7,67 +8,9 @@
 #include <cstring>
 
 namespace storage {
-static const Byte LAST_RECORD_OVERFLOW = 0x80;
-static const Byte RECORD_OVERFLOW = 0x40;
-static const Byte RECORD_DELETED = 0x20;
-
-struct PriValStruct {
-public:
-  PriValStruct() { std::memset(this, 0, sizeof(PriValStruct)); }
-
-  PriValStruct(Byte *bys) {
-    std::memset(this, 0, sizeof(PriValStruct));
-    uint16_t pos = sizeof(uint16_t) * 2 + *(uint16_t *)&bys[sizeof(uint16_t)];
-    bLastOvf = bys[pos] & LAST_RECORD_OVERFLOW;
-    bOvf = bys[pos] & RECORD_OVERFLOW;
-    bDelete = bys[pos] & RECORD_DELETED;
-    verCount = bys[pos] & 0xf;
-    pos++;
-    arrStamp = (uint64_t *)&bys[pos];
-    pos += sizeof(uint64_t) * verCount;
-
-    if (bOvf) {
-      ovfOffset = *(uint64_t *)&bys[pos];
-      pos += sizeof(uint64_t);
-      ovfRange = *(uint32_t *)&bys[pos];
-      pos += sizeof(uint32_t);
-      indexOvfStart = *(uint16_t *)&bys[pos];
-      pos += sizeof(uint16_t);
-      lenInPage = *(uint16_t *)&bys[pos];
-      pos += sizeof(uint16_t);
-      arrOvfLen = (uint32_t *)&bys[pos];
-      pageValOffset = pos + sizeof(uint32_t) * verCount;
-    } else {
-      arrPageLen = (uint16_t *)&bys[pos];
-      pageValOffset = pos + sizeof(uint16_t) * verCount;
-    }
-  }
-
-  static void *operator new(size_t size) {
-    return CachePool::Apply((uint32_t)size);
-  }
-  static void operator delete(void *ptr, size_t size) {
-    CachePool::Release((Byte *)ptr, (uint32_t)size);
-  }
-
-public:
-  bool bLastOvf;
-  bool bOvf;
-  bool bDelete; // If the last snapshot has been deleted
-  Byte verCount;
-  uint16_t pageValOffset;
-  uint64_t *arrStamp;
-  union {
-    uint16_t *arrPageLen;
-    struct {
-      uint64_t ovfOffset;
-      uint32_t ovfRange;
-      uint16_t indexOvfStart;
-      uint16_t lenInPage;
-      uint32_t *arrOvfLen;
-    };
-  };
-};
+static const Byte LAST_OVERFLOW = 0x80;
+static const Byte OTHER_OVERFLOW = 0x40;
+static const Byte VERSION_NUM = 0x0f;
 
 class LeafPage;
 class Transaction;
@@ -78,13 +21,12 @@ protected:
 public:
   // Load LeafRecord from LeafPage
   LeafRecord(LeafPage *indexPage, Byte *bys);
-  // No used now, only for test
+  // No use now, only for test
   LeafRecord(IndexTree *indexTree, Byte *bys);
   LeafRecord(const LeafRecord &src) = delete;
   // Constructor for secondary index LeafRecord
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey, Byte *bysPri,
-             uint32_t lenPri, ActionType type = ActionType::UNKNOWN,
-             Transaction *tran = nullptr);
+             uint32_t lenPri, ActionType type, Transaction *tran);
   // Constructor for primary index LeafRecord
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
              const VectorDataValue &vctVal, uint64_t recStamp,
@@ -104,10 +46,7 @@ public:
     _refCount++;
     return this;
   }
-  inline ActionType GetActionType() { return _actionType; }
-  inline Transaction *GetTrasaction() { return _tran; }
-  inline void SetActionType(ActionType type) { _actionType = type; }
-  inline void SetTrasaction(Transaction *tran) { _tran = tran; }
+  inline void AddTrasaction(Transaction *tran, bool bWrite) { _tran = tran; }
 
   void GetListKey(VectorDataValue &vct) const;
   /**
@@ -126,7 +65,6 @@ public:
    */
   int GetListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX,
                    Transaction *tran = nullptr, bool bQuery = true) const;
-  void GetListOverflow(VectorDataValue &vctVal) const;
 
   int CompareTo(const LeafRecord &lr) const;
   int CompareKey(const RawKey &key) const;
@@ -138,11 +76,6 @@ public:
   inline uint16_t GetValueLength() const override {
     return (*((uint16_t *)_bysVal) -
             *((uint16_t *)(_bysVal + sizeof(uint16_t))) - sizeof(uint16_t) * 2);
-  }
-
-  inline uint16_t GetIndexOvfStart() const {
-    return (GetPriValStruct()->bLastOvf) ? GetPriValStruct()->indexOvfStart
-                                         : UINT16_MAX;
   }
 
   inline uint16_t SaveData(Byte *bysPage) {
@@ -164,13 +97,18 @@ public:
   bool IsTransaction() const override { return _tran != nullptr; }
 
 protected:
-  /**Save old records for recover*/
-  LeafRecord *_undoRecords = nullptr;
-  /**The transaction own the write lock for this record, or nullptr without
-   * write lock*/
-  Transaction *_tran = nullptr;
-  mutable PriValStruct *_priStru = nullptr;
+  struct LeafTran {
+    ~LeafTran() {}
+    // If update this record, save old version for transaction rollback. If it
+    // has been updated more than one time. old rec can contain more old rec.
+    LeafRecord *_oldRec = nullptr;
+    // Write transaction
+    Transaction *_tranWrite = nullptr;
+    //
+    MHashMap<uint64_t, Transaction *>::Type _vctTranRead;
+  }
 
+  LeafTran *_leafTran = nullptr;
   friend std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
   friend bool operator<(const LeafRecord &llr, const LeafRecord &rlr);
 };

@@ -7,24 +7,21 @@
 #include "LeafPage.h"
 
 namespace storage {
-const float IndexPage::LOAD_FACTOR = 0.8f;
-const uint16_t IndexPage::PAGE_TYPE_OFFSET = 0;
-const uint16_t IndexPage::PAGE_LEVEL_OFFSET = 1;
-const uint16_t IndexPage::PAGE_REFERENCE_COUNT = 2;
+const float IndexPage::LOAD_FACTOR = 1.0f;
+const uint16_t IndexPage::PAGE_LEVEL_OFFSET = 0;
+const uint16_t IndexPage::PAGE_LAST_OFFSET = 1;
+const uint16_t IndexPage::PAGE_TRAN_COUNT = 2;
 const uint16_t IndexPage::NUM_RECORD_OFFSET = 4;
 const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;
 const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
 
-IndexPage::IndexPage(IndexTree *indexTree, uint32_t pageId)
-    : CachePage(indexTree, pageId) {
-  _dtPageLastUpdate = GetMsFromEpoch();
-}
+IndexPage::IndexPage(IndexTree *indexTree, uint32_t pageId, PageType type)
+    : CachePage(indexTree, pageId, type) {}
 
 IndexPage::IndexPage(IndexTree *indexTree, uint32_t pageId, uint8_t pageLevel,
-                     uint32_t parentPageId)
-    : CachePage(indexTree, pageId) {
+                     uint32_t parentPageId, PageType type)
+    : CachePage(indexTree, pageId, type) {
   _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
-  _dtPageLastUpdate = GetMsFromEpoch();
   _parentPageId = parentPageId;
 }
 
@@ -35,7 +32,6 @@ void IndexPage::Init() {
   _recordNum = ReadShort(NUM_RECORD_OFFSET);
   _totalDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
   _parentPageId = ReadInt(PARENT_PAGE_POINTER_OFFSET);
-  _dtPageLastUpdate = GetMsFromEpoch();
 }
 
 bool IndexPage::PageDivide() {

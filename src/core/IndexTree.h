@@ -109,18 +109,18 @@ public:
     if (_pageCountInPool.fetch_add(-1, memory_order_relaxed) == 1)
       delete this;
   }
-  inline void IncTask() { _taskWaiting.fetch_add(1, memory_order_relaxed); }
-  inline void DecTask() { _taskWaiting.fetch_sub(1, memory_order_relaxed); }
-  inline int64_t GetTaskWaiting() {
-    return _taskWaiting.load(memory_order_relaxed);
-  }
+  // inline void IncTask() { _taskWaiting.fetch_add(1, memory_order_relaxed); }
+  // inline void DecTask() { _taskWaiting.fetch_sub(1, memory_order_relaxed); }
+  // inline int64_t GetTaskWaiting() {
+  //   return _taskWaiting.load(memory_order_relaxed);
+  // }
 
-  inline void InitStamp(uint64_t val) {
-    _stampGen.store(val, memory_order_relaxed);
-  }
-  inline uint64_t GetStamp() {
-    return _stampGen.fetch_add(1, memory_order_relaxed);
-  }
+  // inline void InitStamp(uint64_t val) {
+  //   _stampGen.store(val, memory_order_relaxed);
+  // }
+  // inline uint64_t GetStamp() {
+  //   return _stampGen.fetch_add(1, memory_order_relaxed);
+  // }
 
   inline uint16_t GetKeyVarLen() { return _keyVarLen; }
   inline uint16_t GetValVarLen() { return _valVarLen; }
@@ -149,9 +149,9 @@ protected:
   /** To record how much pages are in index page pool */
   atomic<int64_t> _pageCountInPool = 0;
   /** How much pages are waiting to read or write */
-  atomic<int64_t> _taskWaiting = 0;
+  // atomic<int64_t> _taskWaiting = 0;
   /**To generate new stamp for record, every time increase 1*/
-  atomic<int64_t> _stampGen = 0;
+  // atomic<int64_t> _stampGen = 0;
 
   VectorDataValue _vctKey;
   VectorDataValue _vctValue;
