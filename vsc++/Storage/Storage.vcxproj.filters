@@ -55,9 +55,6 @@
     <ClCompile Include="..\..\src\core\LeafRecord.cpp">
       <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\RawKey.cpp">
-      <Filter>core</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\file\PageFile.cpp">
       <Filter>file</Filter>
     </ClCompile>

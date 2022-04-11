@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <stdint.h>
+using namespace std;
 
 typedef unsigned char Byte;
 typedef uint32_t PageID;

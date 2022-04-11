@@ -55,7 +55,15 @@ protected:
   IndexTree *_indexTree;
   /**How many times this record is referenced*/
   atomic<int32_t> _refCount = 1;
-  /**If this record' value is saved to solely buffer or index page*/
+  /**If this record' value is saved into solely buffer or into index page*/
   bool _bSole;
+  // Below is used in LeafRecord, put here to save space. Only vaild when
+  // Transaction is not null
+  // ActionType
+  ActionType _actionType = ActionType::UNKNOWN;
+  // Gap lock to next record
+  bool _gapLockNext = false;
+  // gao lock to previous record
+  bool _gapLockPrev = false;
 };
 } // namespace storage

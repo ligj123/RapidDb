@@ -53,54 +53,29 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 
 LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
-                       ActionType type, Transaction *tran, LeafRecord *old)
-    : RawRecord(indexTree, nullptr, nullptr, true), _undoRecords(old),
-      _tran(tran) {
-  _actionType = type;
-  PriValStruct *oldValStru =
-      (old == nullptr ? nullptr : old->GetPriValStruct());
-  uint32_t snapLen = (old == nullptr ? 0 : old->GetSnapshotLength());
-  uint64_t lver = _indexTree->GetHeadPage()->GetLastVersionStamp();
-  bool bOldAll = (oldValStru == nullptr || oldValStru->arrStamp[0] < lver);
-  Byte rsCount =
-      (old == nullptr ? 1 : (oldValStru->verCount + (bOldAll ? 1 : 0)));
+                       Transaction *tran, LeafRecord *undoRec)
+    : RawRecord(indexTree, nullptr, nullptr, true), _undoRec(undoRec),
+      _tran(tran), _actionType(ActionType::INSERT) {
 
   int i = 0;
   uint16_t lenKey = _indexTree->GetKeyVarLen();
-  if (type != ActionType::DELETE || rsCount > 1) {
-    for (i = 0; i < vctKey.size(); i++) {
-      lenKey += vctKey[i]->GetPersistenceLength(true);
-    }
-  } else {
-    lenKey = 0;
+  for (i = 0; i < vctKey.size(); i++) {
+    lenKey += vctKey[i]->GetPersistenceLength(true);
   }
 
   if (lenKey > Configure::GetMaxKeyLength()) {
     throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
   }
 
-  uint16_t lenVal = 0;
-  uint16_t max_lenVal =
-      (uint16_t)(Configure::GetMaxRecordLength() - lenKey - TWO_SHORT_LEN);
-  if (type != ActionType::DELETE) {
-    for (i = 0; i < vctVal.size(); i++) {
-      lenVal += vctVal[i]->GetPersistenceLength(false);
-      if (lenVal > max_lenVal) {
-        lenVal -= vctVal[i]->GetPersistenceLength(false);
-        break;
-      }
-    }
-  } else {
-    assert(vctVal.size() == 0);
-    lenVal = 0;
+  uint16_t infoLen = 1 + 1 + 8 + 4;
+  uint32_t lenVal = (vctVal.size() + 7) / 8 + _indexTree->GetValVarLen();
+  uint32_t max_lenVal =
+      (uint32_t)Configure::GetMaxRecordLength() - lenKey - TWO_SHORT_LEN;
+  for (i = 0; i < vctVal.size(); i++) {
+    lenVal += vctVal[i]->GetPersistenceLength(false);
   }
 
-  uint16_t indexOvfStart = (i < vctVal.size() ? i : (uint16_t)vctVal.size());
-  uint32_t sizeOverflow = 0;
-  if (i < vctVal.size()) {
-    for (; i < vctVal.size(); i++) {
-      sizeOverflow += vctVal[i]->GetPersistenceLength(false);
-    }
+  if (infoLen + lenVal > max_lenVal) {
   }
 
   uint16_t lenAttr = 1 + sizeof(uint64_t) * rsCount;
@@ -156,7 +131,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 
   if (rsCount > 1) {
     BytesCopy(&_priStru->arrStamp[1], &oldValStru->arrStamp[bOldAll ? 0 : 1],
-                sizeof(uint64_t) * (rsCount - 1));
+              sizeof(uint64_t) * (rsCount - 1));
   }
 
   if (!_priStru->bOvf) {
@@ -181,10 +156,9 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
     oldStart = (bOldAll ? 0 : oldValStru->arrPageLen[0]);
     oldIndex = (bOldAll ? 0 : 1);
     for (int i = 1; i < rsCount; i++) {
-      BytesCopy(_bysVal + _priStru->pageValOffset +
-                      _priStru->arrPageLen[i - 1],
-                  old->_bysVal + oldValStru->pageValOffset + oldStart,
-                  _priStru->arrPageLen[i] - _priStru->arrPageLen[i - 1]);
+      BytesCopy(_bysVal + _priStru->pageValOffset + _priStru->arrPageLen[i - 1],
+                old->_bysVal + oldValStru->pageValOffset + oldStart,
+                _priStru->arrPageLen[i] - _priStru->arrPageLen[i - 1]);
       oldStart = oldValStru->arrPageLen[oldIndex];
       oldIndex++;
     }
@@ -303,7 +277,19 @@ void LeafRecord::GetListKey(VectorDataValue &vctKey) const {
     pos += vctKey[i]->ReadData(_bysVal + pos, len);
   }
 }
-
+/**
+ * @brief Read the value to data value list
+ * @param vct The vector to save the data values.
+ * @param verStamp The version stamp for primary index.If not primary, not to
+ * use.
+ * @param tran To judge if it is the same transaction
+ * @param bQuery If it is only query. If not only query, it will return record
+ * with same transaction or return fail. If only query, it will return old
+ * record with different transaction and new record with same transaction.
+ * @return -1: Failed to read values due to no right version stamp for
+ * primary or locked; 0: Passed to read values with all fields. 1: Passed to
+ read part of values due to same of fields saved in overflow file.
+ */
 int LeafRecord::GetListValue(VectorDataValue &vctVal, uint64_t verStamp,
                              Transaction *tran, bool bQuery) const {
   _indexTree->CloneValues(vctVal);
@@ -441,26 +427,6 @@ RawKey *LeafRecord::GetPrimayKey() const {
   Byte *buf = CachePool::Apply(len);
   BytesCopy(buf, _bysVal + start, len);
   return new RawKey(buf, len, true);
-}
-
-uint32_t LeafRecord::GetSnapshotLength() const {
-  uint64_t lver = _indexTree->GetHeadPage()->GetLastVersionStamp();
-  PriValStruct *priStru = GetPriValStruct();
-
-  if (priStru->arrStamp[0] <= lver) {
-    if (priStru->bOvf) {
-      return priStru->lenInPage + priStru->arrOvfLen[priStru->verCount - 1];
-    } else {
-      return priStru->arrPageLen[priStru->verCount - 1];
-    }
-  } else {
-    if (priStru->bOvf) {
-      return priStru->arrOvfLen[priStru->verCount - 1] - priStru->arrOvfLen[0];
-    } else {
-      return priStru->arrPageLen[priStru->verCount - 1] -
-             priStru->arrPageLen[0];
-    }
-  }
 }
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr) {

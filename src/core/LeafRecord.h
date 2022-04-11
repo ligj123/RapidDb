@@ -7,6 +7,7 @@
 #include "RawRecord.h"
 #include <cstring>
 
+using namespace std;
 namespace storage {
 static const Byte LAST_OVERFLOW = 0x80;
 static const Byte OTHER_OVERFLOW = 0x40;
@@ -27,51 +28,35 @@ public:
   // Constructor for secondary index LeafRecord
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey, Byte *bysPri,
              uint32_t lenPri, ActionType type, Transaction *tran);
-  // Constructor for primary index LeafRecord
+  // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
-             const VectorDataValue &vctVal, uint64_t recStamp,
-             ActionType type = ActionType::UNKNOWN, Transaction *tran = nullptr,
-             LeafRecord *old = nullptr);
-  /**To calc the length of snapshot for multi versions' record. To add last
-  version record or not,
-  decide by its record stamp < last version stamp in head page or not*/
-  uint32_t GetSnapshotLength() const;
-
-  inline void ReleaseRecord() {
-    _refCount--;
-    if (_refCount == 0)
-      delete this;
-  }
-  inline LeafRecord *ReferenceRecord() {
-    _refCount++;
-    return this;
-  }
-  inline void AddTrasaction(Transaction *tran, bool bWrite) { _tran = tran; }
+             const VectorDataValue &vctVal, uint64_t recStamp, ActionType type,
+             Transaction *tran);
+  // When insert or upsert, if there has old record in leaf page, replace old
+  // record with this and call below method to set old record
+  void SetUndoRecord(LeafRecord *undoRec);
+  // When update this record, set new values into record and save old value into
+  // _oldRec, only for primary index
+  void UpdateRecord(const VectorDataValue &vctKey,
+                    const VectorDataValue &vctVal, uint64_t recStamp,
+                    ActionType type, Transaction *tran);
+  // Call this function to delete a record, only for primary index
+  void DeleteRecord(uint64_t recStamp, ActionType type, Transaction *tran);
 
   void GetListKey(VectorDataValue &vct) const;
-  /**
-   * @brief Read the value to data value list
-   * @param vct The vector to save the data values.
-   * @param verStamp The version stamp for primary index.If not primary, not to
-   * use.
-   * @param tran To judge if it is the same transaction
-   * @param bQuery If it is only query. If not only query, it will return record
-   * with same transaction or return fail. If only query, it will return old
-   * record with different transaction and new record with same transaction.
-   * @return -1: Failed to read values due to no right version stamp for
-   * primary or locked; 0: Passed to read values with all fields. 1: Passed to
-   read part
-   * of values due to same of fields saved in overflow file.
-   */
+
   int GetListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX,
                    Transaction *tran = nullptr, bool bQuery = true) const;
+  int GetListValue(const MVector<int> &vctPos, VectorDataValue &vct,
+                   uint64_t verStamp = UINT64_MAX, Transaction *tran = nullptr,
+                   bool bQuery = true) const;
+  RawKey *GetKey() const;
+  /**Only for secondary index, Get the value as primary key*/
+  RawKey *GetPrimayKey() const;
 
   int CompareTo(const LeafRecord &lr) const;
   int CompareKey(const RawKey &key) const;
   int CompareKey(const LeafRecord &lr) const;
-  RawKey *GetKey() const;
-  /**Only for secondary index, Get the value as primary key*/
-  RawKey *GetPrimayKey() const;
 
   inline uint16_t GetValueLength() const override {
     return (*((uint16_t *)_bysVal) -
@@ -84,31 +69,34 @@ public:
     return len;
   }
 
-  inline PriValStruct *GetPriValStruct() const {
-    if (_priStru == nullptr) {
-      _priStru = new PriValStruct(_bysVal);
-    }
-
-    return _priStru;
-  }
   bool IsSole() const override {
-    return _undoRecords == nullptr ? _bSole : _undoRecords->IsSole();
+    return _oldRec == nullptr ? _bSole : _oldRec->IsSole();
   }
-  bool IsTransaction() const override { return _tran != nullptr; }
+  bool IsTransaction() const { return _tran != nullptr; }
+
+  inline void ReleaseRecord() {
+    _refCount--;
+    if (_refCount == 0)
+      delete this;
+  }
+  inline LeafRecord *ReferenceRecord() {
+    _refCount++;
+    return this;
+  }
+  inline void LockForUpdate(Transaction *tran, ActionType type) {
+    _tran = tran;
+    _actionType = type;
+  }
 
 protected:
-  struct LeafTran {
-    ~LeafTran() {}
-    // If update this record, save old version for transaction rollback. If it
-    // has been updated more than one time. old rec can contain more old rec.
-    LeafRecord *_oldRec = nullptr;
-    // Write transaction
-    Transaction *_tranWrite = nullptr;
-    //
-    MHashMap<uint64_t, Transaction *>::Type _vctTranRead;
-  }
-
-  LeafTran *_leafTran = nullptr;
+  // If update this record, save old version for transaction rollback. If it
+  // has been updated more than one time. old rec can recursively contain an old
+  // rec.
+  LeafRecord *_undoRec = nullptr;
+  // Write transaction, when insert, update or delete,
+  Transaction *_tran = nullptr;
+  // Vector to contain overflow page
+  MVector<OverflowPage *>::Type _vctOvf;
   friend std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
   friend bool operator<(const LeafRecord &llr, const LeafRecord &rlr);
 };

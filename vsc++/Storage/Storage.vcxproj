@@ -33,7 +33,6 @@
     <ClCompile Include="..\..\src\core\LeafPage.cpp" />
     <ClCompile Include="..\..\src\core\LeafRecord.cpp" />
     <ClCompile Include="..\..\src\core\OverflowPage.cpp" />
-    <ClCompile Include="..\..\src\core\RawKey.cpp" />
     <ClCompile Include="..\..\src\database\Database.cpp" />
     <ClCompile Include="..\..\src\database\Table.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueFixChar.cpp" />

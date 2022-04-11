@@ -24,6 +24,16 @@ public:
   }
   RawKey(Byte *bys, uint32_t len, bool sole = false)
       : _bysVal(bys), _length(len), _bSole(sole) {}
+
+  void Copy(Byte *bys, uint32_t len) {
+    if (_bSole) {
+      CachePool::Release(_bysVal, _length);
+    }
+    _length = len;
+    _bysVal = CachePool::Apply(len);
+    memcpy(_bysVal, bys, len);
+    _bSole = true;
+  }
   ~RawKey() {
     if (_bSole)
       CachePool::Release(_bysVal, _length);
@@ -70,7 +80,7 @@ protected:
   friend std::ostream &operator<<(std::ostream &os, const RawKey &key);
 };
 
-inline std::ostream &operator<<(std::ostream &os, const RawKey &dv) {
+inline std::ostream &operator<<(std::ostream &os, const RawKey &key) {
   os << "Length=" << key._length << std::uppercase << std::hex
      << std::setfill('0') << "\tKey=0x";
   for (uint32_t i = 0; i < key._length; i++) {

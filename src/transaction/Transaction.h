@@ -118,9 +118,8 @@ protected:
   // The finished or abort time to execute for this statement
   time_point<system_clock> _stopTime;
   // All statements in this transaction
-  MList<Statement *>::Type _lstStatement;
-  // All updated records in this transaction
-  MTreeSet<LeafRecord *>::Type _setRecord;
+  MTreeSet<Statement *>::Type _setStatement;
+
   // To record the number of finished records
   uint64_t _recFinished = 0;
   // spin lock

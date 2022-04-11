@@ -456,5 +456,7 @@ protected:
   bool _bAutoTran = false;
   // If get the time for statistics.
   bool _bStatTime;
+  // All updated records in this statement
+  MTreeSet<LeafRecord *>::Type _setRecord;
 };
 } // namespace storage

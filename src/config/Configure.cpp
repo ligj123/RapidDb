@@ -6,7 +6,8 @@ const uint64_t Configure::DEFAULT_CACHE_PAGE_SIZE = 1024 * 4 * 4;
 const uint64_t Configure::DEFAULT_TOTAL_CACHE_SIZE = 8 * 1024 * 1024 * 1024LL;
 const uint64_t Configure::DEFAULT_CACHE_BLOCK_SIZE = 128 * 1024;
 const uint64_t Configure::DEFAULT_MAX_BUFFER_SIZE = 1024 * 1024 * 1024;
-const uint64_t Configure::DEFAULT_MAX_RECORD_LENGTH = 8000;
+const uint64_t Configure::DEFAULT_MAX_RECORD_LENGTH =
+    Configure::DEFAULT_CACHE_PAGE_SIZE - 2;
 const uint64_t Configure::DEFAULT_MAX_KEY_LENGTH = 2000;
 const uint64_t Configure::DEFAULT_MAX_COLUMN_LENGTH = 1024 * 1024 * 1024;
 const uint64_t Configure::DEFAULT_MAX_FREE_BUFFER_COUNT = 1000;
