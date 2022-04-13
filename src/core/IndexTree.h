@@ -34,6 +34,7 @@ public:
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
   IndexPage *GetPage(uint32_t pageId, bool bLeafPage);
+
   PageFile *ApplyPageFile();
 
   /**
@@ -109,18 +110,6 @@ public:
     if (_pageCountInPool.fetch_add(-1, memory_order_relaxed) == 1)
       delete this;
   }
-  // inline void IncTask() { _taskWaiting.fetch_add(1, memory_order_relaxed); }
-  // inline void DecTask() { _taskWaiting.fetch_sub(1, memory_order_relaxed); }
-  // inline int64_t GetTaskWaiting() {
-  //   return _taskWaiting.load(memory_order_relaxed);
-  // }
-
-  // inline void InitStamp(uint64_t val) {
-  //   _stampGen.store(val, memory_order_relaxed);
-  // }
-  // inline uint64_t GetStamp() {
-  //   return _stampGen.fetch_add(1, memory_order_relaxed);
-  // }
 
   inline uint16_t GetKeyVarLen() { return _keyVarLen; }
   inline uint16_t GetValVarLen() { return _valVarLen; }

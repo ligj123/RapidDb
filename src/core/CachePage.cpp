@@ -16,17 +16,17 @@ const uint32_t CachePage::CRC32_HEAD_OFFSET =
 CachePage::CachePage(IndexTree *indexTree, PageID pageId, PageType type)
     : _indexTree(indexTree), _pageId(pageId), _pageType(type) {
   _fileId = _indexTree->GetFileId();
-  if (pageId == HeadPage::PAGE_NULL_POINTER) {
+  if (type == PageType::HEAD_PAGE) {
     _bysPage = CachePool::Apply(HEAD_PAGE_SIZE);
-  } else {
+  } else if (type != PageType::OVERFLOW_PAGE) {
     _bysPage = CachePool::ApplyPage();
   }
 }
 
 CachePage::~CachePage() {
-  if (_pageId == HeadPage::PAGE_NULL_POINTER) {
+  if (type == PageType::HEAD_PAGE) {
     CachePool::Release(_bysPage, HEAD_PAGE_SIZE);
-  } else {
+  } else if (type != PageType::OVERFLOW_PAGE) {
     CachePool::ReleasePage(_bysPage);
   }
 }

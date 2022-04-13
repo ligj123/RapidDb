@@ -3,6 +3,7 @@
 #include "../dataType/IDataValue.h"
 #include "../transaction/TranStatus.h"
 #include "../utils/BytesConvert.h"
+#include "OverflowPage.h"
 #include "RawKey.h"
 #include "RawRecord.h"
 #include <cstring>
@@ -70,7 +71,7 @@ public:
   }
 
   bool IsSole() const override {
-    return _oldRec == nullptr ? _bSole : _oldRec->IsSole();
+    return _undoRec == nullptr ? _bSole : _undoRec->IsSole();
   }
   bool IsTransaction() const { return _tran != nullptr; }
 
