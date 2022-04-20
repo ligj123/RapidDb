@@ -1,11 +1,12 @@
-#include "GarbageOwner.h"
+﻿#include "GarbageOwner.h"
 #include "../pool/StoragePool.h"
 #include "CachePage.h"
 
 namespace storage {
 const uint16_t GarbageOwner::PAGE_TYPE_OFFSET = 0;
 
-GarbageOwner::GarbageOwner(IndexTree *indexTree) : _indexTree(indexTree) {
+GarbageOwner::GarbageOwner(IndexTree *indexTree)
+    : _indexTree(indexTree), _bDirty(false) {
   HeadPage *headPage = indexTree->GetHeadPage();
   headPage->ReadGarbage(_totalGarbagePages, _firstPageId, _usedPageNum);
   if (_usedPageNum == 0)
@@ -13,10 +14,11 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree) : _indexTree(indexTree) {
 
   uint32_t sz = (uint32_t)Configure::GetDiskClusterSize() - 10;
   int count = 0;
+  PageFile *pfile = indexTree->ApplyPageFile();
   for (int32_t i = 0; i < _usedPageNum && count < _totalGarbagePages; i++) {
     CachePage *page = new CachePage(indexTree, _firstPageId + i,
                                     PageType::GARBAGE_COLLECT_PAGE);
-    page->ReadPage();
+    page->ReadPage(pfile);
 
     for (int32_t i = 0; i < sz && count < _totalGarbagePages; i += 6) {
       PageID id = page->ReadInt(i);
@@ -27,6 +29,8 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree) : _indexTree(indexTree) {
 
     delete page;
   }
+
+  indexTree->ReleasePageFile(pfile);
 };
 
 /** Add new garbage pages into this class
@@ -72,6 +76,7 @@ void GarbageOwner::ReleasePage(PageID pid, uint16_t num) {
 
   InsertPage(pid, num);
   _totalGarbagePages += num;
+  _bDirty = true;
 }
 
 /** Apply a series of pages.
@@ -99,11 +104,13 @@ PageID GarbageOwner::ApplyPage(uint16_t num) {
     InsertPage(id + num, num2 - num);
   }
   _totalGarbagePages -= num;
+  _bDirty = true;
   return id;
 }
 /**Every check point time will call this to save garbage page ids into disk*/
 void GarbageOwner::SavePage() {
   unique_lock<ReentrantSpinMutex> lock(_spinMutex);
+  _bDirty = false;
   if (_usedPageNum > 0) {
     ReleasePage(_firstPageId, _usedPageNum);
     _totalGarbagePages += _usedPageNum;

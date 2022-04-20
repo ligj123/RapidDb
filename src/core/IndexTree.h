@@ -3,6 +3,7 @@
 #include "../header.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/SpinMutex.h"
+#include "GarbageOwner.h"
 #include "HeadPage.h"
 #include "LeafRecord.h"
 #include "RawKey.h"
@@ -34,6 +35,19 @@ public:
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
   IndexPage *GetPage(uint32_t pageId, bool bLeafPage);
+  // Apply a series of pages for overflow pages. It will search Garbage Pages
+  // first. If no suitable, it will apply new page id
+  PageID ApplyPageId(uint16_t num) {
+    PageID pid = _garbageOwner->ApplyPage(num);
+    if (pid == HeadPage::PAGE_NULL_POINTER) {
+      pid = _headPage->GetAndIncTotalPageCount(num);
+    }
+    return pid;
+  }
+
+  void ReleasePageId(PageID firstId, uint16_t num) {
+    _garbageOwner->ReleasePage(firstId, num);
+  }
 
   PageFile *ApplyPageFile();
 
@@ -91,17 +105,7 @@ public:
     lock_guard<SpinMutex> lock(_fileMutex);
     _fileQueue.push(rpf);
   }
-  inline PageFile *GetOverflowFile() {
-    if (_ovfFile == nullptr) {
-      unique_lock<SpinMutex> lock(_fileMutex);
-      if (_ovfFile == nullptr) {
-        string name =
-            _fileName.substr(0, _fileName.find_last_of('.')) + "_ovf.dat";
-        _ovfFile = new PageFile(name, true);
-      }
-    }
-    return _ovfFile;
-  }
+
   inline HeadPage *GetHeadPage() { return _headPage; }
   inline void IncPages() {
     _pageCountInPool.fetch_add(1, memory_order_relaxed);
@@ -130,10 +134,10 @@ protected:
   /**How much page files were opened for this index tree*/
   uint32_t _rpfCount = 0;
   uint16_t _fileId;
-  PageFile *_ovfFile = nullptr;
   bool _bClosed = false;
   /** Head page */
   HeadPage *_headPage = nullptr;
+  GarbageOwner *_garbageOwner;
 
   /** To record how much pages are in index page pool */
   atomic<int64_t> _pageCountInPool = 0;
@@ -152,9 +156,9 @@ protected:
   IndexPage *_rootPage = nullptr;
 
   uint16_t _keyVarLen; // KeyVarFieldNum * sizeof(uint16_t)
-  uint16_t _valVarLen; // ValVarFieldNum * sizeof(uint16_t)
+  uint16_t _valVarLen; // ValVarFieldNum * sizeof(uint32_t)
   uint16_t _keyOffset; //(KeyVarFieldNum + 2) * sizeof(uint16_t)
-  uint16_t _valOffset; //(ValVarFieldNum + 2) * sizeof(uint16_t)
+  uint16_t _valOffset; //(ValVarFieldNum + 2) * sizeof(uint32_t)
 protected:
   static MHashSet<uint16_t>::Type _setFiledId;
   static uint16_t _currFiledId;

@@ -68,15 +68,17 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   _vctValue.swap(vctVal);
 
   _keyVarLen = _headPage->ReadKeyVariableFieldCount() * sizeof(uint16_t);
-  _valVarLen = _headPage->ReadValueVariableFieldCount() * sizeof(uint16_t);
+  _valVarLen = _headPage->ReadValueVariableFieldCount() * sizeof(uint32_t);
   _keyOffset = _keyVarLen + sizeof(uint16_t) * 2;
-  _valOffset = _valVarLen + sizeof(uint16_t) * 2;
+  _valOffset = _valVarLen + sizeof(uint32_t) * 2;
 
+  _garbageOwner = new GarbageOwner(this);
   LOG_DEBUG << "Open index tree " << tableName;
 }
 
 IndexTree::~IndexTree() {
   unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
+  _garbageOwner->SavePage();
   if (_headPage->IsDirty()) {
     _headPage->WritePage();
   }
@@ -90,27 +92,26 @@ IndexTree::~IndexTree() {
     delete iter->second;
   }
 
-  if (_ovfFile != nullptr)
-    delete _ovfFile;
   while (_fileQueue.size() > 0) {
     delete _fileQueue.front();
     _fileQueue.pop();
   }
 
   delete _headPage;
+  delete _garbageOwner;
 }
 
 void IndexTree::Close(bool bWait) {
   _bClosed = true;
-  while (_taskWaiting.load() > 1) {
-    this_thread::sleep_for(chrono::milliseconds(1));
-  }
 
   unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
   _rootPage->DecRefCount();
   if (!bWait)
     return;
 
+  while (_pageCountInPool.load() > 1) {
+    this_thread::sleep_for(chrono::milliseconds(1));
+  }
   if (_headPage->IsDirty()) {
     _headPage->WritePage();
   }
@@ -125,8 +126,6 @@ void IndexTree::Close(bool bWait) {
   }
   _mapMutex.clear();
 
-  if (_ovfFile != nullptr)
-    delete _ovfFile;
   while (_fileQueue.size() > 0) {
     delete _fileQueue.front();
     _fileQueue.pop();
@@ -491,9 +490,7 @@ bool IndexTree::ReadRecord(const RawKey &key, uint64_t verStamp,
   bool b = false;
   if (rr != nullptr) {
     int hr = rr->GetListValue(vctVal, verStamp);
-    if (bOvf && hr > 0) {
-      rr->GetListOverflow(vctVal);
-    }
+
     rr->ReleaseRecord();
   }
 
@@ -507,10 +504,7 @@ bool IndexTree::ReadRecordOverflow(const RawKey &key, VectorDataValue &vctVal) {
   LeafPage *page = SearchRecursively(key);
   LeafRecord *rr = page->GetRecord(key);
   bool b = false;
-  if (rr != nullptr) {
-    rr->GetListOverflow(vctVal);
-    b = true;
-  }
+
   page->ReadUnlock();
   page->DecRefCount();
   return true;

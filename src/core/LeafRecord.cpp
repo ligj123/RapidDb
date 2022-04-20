@@ -7,6 +7,81 @@
 #include "LeafPage.h"
 
 namespace storage {
+struct ValueStruct {
+  // (n+7)/8 bytes to save if the related fields are null or not, every field
+  // occupys a bit.
+  Byte *bysNull;
+  // The variable fields' lengths after serialize
+  uint32_t *varFiledsLen;
+  // Start position to save value content
+  Byte *bysValue;
+};
+// Only for primary index
+struct RecStruct {
+  RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen, Byte verNum,
+            bool bOverflow = false) {
+    totalLen = (uint16_t *)bys;
+    keyLen = (uint16_t *)(bys + UI16_LEN);
+    varKeyLen = (uint16_t *)(bys + TWO_UI16_LEN);
+    bysKey = bys + TWO_UI16_LEN + varKeyOff;
+    byVerNum = bys + TWO_UI16_LEN + keyLen;
+    arrStamp = (uint64_t *)(bys + TWO_UI16_LEN + keyLen + 1);
+    arrLen = (uint32_t *)(bys + TWO_UI16_LEN + keyLen + 1 + UI64_LEN * verNum);
+
+    if (bOverflow) {
+      arrCrc32 = (uint32_t *)(bys + TWO_UI16_LEN + keyLen + 1 +
+                              UI64_LEN * verNum + UI32_LEN * verNum);
+      pidStart = (PageID *)(bys + TWO_UI16_LEN + keyLen + 1 +
+                            UI64_LEN * verNum + UI32_LEN * verNum * 2);
+      pageNum =
+          (uint16_t *)(bys + TWO_UI16_LEN + keyLen + 1 + UI64_LEN * verNum +
+                       UI32_LEN * verNum * 2 + UI16_LEN);
+    } else {
+      arrCrc32 = nullptr;
+      pidStart = nullptr;
+      pageNum = nullptr;
+    }
+  }
+
+  void SetValueStruct(Byte *bys, Byte verNum, uin32_t *arLen, uint32_t fieldNum,
+                      uint32_t valVarLen) {
+    uint32_t byNum = (fieldNum + 7) << 3;
+    uint32_t offset = 0;
+    for (Byte i = 0; i < verNum; i++) {
+      arvalStr[i].bysNull = bys + offset;
+      arvalStr[i].varFiledsLen = bys + offset + byNum;
+      arvalStr[i].bysValue = bys + offset + byNum + valVarLen;
+    }
+  }
+
+  // To save total length for record, not include values in overflow page
+  // length, only to calc the occupied bytes in LeafPage
+  uint16_t *totalLen;
+  // To save key length, include the bytes to save variable fileds length and
+  // key content.
+  uint16_t *keyLen;
+  // The start position to save variable fileds length in key, this is an array
+  // with 0~N elements.
+  uint16_t *varKeyLen;
+  // To save key content after serialize.
+  Byte *bysKey;
+  // The byte to save the number of versions(low 4bits) and if overflow or not
+  // (the highest bit)
+  Byte *byVerNum;
+  // The array to save version stamps for every version, 1~N elements.
+  uint64_t *arrStamp;
+  // The array to save length for every version content.
+  uint32_t *arrLen;
+  // The array to save the crc32 if overflow
+  uint32_t *arrCrc32;
+  // The start page id
+  PageID *pidStart;
+  // The page number
+  uint16_t *pageNum;
+  // The array to save the address for value struct with max 8 elements.
+  ValueStruct arvalStr[8];
+};
+
 LeafRecord::LeafRecord(LeafPage *parentPage, Byte *bys)
     : RawRecord(parentPage->GetIndexTree(), parentPage, bys, false) {}
 
@@ -50,236 +125,89 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   pos = TWO_SHORT_LEN + lenKey;
   BytesCopy(_bysVal + pos, bysPri, lenPri);
 }
-//
-// LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
-//                       const VectorDataValue &vctVal, uint64_t recStamp,
-//                       Transaction *tran, LeafRecord *undoRec)
-//    : RawRecord(indexTree, nullptr, nullptr, true), _undoRec(undoRec),
-//      _tran(tran), _actionType(ActionType::INSERT) {
-//
-//  int i = 0;
-//  uint16_t lenKey = _indexTree->GetKeyVarLen();
-//  for (i = 0; i < vctKey.size(); i++) {
-//    lenKey += vctKey[i]->GetPersistenceLength(true);
-//  }
-//
-//  if (lenKey > Configure::GetMaxKeyLength()) {
-//    throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
-//  }
-//
-//  uint16_t infoLen = 1 + 1 + 8 + 4;
-//  uint32_t lenVal = (vctVal.size() + 7) / 8 + _indexTree->GetValVarLen();
-//  uint32_t max_lenVal =
-//      (uint32_t)Configure::GetMaxRecordLength() - lenKey - TWO_SHORT_LEN;
-//  for (i = 0; i < vctVal.size(); i++) {
-//    lenVal += vctVal[i]->GetPersistenceLength(false);
-//  }
-//
-//  if (infoLen + lenVal > max_lenVal) {
-//  }
-//
-//  uint16_t lenAttr = 1 + sizeof(uint64_t) * rsCount;
-//  if (sizeOverflow > 0 || lenVal + snapLen > max_lenVal) {
-//    lenAttr += sizeof(uint64_t) + sizeof(uint32_t) + sizeof(uint16_t) +
-//               sizeof(uint16_t) + sizeof(uint32_t) * rsCount;
-//  } else {
-//    lenAttr += sizeof(uint16_t) * rsCount;
-//  }
-//
-//  _priStru = new PriValStruct;
-//  _priStru->bLastOvf = (sizeOverflow > 0);
-//  _priStru->bOvf = (sizeOverflow > 0 ||
-//                    (lenAttr + lenVal + snapLen > max_lenVal && snapLen > 0));
-//  _priStru->bDelete = (type == ActionType::DELETE);
-//  _priStru->verCount = rsCount;
-//
-//  int totalLen = lenKey + sizeof(uint16_t) * 2 + lenAttr + lenVal;
-//  if (!_priStru->bOvf)
-//    totalLen += snapLen;
-//
-//  _bysVal = CachePool::Apply(totalLen);
-//  if (type == ActionType::DELETE && rsCount == 1) {
-//    *((uint16_t *)_bysVal) = 0;
-//    return;
-//  }
-//  *((uint16_t *)_bysVal) = totalLen;
-//  *((uint16_t *)(_bysVal + sizeof(uint16_t))) = lenKey;
-//
-//  uint16_t pos = _indexTree->GetKeyOffset();
-//  uint16_t lenPos = TWO_SHORT_LEN;
-//
-//  for (i = 0; i < vctKey.size(); i++) {
-//    uint16_t len = vctKey[i]->WriteData(_bysVal + pos, true);
-//    if (!vctKey[i]->IsFixLength()) {
-//      *((uint16_t *)(_bysVal + lenPos)) = len;
-//      lenPos += sizeof(uint16_t);
-//    }
-//
-//    pos += len;
-//  }
-//
-//  _priStru->pageValOffset = pos + lenAttr;
-//
-//  _bysVal[pos] = (_priStru->bLastOvf ? LAST_RECORD_OVERFLOW : 0) +
-//                 (_priStru->bOvf ? RECORD_OVERFLOW : 0) +
-//                 (_priStru->bDelete ? RECORD_DELETED : 0) +
-//                 _priStru->verCount;
-//  pos++;
-//
-//  _priStru->arrStamp = (uint64_t *)&_bysVal[pos];
-//  pos += sizeof(uint64_t) * rsCount;
-//  _priStru->arrStamp[0] = recStamp;
-//
-//  if (rsCount > 1) {
-//    BytesCopy(&_priStru->arrStamp[1], &oldValStru->arrStamp[bOldAll ? 0 : 1],
-//              sizeof(uint64_t) * (rsCount - 1));
-//  }
-//
-//  if (!_priStru->bOvf) {
-//    _priStru->arrPageLen = (uint16_t *)&_bysVal[pos];
-//    _priStru->arrPageLen[0] = lenVal;
-//
-//    uint16_t oldStart = (bOldAll ? 0 : oldValStru->arrPageLen[0]);
-//    int oldIndex = (bOldAll ? 0 : 1);
-//    for (int i = 1; i < rsCount; i++) {
-//      _priStru->arrPageLen[i] = _priStru->arrPageLen[i - 1] +
-//                                oldValStru->arrPageLen[oldIndex] - oldStart;
-//      oldStart = oldValStru->arrPageLen[oldIndex];
-//      oldIndex++;
-//    }
-//
-//    pos += sizeof(uint16_t) * rsCount;
-//
-//    for (int i = 0; i < vctVal.size(); i++) {
-//      pos += vctVal[i]->WriteData(_bysVal + pos, false);
-//    }
-//
-//    oldStart = (bOldAll ? 0 : oldValStru->arrPageLen[0]);
-//    oldIndex = (bOldAll ? 0 : 1);
-//    for (int i = 1; i < rsCount; i++) {
-//      BytesCopy(_bysVal + _priStru->pageValOffset + _priStru->arrPageLen[i -
-//      1],
-//                old->_bysVal + oldValStru->pageValOffset + oldStart,
-//                _priStru->arrPageLen[i] - _priStru->arrPageLen[i - 1]);
-//      oldStart = oldValStru->arrPageLen[oldIndex];
-//      oldIndex++;
-//    }
-//  } else {
-//    _priStru->indexOvfStart = indexOvfStart;
-//    _priStru->lenInPage = lenVal;
-//    _priStru->arrOvfLen = (uint32_t *)&_bysVal[pos + sizeof(uint64_t) * 2];
-//    _priStru->arrOvfLen[0] = sizeOverflow;
-//
-//    if (oldValStru != nullptr) {
-//      if (oldValStru->bOvf) {
-//        uint32_t oldStart = (bOldAll ? 0 : oldValStru->arrOvfLen[0]);
-//        int oldIndex = (bOldAll ? 0 : 1);
-//        for (int i = 1; i < rsCount; i++) {
-//          _priStru->arrOvfLen[i] = _priStru->arrOvfLen[i - 1] +
-//                                   oldValStru->arrOvfLen[oldIndex] - oldStart;
-//          oldStart = oldValStru->arrOvfLen[oldIndex];
-//          oldIndex++;
-//        }
-//      } else {
-//        uint32_t oldStart = (bOldAll ? 0 : oldValStru->arrPageLen[0]);
-//        int oldIndex = (bOldAll ? 0 : 1);
-//        for (int i = 1; i < rsCount; i++) {
-//          _priStru->arrOvfLen[i] = _priStru->arrOvfLen[i - 1] +
-//                                   oldValStru->arrPageLen[oldIndex] -
-//                                   oldStart;
-//          oldStart = oldValStru->arrPageLen[oldIndex];
-//          oldIndex++;
-//        }
-//      }
-//    }
-//
-//    PageFile *ovf = indexTree->GetOverflowFile();
-//
-//    if (oldValStru == nullptr || !oldValStru->bOvf ||
-//        oldValStru->ovfRange < sizeOverflow + snapLen) {
-//      _priStru->ovfRange =
-//          sizeOverflow + snapLen + (uint32_t)Configure::GetDiskClusterSize();
-//      _priStru->ovfRange -=
-//          _priStru->ovfRange % (uint32_t)Configure::GetDiskClusterSize();
-//      _priStru->ovfOffset = ovf->GetOffsetAddLength(_priStru->ovfRange);
-//    } else {
-//      _priStru->ovfRange = oldValStru->ovfRange;
-//      _priStru->ovfOffset = oldValStru->ovfOffset;
-//    }
-//
-//    UInt64ToBytes(_priStru->ovfOffset, _bysVal + pos, false);
-//    pos += sizeof(uint64_t);
-//    UInt32ToBytes(_priStru->ovfRange, _bysVal + pos, false);
-//    pos += sizeof(uint32_t);
-//    UInt16ToBytes(indexOvfStart, _bysVal + pos, false);
-//    pos += sizeof(uint16_t);
-//    UInt16ToBytes(lenVal, _bysVal + pos, false);
-//    pos += sizeof(uint16_t);
-//
-//    pos += sizeof(uint32_t) * rsCount;
-//
-//    for (int i = 0; i < indexOvfStart; i++) {
-//      pos += vctVal[i]->WriteData(_bysVal + pos, false);
-//    }
-//
-//    ovf->WriteDataValue(vctVal, indexOvfStart, _priStru->ovfOffset);
-//
-//    if (rsCount > 1) {
-//      if (!oldValStru->bOvf) {
-//        uint32_t valStart = oldValStru->pageValOffset +
-//                            (bOldAll ? 0 : oldValStru->arrPageLen[0]);
-//        uint32_t valLen = oldValStru->pageValOffset +
-//                          oldValStru->arrPageLen[oldValStru->verCount - 1] -
-//                          valStart;
-//        ovf->WritePage(_priStru->ovfOffset + sizeOverflow,
-//                       (char *)(old->_bysVal + valStart), valLen);
-//      } else {
-//        uint64_t offset = _priStru->ovfOffset + sizeOverflow;
-//        if (bOldAll) {
-//          ovf->WritePage(offset,
-//                         (char *)(old->_bysVal + oldValStru->pageValOffset),
-//                         oldValStru->lenInPage);
-//          offset += oldValStru->lenInPage;
-//        }
-//
-//        uint64_t valStart =
-//            oldValStru->ovfOffset + (bOldAll ? 0 : oldValStru->arrOvfLen[0]);
-//        uint64_t valLen =
-//            oldValStru->arrOvfLen[oldValStru->verCount - 1] - valStart;
-//
-//        ovf->MoveOverflowData(valStart, offset, (uint32_t)valLen);
-//      }
-//    }
-//  }
-//}
-//
-// LeafRecord::~LeafRecord() {
-//  LeafRecord *rec = _undoRecords;
-//  while (rec != nullptr) {
-//    LeafRecord *next = rec->_undoRecords;
-//    rec->ReleaseRecord();
-//    rec = next;
-//  }
-//
-//  if (_priStru != nullptr)
-//    delete _priStru;
-//}
-//
-// void LeafRecord::GetListKey(VectorDataValue &vctKey) const {
-//  _indexTree->CloneKeys(vctKey);
-//  uint16_t pos = _indexTree->GetKeyOffset();
-//  uint16_t lenPos = TWO_SHORT_LEN;
-//  uint16_t len = 0;
-//
-//  for (uint16_t i = 0; i < vctKey.size(); i++) {
-//    if (!vctKey[i]->IsFixLength()) {
-//      len = *((uint16_t *)(_bysVal + lenPos));
-//      lenPos += sizeof(uint16_t);
-//    }
-//
-//    pos += vctKey[i]->ReadData(_bysVal + pos, len);
-//  }
-//}
+
+LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
+                       const VectorDataValue &vctVal, uint64_t recStamp,
+                       Transaction *tran)
+    : RawRecord(indexTree, nullptr, nullptr, true), _tran(tran) {
+  _actionType = ActionType::INSERT;
+  RecStruct recStru;
+
+  uint32_t lenKey = CalcKeyLength(vctKey);
+  uint32_t lenVal = CalcValueLength(vctVal);
+  uint16_t infoLen = 1 + 1 + 8 + 4;
+  uint32_t max_lenVal = (uint32_t)Configure::GetMaxRecordLength() - lenKey -
+                        TWO_SHORT_LEN - infoLen;
+
+  if (infoLen + lenVal > max_lenVal) {
+    uint16_t num =
+        (lenVal + CachePage::CACHE_PAGE_SIZE - 1) / CachePage::CACHE_PAGE_SIZE;
+    _overflowPage =
+        new OverflowPage(indexTree, indexTree->ApplyPageId(num), num);
+    infoLen += UI32_LEN + UI16_LEN;
+  }
+
+  uint16_t totalLen =
+      lenKey + infoLen + (_overflowPage == nullptr ? lenVal : 0);
+
+  _bysVal = CachePool::Apply(totalLen);
+
+  Byte *bys = FillKeyBuff(_bysVal, totalLen, lenKey, vctKey);
+
+  *bys = (_overflowPage == nullptr ? 0 : 0xc0) + 1;
+  bys++;
+  *bys = 1 * (uint64_t *)bys2 = recStamp;
+  bys += UI64_LEN;
+  *(uint32_t *)bys = lenVal;
+  bys += UI32_LEN;
+
+  Byte *crc = nullptr;
+  Byte *fBit = nullptr;
+  if (_overflowPage != nullptr) {
+    crc = bys2;
+    bys2 += UI32_LEN;
+    *(uint32_t *)bys2 = _overflowPage->GetPageId();
+    bys2 += UI32_LEN;
+    *(uint16_t *)bys2 = _overflowPage->GetPageNum();
+
+    fBit = _overflowPage->GetBysPage();
+  } else {
+    fBit = bys2;
+  }
+  FillValueBuff(fBit, vctVal);
+}
+
+LeafRecord::~LeafRecord() {
+  if (_undoRec != nullptr) {
+    _undoRec->ReleaseRecord();
+  }
+
+  if (_overflowPage != nullptr) {
+    _overflowPage->DecRefCount();
+  }
+}
+
+void LeafRecord::GetListKey(VectorDataValue &vctKey) const {
+  _indexTree->CloneKeys(vctKey);
+  uint16_t pos = _indexTree->GetKeyOffset();
+  uint16_t lenPos = TWO_SHORT_LEN;
+  uint16_t len = 0;
+
+  for (uint16_t i = 0; i < vctKey.size(); i++) {
+    if (!vctKey[i]->IsFixLength()) {
+      len = *((uint16_t *)(_bysVal + lenPos));
+      lenPos += sizeof(uint16_t);
+    }
+
+    pos += vctKey[i]->ReadData(_bysVal + pos, len);
+  }
+}
+
+void LeafRecord::UpdateRecord(const VectorDataValue &vctVal, uint64_t recStamp,
+                              ActionType type, Transaction *tran) {
+  uint32_t lenVal = CalcValueLength(vctVal);
+}
+
 ///**
 // * @brief Read the value to data value list
 // * @param vct The vector to save the data values.

@@ -2,6 +2,7 @@
 #include "../cache/CachePool.h"
 #include "../config/Configure.h"
 #include "../config/ErrorID.h"
+#include "../file/PageFile.h"
 #include "../header.h"
 #include "../utils/BytesConvert.h"
 #include "../utils/SpinMutex.h"
@@ -38,7 +39,6 @@ public:
 
 public:
   CachePage(IndexTree *indexTree, PageID pageId, PageType type);
-  virtual ~CachePage();
   inline ReentrantSharedSpinMutex &GetLock() { return _rwLock; }
   inline bool IsDirty() const { return _bDirty; }
   inline void SetDirty(bool b) { _bDirty = b; }
@@ -70,7 +70,12 @@ public:
     _refCount.fetch_add(num, memory_order_relaxed);
   }
   int DecRefCount(int num = 1) {
-    _refCount.fetch_sub(num, memory_order_relaxed);
+    int32_t rc = _refCount.fetch_sub(num, memory_order_relaxed);
+
+    assert(rc - num >= 0);
+    if (rc - num == 0) {
+      delete this;
+    }
   }
   inline int32_t GetRefCount() { return _refCount.load(memory_order_relaxed); }
 
@@ -115,6 +120,9 @@ public:
   }
 
 protected:
+  virtual ~CachePage();
+
+protected:
   // The page block, it is equal pages in disk
   Byte *_bysPage = nullptr;
   // Read write lock.
@@ -131,7 +139,7 @@ protected:
   // ID for this page
   PageID _pageId = 0;
   // How many times has this page been referenced
-  atomic<int32_t> _refCount = 0;
+  atomic<int32_t> _refCount = {1};
   // If this page has been changed
   bool _bDirty = false;
   // used only in IndexPage, point out if there have records added or deleted

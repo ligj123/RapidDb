@@ -150,7 +150,7 @@ public:
     _currRecordStamp.store(recordStamp, memory_order_relaxed);
   }
 
-  inline uint32_t GetAndIncTotalPageCount(uint32_t pageNum = 1) {
+  inline PageID GetAndIncTotalPageCount(uint32_t pageNum = 1) {
     return _totalPageCount.fetch_add(pageNum, memory_order_relaxed);
   }
 

@@ -31,15 +31,12 @@ public:
              uint32_t lenPri, ActionType type, Transaction *tran);
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
-             const VectorDataValue &vctVal, uint64_t recStamp, ActionType type,
+             const VectorDataValue &vctVal, uint64_t recStamp,
              Transaction *tran);
-  // When insert or upsert, if there has old record in leaf page, replace old
-  // record with this and call below method to set old record
-  void SetUndoRecord(LeafRecord *undoRec);
+
   // When update this record, set new values into record and save old value into
-  // _oldRec, only for primary index
-  void UpdateRecord(const VectorDataValue &vctKey,
-                    const VectorDataValue &vctVal, uint64_t recStamp,
+  // _undoRec, only for primary index
+  void UpdateRecord(const VectorDataValue &newVal, uint64_t recStamp,
                     ActionType type, Transaction *tran);
   // Call this function to delete a record, only for primary index
   void DeleteRecord(uint64_t recStamp, ActionType type, Transaction *tran);
@@ -59,6 +56,9 @@ public:
   int CompareKey(const RawKey &key) const;
   int CompareKey(const LeafRecord &lr) const;
 
+  // When insert or upsert, if there has old record in leaf page, replace old
+  // record with this and call below method to set old record
+  void SaveUndoRecord(LeafRecord *undoRec) { _undoRec = undoRec; }
   inline uint16_t GetValueLength() const override {
     return (*((uint16_t *)_bysVal) -
             *((uint16_t *)(_bysVal + sizeof(uint16_t))) - sizeof(uint16_t) * 2);
@@ -88,16 +88,83 @@ public:
     _tran = tran;
     _actionType = type;
   }
+  inline bool Releaseable() {
+    return !(_refCount > 1 ||
+             (_overflowPage != nullptr && _overflowPage->IsDirty()));
+  }
+
+protected:
+  // To calc key length
+  inline uint32_t CalcKeyLength(const VectorDataValue &vctKey) {
+    uint32_t lenKey = _indexTree->GetKeyVarLen();
+    for (int i = 0; i < vctKey.size(); i++) {
+      lenKey += vctKey[i]->GetPersistenceLength(true);
+    }
+
+    if (lenKey > Configure::GetMaxKeyLength()) {
+      throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
+    }
+    return lenKey;
+  }
+  // To calc a version's value length
+  inline uint32_t CalcValueLength(const VectorDataValue &vctVal,
+                                  ActionType type) {
+    if (type == ActionType::DELETE)
+      return 0;
+
+    uint32_t lenVal = (vctVal.size() + 7) / 8 + _indexTree->GetValVarLen();
+    for (i = 0; i < vctVal.size(); i++) {
+      lenVal += vctVal[i]->GetPersistenceLength(false);
+    }
+    return lenVal;
+  }
+
+  // Save key into buffer and return current buffer pointer
+  inline Byte *FillKeyBuff(Byte *bys, uint32_t totalLen, uint32_t keyLen,
+                           const VectorDataValue &vctKey) {
+    *((uint16_t *)bys) = totalLen;
+    bys += UI16_LEN;
+    *((uint16_t *)bys) = lenKey;
+    bys += UI16_LEN;
+    Byte *bys2 = bys + _indexTree->GetKeyVarLen();
+    for (i = 0; i < vctKey.size(); i++) {
+      uint16_t vl = vctKey[i]->WriteData(bys2, true);
+      bys2 += vl;
+      if (!vctKey[i]->IsFixLength()) {
+        *((uint16_t *)bys) = vl;
+        bys += UI16_LEN;
+      }
+    }
+
+    return bys2;
+  }
+
+  // Save a version's value into buffer
+  inline Byte *FillValueBuff(Byte *buf, const VectorDataValue &vctVal) {
+    Byte *fBit = buf;
+    Byte *bys = fBit + (vctVal.size() + 7) / 8;
+    Byte *bys2 = bys + UI16_3_LEN + _indexTree->GetValVarLen();
+    memset(fBit, 0, (vctVal.size() + 7) / 8);
+    for (i = 0; i < vctVal.size(); i++) {
+      fBit[i / 8] |= vctVal[i]->IsNull() ? (1 << (i % 8)) : 0;
+      uint32_t vl = vctKey[i]->WriteData(bys2, true);
+      bys2 += vl;
+      if (!vctKey[i]->IsFixLength()) {
+        *((uint16_t *)bys) = vl;
+        bys += UI16_LEN;
+      }
+    }
+  }
 
 protected:
   // If update this record, save old version for transaction rollback. If it
-  // has been updated more than one time. old rec can recursively contain an old
-  // rec.
+  // has been updated more than one time. old rec can recursively contain an
+  // old rec.
   LeafRecord *_undoRec = nullptr;
   // Write transaction, when insert, update or delete,
   Transaction *_tran = nullptr;
   // Vector to contain overflow page
-  MVector<OverflowPage *>::Type _vctOvf;
+  OverflowPage *_overflowPage = nullptr;
   friend std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
   friend bool operator<(const LeafRecord &llr, const LeafRecord &rlr);
 };

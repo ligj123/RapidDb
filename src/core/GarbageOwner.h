@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "../cache/Mallocator.h"
 #include "../utils/SpinMutex.h"
 #include "IndexTree.h"
@@ -33,16 +33,18 @@ protected:
   PageID _firstPageId;
   /** The number that used to save garbage page ids */
   uint16_t _usedPageNum;
+  /**How many a series pages to save the garbage page ids.*/
+  uint16_t _pageUsedCount = 0;
+  /**The first page to save garbage page ids*/
+  PageID _pageSaveGarbage = HeadPage::PAGE_NULL_POINTER;
+  /**If it has changed since previous save time*/
+  bool _bDirty;
   /**The first garbage page id, how many series */
   MTreeMap<PageID, uint16_t>::Type _treeFreePage;
   /**To find the free pages by this map. The key is the free pages number of
    * therange, the value is the first page id of the range with free page number
    * = key*/
   MTreeMap<uint16_t, MHashSet<PageID>::Type>::Type _rangePage;
-  /**The first page to save garbage page ids*/
-  PageID _pageSaveGarbage = HeadPage::PAGE_NULL_POINTER;
-  /**How many a series pages to save the garbage page ids.*/
-  uint16_t _pageUsedCount = 0;
   /**SpinMutex*/
   ReentrantSpinMutex _spinMutex;
   /**IndexTree*/
