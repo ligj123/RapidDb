@@ -62,8 +62,6 @@ protected:
   // ActionType
   ActionType _actionType = ActionType::UNKNOWN;
   // Gap lock to next record
-  bool _gapLockNext = false;
-  // gao lock to previous record
-  bool _gapLockPrev = false;
+  bool _gapLock = false;
 };
 } // namespace storage

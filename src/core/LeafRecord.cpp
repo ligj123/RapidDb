@@ -5,83 +5,10 @@
 #include "../utils/ErrorMsg.h"
 #include "IndexTree.h"
 #include "LeafPage.h"
+#include <boost/crc.hpp>
 
 namespace storage {
-struct ValueStruct {
-  // (n+7)/8 bytes to save if the related fields are null or not, every field
-  // occupys a bit.
-  Byte *bysNull;
-  // The variable fields' lengths after serialize
-  uint32_t *varFiledsLen;
-  // Start position to save value content
-  Byte *bysValue;
-};
-// Only for primary index
-struct RecStruct {
-  RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen, Byte verNum,
-            bool bOverflow = false) {
-    totalLen = (uint16_t *)bys;
-    keyLen = (uint16_t *)(bys + UI16_LEN);
-    varKeyLen = (uint16_t *)(bys + TWO_UI16_LEN);
-    bysKey = bys + TWO_UI16_LEN + varKeyOff;
-    byVerNum = bys + TWO_UI16_LEN + keyLen;
-    arrStamp = (uint64_t *)(bys + TWO_UI16_LEN + keyLen + 1);
-    arrLen = (uint32_t *)(bys + TWO_UI16_LEN + keyLen + 1 + UI64_LEN * verNum);
-
-    if (bOverflow) {
-      arrCrc32 = (uint32_t *)(bys + TWO_UI16_LEN + keyLen + 1 +
-                              UI64_LEN * verNum + UI32_LEN * verNum);
-      pidStart = (PageID *)(bys + TWO_UI16_LEN + keyLen + 1 +
-                            UI64_LEN * verNum + UI32_LEN * verNum * 2);
-      pageNum =
-          (uint16_t *)(bys + TWO_UI16_LEN + keyLen + 1 + UI64_LEN * verNum +
-                       UI32_LEN * verNum * 2 + UI16_LEN);
-    } else {
-      arrCrc32 = nullptr;
-      pidStart = nullptr;
-      pageNum = nullptr;
-    }
-  }
-
-  void SetValueStruct(Byte *bys, Byte verNum, uin32_t *arLen, uint32_t fieldNum,
-                      uint32_t valVarLen) {
-    uint32_t byNum = (fieldNum + 7) << 3;
-    uint32_t offset = 0;
-    for (Byte i = 0; i < verNum; i++) {
-      arvalStr[i].bysNull = bys + offset;
-      arvalStr[i].varFiledsLen = bys + offset + byNum;
-      arvalStr[i].bysValue = bys + offset + byNum + valVarLen;
-    }
-  }
-
-  // To save total length for record, not include values in overflow page
-  // length, only to calc the occupied bytes in LeafPage
-  uint16_t *totalLen;
-  // To save key length, include the bytes to save variable fileds length and
-  // key content.
-  uint16_t *keyLen;
-  // The start position to save variable fileds length in key, this is an array
-  // with 0~N elements.
-  uint16_t *varKeyLen;
-  // To save key content after serialize.
-  Byte *bysKey;
-  // The byte to save the number of versions(low 4bits) and if overflow or not
-  // (the highest bit)
-  Byte *byVerNum;
-  // The array to save version stamps for every version, 1~N elements.
-  uint64_t *arrStamp;
-  // The array to save length for every version content.
-  uint32_t *arrLen;
-  // The array to save the crc32 if overflow
-  uint32_t *arrCrc32;
-  // The start page id
-  PageID *pidStart;
-  // The page number
-  uint16_t *pageNum;
-  // The array to save the address for value struct with max 8 elements.
-  ValueStruct arvalStr[8];
-};
-
+static thread_local boost::crc_32_type crc32;
 LeafRecord::LeafRecord(LeafPage *parentPage, Byte *bys)
     : RawRecord(parentPage->GetIndexTree(), parentPage, bys, false) {}
 
@@ -131,11 +58,10 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
                        Transaction *tran)
     : RawRecord(indexTree, nullptr, nullptr, true), _tran(tran) {
   _actionType = ActionType::INSERT;
-  RecStruct recStru;
 
   uint32_t lenKey = CalcKeyLength(vctKey);
-  uint32_t lenVal = CalcValueLength(vctVal);
-  uint16_t infoLen = 1 + 1 + 8 + 4;
+  uint32_t lenVal = CalcValueLength(vctVal, ActionType::INSERT);
+  uint16_t infoLen = 1 + UI64_LEN + UI32_LEN;
   uint32_t max_lenVal = (uint32_t)Configure::GetMaxRecordLength() - lenKey -
                         TWO_SHORT_LEN - infoLen;
 
@@ -144,37 +70,26 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
         (lenVal + CachePage::CACHE_PAGE_SIZE - 1) / CachePage::CACHE_PAGE_SIZE;
     _overflowPage =
         new OverflowPage(indexTree, indexTree->ApplyPageId(num), num);
-    infoLen += UI32_LEN + UI16_LEN;
+    infoLen += UI32_LEN + UI32_LEN + UI16_LEN;
   }
 
   uint16_t totalLen =
       lenKey + infoLen + (_overflowPage == nullptr ? lenVal : 0);
 
   _bysVal = CachePool::Apply(totalLen);
+  RecStruct recStru(_bysVal, indexTree->GetKeyVarLen(), lenKey, 1,
+                    _overflowPage);
+  FillHeaderBuff(recStru, totalLen, lenKey, vctKey, 1, recStamp, lenVal);
 
-  Byte *bys = FillKeyBuff(_bysVal, totalLen, lenKey, vctKey);
+  ValueStruct valStru;
+  SetValueStruct(&valStru, recStru._bysValStart, 1, vctVal.size(),
+                 indexTree->GetValVarLen());
 
-  *bys = (_overflowPage == nullptr ? 0 : 0xc0) + 1;
-  bys++;
-  *bys = 1 * (uint64_t *)bys2 = recStamp;
-  bys += UI64_LEN;
-  *(uint32_t *)bys = lenVal;
-  bys += UI32_LEN;
-
-  Byte *crc = nullptr;
-  Byte *fBit = nullptr;
+  FillValueBuff(valStru, vctVal);
   if (_overflowPage != nullptr) {
-    crc = bys2;
-    bys2 += UI32_LEN;
-    *(uint32_t *)bys2 = _overflowPage->GetPageId();
-    bys2 += UI32_LEN;
-    *(uint16_t *)bys2 = _overflowPage->GetPageNum();
-
-    fBit = _overflowPage->GetBysPage();
-  } else {
-    fBit = bys2;
+    crc32.reset();
+    crc32.process_bytes(recStru._bysValStart, lenVal);
   }
-  FillValueBuff(fBit, vctVal);
 }
 
 LeafRecord::~LeafRecord() {

@@ -4,6 +4,7 @@
 #include <boost/crc.hpp>
 
 namespace storage {
+static thread_local boost::crc_32_type crc32;
 const uint32_t CachePage::CACHE_PAGE_SIZE =
     (uint32_t)Configure::GetCachePageSize();
 const uint32_t CachePage::HEAD_PAGE_SIZE =
@@ -31,7 +32,6 @@ CachePage::~CachePage() {
 }
 
 void CachePage::ReadPage(PageFile *pageFile) {
-  static thread_local boost::crc_32_type crc32;
   unique_lock<SpinMutex> lock(_pageLock);
 
   PageFile *pFile =
@@ -64,7 +64,6 @@ void CachePage::ReadPage(PageFile *pageFile) {
 }
 
 void CachePage::WritePage(PageFile *pageFile) {
-  static thread_local boost::crc_32_type crc32;
   PageFile *pFile =
       (pageFile == nullptr ? _indexTree->ApplyPageFile() : pageFile);
   char *tmp = PageFile::_ovfBuff.GetBuf();

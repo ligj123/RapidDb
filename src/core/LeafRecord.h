@@ -14,6 +14,88 @@ static const Byte LAST_OVERFLOW = 0x80;
 static const Byte OTHER_OVERFLOW = 0x40;
 static const Byte VERSION_NUM = 0x0f;
 
+struct ValueStruct {
+  // (n+7)/8 bytes to save if the related fields are null or not, every field
+  // occupys a bit.
+  Byte *bysNull;
+  // The variable fields' lengths after serialize
+  uint32_t *varFiledsLen;
+  // Start position to save value content
+  Byte *bysValue;
+};
+
+void SetValueStruct(ValueStruct *arvalStr, Byte *bys, Byte verNum,
+                    uint32_t fieldNum, uint32_t valVarLen) {
+  uint32_t byNum = (fieldNum + 7) << 3;
+  uint32_t offset = 0;
+  for (Byte i = 0; i < verNum; i++) {
+    arvalStr[i].bysNull = bys + offset;
+    arvalStr[i].varFiledsLen = (uint32_t *)(bys + offset + byNum);
+    arvalStr[i].bysValue = bys + offset + byNum + valVarLen;
+  }
+}
+
+// Only for primary index
+struct RecStruct {
+  RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen, Byte verNum,
+            OverflowPage *overPage = nullptr) {
+    _totalLen = (uint16_t *)bys;
+    _keyLen = (uint16_t *)(bys + UI16_LEN);
+    _varKeyLen = (uint16_t *)(bys + UI16_2_LEN);
+    _bysKey = bys + UI16_2_LEN + varKeyOff;
+    _byVerNum = bys + UI16_2_LEN + keyLen;
+    _arrStamp = (uint64_t *)(bys + UI16_2_LEN + keyLen + 1);
+    _arrValLen =
+        (uint32_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum);
+
+    if (overPage != nullptr) {
+      _arrCrc32 = (uint32_t *)(bys + UI16_2_LEN + keyLen + 1 +
+                               UI64_LEN * verNum + UI32_LEN * verNum);
+      _pidStart = (PageID *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
+                             UI32_LEN * verNum * 2);
+      _pageNum =
+          (uint16_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
+                       UI32_LEN * verNum * 2 + UI16_LEN);
+      *_pidStart = overPage->GetPageId();
+      *_pageNum = overPage->GetPageNum();
+      _bysValStart = overPage->GetBysPage();
+    } else {
+      _arrCrc32 = nullptr;
+      _pidStart = nullptr;
+      _pageNum = nullptr;
+      _bysValStart =
+          bys + UI16_2_LEN + keyLen + 1 + (UI64_LEN + UI32_LEN) * verNum;
+    }
+  }
+
+  // To save total length for record, not include values in overflow page
+  // length, only to calc the occupied bytes in LeafPage
+  uint16_t *_totalLen;
+  // To save key length, include the bytes to save variable fileds length and
+  // key content.
+  uint16_t *_keyLen;
+  // The start position to save variable fileds length in key, this is an array
+  // with 0~N elements.
+  uint16_t *_varKeyLen;
+  // To save key content after serialize.
+  Byte *_bysKey;
+  // The byte to save the number of versions(low 4bits) and if overflow or not
+  // (the highest bit)
+  Byte *_byVerNum;
+  // The array to save version stamps for every version, 1~N elements.
+  uint64_t *_arrStamp;
+  // The array to save length for every version content.
+  uint32_t *_arrValLen;
+  // The array to save the crc32 if overflow
+  uint32_t *_arrCrc32;
+  // The start page id
+  PageID *_pidStart;
+  // The page number
+  uint16_t *_pageNum;
+  // The start pointer to save values
+  Byte *_bysValStart;
+};
+
 class LeafPage;
 class Transaction;
 class LeafRecord : public RawRecord {
@@ -88,10 +170,6 @@ public:
     _tran = tran;
     _actionType = type;
   }
-  inline bool Releaseable() {
-    return !(_refCount > 1 ||
-             (_overflowPage != nullptr && _overflowPage->IsDirty()));
-  }
 
 protected:
   // To calc key length
@@ -113,45 +191,51 @@ protected:
       return 0;
 
     uint32_t lenVal = (vctVal.size() + 7) / 8 + _indexTree->GetValVarLen();
-    for (i = 0; i < vctVal.size(); i++) {
+    for (size_t i = 0; i < vctVal.size(); i++) {
       lenVal += vctVal[i]->GetPersistenceLength(false);
     }
     return lenVal;
   }
 
-  // Save key into buffer and return current buffer pointer
-  inline Byte *FillKeyBuff(Byte *bys, uint32_t totalLen, uint32_t keyLen,
-                           const VectorDataValue &vctKey) {
-    *((uint16_t *)bys) = totalLen;
-    bys += UI16_LEN;
-    *((uint16_t *)bys) = lenKey;
-    bys += UI16_LEN;
-    Byte *bys2 = bys + _indexTree->GetKeyVarLen();
-    for (i = 0; i < vctKey.size(); i++) {
-      uint16_t vl = vctKey[i]->WriteData(bys2, true);
-      bys2 += vl;
+  // Save key and infor into buffer
+  inline void FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
+                             uint32_t keyLen, const VectorDataValue &vctKey,
+                             Byte verNum, uint64_t stamp, uint32_t valLen) {
+    *recStru._totalLen = totalLen;
+    *recStru._keyLen = keyLen;
+
+    Byte *bys = recStru._bysKey;
+    uint16_t *varLen = recStru._varKeyLen;
+
+    for (size_t i = 0; i < vctKey.size(); i++) {
+      uint16_t vl = vctKey[i]->WriteData(bys, true);
+      bys += vl;
       if (!vctKey[i]->IsFixLength()) {
-        *((uint16_t *)bys) = vl;
-        bys += UI16_LEN;
+        *varLen = vl;
+        varLen++;
       }
     }
 
-    return bys2;
+    *recStru._byVerNum = (recStru._pidStart == nullptr ? 0x80 : 0) + verNum;
+    recStru._arrStamp[0] = stamp;
+    recStru._arrValLen[0] = valLen;
   }
 
   // Save a version's value into buffer
-  inline Byte *FillValueBuff(Byte *buf, const VectorDataValue &vctVal) {
-    Byte *fBit = buf;
-    Byte *bys = fBit + (vctVal.size() + 7) / 8;
-    Byte *bys2 = bys + UI16_3_LEN + _indexTree->GetValVarLen();
-    memset(fBit, 0, (vctVal.size() + 7) / 8);
-    for (i = 0; i < vctVal.size(); i++) {
-      fBit[i / 8] |= vctVal[i]->IsNull() ? (1 << (i % 8)) : 0;
-      uint32_t vl = vctKey[i]->WriteData(bys2, true);
-      bys2 += vl;
-      if (!vctKey[i]->IsFixLength()) {
-        *((uint16_t *)bys) = vl;
-        bys += UI16_LEN;
+  inline Byte *FillValueBuff(ValueStruct &valStru,
+                             const VectorDataValue &vctVal) {
+    memset(valStru.bysNull, 0, (vctVal.size() + 7) >> 3);
+    uint32_t *vlen = valStru.varFiledsLen;
+    Byte *bys = valStru.bysValue;
+    for (size_t i = 0; i < vctVal.size(); i++) {
+      if (vctVal[i]->IsNull()) {
+        valStru.bysNull[i / 8] |= 1 << (i % 8);
+      }
+      uint32_t vl = vctVal[i]->WriteData(bys, true);
+      bys += vl;
+      if (!vctVal[i]->IsFixLength()) {
+        *vlen = vl;
+        vlen++;
       }
     }
   }

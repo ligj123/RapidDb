@@ -4,6 +4,9 @@
 namespace storage {
 class OverflowPage : public CachePage {
 public:
+  static OverflowPage *GenPage();
+
+public:
   OverflowPage(IndexTree *indexTree, PageID startId, uint16_t pageNum)
       : CachePage(indexTree, startId, PageType::OVERFLOW_PAGE),
         _pageNum(pageNum) {
