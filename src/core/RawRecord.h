@@ -19,7 +19,12 @@ public:
   RawRecord(IndexTree *indexTree, IndexPage *parentPage, Byte *bys, bool bSole)
       : _parentPage(parentPage), _bysVal(bys), _indexTree(indexTree),
         _bSole(bSole) {}
-  RawRecord(const RawRecord &src) = delete;
+  RawRecord(RawRecord &src)
+      : _bysVal(src._bysVal), _parentPage(src._parentPage),
+        _indexTree(src._indexTree), _refCount(1), _bSole(src._bSole),
+        _actionType(src._actionType), _gapLock(src._gapLock) {
+    src._bysVal = nullptr;
+  }
 
   inline Byte *GetBysValue() const { return _bysVal; }
   /**Only the bytes' length in IndexPage, key length + value length without
@@ -54,7 +59,7 @@ protected:
   /**index tree*/
   IndexTree *_indexTree;
   /**How many times this record is referenced*/
-  atomic<int32_t> _refCount = 1;
+  atomic<int32_t> _refCount = {1};
   /**If this record' value is saved into solely buffer or into index page*/
   bool _bSole;
   // Below is used in LeafRecord, put here to save space. Only vaild when

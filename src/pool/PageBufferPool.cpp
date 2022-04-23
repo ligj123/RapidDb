@@ -7,12 +7,12 @@
 
 namespace storage {
 
-void PageBufferPool::AddPage(IndexPage *page) {
+void PageBufferPool::AddPage(CachePage *page) {
   unique_lock<SharedSpinMutex> lock(_rwLock);
-  _mapCache.insert(pair<uint64_t, IndexPage *>(page->HashCode(), page));
+  _mapCache.insert(pair<uint64_t, CachePage *>(page->HashCode(), page));
 }
 
-IndexPage *PageBufferPool::GetPage(uint64_t hashId) {
+CachePage *PageBufferPool::GetPage(uint64_t hashId) {
   shared_lock<SharedSpinMutex> lock(_rwLock);
   auto iter = _mapCache.find(hashId);
   if (iter != _mapCache.end()) {
@@ -27,13 +27,13 @@ IndexPage *PageBufferPool::GetPage(uint64_t hashId) {
 void PageBufferPool::ClearPool() {
   unique_lock<SharedSpinMutex> lock(_rwLock);
   for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
-    IndexPage *page = iter->second;
+    CachePage *page = iter->second;
     while (!page->Releaseable()) {
       this_thread::sleep_for(std::chrono::microseconds(10));
     }
 
     page->GetIndexTree()->DecPages();
-    delete page;
+    page->DecRefCount();
   }
   _mapCache.clear();
 }
@@ -80,17 +80,17 @@ void PageBufferPool::PoolManage() {
   }
 
   _prevDelNum = numDel;
-  static auto cmp = [](IndexPage *left, IndexPage *right) {
+  static auto cmp = [](CachePage *left, CachePage *right) {
     return left->GetAccessTime() < right->GetAccessTime();
   };
-  priority_queue<IndexPage *, MVector<IndexPage *>::Type, decltype(cmp)> queue(
+  priority_queue<CachePage *, MVector<CachePage *>::Type, decltype(cmp)> queue(
       cmp);
 
   int refCountPage = 0;
   int refPageCount = 0;
 
   for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
-    IndexPage *page = iter->second;
+    CachePage *page = iter->second;
     int num = page->GetRefCount();
     if (num > 0) {
       refCountPage++;
@@ -115,7 +115,7 @@ void PageBufferPool::PoolManage() {
   int delCount = 0;
   _rwLock.lock();
   while (queue.size() > 0) {
-    IndexPage *page = queue.top();
+    CachePage *page = queue.top();
     queue.pop();
 
     if (!page->Releaseable()) {
@@ -123,8 +123,7 @@ void PageBufferPool::PoolManage() {
     }
 
     _mapCache.erase(page->HashCode());
-    page->GetIndexTree()->DecPages();
-    delete page;
+    page->DecRefCount();
     delCount++;
   }
   _rwLock.unlock();

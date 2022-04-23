@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../core/IndexPage.h"
+#include "../core/CachePage.h"
 #include "../utils/SpinMutex.h"
 
 namespace storage {
@@ -10,13 +10,13 @@ public:
   static uint64_t GetMaxCacheSize() { return _maxCacheSize; }
   static void SetMaxCacheSzie(uint64_t size) { _maxCacheSize = (int)size; }
 
-  static void AddPage(IndexPage *page);
+  static void AddPage(CachePage *page);
 
-  static IndexPage *GetPage(uint64_t fileId, uint32_t pageId) {
+  static CachePage *GetPage(uint64_t fileId, uint32_t pageId) {
     return GetPage(CachePage::CalcHashCode(fileId, pageId));
   }
 
-  static IndexPage *GetPage(uint64_t hashId);
+  static CachePage *GetPage(uint64_t hashId);
   /**Only used for test to remove results from previous test cases*/
   static void ClearPool();
 
@@ -28,7 +28,7 @@ protected:
   static thread *CreateThread();
 
 protected:
-  static MHashMap<uint64_t, IndexPage *>::Type _mapCache;
+  static MHashMap<uint64_t, CachePage *>::Type _mapCache;
   static SharedSpinMutex _rwLock;
   static int64_t _maxCacheSize;
   static thread _tIndexPageManager;

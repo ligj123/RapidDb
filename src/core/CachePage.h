@@ -74,6 +74,8 @@ public:
 
     assert(rc - num >= 0);
     if (rc - num == 0) {
+
+      _indexTree->DecPages();
       delete this;
     }
   }

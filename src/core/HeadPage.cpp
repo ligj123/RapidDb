@@ -28,9 +28,9 @@ const uint16_t HeadPage::AUTO_INCREMENT_KEY3 = 64;
 const uint16_t HeadPage::CURRENT_RECORD_STAMP_OFFSET = 72;
 const uint16_t HeadPage::RECORD_VERSION_STAMP_OFFSET = 128;
 
-void HeadPage::ReadPage() {
+void HeadPage::ReadPage(PageFile *pageFile) {
   lock_guard<SpinMutex> lock(_spinMutex);
-  CachePage::ReadPage();
+  CachePage::ReadPage(pageFile);
   assert((PageType)ReadByte(PAGE_TYPE_OFFSET) == PageType::HEAD_PAGE);
   assert(CURRENT_FILE_VERSION == ReadFileVersion());
 
@@ -63,7 +63,7 @@ void HeadPage::ReadPage() {
   }
 }
 
-void HeadPage::WritePage() {
+void HeadPage::WritePage(PageFile *pageFile) {
   lock_guard<SpinMutex> lock(_spinMutex);
   WriteByte(PAGE_TYPE_OFFSET, (Byte)PageType::HEAD_PAGE);
   WriteByte(RECORD_VERSION_COUNT_OFFSET, (Byte)_mapVerStamp.size());
@@ -91,7 +91,7 @@ void HeadPage::WritePage() {
               iter->second);
   }
 
-  CachePage::WritePage();
+  CachePage::WritePage(pageFile);
 }
 
 void HeadPage::WriteFileVersion() {

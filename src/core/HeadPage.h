@@ -92,17 +92,18 @@ protected:
   SpinMutex _spinMutex;
 
 public:
-  HeadPage(IndexTree *indexTree) : CachePage(indexTree, UINT32_MAX) {}
+  HeadPage(IndexTree *indexTree)
+      : CachePage(indexTree, UINT32_MAX, PageType::HEAD_PAGE) {}
 
-  void ReadPage() override;
-  void WritePage() override;
+  void ReadPage(PageFile *pageFile) override;
+  void WritePage(PageFile *pageFile) override;
   void WriteFileVersion();
   FileVersion ReadFileVersion();
 
   inline Byte ReadRecordVersionCount() { return (Byte)_mapVerStamp.size(); }
-
+  // Only locked all the table, here can update record version, so here do not
+  // need lock
   inline void AddNewRecordVersion(uint64_t timeStamp) {
-    lock_guard<SpinMutex> lock(_spinMutex);
     assert(_mapVerStamp.size() < MAX_RECORD_VERSION_COUNT);
     uint64_t ver = _currRecordStamp.load(memory_order_relaxed);
     if (_mapVerStamp.size() > 0) {
@@ -121,7 +122,6 @@ public:
   }
 
   inline void RemoveRecordVersionStamp(Byte ver) {
-    lock_guard<SpinMutex> lock(_spinMutex);
     assert(ver < _mapVerStamp.size());
     for (auto iter = _mapVerStamp.begin(); iter != _mapVerStamp.end(); iter++) {
       ver--;
@@ -130,6 +130,10 @@ public:
         break;
       }
     }
+  }
+
+  inline const map<uint64_t, uint64_t> &GetMapVerStamp() {
+    return _mapVerStamp;
   }
 
   inline uint64_t GetLastVersionStamp() {

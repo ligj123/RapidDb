@@ -18,7 +18,7 @@
 #endif // BIGENDIAN
 
 #ifdef STD_MEM
-#define BytesCopy(a, b, c) std::memcpy(a, b, c)
+#define BytesCopy(dst, src, count) std::memcpy(dst, src, count)
 #else
-#define BytesCopy(a, b, c) BytesCpy(a, b, c)
+#define BytesCopy(dst, src, count) BytesCpy(dst, src, count)
 #endif // STD_MEM

@@ -14,59 +14,11 @@ static const Byte LAST_OVERFLOW = 0x80;
 static const Byte OTHER_OVERFLOW = 0x40;
 static const Byte VERSION_NUM = 0x0f;
 
-struct ValueStruct {
-  // (n+7)/8 bytes to save if the related fields are null or not, every field
-  // occupys a bit.
-  Byte *bysNull;
-  // The variable fields' lengths after serialize
-  uint32_t *varFiledsLen;
-  // Start position to save value content
-  Byte *bysValue;
-};
-
-void SetValueStruct(ValueStruct *arvalStr, Byte *bys, Byte verNum,
-                    uint32_t fieldNum, uint32_t valVarLen) {
-  uint32_t byNum = (fieldNum + 7) << 3;
-  uint32_t offset = 0;
-  for (Byte i = 0; i < verNum; i++) {
-    arvalStr[i].bysNull = bys + offset;
-    arvalStr[i].varFiledsLen = (uint32_t *)(bys + offset + byNum);
-    arvalStr[i].bysValue = bys + offset + byNum + valVarLen;
-  }
-}
-
 // Only for primary index
 struct RecStruct {
   RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen, Byte verNum,
-            OverflowPage *overPage = nullptr) {
-    _totalLen = (uint16_t *)bys;
-    _keyLen = (uint16_t *)(bys + UI16_LEN);
-    _varKeyLen = (uint16_t *)(bys + UI16_2_LEN);
-    _bysKey = bys + UI16_2_LEN + varKeyOff;
-    _byVerNum = bys + UI16_2_LEN + keyLen;
-    _arrStamp = (uint64_t *)(bys + UI16_2_LEN + keyLen + 1);
-    _arrValLen =
-        (uint32_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum);
-
-    if (overPage != nullptr) {
-      _arrCrc32 = (uint32_t *)(bys + UI16_2_LEN + keyLen + 1 +
-                               UI64_LEN * verNum + UI32_LEN * verNum);
-      _pidStart = (PageID *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
-                             UI32_LEN * verNum * 2);
-      _pageNum =
-          (uint16_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
-                       UI32_LEN * verNum * 2 + UI16_LEN);
-      *_pidStart = overPage->GetPageId();
-      *_pageNum = overPage->GetPageNum();
-      _bysValStart = overPage->GetBysPage();
-    } else {
-      _arrCrc32 = nullptr;
-      _pidStart = nullptr;
-      _pageNum = nullptr;
-      _bysValStart =
-          bys + UI16_2_LEN + keyLen + 1 + (UI64_LEN + UI32_LEN) * verNum;
-    }
-  }
+            OverflowPage *overPage = nullptr);
+  RecStruct(Byte *bys, uint16_t varKeyOff, OverflowPage *overPage = nullptr);
 
   // To save total length for record, not include values in overflow page
   // length, only to calc the occupied bytes in LeafPage
@@ -96,6 +48,30 @@ struct RecStruct {
   Byte *_bysValStart;
 };
 
+struct ValueStruct {
+  // (n+7)/8 bytes to save if the related fields are null or not, every field
+  // occupys a bit.
+  Byte *bysNull;
+  // The variable fields' lengths after serialize
+  uint32_t *varFiledsLen;
+  // Start position to save value content
+  Byte *bysValue;
+};
+
+void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
+                    uint32_t fieldNum, uint32_t valVarLen) {
+  Byte verNum = (*recStru._byVerNum) & 0x0f;
+  uint32_t byNum = (fieldNum + 7) << 3;
+  Byte *bys = recStru._bysValStart;
+  uint32_t offset = 0;
+  for (Byte i = 0; i < verNum; i++) {
+    arvalStr[i].bysNull = bys + offset;
+    arvalStr[i].varFiledsLen = (uint32_t *)(bys + offset + byNum);
+    arvalStr[i].bysValue = bys + offset + byNum + valVarLen;
+    offset += recStru._arrValLen[i];
+  }
+}
+
 class LeafPage;
 class Transaction;
 class LeafRecord : public RawRecord {
@@ -107,7 +83,7 @@ public:
   LeafRecord(LeafPage *indexPage, Byte *bys);
   // No use now, only for test
   LeafRecord(IndexTree *indexTree, Byte *bys);
-  LeafRecord(const LeafRecord &src) = delete;
+  LeafRecord(LeafRecord &src);
   // Constructor for secondary index LeafRecord
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey, Byte *bysPri,
              uint32_t lenPri, ActionType type, Transaction *tran);
@@ -119,9 +95,9 @@ public:
   // When update this record, set new values into record and save old value into
   // _undoRec, only for primary index
   void UpdateRecord(const VectorDataValue &newVal, uint64_t recStamp,
-                    ActionType type, Transaction *tran);
+                    Transaction *tran);
   // Call this function to delete a record, only for primary index
-  void DeleteRecord(uint64_t recStamp, ActionType type, Transaction *tran);
+  void DeleteRecord(uint64_t recStamp, Transaction *tran);
 
   void GetListKey(VectorDataValue &vct) const;
 
@@ -199,11 +175,16 @@ protected:
 
   // Save key and infor into buffer
   inline void FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
-                             uint32_t keyLen, const VectorDataValue &vctKey,
-                             Byte verNum, uint64_t stamp, uint32_t valLen) {
+                             uint32_t keyLen, Byte verNum, uint64_t stamp,
+                             uint32_t valLen) {
     *recStru._totalLen = totalLen;
     *recStru._keyLen = keyLen;
+    *recStru._byVerNum = (recStru._pidStart == nullptr ? 0x80 : 0) + verNum;
+    recStru._arrStamp[0] = stamp;
+    recStru._arrValLen[0] = valLen;
+  }
 
+  inline void FillKeyBuff(RecStruct &recStru, const VectorDataValue &vctKey) {
     Byte *bys = recStru._bysKey;
     uint16_t *varLen = recStru._varKeyLen;
 
@@ -215,15 +196,11 @@ protected:
         varLen++;
       }
     }
-
-    *recStru._byVerNum = (recStru._pidStart == nullptr ? 0x80 : 0) + verNum;
-    recStru._arrStamp[0] = stamp;
-    recStru._arrValLen[0] = valLen;
   }
 
   // Save a version's value into buffer
-  inline Byte *FillValueBuff(ValueStruct &valStru,
-                             const VectorDataValue &vctVal) {
+  inline void FillValueBuff(ValueStruct &valStru,
+                            const VectorDataValue &vctVal) {
     memset(valStru.bysNull, 0, (vctVal.size() + 7) >> 3);
     uint32_t *vlen = valStru.varFiledsLen;
     Byte *bys = valStru.bysValue;
@@ -239,6 +216,17 @@ protected:
       }
     }
   }
+
+  /**
+   * @brief To calc the value length for move to new record. Here will remove
+   * the repeated version
+   * @param bUpdate True: update this record and will judge the last version if
+   * repeate with new version. False: only remove repeated version
+   * @param vctSN To save the serial number that will moved to new record
+   * @return The total length of versions will been moved new record
+   */
+  inline uint32_t CalcValidValueLength(RecStruct &recStru, bool bUpdate,
+                                       MVector<Byte>::Type &vctSN);
 
 protected:
   // If update this record, save old version for transaction rollback. If it
