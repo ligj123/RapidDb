@@ -119,6 +119,8 @@ public:
   inline uint16_t GetValVarLen() { return _valVarLen; }
   inline uint16_t GetKeyOffset() { return _keyOffset; }
   inline uint16_t GetValOffset() { return _valOffset; }
+  inline const VectorDataValue &GetVctKey() const { return _vctKey; }
+  inline const VectorDataValue &GetVctValue() const { return _vctValue; }
 
 protected:
   ~IndexTree();

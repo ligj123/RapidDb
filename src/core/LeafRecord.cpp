@@ -160,6 +160,20 @@ LeafRecord::~LeafRecord() {
   }
 }
 
+void LeafRecord::ReleaseRecord(bool bUndo = false) {
+  _refCount--;
+  if (_refCount == 0) {
+    if (_overflowPage != nullptr) {
+      if (bUndo) {
+        _indexTree->ReleasePageId(_overflowPage->GetPageId(),
+                                  _overflowPage->GetPageNum());
+      }
+      _overflowPage->DecRefCount();
+    }
+    delete this;
+  }
+}
+
 LeafRecord::LeafRecord(LeafRecord &src)
     : RawRecord(src), _undoRec(src._undoRec), _tran(src._tran),
       _overflowPage(src._overflowPage) {
@@ -184,16 +198,30 @@ void LeafRecord::GetListKey(VectorDataValue &vctKey) const {
   }
 }
 
-void LeafRecord::UpdateRecord(const VectorDataValue &vctVal, uint64_t recStamp,
-                              Transaction *tran, ActionType type) {
+/** @brief When update or delete this record, set new values into record and
+ * save old value into _undoRec, only use for primary index
+ * @param vctVal the vector of data value. If ActionType==Delete, it is empty
+ * vector
+ * @param recStamp the current record stamp.
+ * @param tran the transaction
+ * @param type only support Update or Delete
+ * @return different of the bytes occpied
+ */
+int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
+                                 uint64_t recStamp, Transaction *tran,
+                                 ActionType type) {
   assert(_refCount.load(memory_order_relaxed) == 1);
   RecStruct recStruOld(_bysVal, _indexTree->GetKeyVarLen(), _overflowPage);
-  _undoRec = new LeafRecord(*this);
-  _actionType = ActionType::UPDATE;
-
-  uint32_t lenVal = CalcValueLength(vctVal, type);
   MVector<Byte>::Type vctSn;
   uint32_t oldLenVal = CalcValidValueLength(recStruOld, true, vctSn);
+  _actionType = type;
+
+  if (oldLenVal == 0 && type == ActionType::DELETE) {
+    return -(*recStruOld._totalLen);
+  }
+
+  _undoRec = new LeafRecord(*this);
+  uint32_t lenVal = CalcValueLength(vctVal, type);
   uint32_t lenInfo = 1 + (UI64_LEN + UI32_LEN) * (1 + vctSn.size());
   uint32_t max_lenVal = (uint32_t)Configure::GetMaxRecordLength() -
                         *recStruOld._keyLen - TWO_SHORT_LEN - lenInfo;
@@ -214,13 +242,19 @@ void LeafRecord::UpdateRecord(const VectorDataValue &vctVal, uint64_t recStamp,
   FillHeaderBuff(recStru, totalLen, *recStruOld._keyLen, 1 + vctSn.size(),
                  recStamp, lenVal);
   BytesCopy(recStru._bysKey, recStruOld._bysKey, *recStruOld._keyLen);
-  ValueStruct valStru;
-  SetValueStruct(recStru, &valStru, vctVal.size(), _indexTree->GetValVarLen());
-  FillValueBuff(valStru, vctVal);
-  if (_overflowPage != nullptr) {
-    crc32.reset();
-    crc32.process_bytes(valStru.bysNull, lenVal);
-    recStru._arrCrc32[0] = crc32.checksum();
+
+  if (type == ActionType::UPDATE) {
+    ValueStruct valStru;
+    SetValueStruct(recStru, &valStru, vctVal.size(),
+                   _indexTree->GetValVarLen());
+    FillValueBuff(valStru, vctVal);
+    if (_overflowPage != nullptr) {
+      crc32.reset();
+      crc32.process_bytes(valStru.bysNull, lenVal);
+      recStru._arrCrc32[0] = crc32.checksum();
+    }
+  } else if (_overflowPage != nullptr) {
+    recStru._arrCrc32[0] = 0;
   }
 
   if (vctSn.size() > 0) {
@@ -237,8 +271,18 @@ void LeafRecord::UpdateRecord(const VectorDataValue &vctVal, uint64_t recStamp,
       count += recStruOld._arrValLen[sn];
     }
   }
+
+  return *recStru._totalLen - *recStruOld._totalLen;
 }
 
+/**
+ * @brief To calc the value length for move to new record. Here will remove
+ * the repeated version
+ * @param bUpdate True: update this record and will judge the last version if
+ * repeate with new version. False: only remove repeated version
+ * @param vctSN To save the serial number that will moved to new record
+ * @return The total length of versions will been moved new record
+ */
 uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
                                           MVector<Byte>::Type &vctSN) {
   const map<uint64_t, uint64_t> &mapVer =
@@ -278,113 +322,94 @@ uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
   return len;
 }
 
-///**
-// * @brief Read the value to data value list
-// * @param vct The vector to save the data values.
-// * @param verStamp The version stamp for primary index.If not primary, not to
-// * use.
-// * @param tran To judge if it is the same transaction
-// * @param bQuery If it is only query. If not only query, it will return record
-// * with same transaction or return fail. If only query, it will return old
-// * record with different transaction and new record with same transaction.
-// * @return -1: Failed to read values due to no right version stamp for
-// * primary or locked; 0: Passed to read values with all fields. 1: Passed to
-// read part of values due to same of fields saved in overflow file.
-// */
-// int LeafRecord::GetListValue(VectorDataValue &vctVal, uint64_t verStamp,
-//                             Transaction *tran, bool bQuery) const {
-//  _indexTree->CloneValues(vctVal);
-//  bool bPri =
-//      (_indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY);
-//  if (!bPri) {
-//    if (_tran != nullptr && _tran != tran)
-//      return -1;
-//
-//    uint16_t lenPos = TWO_SHORT_LEN + GetKeyLength();
-//    uint16_t pos = lenPos + _indexTree->GetValVarLen();
-//    uint16_t len = 0;
-//
-//    for (uint16_t i = 0; i < vctVal.size(); i++) {
-//      if (!vctVal[i]->IsFixLength() && !bPri) {
-//        len = *((uint16_t *)(_bysVal + lenPos));
-//        lenPos += sizeof(uint16_t);
-//      }
-//
-//      pos += vctVal[i]->ReadData(_bysVal + pos, len);
-//    }
-//
-//    return 0;
-//  }
-//
-//  const LeafRecord *lr = nullptr;
-//  if (_tran == nullptr || _tran == tran ||
-//      _tran->GetTransactionStatus() == TranStatus::CLOSED ||
-//      (bQuery && _actionType == ActionType::QUERY_UPDATE)) {
-//    lr = this;
-//  } else if (tran->GetTransactionStatus() == TranStatus::FAILED ||
-//             tran->GetTransactionStatus() == TranStatus::ROLLBACK ||
-//             (bQuery && (_actionType == ActionType::INSERT ||
-//                         _actionType == ActionType::UPDATE ||
-//                         _actionType == ActionType::DELETE))) {
-//    lr = this;
-//    while (lr->_undoRecords != nullptr) {
-//      lr = lr->_undoRecords;
-//    }
-//    if (lr->_tran != nullptr && lr->_actionType != ActionType::QUERY_UPDATE) {
-//      return -1;
-//    }
-//  } else {
-//    return -1;
-//  }
-//
-//  PriValStruct *priStru = lr->GetPriValStruct();
-//  Byte ver = 0;
-//  for (; ver < priStru->verCount; ver++) {
-//    if (priStru->arrStamp[ver] <= verStamp) {
-//      break;
-//    }
-//  }
-//
-//  if (ver >= priStru->verCount) {
-//    return -1;
-//  }
-//
-//  int hr = 0;
-//  if (ver == 0 || !priStru->bOvf) {
-//    int indexOvfStart = (int)vctVal.size();
-//    int pos = 0;
-//    int len = 0;
-//    if (ver == 0) {
-//      indexOvfStart = lr->GetIndexOvfStart();
-//      if (indexOvfStart >= vctVal.size()) {
-//        indexOvfStart = (int)vctVal.size();
-//      } else {
-//        hr = 1;
-//      }
-//      pos = priStru->pageValOffset;
-//      len = (priStru->bOvf ? priStru->lenInPage : priStru->arrPageLen[0]);
-//    } else {
-//      pos = priStru->pageValOffset + priStru->arrPageLen[ver - 1];
-//      len = priStru->arrPageLen[ver];
-//    }
-//
-//    if (len == 0) {
-//      vctVal.RemoveAll();
-//    } else {
-//      for (uint16_t i = 0; i < indexOvfStart; i++) {
-//        pos += vctVal[i]->ReadData(lr->_bysVal + pos, -1);
-//      }
-//    }
-//  } else {
-//    uint64_t offset = priStru->ovfOffset + priStru->arrOvfLen[ver - 1];
-//    uint32_t totalLen = priStru->arrOvfLen[ver] - priStru->arrOvfLen[ver - 1];
-//
-//    PageFile *ovf = _indexTree->GetOverflowFile();
-//    ovf->ReadDataValue(vctVal, 0, offset, totalLen);
-//  }
-//
-//  return hr;
-//}
+/**
+ * @brief Read the value to data value list, only used for parmary index
+ * @param vctPos the fields positions in record that need to read
+ * @param vctVal The vector to save the data values.
+ * @param verStamp The version stamp for primary index.
+ * @param tran To judge if it is the same transaction
+ * @param bQuery If it is only query. If not only query, it will return record
+ * with same transaction or return fail. If only query, it will return old
+ * record with different transaction and new record with same transaction.
+ * @return -1: Failed to read values due to no right to visit it or locked;
+ * 0:Passed to read values with all fields. 1: Passed to read part of values due
+ to same of fields saved in overflow file.
+ */
+int LeafRecord::GetListValue(const MVector<int> &vctPos,
+                             VectorDataValue &vctVal, uint64_t verStamp,
+                             Transaction *tran, bool bQuery) const {
+  const VectorDataValue &vctDv = _indexTree->GetVctValue();
+  assert(_indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY);
+
+  const LeafRecord *lr = nullptr;
+  if (_tran == nullptr || _tran == tran ||
+      _tran->GetTransactionStatus() == TranStatus::CLOSED ||
+      (bQuery && _actionType == ActionType::QUERY_UPDATE) ||
+      (_bRemoved && _undoRec == nullptr)) {
+    lr = this;
+  } else if (tran->GetTransactionStatus() == TranStatus::FAILED ||
+             tran->GetTransactionStatus() == TranStatus::ROLLBACK ||
+             (bQuery && (_actionType == ActionType::UPDATE ||
+                         _actionType == ActionType::DELETE))) {
+    lr = this;
+    while (lr->_undoRec != nullptr) {
+      lr = lr->_undoRec;
+    }
+    if (lr->_tran != nullptr && lr->_actionType != ActionType::QUERY_UPDATE) {
+      return -1;
+    }
+  } else {
+    return -1;
+  }
+
+  PriValStruct *priStru = lr->GetPriValStruct();
+  Byte ver = 0;
+  for (; ver < priStru->verCount; ver++) {
+    if (priStru->arrStamp[ver] <= verStamp) {
+      break;
+    }
+  }
+
+  if (ver >= priStru->verCount) {
+    return -1;
+  }
+
+  int hr = 0;
+  if (ver == 0 || !priStru->bOvf) {
+    int indexOvfStart = (int)vctVal.size();
+    int pos = 0;
+    int len = 0;
+    if (ver == 0) {
+      indexOvfStart = lr->GetIndexOvfStart();
+      if (indexOvfStart >= vctVal.size()) {
+        indexOvfStart = (int)vctVal.size();
+      } else {
+        hr = 1;
+      }
+      pos = priStru->pageValOffset;
+      len = (priStru->bOvf ? priStru->lenInPage : priStru->arrPageLen[0]);
+    } else {
+      pos = priStru->pageValOffset + priStru->arrPageLen[ver - 1];
+      len = priStru->arrPageLen[ver];
+    }
+
+    if (len == 0) {
+      vctVal.RemoveAll();
+    } else {
+      for (uint16_t i = 0; i < indexOvfStart; i++) {
+        pos += vctVal[i]->ReadData(lr->_bysVal + pos, -1);
+      }
+    }
+  } else {
+    uint64_t offset = priStru->ovfOffset + priStru->arrOvfLen[ver - 1];
+    uint32_t totalLen = priStru->arrOvfLen[ver] - priStru->arrOvfLen[ver - 1];
+
+    PageFile *ovf = _indexTree->GetOverflowFile();
+    ovf->ReadDataValue(vctVal, 0, offset, totalLen);
+  }
+
+  return hr;
+}
 //
 // void LeafRecord::GetListOverflow(VectorDataValue &vctVal) const {
 //  uint16_t indexOvfStart = GetIndexOvfStart();
@@ -421,7 +446,7 @@ uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
 //  return new RawKey(_bysVal + _indexTree->GetKeyOffset(),
 //                    GetKeyLength() - _indexTree->GetKeyVarLen());
 //}
-//
+
 // RawKey *LeafRecord::GetPrimayKey() const {
 //  int start = GetKeyLength() + _indexTree->GetValOffset();
 //  int len = GetTotalLength() - start;

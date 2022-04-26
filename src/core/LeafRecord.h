@@ -92,10 +92,8 @@ public:
              const VectorDataValue &vctVal, uint64_t recStamp,
              Transaction *tran);
 
-  // When update or delete this record, set new values into record and save old
-  // value into _undoRec, only for primary index
-  void UpdateRecord(const VectorDataValue &newVal, uint64_t recStamp,
-                    Transaction *tran, ActionType type);
+  int32_t UpdateRecord(const VectorDataValue &newVal, uint64_t recStamp,
+                       Transaction *tran, ActionType type);
 
   void GetListKey(VectorDataValue &vct) const;
 
@@ -107,6 +105,7 @@ public:
   RawKey *GetKey() const;
   /**Only for secondary index, Get the value as primary key*/
   RawKey *GetPrimayKey() const;
+  void ReleaseRecord(bool bUndo = false);
 
   int CompareTo(const LeafRecord &lr) const;
   int CompareKey(const RawKey &key) const;
@@ -131,19 +130,6 @@ public:
   }
   bool IsTransaction() const { return _tran != nullptr; }
 
-  inline void ReleaseRecord(bool bUndo = false) {
-    _refCount--;
-    if (_refCount == 0) {
-      if (_overflowPage != nullptr) {
-        if (_bUnRec) {
-          _indexTree->ReleasePageId(_overflowPage->GetPageId(),
-                                    _overflowPage->GetPageNum());
-        }
-        _overflowPage->DecRefCount();
-      }
-      delete this;
-    }
-  }
   inline LeafRecord *ReferenceRecord() {
     _refCount++;
     return this;
@@ -223,14 +209,6 @@ protected:
     }
   }
 
-  /**
-   * @brief To calc the value length for move to new record. Here will remove
-   * the repeated version
-   * @param bUpdate True: update this record and will judge the last version if
-   * repeate with new version. False: only remove repeated version
-   * @param vctSN To save the serial number that will moved to new record
-   * @return The total length of versions will been moved new record
-   */
   inline uint32_t CalcValidValueLength(RecStruct &recStru, bool bUpdate,
                                        MVector<Byte>::Type &vctSN);
 
