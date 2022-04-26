@@ -66,9 +66,9 @@ protected:
   // Transaction is not null
   // ActionType
   ActionType _actionType = ActionType::UNKNOWN;
-  // This record has been marked as delete. only use when has not multi
-  // versions.
-  bool _bDelete = false;
+  // This record marked as delete. only use when it has not multi versions and
+  // this record will be removed thoroughly.
+  bool _bRemove = false;
   // Gap lock to next record
   bool _gapLock = false;
 };

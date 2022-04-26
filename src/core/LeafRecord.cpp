@@ -189,7 +189,6 @@ void LeafRecord::UpdateRecord(const VectorDataValue &vctVal, uint64_t recStamp,
   assert(_refCount.load(memory_order_relaxed) == 1);
   RecStruct recStruOld(_bysVal, _indexTree->GetKeyVarLen(), _overflowPage);
   _undoRec = new LeafRecord(*this);
-  _undoRec->_bUnRec = true;
   _actionType = ActionType::UPDATE;
 
   uint32_t lenVal = CalcValueLength(vctVal, type);
