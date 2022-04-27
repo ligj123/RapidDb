@@ -5,12 +5,12 @@
 #include <thread>
 
 namespace storage {
-static inline size_t get_thread_id() {
+static inline uint32_t get_thread_id() {
   std::stringstream ss;
   ss << std::this_thread::get_id();
   return atoi(ss.str().c_str());
 }
-static thread_local size_t g_threadId = get_thread_id();
+static thread_local uint32_t g_threadId = get_thread_id();
 
 class SpinMutex {
 public:
@@ -43,11 +43,11 @@ public:
     return _flag.load(std::memory_order_relaxed);
   }
 
-  inline size_t owner() const { return _owner; }
+  inline uint32_t owner() const { return _owner; }
 
 protected:
   std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
-  size_t _owner = 0;
+  uint32_t _owner = 0;
 };
 
 class SharedSpinMutex {
@@ -135,7 +135,7 @@ public:
 protected:
   std::atomic<int32_t> _readCount{0};
   std::atomic<bool> _writeFlag{false};
-  size_t _owner = 0;
+  uint32_t _owner = 0;
 };
 
 class ReentrantSpinMutex {
@@ -160,7 +160,7 @@ public:
   }
 
   bool try_lock() noexcept {
-    size_t currId = g_threadId;
+    uint32_t currId = g_threadId;
     if (_owner == currId) {
       _reenCount++;
       return true;
@@ -194,7 +194,7 @@ public:
 
 protected:
   std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
-  size_t _owner = 0;
+  uint32_t _owner = 0;
   int32_t _reenCount = 0;
 };
 
@@ -206,7 +206,7 @@ public:
   operator=(const ReentrantSharedSpinMutex &) = delete;
 
   inline void lock() noexcept {
-    size_t currId = g_threadId;
+    uint32_t currId = g_threadId;
     if (_owner == currId) {
       assert(_reenCount > 0);
       _reenCount++;
@@ -227,7 +227,7 @@ public:
   }
 
   inline bool try_lock() noexcept {
-    size_t currId = g_threadId;
+    uint32_t currId = g_threadId;
     if (_owner == currId) {
       assert(_reenCount > 0);
       _reenCount++;
@@ -306,153 +306,7 @@ public:
 protected:
   std::atomic<int32_t> _readCount{0};
   std::atomic<bool> _writeFlag{false};
-  size_t _owner = 0;
+  uint32_t _owner = 0;
   int32_t _reenCount = 0;
 };
-
-// class SpinMutex {
-// public:
-//  SpinMutex() = default;
-//  SpinMutex(const SpinMutex&) = delete;
-//  SpinMutex& operator=(const SpinMutex&) = delete;
-//  inline void lock() noexcept {
-//  }
-//
-//  inline bool try_lock() noexcept {
-//    return true;
-//  }
-//
-//  inline void unlock() noexcept {
-//  }
-//
-//  inline bool is_locked() const {
-//    return true;
-//  }
-//
-//  inline size_t owner() const { return _owner; }
-//
-// protected:
-//  std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
-//  size_t _owner = 0;
-//};
-//
-// class SharedSpinMutex {
-// public:
-//  SharedSpinMutex() = default;
-//  SharedSpinMutex(const SharedSpinMutex&) = delete;
-//  SharedSpinMutex& operator=(const SharedSpinMutex&) = delete;
-//
-//  inline void lock() noexcept {
-//  }
-//
-//  inline bool try_lock() noexcept {
-//    return true;
-//  }
-//
-//  void unlock() noexcept {
-//  }
-//
-//  inline void lock_shared() noexcept {
-//  }
-//
-//  inline bool try_lock_shared() noexcept {
-//    return true;
-//  }
-//
-//  inline void unlock_shared() noexcept {
-//  }
-//
-//  inline bool is_write_locked() const {
-//    return true;
-//  }
-//
-//  inline uint32_t read_locked_count() const {
-//    return 0;
-//  }
-//
-//  inline bool is_locked() const {
-//    return true;
-//  }
-//
-// protected:
-//  std::atomic<int32_t> _readCount{ 0 };
-//  std::atomic<bool> _writeFlag{ false };
-//  size_t _owner = 0;
-//};
-//
-// class ReentrantSpinMutex {
-// public:
-//  ReentrantSpinMutex() = default;
-//  ReentrantSpinMutex(const ReentrantSpinMutex&) = delete;
-//  ReentrantSpinMutex& operator=(const ReentrantSpinMutex&) = delete;
-//
-//  inline void lock() noexcept {
-//  }
-//
-//  bool try_lock() noexcept {
-//    return true;
-//  }
-//
-//  inline void unlock() noexcept {
-//  }
-//
-//  inline bool is_locked() const {
-//    return true;
-//  }
-//
-//  inline int32_t reentrant_count() const { return _reenCount; }
-//
-// protected:
-//  std::atomic<bool> _flag = ATOMIC_VAR_INIT(false);
-//  size_t _owner = 0;
-//  int32_t _reenCount = 0;
-//};
-//
-// class ReentrantSharedSpinMutex {
-// public:
-//  ReentrantSharedSpinMutex() = default;
-//  ReentrantSharedSpinMutex(const ReentrantSharedSpinMutex&) = delete;
-//  ReentrantSharedSpinMutex&
-//    operator=(const ReentrantSharedSpinMutex&) = delete;
-//
-//  inline void lock() noexcept {
-//  }
-//
-//  inline bool try_lock() noexcept {
-//    return true;
-//  }
-//
-//  void unlock() noexcept {
-//  }
-//
-//  inline void lock_shared() noexcept {
-//  }
-//
-//  inline bool try_lock_shared() noexcept {
-//    return true;
-//  }
-//
-//  inline void unlock_shared() noexcept {
-//  }
-//
-//  inline bool is_write_locked() const {
-//    return true;
-//  }
-//
-//  inline uint32_t read_locked_count() const {
-//    return 0;
-//  }
-//
-//  inline bool is_locked() const {
-//    return true;
-//  }
-//
-//  inline int32_t reentrant_count() const { return _reenCount; }
-//
-// protected:
-//  std::atomic<int32_t> _readCount{ 0 };
-//  std::atomic<bool> _writeFlag{ false };
-//  size_t _owner = 0;
-//  int32_t _reenCount = 0;
-//};
 } // namespace storage

@@ -331,9 +331,9 @@ uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
  * @param bQuery If it is only query. If not only query, it will return record
  * with same transaction or return fail. If only query, it will return old
  * record with different transaction and new record with same transaction.
- * @return -1: Failed to read values due to no right to visit it or locked;
- * 0:Passed to read values with all fields. 1: Passed to read part of values due
- to same of fields saved in overflow file.
+ * @return -1: Failed to read values due to no right to visit it or be locked;
+ * -2: No version to fit and failed to read
+ * 0:Passed to read values with all fields.
  */
 int LeafRecord::GetListValue(const MVector<int> &vctPos,
                              VectorDataValue &vctVal, uint64_t verStamp,
