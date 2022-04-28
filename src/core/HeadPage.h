@@ -88,7 +88,8 @@ protected:
    * only valid for primary index in a table. It saved in head page after
    * RECORD_VERSION_STAMP_OFFSET and save the pairs from small to big one by one
    */
-  map<uint64_t, uint64_t> _mapVerStamp;
+  map<uint64_t, VersionStamp> _mapVerStamp;
+  set<VersionStamp> _setVerStamp;
   SpinMutex _spinMutex;
 
 public:
@@ -105,17 +106,18 @@ public:
   // need lock
   inline void AddNewRecordVersion(uint64_t timeStamp) {
     assert(_mapVerStamp.size() < MAX_RECORD_VERSION_COUNT);
-    uint64_t ver = _currRecordStamp.load(memory_order_relaxed);
+    VersionStamp ver = _currRecordStamp.load(memory_order_relaxed);
     if (_mapVerStamp.size() > 0) {
       auto iter = _mapVerStamp.rbegin();
       assert(timeStamp > iter->first && ver > iter->second);
     }
 
     _mapVerStamp.insert({timeStamp, ver});
+    _setVerStamp.insert(ver);
   }
   /**Now only support input the time of version. It maybe change in following
    * time*/
-  inline uint64_t GetRecordVersionStamp(uint64_t tm) {
+  inline VersionStamp GetRecordVersionStamp(uint64_t tm) {
     auto iter = _mapVerStamp.find(tm);
     assert(iter != _mapVerStamp.end());
     return iter->second;
@@ -126,31 +128,30 @@ public:
     for (auto iter = _mapVerStamp.begin(); iter != _mapVerStamp.end(); iter++) {
       ver--;
       if (ver == 0) {
+        _setVerStamp.erase(iter->second);
         _mapVerStamp.erase(iter);
         break;
       }
     }
   }
 
-  inline const map<uint64_t, uint64_t> &GetMapVerStamp() {
-    return _mapVerStamp;
-  }
+  inline const set<VersionStamp> &GetSetVerStamp() { return _setVerStamp; }
 
-  inline uint64_t GetLastVersionStamp() {
+  inline VersionStamp GetLastVersionStamp() {
     if (_mapVerStamp.size() == 0)
       return 0;
     return _mapVerStamp.rbegin()->second;
   }
 
-  inline uint64_t GetAndIncRecordStamp() {
+  inline VersionStamp GetAndIncRecordStamp() {
     return _currRecordStamp.fetch_add(1, memory_order_relaxed);
   }
 
-  inline uint64_t ReadRecordStamp() {
+  inline VersionStamp ReadRecordStamp() {
     return _currRecordStamp.load(memory_order_relaxed);
   }
 
-  void WriteRecordStamp(uint64_t recordStamp) {
+  void WriteRecordStamp(VersionStamp recordStamp) {
     _currRecordStamp.store(recordStamp, memory_order_relaxed);
   }
 

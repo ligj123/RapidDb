@@ -4,6 +4,8 @@ using namespace std;
 
 typedef unsigned char Byte;
 typedef uint32_t PageID;
+typedef uint64_t VersionStamp;
+typedef uint64_t DateTime;
 const int VALUE_TYPE = 0x80;
 const int DATE_TYPE = 0x7F;
 const int UI16_LEN = sizeof(uint16_t);

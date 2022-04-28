@@ -285,37 +285,36 @@ int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
  */
 uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
                                           MVector<Byte>::Type &vctSN) {
-  const map<uint64_t, uint64_t> &mapVer =
-      _indexTree->GetHeadPage()->GetMapVerStamp();
-  if (mapVer.size() == 0)
+  const set<VersionStamp> &setVer = _indexTree->GetHeadPage()->GetSetVerStamp();
+  if (setVer.size() == 0)
     return 0;
 
   uint32_t len = 0;
 
   Byte verNum = (*recStru._byVerNum) & 0x0f;
 
-  auto iter = mapVer.begin();
-  if (!bUpdate || iter->second > recStru._arrStamp[0]) {
+  auto iter = setVer.begin();
+  if (!bUpdate || *iter > recStru._arrStamp[0]) {
     len += recStru._arrValLen[0];
     vctSN.push_back(0);
   }
   iter++;
 
   for (Byte i = 1; i < verNum; i++) {
-    if (iter->second <= recStru._arrStamp[i]) {
+    if (*iter <= recStru._arrStamp[i]) {
       continue;
     }
 
     len += recStru._arrValLen[i];
     vctSN.push_back(i);
 
-    while (iter->second > recStru._arrStamp[i]) {
+    while (*iter > recStru._arrStamp[i]) {
       iter++;
-      if (iter == mapVer.end())
+      if (iter == setVer.end())
         break;
     }
 
-    if (iter == mapVer.end())
+    if (iter == setVer.end())
       break;
   }
 
@@ -362,7 +361,7 @@ int LeafRecord::GetListValue(const MVector<int> &vctPos,
     return -1;
   }
 
-  PriValStruct *priStru = lr->GetPriValStruct();
+  RecStruct recStru(lr->_bysVal, _indexTree->GetKeyVarLen(), lr->_overflowPage);
   Byte ver = 0;
   for (; ver < priStru->verCount; ver++) {
     if (priStru->arrStamp[ver] <= verStamp) {
