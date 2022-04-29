@@ -14,7 +14,7 @@
 namespace storage {
 using namespace std;
 
-// All tasks need to be run in thread pool must inherit this class.
+// All tasks that run in thread pool must inherit this class.
 class Task {
 public:
   virtual ~Task() {}
@@ -25,7 +25,6 @@ public:
   // If small task, the thread pool maybe get more than one tasks one time to
   // execute
   virtual bool IsSmallTask() { return false; }
-
 
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);

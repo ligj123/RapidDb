@@ -5,7 +5,8 @@ using namespace std;
 typedef unsigned char Byte;
 typedef uint32_t PageID;
 typedef uint64_t VersionStamp;
-typedef uint64_t DateTime;
+typedef uint64_t DT_MicroSec; // microseconds
+typedef uint64_t DT_MilliSec; // milliseconds
 const int VALUE_TYPE = 0x80;
 const int DATE_TYPE = 0x7F;
 const int UI16_LEN = sizeof(uint16_t);

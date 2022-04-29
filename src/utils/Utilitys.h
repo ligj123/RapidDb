@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
+#include <TimerThread.h>
 #include <chrono>
 #include <regex>
 #include <string>
@@ -18,15 +19,9 @@ static void IsValidName(string name) {
   }
 }
 
-static uint64_t MSTime() {
-  return std::chrono::duration_cast<std::chrono::milliseconds>(
-             std::chrono::system_clock::now().time_since_epoch())
-      .count();
-}
+static DT_MilliSec MSTime() { return TimerThread::GetCurrTime() / 1000; }
 
 static std::string StrMSTime() {
-  return std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(
-                            std::chrono::system_clock::now().time_since_epoch())
-                            .count());
+  return std::to_string(TimerThread::GetCurrTime() / 1000);
 }
 } // namespace storage
