@@ -34,7 +34,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
     bp->InsertRecord(rr);
     lr->ReleaseRecord();
@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 
   *((DataValueLong *)vctKey[0]) = 0;
   *((DataValueLong *)vctVal[0]) = 100;
-  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
   BranchRecord *rr = new BranchRecord(indexTree, lr, 100);
   BranchRecord *first = bp->GetRecordByPos(0, true);
   BOOST_TEST(rr->CompareTo(*first) == 0);
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT - 1;
   *((DataValueLong *)vctVal[0]) = ROW_COUNT + 99;
-  lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
   rr = new BranchRecord(indexTree, lr, ROW_COUNT + 99);
   BranchRecord *last = bp->GetRecordByPos(ROW_COUNT - 1, false);
   BOOST_TEST(rr->CompareTo(*last) == 0);
@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT / 2;
   *((DataValueLong *)vctVal[0]) = ROW_COUNT / 2 + 100;
-  lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
   rr = new BranchRecord(indexTree, lr, ROW_COUNT / 2 + 100);
   BranchRecord *mid = bp->GetRecordByPos(ROW_COUNT / 2, false);
   BOOST_TEST(rr->CompareTo(*mid) == 0);
@@ -100,7 +100,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(indexTree, lr, i);
     bp->InsertRecord(rr);
     lr->ReleaseRecord();
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(indexTree, lr, i);
     bool bFind;
     uint32_t index = bp->SearchRecord(*rr, bFind);
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
     bp->InsertRecord(rr);
     lr->ReleaseRecord();
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
   }
 
   bp->SaveRecords();
-  BOOST_TEST(ROW_COUNT / 2 == bp->GetRecordSize());
+  BOOST_TEST(ROW_COUNT / 2 == bp->GetRecordNumber());
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
     string str = "testString" + to_string(arLong[i]);
     *((DataValueVarChar *)vctKey[0]) = str.c_str();
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
     bp->InsertRecord(rr);
     lr->ReleaseRecord();

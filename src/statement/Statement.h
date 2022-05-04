@@ -12,6 +12,7 @@
 #include "../transaction/TranType.h"
 #include "../transaction/Transaction.h"
 #include "../utils/ErrorMsg.h"
+#include "../utils/Utilitys.h"
 #include <chrono>
 #include <future>
 #include <string>
@@ -28,11 +29,10 @@ public:
    * @param statTime If save create, execute and stop time for statistics
    */
   Statement(Transaction *tran, const VectorDataValue *vct, bool statTime)
-      : _transaction(tran), _bAutoTran(tran == nullptr), _vctParaSour(vct),
-        _bStatTime(statTime) {
-    if (_transaction == nullptr) {
-      _transaction = new Transaction(TranType::AUTOMATE,
-                                     Configure::GetAutoTaskOvertime(), false);
+      : _tran(tran), _bAutoTran(tran == nullptr), _vctParaSour(vct) {
+    if (_tran == nullptr) {
+      _tran = new Transaction(TranType::AUTOMATE,
+                              (uint32_t)Configure::GetAutoTaskOvertime());
     }
 
     _vctPara.reserve(vct->size());
@@ -40,13 +40,12 @@ public:
       _vctPara.push_back(dv->Clone());
     }
 
-    if (_bStatTime)
-      _createTime = std::chrono::system_clock::now();
+    _createTime = TimerThread::GetCurrTime();
   }
 
   ~Statement() {
-    if (_bAutoTran && _transaction != nullptr) {
-      delete _transaction;
+    if (_bAutoTran && _tran != nullptr) {
+      delete _tran;
     }
   }
   /**
@@ -415,10 +414,12 @@ public:
    */
   virtual void Close() {}
 
-  time_point<system_clock> GetCreateTime() { return _createTime; }
-  time_point<system_clock> GetStartTime() { return _startTime; }
-  time_point<system_clock> GetStopTime() { return _stopTime; }
+  DT_MicroSec GetCreateTime() { return _createTime; }
+  DT_MicroSec GetStartTime() { return _startTime; }
+  DT_MicroSec GetStopTime() { return _stopTime; }
   bool IsFinished() { return _tinyTasks == _finishedTask; }
+  uint64_t GetTranId() { return _tran->GetTranId(); }
+  TranStatus GetTransactionStatus() { return _tran->GetTransactionStatus(); }
 
 public:
   static void *operator new(size_t size) {
@@ -429,6 +430,9 @@ public:
   }
 
 protected:
+  // If automate transaction, it equal transaction id. If manual transaction, it
+  // will start from transaction id to +0xffff
+  uint64_t _id;
   // The vactor of data value from sql expression
   const VectorDataValue *_vctParaSour;
   // To save one row of data values
@@ -436,26 +440,24 @@ protected:
   // To save rows of data values
   VectorRow _vctRow;
   // The create time for this statement
-  time_point<system_clock> _createTime;
+  DT_MicroSec _createTime;
   // The start time to execute for this statement
-  time_point<system_clock> _startTime;
+  DT_MicroSec _startTime;
   // The finished or abort time to execute for this statement
-  time_point<system_clock> _stopTime;
+  DT_MicroSec _stopTime;
   // The number of tiny taks. One statement maybe splite serveral tiny tasks to
   // run. Here used to save how much tiny tasks in total.
   int _tinyTasks = 0;
   // The number of finished tiny tasks.
   int _finishedTask = 0;
   // The transaction to run this task, no nullable.
-  Transaction *_transaction;
+  Transaction *_tran;
   // If current statement meet error, save the reason here
   ErrorMsg _errorMsg;
   // False, it will input the transaction from outside when construct this
   // statement; True , no transaction incoming and need this statement to create
   // a new transaction.
   bool _bAutoTran = false;
-  // If get the time for statistics.
-  bool _bStatTime;
   // All updated records in this statement
   MTreeSet<LeafRecord *>::Type _setRecord;
 };

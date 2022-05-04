@@ -86,7 +86,7 @@ public:
   virtual void Copy(const IDataValue &dv, bool bMove = false) = 0;
   virtual IDataValue *Clone(bool incVal = false) = 0;
   virtual std::any GetValue() const = 0;
-  inline uint32_t WriteData(Byte *buf) { WriteData(buf, bKey_); };
+  virtual uint32_t WriteData(Byte *buf) const = 0;
   virtual uint32_t ReadData(Byte *buf, uint32_t len, bool bSole = true) = 0;
   virtual uint32_t WriteData(Byte *buf, bool key) const = 0;
   // Only support to save over length fileds to overflow file. So bKey_ can not
@@ -106,9 +106,7 @@ public:
   /**The max memory size that can bu used to save this data*/
   virtual uint32_t GetMaxLength() const = 0;
   /**How much bytes to save this data to disk*/
-  inline uint32_t GetPersistenceLength() {
-    return GetPersistenceLength(bKey_);
-  }
+  virtual uint32_t GetPersistenceLength() const = 0;
   virtual uint32_t GetPersistenceLength(bool key) const = 0;
   virtual void SetMinValue() = 0;
   virtual void SetMaxValue() = 0;

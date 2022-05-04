@@ -41,20 +41,19 @@ public:
   static ErrorMsg *GetLocalErrorMsg() { return _localErrorMsg; }
 
 public:
-  Transaction(TranType tType, uint32_t maxMillsSec, bool bStatTime)
-      : _tranType(tType), _maxMillsSec(maxMillsSec), _bStatTime(bStatTime) {
-    if (bStatTime)
-      _createTime = system_clock::now();
+  Transaction(TranType tType, uint32_t maxMillsSec)
+      : _tranType(tType), _maxMicroSec(maxMillsSec * 1000) {
+    _createTime = MilliSecTime();
 
     if (tType == TranType::AUTOMATE) {
       _tranId = _atomicAutoTranId.fetch_add(1, memory_order_relaxed);
       if ((_tranId & 0xffffff) == 0xffff00) {
-        _atomicAutoTranId.store((MSTime() & 0xffffff) << 24);
+        _atomicAutoTranId.store((SecondTime() & 0xffffff) << 24);
       }
     } else {
       _tranId = _atomicManualTranId.fetch_add(0xff, memory_order_relaxed);
       if ((_tranId & 0xffffff) == 0xfff000) {
-        _atomicAutoTranId.store((MSTime() & 0xffffff) << 24);
+        _atomicAutoTranId.store((SecondTime() & 0xffffff) << 24);
       }
     }
   }
@@ -64,15 +63,7 @@ public:
   TranStatus GetTransactionStatus() const { return _tranStatus; }
   const ErrorMsg *GetErrorMsg() const { return _errorMsg; }
   void SetTransactionstatus(TranStatus status);
-  bool IsOvertime() {
-    if (_bStatTime) {
-      return std::chrono::duration_cast<std::chrono::milliseconds>(
-                 std::chrono::system_clock::now() - _createTime)
-                 .count() > _maxMillsSec;
-    } else {
-      return false;
-    }
-  }
+  bool IsOvertime() { return MilliSecTime() - _createTime > _maxMicroSec; }
   uint64_t GetTranId() { return _tranId; }
   bool AbleAddTask() { return _tranStatus == TranStatus::CREATED; }
   void Rollback();
@@ -95,28 +86,28 @@ protected:
 protected:
   TranType _tranType;
   TranStatus _tranStatus = TranStatus::CREATED;
-  // If to save create, commit, stop time
-  bool _bStatTime;
-  // Max milliseconds to finish for this transaction.
-  uint32_t _maxMillsSec;
+  // Max waiting microseconds to finish for this transaction.
+  uint32_t _maxMicroSec;
   // Transaction id
   // One transaction is 64 bits uint64_t. Thee highest bit is automate(0) or
   // manual(1) type. The following 15 bits is reserve for distributed version,
-  // it will related to node. The following 24 bits is remainder of seconds
-  // since epoch. The last 24 bit is self increasing integer from atomicTranId.
-  // For automate type, one transaction only has one statement, so tran id will
-  // increase 1 every time. For manual type, One tansaction can has many
-  // statements, so every time tran id will increase 256 to accept more
-  // statements.
+  // it tell which node(computer) rise this transaction. The following 24 bits
+  // is remainder of seconds since epoch. The last 24 bit is self increasing
+  // integer from atomicTranId. For automate type, one transaction only has one
+  // statement, so tran id will increase 1 every time. For manual type, One
+  // tansaction can has many statements, so here 24 bits will split 2 equal
+  // parts. The first 12 bits are trabsaction ids, the other 12 bits are
+  // statement ids in this transaction. If a transaction has more than 4096
+  // statements, it will allocate other zone for this transaction.
   uint64_t _tranId;
   // To save the failed reason if the transaction failed or nullptr.
   ErrorMsg *_errorMsg = nullptr;
   // Create time
-  time_point<system_clock> _createTime;
+  DT_MicroSec _createTime;
   // The start time to execute for this statement
-  time_point<system_clock> _startTime;
+  DT_MicroSec _startTime;
   // The finished or abort time to execute for this statement
-  time_point<system_clock> _stopTime;
+  DT_MicroSec _stopTime;
   // All statements in this transaction
   MTreeSet<Statement *>::Type _setStatement;
 

@@ -58,6 +58,9 @@ public:
       return new DataValueVarChar(maxLength_, bKey_);
     }
   }
+  uint32_t GetPersistenceLength() const override {
+    return GetPersistenceLength(bKey_);
+  }
   uint32_t GetPersistenceLength(bool key) const override {
     if (key) {
       if (valType_ == ValueType::NULL_VALUE) {
@@ -70,7 +73,7 @@ public:
         return soleLength_ + 1 + sizeof(uint32_t);
       case ValueType::NULL_VALUE:
       default:
-        return 1;
+        return 0;
       }
     }
   }
@@ -99,6 +102,7 @@ public:
     }
   }
 
+  uint32_t WriteData(Byte *buf) const override { return WriteData(buf, bKey_); }
   uint32_t WriteData(Byte *buf, bool key) const override;
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
   uint32_t WriteData(fstream &fs) const override;

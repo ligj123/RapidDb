@@ -13,9 +13,9 @@ using namespace std;
 
 class PageFile {
 public:
-  static thread_local OvfBuffer _ovfBuff;
+  static thread_local char _tmpBuff[1024 * 1024];
 
-  PageFile(const string &path, bool overflowFile = false);
+  PageFile(const string &path);
 
   ~PageFile() {
     if (_file.is_open())
@@ -23,7 +23,6 @@ public:
   }
 
   uint32_t ReadPage(uint64_t fileOffset, char *bys, uint32_t length);
-
   void WritePage(uint64_t fileOffset, char *bys, uint32_t length);
 
   uint64_t Length() {
@@ -36,6 +35,5 @@ public:
 protected:
   string _path;
   fstream _file;
-  SpinMutex _spinMutex;
 };
 } // namespace storage

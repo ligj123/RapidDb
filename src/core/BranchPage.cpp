@@ -119,7 +119,7 @@ void BranchPage::InsertRecord(BranchRecord *&rr, int32_t pos) {
   if (pos < 0) {
     bool bFind;
     pos = SearchRecord(*rr, bFind);
-  } else if (pos > _recordNum) {
+  } else if (pos > (int32_t)_recordNum) {
     pos = _recordNum;
   }
 
@@ -133,7 +133,7 @@ void BranchPage::InsertRecord(BranchRecord *&rr, int32_t pos) {
 }
 
 bool BranchPage::AddRecord(BranchRecord *&rr) {
-  if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR ||
+  if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR / 100 ||
       _totalDataLength + rr->GetTotalLength() + sizeof(uint16_t) >
           MAX_DATA_LENGTH) {
     return false;
@@ -245,8 +245,8 @@ int BranchPage::CompareTo(uint32_t recPos, const RawKey &key) const {
 
 BranchRecord *BranchPage::GetRecordByPos(int32_t pos, bool bAutoLast) {
   assert(_recordNum > 0 && pos >= 0);
-  assert(bAutoLast || pos < _recordNum);
-  if (bAutoLast && pos >= _recordNum) {
+  assert(bAutoLast || pos < (int32_t)_recordNum);
+  if (bAutoLast && pos >= (int32_t)_recordNum) {
     pos = _recordNum - 1;
   }
 

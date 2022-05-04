@@ -45,9 +45,8 @@ thread *StoragePool::CreateWriteThread() {
           auto iter2 = iter++;
           CachePage *page = iter2->second;
           if (!_bWriteFlush && (_mapWrite.size() < MAX_QUEUE_SIZE / 2) &&
-              !page->IsFileClosed() &&
-              (CachePage::GetMsFromEpoch() - page->GetWriteTime() <
-               WRITE_DELAY_MS)) {
+              // !page->IsFileClosed() &&
+              (MicroSecTime() - page->GetWriteTime() < WRITE_DELAY_MS)) {
             continue;
           }
 
@@ -55,9 +54,7 @@ thread *StoragePool::CreateWriteThread() {
             page->WritePage();
           }
 
-          if (page->DecRefCount() == 1) {
-            delete page;
-          }
+          page->DecRefCount();
           _mapWrite.erase(iter2);
         }
       } catch (...) {

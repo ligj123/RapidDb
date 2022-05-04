@@ -28,7 +28,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
 
-  uint64_t dtStart = MSTime();
+  uint64_t dtStart = MilliSecTime();
 
   thread *tAr = new thread[threadCount];
   int *iAr = new int[threadCount];
@@ -51,12 +51,12 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
                           (((by1 & 0xAA) + (by4 & 0x55)));
         *((DataValueLong *)vctKey[0]) = priKey;
         *((DataValueLong *)vctVal[0]) = i;
-        LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, i);
+        LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, i, nullptr);
         // indexTree->GetHeadPage()->ReadRecordStamp());
         indexTree->InsertRecord(rr);
 
         if (i % 1000000 == 0) {
-          uint64_t dt = MSTime();
+          uint64_t dt = MilliSecTime();
           std::cout << ThreadPool::_threadName << "  i=" << i
                     << "\tTotal Time=" << (dt - dtStart)
                     << "\tGap Time=" << (dt - dtPrev) << endl;
@@ -69,7 +69,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
   for (int k = 0; k < threadCount; k++) {
     tAr[k].join();
   }
-  uint64_t dtEnd = MSTime();
+  uint64_t dtEnd = MilliSecTime();
   std::cout << "Insert Used Time: " << (dtEnd - dtStart) << endl;
   PageDividePool::SetThreadStatus(false);
   StoragePool::SetWriteSuspend(false);
@@ -77,7 +77,7 @@ void MultiThreadInsertSpeedPrimaryTest(int threadCount, uint64_t row_count) {
   delete dvKey;
   delete dvVal;
   // PageBufferPool::ClearPool();
-  dtEnd = MSTime();
+  dtEnd = MilliSecTime();
   std::cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
   // std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }

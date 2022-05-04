@@ -88,7 +88,7 @@ void DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
     soleLength_ = dv.GetDataLength();
   } else if (bMove) {
     bysValue_ = ((DataValueBlob &)dv).bysValue_;
-    valType_ = ValueType::SOLE_VALUE;
+    valType_ = dv.GetValueType();
     soleLength_ = dv.GetDataLength();
     ((DataValueBlob &)dv).bysValue_ = nullptr;
     ((DataValueBlob &)dv).valType_ = ValueType::NULL_VALUE;
@@ -152,12 +152,15 @@ uint32_t DataValueBlob::WriteData(fstream &fs) const {
 }
 
 uint32_t DataValueBlob::ReadData(fstream &fs) {
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::Release(bysValue_, soleLength_);
+  }
+
   Byte by;
   fs.read((char *)&by, 1);
   valType_ =
       ((by & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
   if (valType_ == ValueType::NULL_VALUE) {
-    valType_ = ValueType::NULL_VALUE;
     return 1;
   }
 
@@ -227,7 +230,6 @@ DataValueBlob &DataValueBlob::operator=(const DataValueBlob &src) {
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 
-  dataType_ = src.dataType_;
   valType_ = src.valType_;
   bKey_ = src.bKey_;
   maxLength_ = src.maxLength_;

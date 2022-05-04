@@ -12,7 +12,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   BOOST_TEST(dv1.IsNull());
   BOOST_TEST(dv1.GetMaxLength() == DEFAULT_MAX_LEN);
   BOOST_TEST(dv1.GetDataLength() == 0);
-  BOOST_TEST(dv1.GetPersistenceLength() == 1);
+  BOOST_TEST(dv1.GetPersistenceLength() == 0);
   BOOST_TEST(!dv1.GetValue().has_value());
 
   DataValueFixChar dv2(100, true);
@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   BOOST_TEST(!dv4.IsNull());
   BOOST_TEST(dv4.GetDataLength() == 10);
   BOOST_TEST(dv4.GetMaxLength() == 10);
-  BOOST_TEST(dv4.GetPersistenceLength() == 11);
+  BOOST_TEST(dv4.GetPersistenceLength() == 10);
   BOOST_TEST(dv1 < dv4);
   BOOST_TEST(dv1 <= dv4);
   BOOST_TEST(dv1 != dv4);
@@ -61,17 +61,17 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
 
   DataValueFixChar dv7;
   dv7.WriteData(buf);
-  dv1.ReadData(buf, -1);
+  dv1.ReadData(buf, 0);
   BOOST_TEST(dv1 == dv7);
 
   DataValueFixChar dv9(pStr, strlen(pStr));
-  dv9.WriteData(buf + 20);
-  dv1.ReadData(buf + 20);
+  uint32_t len = dv9.WriteData(buf + 20);
+  dv1.ReadData(buf + 20, len);
   BOOST_TEST(dv1 == dv9);
 
-  DataValueFixChar dv10(pStr, strlen(pStr), 10, true);
+  DataValueFixChar dv10(pStr, strlen(pStr), 100, true);
   dv10.WriteData(buf + 30);
-  dv3.ReadData(buf + 30);
+  dv3.ReadData(buf + 30, 100);
   BOOST_TEST(dv3 == dv10);
 
   DataValueFixChar *pDv = dv10.Clone();
@@ -80,7 +80,8 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
 
   pDv = dv10.Clone(true);
   BOOST_TEST(pDv->GetValueType() == ValueType::SOLE_VALUE);
-  BOOST_TEST((string)(*pDv) == "abcd     ");
+  string ss = (string)(*pDv);
+  BOOST_TEST(ss.size() == 99);
   delete pDv;
 
   StrBuff sb(0);
@@ -116,17 +117,16 @@ BOOST_AUTO_TEST_CASE(DataValueFixCharCopy_test) {
   }
 
   char buf[100];
-  buf[0] = VALUE_TYPE | ((Byte)DataType::FIXCHAR & DATE_TYPE);
-  strcpy(buf + 1, "abcdefg  ");
+  strcpy(buf, "abcdefg  ");
 
   dvc2 = DataValueFixCharEx(10);
-  dvc2.ReadData((Byte *)buf, 0, false);
+  dvc2.ReadData((Byte *)buf, 10, false);
   dvc.Copy(dvc2);
   BOOST_TEST(dvc.bysValue_ == dvc2.bysValue_);
   BOOST_TEST(dvc.maxLength_ == dvc2.maxLength_);
   BOOST_TEST(dvc == dvc2);
 
-  dvc2.ReadData((Byte *)buf, 0, true);
+  dvc2.ReadData((Byte *)buf, 10, true);
   dvc.Copy(dvc2, false);
   BOOST_TEST(dvc.bysValue_ != dvc2.bysValue_);
   BOOST_TEST(dvc == dvc2);

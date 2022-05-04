@@ -59,21 +59,10 @@ struct ValueStruct {
 };
 
 void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
-                    uint32_t fieldNum, uint32_t valVarLen) {
-  Byte verNum = (*recStru._byVerNum) & 0x0f;
-  uint32_t byNum = (fieldNum + 7) << 3;
-  Byte *bys = recStru._bysValStart;
-  uint32_t offset = 0;
-  for (Byte i = 0; i < verNum; i++) {
-    arvalStr[i].bysNull = bys + offset;
-    arvalStr[i].varFiledsLen = (uint32_t *)(bys + offset + byNum);
-    arvalStr[i].bysValue = bys + offset + byNum + valVarLen;
-    offset += recStru._arrValLen[i];
-  }
-}
-
+                    uint32_t fieldNum, uint32_t valVarLen, Byte ver = 0xff);
+                    
 class LeafPage;
-class Transaction;
+class Statement;
 class LeafRecord : public RawRecord {
 protected:
   ~LeafRecord();
@@ -86,21 +75,23 @@ public:
   LeafRecord(LeafRecord &src);
   // Constructor for secondary index LeafRecord
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey, Byte *bysPri,
-             uint32_t lenPri, ActionType type, Transaction *tran);
+             uint32_t lenPri, ActionType type, Statement *stmt);
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
-             const VectorDataValue &vctVal, uint64_t recStamp,
-             Transaction *tran);
+             const VectorDataValue &vctVal, uint64_t recStamp, Statement *stmt);
 
   int32_t UpdateRecord(const VectorDataValue &newVal, uint64_t recStamp,
-                       Transaction *tran, ActionType type);
+                       Statement *stmt, ActionType type, bool gapLock);
 
   void GetListKey(VectorDataValue &vct) const;
 
   int GetListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX,
-                   Transaction *tran = nullptr, bool bQuery = true) const;
-  int GetListValue(const MVector<int> &vctPos, VectorDataValue &vct,
-                   uint64_t verStamp = UINT64_MAX, Transaction *tran = nullptr,
+                   Statement *stmt = nullptr, bool bQuery = true) const {
+    MVector<int>::Type vctPos;
+    return GetListValue(vctPos, vct, verStamp, stmt, bQuery);
+  }
+  int GetListValue(const MVector<int>::Type &vctPos, VectorDataValue &vct,
+                   uint64_t verStamp = UINT64_MAX, Statement *stmt = nullptr,
                    bool bQuery = true) const;
   RawKey *GetKey() const;
   /**Only for secondary index, Get the value as primary key*/
@@ -128,86 +119,44 @@ public:
   bool IsSole() const override {
     return _undoRec == nullptr ? _bSole : _undoRec->IsSole();
   }
-  bool IsTransaction() const { return _tran != nullptr; }
+  bool IsTransaction() const { return _statement != nullptr; }
 
   inline LeafRecord *ReferenceRecord() {
     _refCount++;
     return this;
   }
-  inline void LockForUpdate(Transaction *tran, ActionType type) {
-    _tran = tran;
-    _actionType = type;
+  inline void LockForUpdate(Statement *stam, bool gapLock) {
+    _statement = stam;
+    _actionType = ActionType::QUERY_UPDATE;
+    _gapLock = gapLock;
   }
+  inline void ClearLock() {
+    _statement = nullptr;
+    _actionType = ActionType::UNKNOWN;
+    _gapLock = false;
+  }
+  bool IsTransaction() {
+    return _statement != nullptr && _actionType != ActionType::UNKNOWN;
+  }
+  bool IsGapLock() { return _statement != nullptr && _gapLock; }
 
 protected:
   // To calc key length
-  inline uint32_t CalcKeyLength(const VectorDataValue &vctKey) {
-    uint32_t lenKey = _indexTree->GetKeyVarLen();
-    for (int i = 0; i < vctKey.size(); i++) {
-      lenKey += vctKey[i]->GetPersistenceLength(true);
-    }
-
-    if (lenKey > Configure::GetMaxKeyLength()) {
-      throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {std::to_string(lenKey)});
-    }
-    return lenKey;
-  }
+  inline uint32_t CalcKeyLength(const VectorDataValue &vctKey);
   // To calc a version's value length
   inline uint32_t CalcValueLength(const VectorDataValue &vctVal,
-                                  ActionType type) {
-    if (type == ActionType::DELETE)
-      return 0;
-
-    uint32_t lenVal = (vctVal.size() + 7) / 8 + _indexTree->GetValVarLen();
-    for (size_t i = 0; i < vctVal.size(); i++) {
-      lenVal += vctVal[i]->GetPersistenceLength(false);
-    }
-    return lenVal;
-  }
+                                  ActionType type);
 
   // Save key and infor into buffer
   inline void FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
                              uint32_t keyLen, Byte verNum, uint64_t stamp,
-                             uint32_t valLen) {
-    *recStru._totalLen = totalLen;
-    *recStru._keyLen = keyLen;
-    *recStru._byVerNum = (recStru._pidStart == nullptr ? 0x80 : 0) + verNum;
-    recStru._arrStamp[0] = stamp;
-    recStru._arrValLen[0] = valLen;
-  }
+                             uint32_t valLen);
 
-  inline void FillKeyBuff(RecStruct &recStru, const VectorDataValue &vctKey) {
-    Byte *bys = recStru._bysKey;
-    uint16_t *varLen = recStru._varKeyLen;
-
-    for (size_t i = 0; i < vctKey.size(); i++) {
-      uint16_t vl = vctKey[i]->WriteData(bys, true);
-      bys += vl;
-      if (!vctKey[i]->IsFixLength()) {
-        *varLen = vl;
-        varLen++;
-      }
-    }
-  }
+  inline void FillKeyBuff(RecStruct &recStru, const VectorDataValue &vctKey);
 
   // Save a version's value into buffer
   inline void FillValueBuff(ValueStruct &valStru,
-                            const VectorDataValue &vctVal) {
-    memset(valStru.bysNull, 0, (vctVal.size() + 7) >> 3);
-    uint32_t *vlen = valStru.varFiledsLen;
-    Byte *bys = valStru.bysValue;
-    for (size_t i = 0; i < vctVal.size(); i++) {
-      if (vctVal[i]->IsNull()) {
-        valStru.bysNull[i / 8] |= 1 << (i % 8);
-      }
-      uint32_t vl = vctVal[i]->WriteData(bys, true);
-      bys += vl;
-      if (!vctVal[i]->IsFixLength()) {
-        *vlen = vl;
-        vlen++;
-      }
-    }
-  }
+                            const VectorDataValue &vctVal);
 
   inline uint32_t CalcValidValueLength(RecStruct &recStru, bool bUpdate,
                                        MVector<Byte>::Type &vctSN);
@@ -217,8 +166,8 @@ protected:
   // has been updated more than one time. old rec can recursively contain an
   // old rec.
   LeafRecord *_undoRec = nullptr;
-  // Write transaction, when insert, update or delete,
-  Transaction *_tran = nullptr;
+  // Write statement, when insert, update or delete,
+  Statement *_statement = nullptr;
   // Vector to contain overflow page
   OverflowPage *_overflowPage = nullptr;
   friend std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);

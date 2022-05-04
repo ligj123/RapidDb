@@ -98,12 +98,13 @@ DataValueFixChar::~DataValueFixChar() {
 }
 
 void DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
-
   if (dv.IsNull()) {
     if (valType_ == ValueType::SOLE_VALUE) {
       CachePool::Release(bysValue_, maxLength_);
     }
+    bysValue_ = nullptr;
     valType_ = ValueType::NULL_VALUE;
+    return;
   }
 
   if (dataType_ != dv.GetDataType()) {
@@ -166,7 +167,7 @@ std::any DataValueFixChar::GetValue() const {
   switch (valType_) {
   case ValueType::SOLE_VALUE:
   case ValueType::BYTES_VALUE:
-    return string((char *)bysValue_, maxLength_);
+    return string((char *)bysValue_, maxLength_ - 1);
   case ValueType::NULL_VALUE:
   default:
     return std::any();
@@ -203,12 +204,16 @@ uint32_t DataValueFixChar::WriteData(fstream &fs) const {
 }
 
 uint32_t DataValueFixChar::ReadData(fstream &fs) {
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::Release(bysValue_, maxLength_);
+  }
+
   char c;
   fs.get(c);
-
   valType_ = (c & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
   if (valType_ == ValueType::NULL_VALUE) {
     valType_ = ValueType::NULL_VALUE;
+    bysValue_ = nullptr;
     return 1;
   }
   valType_ = ValueType::SOLE_VALUE;
@@ -218,6 +223,7 @@ uint32_t DataValueFixChar::ReadData(fstream &fs) {
 }
 
 uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
+  assert(len == 0 || len == maxLength_);
   if (bKey_) {
     assert(len > 0);
     if (bSole) {

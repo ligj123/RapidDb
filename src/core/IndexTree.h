@@ -15,6 +15,7 @@
 
 namespace storage {
 using namespace std;
+class LeafPage;
 
 struct PageLock {
   PageLock() : _sm(new SpinMutex), _refCount(0) {}

@@ -172,6 +172,7 @@ uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
       return 0;
     }
 
+    soleLength_ = len;
     if (bSole) {
       bysValue_ = CachePool::Apply(soleLength_);
       BytesCopy(bysValue_, buf, soleLength_);

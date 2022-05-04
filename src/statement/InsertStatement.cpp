@@ -8,12 +8,11 @@ InsertStatement::InsertStatement(ExprInsert *exprInsert, Transaction *tran)
       _exprInsert(exprInsert) {}
 
 int InsertStatement::ExecuteUpdate() {
-  if (!_transaction->AbleAddTask()) {
-    _errorMsg =
-        ErrorMsg(TRAN_ADD_TASK_FAILED, {to_string(_transaction->GetTranId())});
+  if (!_tran->AbleAddTask()) {
+    _errorMsg = ErrorMsg(TRAN_ADD_TASK_FAILED, {to_string(_tran->GetTranId())});
     LOG_ERROR
         << "Try to insert a record into table with invalid transaction. ID="
-        << _transaction->GetTranId();
+        << _tran->GetTranId();
     return -1;
   }
 

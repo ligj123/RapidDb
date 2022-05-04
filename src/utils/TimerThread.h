@@ -50,7 +50,13 @@ public:
   static void AddTimingTask(string name, DT_MicroSec dtStart,
                             std::function<void()> lambda);
   static bool RemoveTask(string name);
-  static DT_MicroSec GetCurrTime() { return _instance->_currTime; }
+  static DT_MicroSec GetCurrTime() {
+    if (_instance == nullptr || !_instance->_bRunning)
+      return 0;
+    return _instance->_currTime;
+  }
+  static void Start();
+  static void Stop();
 
 protected:
   void Run();
@@ -60,5 +66,7 @@ protected:
   DT_MicroSec _currTime;
   thread *_thread;
   MVector<TimerTask *>::Type _vctTask;
+  bool _bRunning;
+  SpinMutex _mutex;
 };
 } // namespace storage

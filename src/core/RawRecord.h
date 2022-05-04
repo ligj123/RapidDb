@@ -25,6 +25,10 @@ public:
         _actionType(src._actionType), _gapLock(src._gapLock) {
     src._bysVal = nullptr;
   }
+  virtual ~RawRecord() {
+    if (_bSole && _bysVal != nullptr)
+      CachePool::Release(_bysVal, GetTotalLength());
+  }
 
   inline Byte *GetBysValue() const { return _bysVal; }
   /**Only the bytes' length in IndexPage, key length + value length without
@@ -38,10 +42,7 @@ public:
   inline IndexTree *GetTreeFile() const { return _indexTree; }
   virtual uint16_t GetValueLength() const = 0;
   virtual bool IsSole() const { return _bSole; }
-  virtual ~RawRecord() {
-    if (_bSole && _bysVal != nullptr)
-      CachePool::Release(_bysVal, GetTotalLength());
-  }
+  virtual bool IsTransaction() { return false; }
 
 public:
   static void *operator new(size_t size) {

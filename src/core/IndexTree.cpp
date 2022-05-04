@@ -181,7 +181,7 @@ ErrorMsg *IndexTree::InsertRecord(LeafRecord *rr) {
 
 IndexPage *IndexTree::GetPage(uint32_t pageId, bool bLeafPage) {
   assert(pageId < _headPage->ReadTotalPageCount());
-  IndexPage *page = PageBufferPool::GetPage(_fileId, pageId);
+  IndexPage *page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
   if (page != nullptr)
     return page;
 
@@ -206,7 +206,7 @@ IndexPage *IndexTree::GetPage(uint32_t pageId, bool bLeafPage) {
   _pageMutex.unlock();
   lockPage->_sm->lock();
 
-  page = PageBufferPool::GetPage(_fileId, pageId);
+  page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
   if (page == nullptr) {
     if (bLeafPage) {
       page = new LeafPage(this, pageId);

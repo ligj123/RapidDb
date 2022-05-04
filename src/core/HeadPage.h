@@ -6,14 +6,20 @@
 #include <map>
 
 namespace storage {
+
+struct KeyCmp {
+  bool operator()(const uint64_t lhs, const uint64_t rhs) const {
+    return !(lhs <= rhs);
+  }
+};
+
 /**The stamps only valid for primary index*/
 class HeadPage : public CachePage {
 public:
-  static const uint32_t HEAD_PAGE_LENGTH;
   /**The max versions can be support at the same time in a table*/
   static const uint16_t MAX_RECORD_VERSION_COUNT;
   /**Invalid page id = UINT32_MAX*/
-  static const uint32_t PAGE_NULL_POINTER;
+  static const PageID PAGE_NULL_POINTER;
 
   /**Offset to save page type*/
   static const uint16_t PAGE_TYPE_OFFSET;
@@ -22,18 +28,21 @@ public:
   /**Offset to save how many versions for record can saved to this table*/
   static const uint16_t RECORD_VERSION_COUNT_OFFSET;
   /**Offset to save this file version*/
-  static const uint16_t VERSION_OFFSET;
+  static const uint16_t FILE_VERSION_OFFSET;
   /**The offset to save how many length alterable columns in this key*/
   static const uint16_t KEY_ALTERABLE_FIELD_COUNT_OFFSET;
   /**The offset to save how many length alterable columns in this value*/
   static const uint16_t VALUE_ALTERABLE_FIELD_COUNT_OFFSET;
   /**The offset the first page to save garbage page id, this page and the
-   * following pages used to save all garbage pages ids.*/
+   * following pages used to save all garbage pages ids and length.*/
   static const uint16_t GARBAGE_PAGE_OFFSET;
   /**How many series pages have been used to save the garbage page ids*/
   static const uint16_t GARBAGE_SAVE_PAGES_NUM_OFFSET;
-  /**There have how many garbage in total*/
-  static const uint16_t GRABAGE_TOTAL_PAGES_OFFSET;
+  /**There have how many garbage items in total, every item include the first
+   * page id and the series page num*/
+  static const uint16_t GRABAGE_TOTAL_ITEMS_OFFSET;
+  /**To Save the crc32 for garbage pages*/
+  static const uint16_t GARBAGE_CRC32_OFFSET;
 
   /**The offset to save the total page count by this index*/
   static const uint16_t TOTAL_PAGES_COUNT_OFFSET;
@@ -65,7 +74,6 @@ protected:
   // uint8_t _recordVerCount = 0;
   /**Index type, primary, unique or non-unique*/
   IndexType _indexType = IndexType::PRIMARY;
-  uint32_t _garbagePageId = UINT32_MAX;
   /**the count of total pages in this index*/
   atomic<uint32_t> _totalPageCount = 0;
   /**The root page id for this index*/
@@ -88,23 +96,23 @@ protected:
    * only valid for primary index in a table. It saved in head page after
    * RECORD_VERSION_STAMP_OFFSET and save the pairs from small to big one by one
    */
-  map<uint64_t, VersionStamp> _mapVerStamp;
-  set<VersionStamp> _setVerStamp;
+  map<DT_MicroSec, VersionStamp, KeyCmp> _mapVerStamp;
+  set<VersionStamp, KeyCmp> _setVerStamp;
   SpinMutex _spinMutex;
 
 public:
   HeadPage(IndexTree *indexTree)
       : CachePage(indexTree, UINT32_MAX, PageType::HEAD_PAGE) {}
 
-  void ReadPage(PageFile *pageFile) override;
-  void WritePage(PageFile *pageFile) override;
+  void ReadPage(PageFile *pageFile = nullptr) override;
+  void WritePage(PageFile *pageFile = nullptr) override;
   void WriteFileVersion();
   FileVersion ReadFileVersion();
 
   inline Byte ReadRecordVersionCount() { return (Byte)_mapVerStamp.size(); }
   // Only locked all the table, here can update record version, so here do not
   // need lock
-  inline void AddNewRecordVersion(uint64_t timeStamp) {
+  inline void AddNewRecordVersion(DT_MicroSec timeStamp) {
     assert(_mapVerStamp.size() < MAX_RECORD_VERSION_COUNT);
     VersionStamp ver = _currRecordStamp.load(memory_order_relaxed);
     if (_mapVerStamp.size() > 0) {
@@ -117,8 +125,8 @@ public:
   }
   /**Now only support input the time of version. It maybe change in following
    * time*/
-  inline VersionStamp GetRecordVersionStamp(uint64_t tm) {
-    auto iter = _mapVerStamp.find(tm);
+  inline VersionStamp GetRecordVersionStamp(DT_MicroSec timeStamp) {
+    auto iter = _mapVerStamp.find(timeStamp);
     assert(iter != _mapVerStamp.end());
     return iter->second;
   }
@@ -129,13 +137,16 @@ public:
       ver--;
       if (ver == 0) {
         _setVerStamp.erase(iter->second);
+
         _mapVerStamp.erase(iter);
         break;
       }
     }
   }
 
-  inline const set<VersionStamp> &GetSetVerStamp() { return _setVerStamp; }
+  inline const set<VersionStamp, KeyCmp> &GetSetVerStamp() {
+    return _setVerStamp;
+  }
 
   inline VersionStamp GetLastVersionStamp() {
     if (_mapVerStamp.size() == 0)
@@ -259,16 +270,20 @@ public:
 
   void WriteValueVariableFieldCount(uint16_t num);
 
-  void ReadGarbage(uint32_t &totalPage, PageID &pageId, uint16_t &usedPage) {
+  void ReadGarbage(uint32_t &totalPage, PageID &pageId, uint16_t &usedPage,
+                   uint32_t &crc32) {
     pageId = ReadInt(GARBAGE_PAGE_OFFSET);
     usedPage = ReadShort(GARBAGE_SAVE_PAGES_NUM_OFFSET);
-    totalPage = ReadInt(GRABAGE_TOTAL_PAGES_OFFSET);
+    totalPage = ReadInt(GRABAGE_TOTAL_ITEMS_OFFSET);
+    crc32 = ReadInt(GARBAGE_CRC32_OFFSET);
   }
 
-  void WriteGabage(uint32_t totalPage, PageID pageId, int16_t usedPage) {
+  void WriteGabage(uint32_t totalPage, PageID pageId, int16_t usedPage,
+                   uint32_t crc32) {
     WriteInt(GARBAGE_PAGE_OFFSET, pageId);
     WriteShort(GARBAGE_SAVE_PAGES_NUM_OFFSET, usedPage);
-    WriteInt(GRABAGE_TOTAL_PAGES_OFFSET, totalPage);
+    WriteInt(GRABAGE_TOTAL_ITEMS_OFFSET, totalPage);
+    WriteInt(GARBAGE_CRC32_OFFSET, crc32);
   }
 };
 } // namespace storage

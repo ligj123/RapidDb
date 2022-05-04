@@ -12,7 +12,7 @@ public:
                 uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
   DataValueBlob(Byte *byArray, uint32_t len,
                 uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
-  DataValueBlob(MVector<Byte>::Type &vct, uint32_t maxLength,
+  DataValueBlob(MVector<Byte>::Type &vct, uint32_t maxLength = DEFAULT_MAX_LEN,
                 bool bKey = false);
   DataValueBlob(const DataValueBlob &src);
   ~DataValueBlob();
@@ -27,10 +27,14 @@ public:
       return new DataValueBlob(maxLength_, bKey_);
     }
   }
+  uint32_t WriteData(Byte *buf) const override { return WriteData(buf, bKey_); }
   uint32_t WriteData(Byte *buf, bool key) const override;
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = false) override;
   uint32_t WriteData(fstream &fs) const override;
   uint32_t ReadData(fstream &fs) override;
+  uint32_t GetPersistenceLength() const override {
+    return GetPersistenceLength(bKey_);
+  }
   uint32_t GetPersistenceLength(bool key) const override {
     assert(!bKey_);
     switch (valType_) {

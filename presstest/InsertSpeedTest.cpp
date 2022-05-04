@@ -29,7 +29,7 @@ void InsertSpeedPrimaryTest(uint64_t row_count) {
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
 
-  uint64_t dtStart = MSTime();
+  uint64_t dtStart = MilliSecTime();
   uint64_t dtPrev = dtStart;
 
   for (uint64_t i = 0; i < row_count; i++) {
@@ -44,19 +44,19 @@ void InsertSpeedPrimaryTest(uint64_t row_count) {
                       (((by1 & 0xAA) + (by4 & 0x55)));
     *((DataValueLong *)vctKey[0]) = priKey;
     *((DataValueLong *)vctVal[0]) = i;
-    LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, i);
+    LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, i, nullptr);
     // indexTree->GetHeadPage()->ReadRecordStamp());
     indexTree->InsertRecord(rr);
 
     if (i % 1000000 == 0) {
-      uint64_t dt = MSTime();
+      uint64_t dt = MilliSecTime();
       cout << "i=" << i << "\tTotal Time=" << (dt - dtStart)
            << "\tGap Time=" << (dt - dtPrev) << endl;
       dtPrev = dt;
     }
   }
 
-  uint64_t dtEnd = MSTime();
+  uint64_t dtEnd = MilliSecTime();
   cout << "Insert Used Time: " << (dtEnd - dtStart) << endl;
   PageDividePool::SetThreadStatus(false);
   StoragePool::SetWriteSuspend(false);
@@ -64,7 +64,7 @@ void InsertSpeedPrimaryTest(uint64_t row_count) {
   delete dvKey;
   delete dvVal;
   // PageBufferPool::ClearPool();
-  dtEnd = MSTime();
+  dtEnd = MilliSecTime();
   cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
 
   // std::filesystem::remove(std::filesystem::path(FILE_NAME));
@@ -90,7 +90,7 @@ void InsertSpeedUniqueTest(uint64_t row_count) {
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
 
-  uint64_t dtStart = MSTime();
+  uint64_t dtStart = MilliSecTime();
   uint64_t dtPrev = dtStart;
   Byte buf[100];
 
@@ -106,18 +106,19 @@ void InsertSpeedUniqueTest(uint64_t row_count) {
                       (((by1 & 0xAA) + (by4 & 0x55)));
     *((DataValueLong *)vctKey[0]) = priKey;
     Int64ToBytes(i, buf, true);
-    LeafRecord *rr = new LeafRecord(indexTree, vctKey, buf, 8);
+    LeafRecord *rr =
+        new LeafRecord(indexTree, vctKey, buf, 8, ActionType::INSERT, nullptr);
     indexTree->InsertRecord(rr);
 
     if (i % 1000000 == 0) {
-      uint64_t dt = MSTime();
+      uint64_t dt = MilliSecTime();
       cout << "i=" << i << "\tTotal Time=" << (dt - dtStart)
            << "\tGap Time=" << (dt - dtPrev) << endl;
       dtPrev = dt;
     }
   }
 
-  uint64_t dtEnd = MSTime();
+  uint64_t dtEnd = MilliSecTime();
   cout << "Insert Used Time: " << (dtEnd - dtStart) << endl;
   PageDividePool::SetThreadStatus(false);
   StoragePool::SetWriteSuspend(false);
@@ -125,7 +126,7 @@ void InsertSpeedUniqueTest(uint64_t row_count) {
   delete dvKey;
   delete dvVal;
   // PageBufferPool::ClearPool();
-  dtEnd = MSTime();
+  dtEnd = MilliSecTime();
   cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
   // std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
@@ -150,7 +151,7 @@ void InsertSpeedNonUniqueTest(uint64_t row_count) {
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
 
-  uint64_t dtStart = MSTime();
+  uint64_t dtStart = MilliSecTime();
   uint64_t dtPrev = dtStart;
   Byte buf[100];
 
@@ -166,18 +167,19 @@ void InsertSpeedNonUniqueTest(uint64_t row_count) {
                       (((by1 & 0xAA) + (by4 & 0x55)));
     *((DataValueLong *)vctKey[0]) = priKey;
     Int64ToBytes(i, buf, true);
-    LeafRecord *rr = new LeafRecord(indexTree, vctKey, buf, 8);
+    LeafRecord *rr =
+        new LeafRecord(indexTree, vctKey, buf, 8, ActionType::INSERT, nullptr);
     indexTree->InsertRecord(rr);
 
     if (i % 1000000 == 0) {
-      uint64_t dt = MSTime();
+      uint64_t dt = MilliSecTime();
       cout << "i=" << i << "\tTotal Time=" << (dt - dtStart)
            << "\tGap Time=" << (dt - dtPrev) << endl;
       dtPrev = dt;
     }
   }
 
-  uint64_t dtEnd = MSTime();
+  uint64_t dtEnd = MilliSecTime();
   cout << "Insert Used Time: " << (dtEnd - dtStart) << endl;
   PageDividePool::SetThreadStatus(false);
   StoragePool::SetWriteSuspend(false);
@@ -185,7 +187,7 @@ void InsertSpeedNonUniqueTest(uint64_t row_count) {
   delete dvKey;
   delete dvVal;
   // PageBufferPool::ClearPool();
-  dtEnd = MSTime();
+  dtEnd = MilliSecTime();
   cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
   // std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }

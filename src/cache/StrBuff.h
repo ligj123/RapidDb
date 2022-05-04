@@ -71,11 +71,11 @@ public:
     if (len + 1 >= _bufLen) {
       char *obuf = _buf;
       uint32_t olen = _bufLen;
-      _buf = (char *)CachePool::Apply(len, _bufLen);
+      _buf = (char *)CachePool::Apply(len + 1, _bufLen);
 
-      if (obuf != nullptr) {
-        CachePool::Release((Byte *)obuf, olen);
+      if (obuf != nullptr) { 
         strcpy(_buf, obuf);
+        CachePool::Release((Byte *)obuf, olen);
       } else {
         _buf[0] = 0;
       }

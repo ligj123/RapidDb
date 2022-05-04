@@ -5,7 +5,6 @@
 namespace storage {
 using namespace std;
 class PageBufferPool {
-
 public:
   static uint64_t GetMaxCacheSize() { return _maxCacheSize; }
   static void SetMaxCacheSzie(uint64_t size) { _maxCacheSize = (int)size; }

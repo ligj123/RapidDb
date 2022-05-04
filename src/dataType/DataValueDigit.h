@@ -72,7 +72,9 @@ public:
   DataValueDigit *Clone(bool incVal = false) override {
     return new DataValueDigit(*this);
   }
-
+  uint32_t GetPersistenceLength() const override {
+    return GetPersistenceLength(bKey_);
+  }
   uint32_t GetPersistenceLength(bool key) const override {
     return key ? sizeof(T)
                : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(T));
@@ -102,8 +104,8 @@ public:
   }
   size_t Hash() const override { return std::hash<T>{}(_value); }
   bool Equal(const IDataValue &dv) const override {
-    if (dataType_ == dv.dataType_) {
-      return _value == (T)dv;
+    if (dataType_ == dv.GetDataType()) {
+      return _value == (T &)dv;
     }
     if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
       return (GetLong() == dv.GetLong());
@@ -111,10 +113,11 @@ public:
       return (GetDouble() == dv.GetDouble());
     } else {
       throw ErrorMsg(DT_UNSUPPORT_CONVERT,
-                     {val.type().name(), StrOfDataType(DT)});
+                     {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)});
     }
   }
 
+  uint32_t WriteData(Byte *buf) const override { return WriteData(buf, bKey_); }
   uint32_t WriteData(Byte *buf, bool key) const override {
     if (key) {
       if (valType_ == ValueType::NULL_VALUE) {
@@ -132,13 +135,13 @@ public:
       }
     }
   }
-  uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override {
+  uint32_t ReadData(Byte *buf, uint32_t len, bool bSole = true) override {
     if (bKey_) {
       valType_ = ValueType::SOLE_VALUE;
       _value = DigitalFromBytes<T, DT>(buf, bKey_);
       return sizeof(T);
     } else {
-      valType_ = (len == 0 ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+      valType_ = (len != 0 ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
       if (valType_ == ValueType::NULL_VALUE)
         return 0;
 
@@ -192,7 +195,6 @@ public:
     return *this;
   }
   DataValueDigit &operator=(const DataValueDigit &src) {
-    dataType_ = src.dataType_;
     valType_ = src.valType_;
     bKey_ = src.bKey_;
     _value = src._value;

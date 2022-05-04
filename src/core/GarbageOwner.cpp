@@ -1,36 +1,42 @@
 ﻿#include "GarbageOwner.h"
 #include "../pool/StoragePool.h"
+#include "../utils/Log.h"
 #include "CachePage.h"
+#include "IndexTree.h"
+#include <boost/crc.hpp>
 
 namespace storage {
-const uint16_t GarbageOwner::PAGE_TYPE_OFFSET = 0;
-
 GarbageOwner::GarbageOwner(IndexTree *indexTree)
     : _indexTree(indexTree), _bDirty(false) {
   HeadPage *headPage = indexTree->GetHeadPage();
-  headPage->ReadGarbage(_totalGarbagePages, _firstPageId, _usedPageNum);
+
+  _totalGarbagePages = 0;
+  uint32_t c32;
+  uint32_t items;
+  headPage->ReadGarbage(items, _firstPageId, _usedPageNum, c32);
   if (_usedPageNum == 0)
     return;
+  OverflowPage *ovfPage =
+      new OverflowPage(indexTree, _firstPageId, _usedPageNum);
+  ovfPage->ReadPage(nullptr);
+  boost::crc_32_type crc32;
+  crc32.process_bytes(ovfPage->GetBysPage(),
+                      CachePage::CACHE_PAGE_SIZE * _usedPageNum);
+  if (crc32.checksum() != c32) {
 
-  uint32_t sz = (uint32_t)Configure::GetDiskClusterSize() - 10;
-  int count = 0;
-  PageFile *pfile = indexTree->ApplyPageFile();
-  for (int32_t i = 0; i < _usedPageNum && count < _totalGarbagePages; i++) {
-    CachePage *page = new CachePage(indexTree, _firstPageId + i,
-                                    PageType::GARBAGE_COLLECT_PAGE);
-    page->ReadPage(pfile);
-
-    for (int32_t i = 0; i < sz && count < _totalGarbagePages; i += 6) {
-      PageID id = page->ReadInt(i);
-      uint16_t num = page->ReadShort(i + 4);
-      InsertPage(id, num);
-      count += num;
-    }
-
-    delete page;
+    LOG_ERROR << "Failed to verify garbage page. Index Name="
+              << indexTree->GetFileName();
+    return;
   }
 
-  indexTree->ReleasePageFile(pfile);
+  for (uint32_t i = 0; i < items; i++) {
+    PageID id = ovfPage->ReadInt(i * 6);
+    uint16_t num = ovfPage->ReadShort(i * 6 + 4);
+    InsertPage(id, num);
+    _totalGarbagePages += num;
+  }
+
+  ovfPage->DecRefCount();
 };
 
 /** Add new garbage pages into this class
@@ -113,43 +119,37 @@ void GarbageOwner::SavePage() {
   _bDirty = false;
   if (_usedPageNum > 0) {
     ReleasePage(_firstPageId, _usedPageNum);
-    _totalGarbagePages += _usedPageNum;
   }
 
   if (_totalGarbagePages == 0) {
     _firstPageId = HeadPage::PAGE_NULL_POINTER;
     _usedPageNum = 0;
     _indexTree->GetHeadPage()->WriteGabage(_totalGarbagePages, _firstPageId,
-                                           _usedPageNum);
+                                           _usedPageNum, 0);
     return;
   }
   // Every 6 bytes to save the first page id and range size, the last 4 bytes
   // save crc32 code for verify
-  int pNum = (Configure::GetCachePageSize() - 4) / 6;
-  _usedPageNum = (uint16_t)((_treeFreePage.size() + pNum - 1) / pNum);
+  _usedPageNum =
+      (uint16_t)((_treeFreePage.size() * 6 + CachePage::CACHE_PAGE_SIZE - 1) /
+                 CachePage::CACHE_PAGE_SIZE);
   _firstPageId = ApplyPage(_usedPageNum);
   if (_firstPageId == HeadPage::PAGE_NULL_POINTER) {
     _firstPageId =
         _indexTree->GetHeadPage()->GetAndIncTotalPageCount(_usedPageNum);
   }
 
-  CachePage *cpage =
-      new CachePage(_indexTree, _firstPageId, PageType::GARBAGE_COLLECT_PAGE);
+  OverflowPage *ovfPage =
+      new OverflowPage(_indexTree, _firstPageId, _usedPageNum);
   int count = 0;
   for (auto iter = _treeFreePage.begin(); iter != _treeFreePage.end(); iter++) {
-    cpage->WriteInt((count % pNum) * 6, iter->first);
-    cpage->WriteShort((count % pNum) * 6 + 4, iter->second);
-    count++;
-    if (count % pNum == 0) {
-      StoragePool::WriteCachePage(cpage);
-
-      cpage = new CachePage(_indexTree, _firstPageId + count / pNum,
-                            PageType::GARBAGE_COLLECT_PAGE);
-    }
+    ovfPage->WriteInt(count, iter->first);
+    ovfPage->WriteShort(count + 4, iter->second);
+    count += 6;
   }
 
-  cpage->DecRefCount();
-  StoragePool::WriteCachePage(cpage);
+  ovfPage->WritePage(nullptr);
+  ovfPage->DecRefCount();
 }
 
 void GarbageOwner::InsertPage(PageID pageId, int16_t num) {

@@ -107,6 +107,9 @@
     <ClCompile Include="..\..\src\core\OverflowPage.cpp">
       <Filter>core</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\utils\TimerThread.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />
@@ -233,9 +236,6 @@
     <ClInclude Include="..\..\src\pool\PageBufferPool.h">
       <Filter>pool</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\cache\AbsoleteBuffer.h">
-      <Filter>cache</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\statement\Statement.h">
       <Filter>statement</Filter>
     </ClInclude>
@@ -313,6 +313,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\core\PageType.h">
       <Filter>core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\TimerThread.h">
+      <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

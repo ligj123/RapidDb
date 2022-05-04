@@ -192,7 +192,8 @@ inline bool operator>(const IDataValue &dv1, const IDataValue &dv2) {
     return (const DataValueBool &)dv1 > (const DataValueBool &)dv2;
     break;
   case DataType::BLOB:
-    return (const DataValueBlob &)dv1 > (const DataValueBlob &)dv2;
+    return false;
+    // return (const DataValueBlob &)dv1 > (const DataValueBlob &)dv2;
     break;
   default:
     throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
@@ -224,7 +225,8 @@ inline bool operator>=(const IDataValue &dv1, const IDataValue &dv2) {
     return (const DataValueBool &)dv1 >= (const DataValueBool &)dv2;
     break;
   case DataType::BLOB:
-    return (const DataValueBlob &)dv1 >= (const DataValueBlob &)dv2;
+    return false;
+    // return (const DataValueBlob &)dv1 >= (const DataValueBlob&)dv2;
     break;
   default:
     throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});

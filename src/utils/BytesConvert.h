@@ -341,7 +341,7 @@ inline void *BytesCpy(void *dst, const void *src, size_t count) {
   Byte *pdst = (Byte *)dst;
   const Byte *psrc = (Byte *)src;
   for (; i < c8; i += 8) {
-    *((uint64_t *)pdst) = *((uint64_t *)src);
+    *((uint64_t *)pdst) = *((uint64_t *)psrc);
     pdst += 8;
     psrc += 8;
   }

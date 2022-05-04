@@ -55,11 +55,11 @@
     <ClCompile Include="..\..\src\utils\ErrorMsg.cpp" />
     <ClCompile Include="..\..\src\utils\Log.cpp" />
     <ClCompile Include="..\..\src\utils\ThreadPool.cpp" />
+    <ClCompile Include="..\..\src\utils\TimerThread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\binlog\LogServer.h" />
     <ClInclude Include="..\..\src\binlog\LogType.h" />
-    <ClInclude Include="..\..\src\cache\AbsoleteBuffer.h" />
     <ClInclude Include="..\..\src\cache\CachePool.h" />
     <ClInclude Include="..\..\src\cache\BufferPool.h" />
     <ClInclude Include="..\..\src\cache\Mallocator.h" />
@@ -125,6 +125,7 @@
     <ClInclude Include="..\..\src\utils\Log.h" />
     <ClInclude Include="..\..\src\utils\SpinMutex.h" />
     <ClInclude Include="..\..\src\utils\ThreadPool.h" />
+    <ClInclude Include="..\..\src\utils\TimerThread.h" />
     <ClInclude Include="..\..\src\utils\Utilitys.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

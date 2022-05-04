@@ -13,13 +13,13 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
   BOOST_TEST(dv1.IsNull());
   BOOST_TEST(dv1.GetMaxLength() == DEFAULT_MAX_LEN);
   BOOST_TEST(dv1.GetDataLength() == 0);
-  BOOST_TEST(dv1.GetPersistenceLength() == 1);
+  BOOST_TEST(dv1.GetPersistenceLength() == 0);
   BOOST_TEST(!dv1.GetValue().has_value());
 
   DataValueVarChar dv2(100, true);
   BOOST_TEST(dv2.GetMaxLength() == 100);
-  BOOST_TEST(dv2.GetDataLength() == 0);
-  BOOST_TEST(dv2.GetPersistenceLength() == 0);
+  BOOST_TEST(dv2.GetDataLength() == 1);
+  BOOST_TEST(dv2.GetPersistenceLength() == 1);
   BOOST_TEST(dv1 == dv2);
 
   const char *pStr = "abcd";
@@ -63,17 +63,18 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
 
   DataValueVarChar dv7;
   dv7.WriteData(buf);
-  dv1.ReadData(buf, -1);
+  dv1.ReadData(buf, 0);
   BOOST_TEST(dv1 == dv7);
 
-  DataValueVarChar dv8(true);
+  DataValueVarChar dv8(100, true);
   dv8.WriteData(buf + 10);
-  dv2.ReadData(buf + 10);
-  BOOST_TEST(dv2 == dv8);
+  dv2.ReadData(buf + 10, 1);
+  BOOST_TEST(dv2.GetDataLength() == 1);
+  BOOST_TEST(dv2.GetValueType() == ValueType::SOLE_VALUE);
 
   DataValueVarChar dv9(pStr, strlen(pStr));
   dv9.WriteData(buf + 20);
-  dv1.ReadData(buf + 20);
+  dv1.ReadData(buf + 20, 5);
   BOOST_TEST(dv1 == dv9);
 
   DataValueVarChar dv10(pStr, 4, 100, true);
@@ -116,18 +117,16 @@ BOOST_AUTO_TEST_CASE(DataValueVarCharCopy_test) {
   }
 
   char buf[100];
-  buf[0] = VALUE_TYPE | ((Byte)DataType::VARCHAR & DATE_TYPE);
-  *(int *)(buf + 1) = 8;
-  strcpy(buf + 5, "abcdefg");
+  strcpy(buf, "abcdefg");
 
-  dvc2.ReadData((Byte *)buf, 0, false);
+  dvc2.ReadData((Byte *)buf, 8, false);
   dvc.Copy(dvc2);
   BOOST_TEST(dvc.bysValue_ == dvc2.bysValue_);
   BOOST_TEST(dvc.maxLength_ != dvc2.maxLength_);
   BOOST_TEST(dvc.soleLength_ == dvc2.soleLength_);
   BOOST_TEST(dvc == dvc2);
 
-  dvc2.ReadData((Byte *)buf, 0, true);
+  dvc2.ReadData((Byte *)buf, 8, true);
   dvc.Copy(dvc2, false);
   BOOST_TEST(dvc.bysValue_ != dvc2.bysValue_);
   BOOST_TEST(dvc.maxLength_ != dvc2.maxLength_);

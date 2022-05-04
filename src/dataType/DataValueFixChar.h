@@ -24,10 +24,14 @@ public:
       return new DataValueFixChar(maxLength_, bKey_);
     }
   }
+  uint32_t WriteData(Byte *buf) const override { return WriteData(buf, bKey_); }
   uint32_t WriteData(Byte *buf, bool key) const override;
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
   uint32_t WriteData(fstream &fs) const override;
   uint32_t ReadData(fstream &fs) override;
+  uint32_t GetPersistenceLength() const override {
+    return GetPersistenceLength(bKey_);
+  }
   uint32_t GetPersistenceLength(bool key) const override {
     if (key) {
       return maxLength_;

@@ -1,9 +1,9 @@
 #include "TimerThread.h"
 
 namespace storage {
-TimerThread *TimerThread::_instance = new TimerThread();
+TimerThread *TimerThread::_instance = nullptr;
 
-TimerThread::TimerThread() {
+TimerThread::TimerThread() : _currTime(0), _bRunning(false) {
   _thread = new thread([this]() { Run(); });
 }
 
@@ -11,38 +11,44 @@ TimerThread::~TimerThread() {
   for (TimerTask *task : _vctTask) {
     delete task;
   }
+  delete _thread;
 }
 
 void TimerThread::Run() {
-  while (true) {
+  _bRunning = true;
+  while (_bRunning) {
     _currTime = chrono::duration_cast<chrono::microseconds>(
                     chrono::system_clock::now().time_since_epoch())
                     .count();
 
-    for (size_t i = 0; i < _vctTask.size();) {
-      TimerTask *task = _vctTask[i];
-      if (task->type == TimerType::CIRCLE) {
-        if (_currTime >= task->dtStart) {
-          task->_lambda();
-          _vctTask.erase(_vctTask.begin() + i);
-          continue;
-        }
-      } else {
-        if (task->_prevTime + task->interval >= _currTime) {
-          task->_lambda();
-          if (task->rpCount != UNLIMIT_CIRCLE) {
-            task->rpCount--;
-            if (task->rpCount == 0) {
-              _vctTask.erase(_vctTask.begin() + i);
-              continue;
-            }
+    if (_mutex.try_lock()) {
+      for (size_t i = 0; i < _vctTask.size();) {
+        TimerTask *task = _vctTask[i];
+        if (task->type == TimerType::CIRCLE) {
+          if (_currTime >= task->dtStart) {
+            task->_lambda();
+            _vctTask.erase(_vctTask.begin() + i);
+            continue;
           }
+        } else {
+          if (task->_prevTime + task->interval >= _currTime) {
+            task->_lambda();
+            if (task->rpCount != UNLIMIT_CIRCLE) {
+              task->rpCount--;
+              if (task->rpCount == 0) {
+                _vctTask.erase(_vctTask.begin() + i);
+                continue;
+              }
+            }
 
-          task->_prevTime = _currTime;
+            task->_prevTime = _currTime;
+          }
         }
+        i++;
       }
-      i++;
+      _mutex.unlock();
     }
+
     this_thread::sleep_for(chrono::microseconds(1));
   }
 }
@@ -50,6 +56,7 @@ void TimerThread::Run() {
 void TimerThread::AddCircleTask(string name, DT_MicroSec interval,
                                 std::function<void()> lambda,
                                 uint64_t rpCount) {
+  unique_lock<SpinMutex> lock(_instance->_mutex);
   TimerTask *task = new TimerTask;
   task->_name = name;
   task->type = TimerType::CIRCLE;
@@ -61,6 +68,7 @@ void TimerThread::AddCircleTask(string name, DT_MicroSec interval,
 
 void TimerThread::AddTimingTask(string name, DT_MicroSec dtStart,
                                 std::function<void()> lambda) {
+  unique_lock<SpinMutex> lock(_instance->_mutex);
   TimerTask *task = new TimerTask;
   task->_name = name;
   task->type = TimerType::TIMING;
@@ -70,6 +78,7 @@ void TimerThread::AddTimingTask(string name, DT_MicroSec dtStart,
 }
 
 bool TimerThread::RemoveTask(string name) {
+  unique_lock<SpinMutex> lock(_instance->_mutex);
   for (size_t i = 0; i < _instance->_vctTask.size();) {
     TimerTask *task = _instance->_vctTask[i];
     if (task->_name == name) {
@@ -81,4 +90,18 @@ bool TimerThread::RemoveTask(string name) {
   return true;
 }
 
+void TimerThread::Start() {
+  assert(_instance == nullptr || !_instance->_bRunning);
+  if (_instance == nullptr) {
+    _instance = new TimerThread();
+  } else {
+    delete _instance;
+    _instance = new TimerThread();
+  }
+}
+
+void TimerThread::Stop() {
+  assert(_instance != nullptr && _instance->_bRunning);
+  _instance->_bRunning = false;
+}
 } // namespace storage

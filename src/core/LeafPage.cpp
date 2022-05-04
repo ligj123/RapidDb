@@ -14,8 +14,7 @@ uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 12;
 uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 16;
 uint16_t LeafPage::DATA_BEGIN_OFFSET = 20;
 uint16_t LeafPage::MAX_DATA_LENGTH =
-    (uint16_t)(Configure::GetCachePageSize() - LeafPage::DATA_BEGIN_OFFSET -
-               sizeof(uint32_t));
+    (uint16_t)(CACHE_PAGE_SIZE - LeafPage::DATA_BEGIN_OFFSET - UI32_LEN);
 
 LeafPage::LeafPage(IndexTree *indexTree, uint32_t pageId, uint32_t parentPageId)
     : IndexPage(indexTree, pageId, 0, parentPageId, PageType::LEAF_PAGE),
@@ -99,7 +98,7 @@ bool LeafPage::SaveRecords() {
     _absoBuf = nullptr;
   }
 
-  WriteLong(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
+  WriteInt(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
   WriteShort(TOTAL_DATA_LENGTH_OFFSET, _totalDataLength);
   WriteInt(PREV_PAGE_POINTER_OFFSET, _prevPageId);
   WriteInt(NEXT_PAGE_POINTER_OFFSET, _nextPageId);
@@ -129,7 +128,7 @@ ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
     if (bFind) {
       return new ErrorMsg(CORE_REPEATED_RECORD, {});
     }
-  } else if (pos > _recordNum) {
+  } else if (pos > (int32_t)_recordNum) {
     pos = _recordNum;
   }
 

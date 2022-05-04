@@ -7,9 +7,10 @@
 #include "LeafPage.h"
 
 namespace storage {
-const float IndexPage::LOAD_FACTOR = 1.0f;
+const uint16_t IndexPage::LOAD_FACTOR = 90;
+const uint32_t IndexPage::LOAD_THRESHOLD = CachePage::CACHE_PAGE_SIZE * 3;
 const uint16_t IndexPage::PAGE_LEVEL_OFFSET = 0;
-const uint16_t IndexPage::PAGE_LAST_OFFSET = 1;
+const uint16_t IndexPage::PAGE_BEGIN_END_OFFSET = 1;
 const uint16_t IndexPage::PAGE_TRAN_COUNT = 2;
 const uint16_t IndexPage::NUM_RECORD_OFFSET = 4;
 const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;

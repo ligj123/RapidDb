@@ -13,13 +13,13 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
   BOOST_TEST(dv1.IsNull());
   BOOST_TEST(dv1.GetMaxLength() == 1);
   BOOST_TEST(dv1.GetDataLength() == 0);
-  BOOST_TEST(dv1.GetPersistenceLength() == 1);
+  BOOST_TEST(dv1.GetPersistenceLength() == 0);
   BOOST_TEST(!dv1.GetValue().has_value());
 
   DataValueBool dv2(true, false);
   BOOST_TEST(dv2.GetMaxLength() == 1);
   BOOST_TEST(dv2.GetDataLength() == 1);
-  BOOST_TEST(dv2.GetPersistenceLength() == 2);
+  BOOST_TEST(dv2.GetPersistenceLength() == 1);
   BOOST_TEST(dv1 != dv2);
 
   DataValueBool dv3(true, false);
@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
   BOOST_TEST(!dv3.IsNull());
   BOOST_TEST(dv3.GetDataLength() == 1);
   BOOST_TEST(dv3.GetMaxLength() == 1);
-  BOOST_TEST(dv3.GetPersistenceLength() == 2);
+  BOOST_TEST(dv3.GetPersistenceLength() == 1);
   BOOST_TEST(dv1 < dv3);
   BOOST_TEST(dv1 <= dv3);
   BOOST_TEST(dv1 != dv3);
@@ -46,9 +46,8 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
 
   Byte buf2[100];
   uint32_t len = dv5.WriteData(buf2);
-  BOOST_TEST(len == 2);
-  BOOST_TEST(buf2[0] == 0x8F);
-  BOOST_TEST(*((uint8_t *)(buf2 + 1)) == 1);
+  BOOST_TEST(len == 1);
+  BOOST_TEST(buf2[0] == 1);
 
   dv1.SetDefaultValue();
   BOOST_TEST((bool)dv1 == false);
@@ -61,7 +60,7 @@ BOOST_AUTO_TEST_CASE(DataValueBool_test) {
 
   DataValueBool dv6(true, false);
   dv6.WriteData(buf);
-  dv2.ReadData(buf, -1);
+  dv2.ReadData(buf, 1);
   BOOST_TEST(dv2 == dv6);
 
   StrBuff sb(10);

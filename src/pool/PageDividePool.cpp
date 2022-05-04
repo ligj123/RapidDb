@@ -38,14 +38,14 @@ thread *PageDividePool::CreateThread() {
       for (auto iter = _mapPage.begin(); iter != _mapPage.end();) {
         auto iter2 = iter++;
         auto page = iter2->second;
-        if (page->GetRecordTranCount() > 0 ||
+        if (!page->Releaseable() ||
             (!page->IsOverTime(BUFFER_FLUSH_INTEVAL_MS) &&
              !page->IsOverlength() && !page->GetIndexTree()->IsClosed())) {
           continue;
         }
 
         bool b = page->WriteTryLock();
-        if (!b || page->GetRecordTranCount() > 0) {
+        if (!b || !page->Releaseable()) {
           if (b)
             page->WriteUnlock();
           continue;
@@ -76,7 +76,7 @@ void PageDividePool::AddCachePage(IndexPage *page) {
   }
 
   page->IncRefCount();
-  page->SetPageLastUpdateTime();
+  page->UpdateWriteTime();
   _mapTmp.insert(pair<uint64_t, IndexPage *>(page->GetPageId(), page));
 }
 } // namespace storage

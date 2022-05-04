@@ -65,7 +65,6 @@ void ThreadPool::CreateThread(int id) {
         vct.clear();
       } else {
         task->Run();
-        delete task;
       }
     }
 

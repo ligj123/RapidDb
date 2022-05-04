@@ -1,18 +1,15 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
 #include "../utils/SpinMutex.h"
-#include "IndexTree.h"
 
 using namespace std;
 namespace storage {
+class IndexTree;
 /**This class use to collect garbage page of index page and overflow page. The
  * first garbage page id is saved in head page and this garbage page will save
  * other garbage pages. In this page, the first byte is page type, then the
  * second */
 class GarbageOwner {
-public:
-  static const uint16_t PAGE_TYPE_OFFSET;
-
 public:
   GarbageOwner(IndexTree *indexTree);
   ~GarbageOwner() {}
@@ -35,8 +32,6 @@ protected:
   uint16_t _usedPageNum;
   /**How many a series pages to save the garbage page ids.*/
   uint16_t _pageUsedCount = 0;
-  /**The first page to save garbage page ids*/
-  PageID _pageSaveGarbage = HeadPage::PAGE_NULL_POINTER;
   /**If it has changed since previous save time*/
   bool _bDirty;
   /**The first garbage page id, how many series */

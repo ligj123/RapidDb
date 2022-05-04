@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "../dataType/IDataValue.h"
 #include "../utils/BytesConvert.h"
+#include "IndexTree.h"
 #include "RawKey.h"
 #include "RawRecord.h"
 #include <cstring>

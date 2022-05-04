@@ -3,29 +3,28 @@
 #include "PageType.h"
 
 namespace storage {
-const uint32_t HeadPage::HEAD_PAGE_LENGTH =
-    (uint32_t)Configure::GetDiskClusterSize();
 const uint16_t HeadPage::MAX_RECORD_VERSION_COUNT = 8;
-const uint32_t HeadPage::PAGE_NULL_POINTER = UINT32_MAX;
+const PageID HeadPage::PAGE_NULL_POINTER = UINT32_MAX;
 
 const uint16_t HeadPage::PAGE_TYPE_OFFSET = 0;
 const uint16_t HeadPage::INDEX_TYPE_OFFSET = 1;
 const uint16_t HeadPage::RECORD_VERSION_COUNT_OFFSET = 2;
-const uint16_t HeadPage::VERSION_OFFSET = 4;
+const uint16_t HeadPage::FILE_VERSION_OFFSET = 4;
 const uint16_t HeadPage::KEY_ALTERABLE_FIELD_COUNT_OFFSET = 8;
 const uint16_t HeadPage::VALUE_ALTERABLE_FIELD_COUNT_OFFSET = 10;
 const uint16_t HeadPage::GARBAGE_PAGE_OFFSET = 12;
 const uint16_t HeadPage::GARBAGE_SAVE_PAGES_NUM_OFFSET = 16;
-const uint16_t HeadPage::GRABAGE_TOTAL_PAGES_OFFSET = 20;
-const uint16_t HeadPage::TOTAL_PAGES_COUNT_OFFSET = 24;
-const uint16_t HeadPage::ROOT_PAGE_OFFSET = 28;
-const uint16_t HeadPage::BEGIN_LEAF_PAGE_OFFSET = 32;
-const uint16_t HeadPage::END_LEAF_PAGE_OFFSET = 36;
-const uint16_t HeadPage::TOTAL_RECORD_COUNT_OFFSET = 40;
-const uint16_t HeadPage::AUTO_INCREMENT_KEY = 48;
-const uint16_t HeadPage::AUTO_INCREMENT_KEY2 = 56;
-const uint16_t HeadPage::AUTO_INCREMENT_KEY3 = 64;
-const uint16_t HeadPage::CURRENT_RECORD_STAMP_OFFSET = 72;
+const uint16_t HeadPage::GRABAGE_TOTAL_ITEMS_OFFSET = 20;
+const uint16_t HeadPage::GARBAGE_CRC32_OFFSET = 24;
+const uint16_t HeadPage::TOTAL_PAGES_COUNT_OFFSET = 28;
+const uint16_t HeadPage::ROOT_PAGE_OFFSET = 32;
+const uint16_t HeadPage::BEGIN_LEAF_PAGE_OFFSET = 36;
+const uint16_t HeadPage::END_LEAF_PAGE_OFFSET = 40;
+const uint16_t HeadPage::TOTAL_RECORD_COUNT_OFFSET = 48;
+const uint16_t HeadPage::AUTO_INCREMENT_KEY = 56;
+const uint16_t HeadPage::AUTO_INCREMENT_KEY2 = 64;
+const uint16_t HeadPage::AUTO_INCREMENT_KEY3 = 72;
+const uint16_t HeadPage::CURRENT_RECORD_STAMP_OFFSET = 80;
 const uint16_t HeadPage::RECORD_VERSION_STAMP_OFFSET = 128;
 
 void HeadPage::ReadPage(PageFile *pageFile) {
@@ -59,6 +58,7 @@ void HeadPage::ReadPage(PageFile *pageFile) {
       uint64_t ver =
           ReadLong(RECORD_VERSION_STAMP_OFFSET + sizeof(uint64_t) * i++);
       _mapVerStamp.insert({tm, ver});
+      _setVerStamp.insert(ver);
     }
   }
 }
@@ -95,15 +95,16 @@ void HeadPage::WritePage(PageFile *pageFile) {
 }
 
 void HeadPage::WriteFileVersion() {
-  WriteShort(VERSION_OFFSET, CURRENT_FILE_VERSION.GetMajorVersion());
-  WriteByte(VERSION_OFFSET + 2, CURRENT_FILE_VERSION.GetMinorVersion());
-  WriteByte(VERSION_OFFSET + 3, CURRENT_FILE_VERSION.GetPatchVersion());
+  WriteShort(FILE_VERSION_OFFSET, CURRENT_FILE_VERSION.GetMajorVersion());
+  WriteByte(FILE_VERSION_OFFSET + 2, CURRENT_FILE_VERSION.GetMinorVersion());
+  WriteByte(FILE_VERSION_OFFSET + 3, CURRENT_FILE_VERSION.GetPatchVersion());
   _bDirty = true;
 }
 
 FileVersion HeadPage::ReadFileVersion() {
-  FileVersion fs(ReadShort(VERSION_OFFSET), ReadByte(VERSION_OFFSET + 2),
-                 ReadByte(VERSION_OFFSET + 3));
+  FileVersion fs(ReadShort(FILE_VERSION_OFFSET),
+                 ReadByte(FILE_VERSION_OFFSET + 2),
+                 ReadByte(FILE_VERSION_OFFSET + 3));
   return fs;
 }
 
@@ -113,8 +114,8 @@ void HeadPage::WriteKeyVariableFieldCount(uint16_t num) {
   WriteShort(KEY_ALTERABLE_FIELD_COUNT_OFFSET, num);
   _bDirty = true;
 
-  _indexTree->_keyVarLen = num * sizeof(uint16_t);
-  _indexTree->_keyOffset = (num + 2) * sizeof(uint16_t);
+  _indexTree->_keyVarLen = num * UI16_LEN;
+  _indexTree->_keyOffset = (num + 2) * UI16_LEN;
 }
 
 void HeadPage::WriteValueVariableFieldCount(uint16_t num) {
@@ -123,7 +124,7 @@ void HeadPage::WriteValueVariableFieldCount(uint16_t num) {
   WriteShort(VALUE_ALTERABLE_FIELD_COUNT_OFFSET, num);
   _bDirty = true;
 
-  _indexTree->_valVarLen = num * sizeof(uint16_t);
-  _indexTree->_valOffset = (num + 2) * sizeof(uint16_t);
+  _indexTree->_valVarLen = num * UI16_LEN;
+  _indexTree->_valOffset = (num + 2) * UI16_LEN;
 }
 } // namespace storage

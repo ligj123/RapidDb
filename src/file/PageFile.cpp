@@ -3,10 +3,9 @@
 #include "../utils/Log.h"
 
 namespace storage {
-thread_local OvfBuffer PageFile::_ovfBuff;
+thread_local char PageFile::_tmpBuff[1024 * 1024];
 
-PageFile::PageFile(const string &path, bool overflowFile) {
-  _bOverflowFile = overflowFile;
+PageFile::PageFile(const string &path) {
   _path = path;
   _file.open(path, ios::in | ios::out | ios::binary);
   if (!_file.is_open()) {
@@ -16,37 +15,28 @@ PageFile::PageFile(const string &path, bool overflowFile) {
     _file.close();
     _file.open(path, ios::in | ios::out | ios::binary);
   }
-
-  if (_bOverflowFile) {
-    uint64_t len = Length();
-    len += Configure::GetDiskClusterSize() - 1;
-    len = len - len % Configure::GetDiskClusterSize();
-    _overFileLength.store(len);
-  }
 }
 
 uint32_t PageFile::ReadPage(uint64_t fileOffset, char *bys, uint32_t length) {
-  // assert(fileOffset % Configure::GetDiskClusterSize() == 0);
+  assert(fileOffset % Configure::GetDiskClusterSize() == 0);
   assert(Length() > fileOffset);
   uint32_t len = 0;
-  {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _file.seekp(fileOffset, ios::beg);
-    _file.read(bys, length);
-    uint32_t len = (uint32_t)_file.gcount();
-  }
+
+  _file.seekp(fileOffset, ios::beg);
+  _file.read(bys, length);
+  len = (uint32_t)_file.gcount();
+
+  assert(len == length);
   LOG_DEBUG << "Read a page, offset=" << fileOffset << "  length=" << length
             << "  name=" << _path;
   return len;
 }
 
 void PageFile::WritePage(uint64_t fileOffset, char *bys, uint32_t length) {
-  // assert(fileOffset % Configure::GetDiskClusterSize() == 0);
-  {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    _file.seekp(fileOffset, ios::beg);
-    _file.write(bys, length);
-  }
+  assert(fileOffset % Configure::GetDiskClusterSize() == 0);
+
+  _file.seekp(fileOffset, ios::beg);
+  _file.write(bys, length);
 
   LOG_DEBUG << "Write a page, offset=" << fileOffset << "  length=" << length
             << "  name=" << _path;

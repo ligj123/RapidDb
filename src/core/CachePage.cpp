@@ -8,14 +8,15 @@ static thread_local boost::crc_32_type crc32;
 const uint32_t CachePage::CACHE_PAGE_SIZE =
     (uint32_t)Configure::GetCachePageSize();
 const uint32_t CachePage::HEAD_PAGE_SIZE =
-    (uint32_t)Configure::GetCachePageSize();
+    (uint32_t)Configure::GetDiskClusterSize();
 const uint32_t CachePage::CRC32_PAGE_OFFSET =
     (uint32_t)(Configure::GetCachePageSize() - sizeof(uint32_t));
 const uint32_t CachePage::CRC32_HEAD_OFFSET =
     (uint32_t)(Configure::GetDiskClusterSize() - sizeof(uint32_t));
 
 CachePage::CachePage(IndexTree *indexTree, PageID pageId, PageType type)
-    : _indexTree(indexTree), _pageId(pageId), _pageType(type) {
+    : _indexTree(indexTree), _pageId(pageId), _pageType(type),
+      _fileId(indexTree->GetFileId()) {
   if (type == PageType::HEAD_PAGE) {
     _bysPage = CachePool::Apply(HEAD_PAGE_SIZE);
   } else if (type != PageType::OVERFLOW_PAGE) {
@@ -28,6 +29,17 @@ CachePage::~CachePage() {
     CachePool::Release(_bysPage, HEAD_PAGE_SIZE);
   } else if (_pageType != PageType::OVERFLOW_PAGE) {
     CachePool::ReleasePage(_bysPage);
+  }
+}
+
+void CachePage::DecRefCount(int num) {
+  assert(num > 0);
+  int32_t rc = _refCount.fetch_sub(num, memory_order_relaxed);
+
+  assert(rc - num >= 0);
+  if (rc - num == 0) {
+    _indexTree->DecPages();
+    delete this;
   }
 }
 
@@ -66,13 +78,12 @@ void CachePage::ReadPage(PageFile *pageFile) {
 void CachePage::WritePage(PageFile *pageFile) {
   PageFile *pFile =
       (pageFile == nullptr ? _indexTree->ApplyPageFile() : pageFile);
-  char *tmp = PageFile::_ovfBuff.GetBuf();
+  char *tmp = PageFile::_tmpBuff;
   {
     unique_lock<SpinMutex> lock(_pageLock);
     BytesCopy(tmp, _bysPage,
-              (_pageId != HeadPage::PAGE_NULL_POINTER
-                   ? Configure::GetCachePageSize()
-                   : Configure::GetDiskClusterSize()));
+              (_pageId != HeadPage::PAGE_NULL_POINTER ? CACHE_PAGE_SIZE
+                                                      : HEAD_PAGE_SIZE));
     _bDirty = false;
   }
 
