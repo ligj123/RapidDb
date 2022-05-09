@@ -13,11 +13,11 @@ class CachePool;
 class LocalMap {
 public:
   ~LocalMap();
-  void Push(Byte *pBuf, uint32_t eleSize);
-  Byte *Pop(uint32_t eleSize);
+  void Push(Byte *pBuf, uint16_t eleSize);
+  Byte *Pop(uint16_t eleSize);
 
 protected:
-  unordered_map<uint32_t, vector<Byte *>> _map;
+  unordered_map<uint16_t, vector<Byte *>> _map;
   bool bStoped = false;
 };
 
@@ -26,13 +26,13 @@ public:
   /**Apply a menory block for an index page*/
   static Byte *ApplyPage() {
     CachePool *pool = GetInstance();
-    return pool->_localMap.Pop((uint32_t)Configure::GetCachePageSize());
+    return pool->_localMap.Pop((uint16_t)Configure::GetCachePageSize());
   }
 
   /**Release a memory block for an index page*/
   static void ReleasePage(Byte *page) {
     CachePool *pool = GetInstance();
-    pool->_localMap.Push(page, (uint32_t)Configure::GetCachePageSize());
+    pool->_localMap.Push(page, (uint16_t)Configure::GetCachePageSize());
   }
 
   /**Apply a memory block from cache*/
@@ -53,7 +53,7 @@ public:
       return new Byte[realSize];
     } else {
       CachePool *pool = GetInstance();
-      return pool->_localMap.Pop(realSize);
+      return pool->_localMap.Pop((uint16_t)realSize);
     }
   }
   /**Release a memory block with unfixed size*/
@@ -63,7 +63,7 @@ public:
       delete[] pBuf;
     else {
       CachePool *pool = GetInstance();
-      pool->_localMap.Push(pBuf, sz);
+      pool->_localMap.Push(pBuf, (uint16_t)sz);
     }
   }
 
@@ -83,7 +83,7 @@ protected:
 protected:
   static uint32_t CalcBufSize(uint32_t sz) {
     if (sz <= 64)
-      return ((sz + 7) & 0xFFF8);
+      return ((sz + 15) & 0xFFF0);
     if (sz <= 256)
       return ((sz + 31) & 0xFFE0);
     if (sz > 16384)

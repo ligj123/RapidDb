@@ -15,8 +15,8 @@ LocalMap::~LocalMap() {
   bStoped = true;
 }
 
-void LocalMap::Push(Byte *pBuf, uint32_t eleSize) {
-  assert(eleSize % 8 == 0);
+void LocalMap::Push(Byte *pBuf, uint16_t eleSize) {
+  assert(eleSize % 16 == 0);
   if (bStoped)
     return;
 
@@ -36,7 +36,7 @@ void LocalMap::Push(Byte *pBuf, uint32_t eleSize) {
   }
 }
 
-Byte *LocalMap::Pop(uint32_t eleSize) {
+Byte *LocalMap::Pop(uint16_t eleSize) {
   assert(eleSize % 8 == 0);
 
   auto iter = _map.find(eleSize);

@@ -28,7 +28,7 @@ BOOST_AUTO_TEST_CASE(SpinMutex_test) {
              .count() -
          start;
   });
-  std::this_thread::sleep_for(std::chrono::milliseconds(11));
+  std::this_thread::sleep_for(std::chrono::milliseconds(12));
   sm.unlock();
   t.join();
   BOOST_TEST(ms > 10);
@@ -238,7 +238,7 @@ BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test) {
              .count() -
          start;
   });
-  std::this_thread::sleep_for(std::chrono::milliseconds(11));
+  std::this_thread::sleep_for(std::chrono::milliseconds(20));
   sm.unlock();
   t1.join();
   BOOST_TEST(ms >= 10);

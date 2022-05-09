@@ -2,40 +2,40 @@
 #include "../config/Configure.h"
 #include "../header.h"
 #include "../utils/SpinMutex.h"
-#include <stack>
 #include <unordered_map>
 #include <vector>
 
 namespace storage {
 using namespace std;
+const uint64_t BUFFER_MASK = Configure::GetCacheBlockSize() - 1;
 class Buffer {
 public:
   inline static Byte *CalcAddr(Byte *sAddr) {
-    return sAddr - ((uint64_t)sAddr & (Configure::GetCacheBlockSize() - 1));
+    return sAddr - ((uint64_t)sAddr & BUFFER_MASK);
   }
 
 public:
-  Buffer(uint32_t eleSize);
+  Buffer(uint16_t eleSize);
   ~Buffer();
   Byte *Apply();
   void Release(Byte *bys);
   void Apply(vector<Byte *> &vct);
   void Release(vector<Byte *> &vct, bool bAll);
-  void Init(uint32_t eleSize);
-  inline bool IsEmpty() { return _stackFree.size() == 0; }
-  inline bool IsFull() { return _stackFree.size() == _maxEle; }
+  void Init(uint16_t eleSize);
+  inline bool IsEmpty() { return _vctFree.size() == 0; }
+  inline bool IsFull() { return _vctFree.size() == _maxEle; }
   inline Byte *GetBuf() { return _pBuf; }
 
 protected:
   Byte *_pBuf;
-  uint32_t _eleSize;
-  uint32_t _maxEle;
-  stack<uint32_t> _stackFree;
+  uint16_t _eleSize;
+  uint16_t _maxEle;
+  vector<uint16_t> _vctFree;
 };
 
 class BufferPool {
 public:
-  BufferPool(uint32_t eleSize);
+  BufferPool(uint16_t eleSize);
   ~BufferPool();
   void Apply(vector<Byte *> &vct);
   void Release(vector<Byte *> &vct, bool bAll);
@@ -45,7 +45,7 @@ public:
 protected:
   unordered_map<Byte *, Buffer *> _mapBuffer;
   unordered_map<Byte *, Buffer *> _mapFreeBuffer;
-  uint32_t _eleSize;
+  uint16_t _eleSize;
   SpinMutex _spinMutex;
 };
 } // namespace storage

@@ -37,6 +37,7 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
 
   int count = 0;
   for (int i = 0; i < 100; i++) {
+    hMap.Lock(i);
     auto iter = hMap.Begin(i);
     auto end = hMap.End(i);
     while (iter != end) {

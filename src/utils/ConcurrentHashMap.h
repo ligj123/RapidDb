@@ -54,13 +54,10 @@ public:
     }
   }
 
-  auto Begin(int pos) {
-    _vctLock[pos]->lock();
-    return _vctMap[pos]->begin();
-  }
-
+  auto Begin(int pos) { return _vctMap[pos]->begin(); }
   auto End(int pos) { return _vctMap[pos]->end(); }
 
+  void Lock(int pos) { _vctLock[pos]->lock(); }
   void Unlock(int pos) { _vctLock[pos]->unlock(); }
 
 protected:

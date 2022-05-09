@@ -10,7 +10,7 @@
 #endif // _MSVC_LANG
 
 namespace storage {
-Buffer::Buffer(uint32_t eleSize) : _eleSize(eleSize) {
+Buffer::Buffer(uint16_t eleSize) : _eleSize(eleSize) {
 #ifdef _MSVC_LANG
   _pBuf = (Byte *)_aligned_malloc(Configure::GetCacheBlockSize(),
                                   Configure::GetCacheBlockSize());
@@ -21,12 +21,13 @@ Buffer::Buffer(uint32_t eleSize) : _eleSize(eleSize) {
   Init(eleSize);
 }
 
-void Buffer::Init(uint32_t eleSize) {
+void Buffer::Init(uint16_t eleSize) {
   _eleSize = eleSize;
   _maxEle = (uint32_t)Configure::GetCacheBlockSize() / eleSize;
-  _stackFree = stack<uint32_t>();
-  for (uint32_t i = 0; i < _maxEle; i++) {
-    _stackFree.push(i);
+  _vctFree.clear();
+  _vctFree.reserve(_maxEle);
+  for (uint16_t i = 0; i < _maxEle; i++) {
+    _vctFree.push_back(i);
   }
 }
 
@@ -40,24 +41,24 @@ Buffer::~Buffer() {
 
 Byte *Buffer::Apply() {
   assert(!IsEmpty());
-  uint32_t index = _stackFree.top();
-  _stackFree.pop();
+  auto iter = _vctFree.end() - 1;
+  uint16_t index = *iter;
+  _vctFree.erase(iter);
   return &_pBuf[_eleSize * index];
 }
 
 void Buffer::Release(Byte *bys) {
-  uint32_t index =
-      (uint32_t)(((uint64_t)bys & (Configure::GetCacheBlockSize() - 1)) /
-                 _eleSize);
-  _stackFree.push(index);
+  uint16_t index = (uint16_t)(((uint64_t)bys & BUFFER_MASK) / _eleSize);
+  _vctFree.push_back(index);
 }
 
 void Buffer::Apply(vector<Byte *> &vct) {
   assert(!IsEmpty());
   size_t cap = (vct.capacity() >> 2) + (vct.capacity() >> 1);
   while (vct.size() < cap && !IsEmpty()) {
-    uint32_t index = _stackFree.top();
-    _stackFree.pop();
+    auto iter = _vctFree.end() - 1;
+    uint16_t index = *iter;
+    _vctFree.erase(iter);
     vct.push_back(&_pBuf[_eleSize * index]);
   }
 }
@@ -69,10 +70,8 @@ void Buffer::Release(vector<Byte *> &vct, bool bAll) {
     if ((((uint64_t)bys) ^ ((uint64_t)_pBuf)) > Configure::GetCacheBlockSize())
       continue;
 
-    uint32_t index =
-        (uint32_t)(((uint64_t)bys & (Configure::GetCacheBlockSize() - 1)) /
-                   _eleSize);
-    _stackFree.push(index);
+    uint16_t index = (uint16_t)(((uint64_t)bys & BUFFER_MASK) / _eleSize);
+    _vctFree.push_back(index);
 
     vct.erase(vct.begin() + i);
     if (!bAll && vct.size() < cap)
@@ -80,7 +79,7 @@ void Buffer::Release(vector<Byte *> &vct, bool bAll) {
   }
 }
 
-BufferPool::BufferPool(uint32_t eleSize) : _eleSize(eleSize) {}
+BufferPool::BufferPool(uint16_t eleSize) : _eleSize(eleSize) {}
 
 BufferPool::~BufferPool() {
   for (auto iter = _mapBuffer.begin(); iter != _mapBuffer.end(); iter++) {

@@ -34,7 +34,7 @@ struct TimerTask {
   };
   // To save the privious time to run this task
   DT_MicroSec _prevTime = 0;
-  // This function will use to generate Task and add into queue in thread pool
+  // This function is used to generate Task and add into queue in thread pool
   std::function<void()> _lambda;
 };
 

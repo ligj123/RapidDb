@@ -3,25 +3,38 @@
 
 namespace storage {
 thread_local string ThreadPool::_threadName = "main";
+thread_local int ThreadPool::_threadID = -1;
 
 ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
                        int minThreads, int maxThreads)
     : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize),
       _stopThreads(false), _minThreads(minThreads), _maxThreads(maxThreads),
-      _currId(0), _freeThreads(0) {
+      _aliveThreads(0), _freeThreads(0) {
   if (_minThreads < 1 || _minThreads > _maxThreads || _maxThreads < 1) {
     throw invalid_argument(
         "Please set min threads and max thread in right range!");
   }
-  for (int i = 0; i < minThreads; ++i) {
-    CreateThread(++_currId);
+
+  _vctThread.resize(_maxThreads, nullptr);
+  for (int i = 0; i < maxThreads; ++i) {
+    if (i < minThreads) {
+      CreateThread(i);
+    }
   }
 }
 
 void ThreadPool::CreateThread(int id) {
+  if (id < 0) {
+    for (int i = 0; i < _maxThreads; i++) {
+      if (_vctThread[i] == nullptr)
+        id = i;
+    }
+  }
+
   thread *t = new thread([this, id]() {
     std::unique_lock<SpinMutex> queue_lock(_task_mutex, std::defer_lock);
     _threadName = _threadPrefix + "_" + to_string(id);
+    _threadID = id;
     MVector<Task *>::Type vct;
 
     while (true) {
@@ -35,7 +48,7 @@ void ThreadPool::CreateThread(int id) {
         _freeThreads--;
         queue_lock.unlock();
         std::unique_lock<SpinMutex> thread_lock(_threadMutex);
-        if (_mapThread.size() > _minThreads || _stopThreads) {
+        if (_aliveThreads > _minThreads || _stopThreads) {
           break;
         } else {
           continue;
@@ -60,7 +73,7 @@ void ThreadPool::CreateThread(int id) {
       if (vct.size() > 0) {
         for (auto task : vct) {
           task->Run();
-          delete task;
+          task->DecRefCount();
         }
         vct.clear();
       } else {
@@ -71,15 +84,17 @@ void ThreadPool::CreateThread(int id) {
     std::unique_lock<SpinMutex> thread_lock(_threadMutex);
 
     if (!_stopThreads) {
-      thread *t = _mapThread[id];
-      _mapThread.erase(id);
+      thread *t = _vctThread[id];
+      _vctThread[id] = nullptr;
+      _aliveThreads--;
       t->detach();
       delete t;
     }
   });
 
   std::unique_lock<SpinMutex> thread_lock(_threadMutex);
-  _mapThread.insert({id, t});
+  _vctThread[id] = t;
+  _aliveThreads++;
 }
 
 ThreadPool::~ThreadPool() {
@@ -89,12 +104,15 @@ ThreadPool::~ThreadPool() {
   }
   _taskCv.notify_all();
 
-  for (auto iter = _mapThread.begin(); iter != _mapThread.end(); iter++) {
-    iter->second->join();
-    delete iter->second;
-  }
+  for (int i = 0; i < _maxThreads; i++) {
+    thread *t = _vctThread[i];
+    if (t == nullptr)
+      continue;
 
-  _mapThread.clear();
+    t->join();
+    delete t;
+    _aliveThreads--;
+  }
 }
 
 void ThreadPool::AddTask(Task *task) {
@@ -104,8 +122,8 @@ void ThreadPool::AddTask(Task *task) {
   queue_lock.unlock();
   _taskCv.notify_one();
 
-  if (_mapThread.size() < _maxThreads && _freeThreads <= 0) {
-    CreateThread(++_currId);
+  if (_aliveThreads < _maxThreads && _freeThreads <= 0) {
+    CreateThread();
   }
 }
 
@@ -119,8 +137,8 @@ void ThreadPool::AddTasks(MVector<Task *>::Type &vct) {
   queue_lock.unlock();
   _taskCv.notify_one();
 
-  if (_mapThread.size() < _maxThreads && _freeThreads <= 0) {
-    CreateThread(++_currId);
+  if (_aliveThreads < _maxThreads && _freeThreads <= 0) {
+    CreateThread();
   }
 }
 } // namespace storage

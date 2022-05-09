@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
     bool *_pStop;
   };
 
-  ThreadPool tp("Test_ThreadPool");
+  ThreadPool tp("Test_ThreadPool", 100000, 1, 8);
   BOOST_TEST(tp.GetMinThreads() == tp.GetThreadCount());
 
   bool bStop = false;
@@ -59,7 +59,6 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   bStop = true;
   this_thread::sleep_for(chrono::milliseconds(1000));
   BOOST_TEST(tp.GetMinThreads() == tp.GetThreadCount());
-  BOOST_TEST(tp.GetCurrId() == 8);
 
   bStop = false;
   for (int i = 0; i < 20; i++) {
@@ -72,7 +71,6 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   bStop = true;
   this_thread::sleep_for(chrono::milliseconds(1000));
   BOOST_TEST(tp.GetMinThreads() == tp.GetThreadCount());
-  BOOST_TEST(tp.GetCurrId() == 15);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

@@ -11,10 +11,11 @@
 namespace storage {
 
 uint16_t IndexTree::_currFiledId = 0;
-SpinMutex IndexTree::_spinMutex;
+SpinMutex IndexTree::_fileIdMutex;
 
 IndexTree::IndexTree(const string &tableName, const string &fileName,
-                     VectorDataValue &vctKey, VectorDataValue &vctVal) {
+                     VectorDataValue &vctKey, VectorDataValue &vctVal,
+                     IndexType iType) {
   _tableName = tableName;
   _fileName = fileName;
   for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {
@@ -23,7 +24,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   }
 
   {
-    lock_guard<SpinMutex> lock(_spinMutex);
+    lock_guard<SpinMutex> lock(_fileIdMutex);
     while (true) {
       if (_setFiledId.find(_currFiledId) == _setFiledId.end()) {
         _setFiledId.insert(_currFiledId);
@@ -34,10 +35,8 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
     }
   }
 
-  fstream fs(_fileName);
-  bool bExist = fs.good();
   _headPage = new HeadPage(this);
-  if (!bExist) {
+  if (iType != IndexType::UNKNOWN) {
     {
       unique_lock<ReentrantSharedSpinMutex> lock(_headPage->GetLock());
       memset(_headPage->GetBysPage(), 0, Configure::GetDiskClusterSize());
@@ -48,6 +47,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
       _headPage->WriteAutoIncrementKey(0);
       _headPage->WriteAutoIncrementKey2(0);
       _headPage->WriteAutoIncrementKey3(0);
+      _headPage->WriteIndexType(iType);
     }
 
     StoragePool::WriteCachePage(_headPage);
@@ -67,54 +67,36 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   _vctKey.swap(vctKey);
   _vctValue.swap(vctVal);
 
-  _keyVarLen = _headPage->ReadKeyVariableFieldCount() * sizeof(uint16_t);
-  _valVarLen = _headPage->ReadValueVariableFieldCount() * sizeof(uint32_t);
-  _keyOffset = _keyVarLen + sizeof(uint16_t) * 2;
-  _valOffset = _valVarLen + sizeof(uint32_t) * 2;
-
+  _keyVarLen = _headPage->ReadKeyVariableFieldCount() * UI16_LEN;
+  _keyOffset = _keyVarLen + UI16_2_LEN;
+  if (_headPage->ReadIndexType() == IndexType::PRIMARY) {
+    _valVarLen = _headPage->ReadValueVariableFieldCount() * UI32_LEN;
+    _valOffset = _valVarLen + (_vctValue.size() + 7) << 3;
+  } else {
+    _valVarLen = _headPage->ReadValueVariableFieldCount() * UI16_LEN;
+    _valOffset = _valVarLen + UI16_2_LEN;
+  }
   _garbageOwner = new GarbageOwner(this);
   LOG_DEBUG << "Open index tree " << tableName;
 }
 
 IndexTree::~IndexTree() {
-  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  _garbageOwner->SavePage();
-  if (_headPage->IsDirty()) {
-    _headPage->WritePage();
-  }
-
-  while (_queueMutex.size() > 0) {
-    delete _queueMutex.front();
-    _queueMutex.pop();
-  }
-
-  for (auto iter = _mapMutex.begin(); iter != _mapMutex.end(); iter++) {
-    delete iter->second;
-  }
-
-  while (_fileQueue.size() > 0) {
-    delete _fileQueue.front();
-    _fileQueue.pop();
-  }
-
-  delete _headPage;
-  delete _garbageOwner;
-}
-
-void IndexTree::Close(bool bWait) {
   _bClosed = true;
-
   unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  _rootPage->DecRefCount();
-  if (!bWait)
-    return;
+  if (_rootPage != nullptr) {
+    _rootPage->DecRefCount();
+  }
 
   while (_pageCountInPool.load() > 1) {
     this_thread::sleep_for(chrono::milliseconds(1));
   }
+
+  _garbageOwner->SavePage();
+  _garbageOwner = nullptr;
   if (_headPage->IsDirty()) {
     _headPage->WritePage();
   }
+  _headPage = nullptr;
 
   while (_queueMutex.size() > 0) {
     delete _queueMutex.front();
@@ -129,6 +111,28 @@ void IndexTree::Close(bool bWait) {
   while (_fileQueue.size() > 0) {
     delete _fileQueue.front();
     _fileQueue.pop();
+  }
+
+  unique_lock<SpinMutex> lock(_fileIdMutex);
+  _setFiledId.erase(_fileId);
+
+  LOG_DEBUG << "Close index tree " << _tableName;
+}
+
+void IndexTree::Close(bool bWait) {
+  _bClosed = true;
+
+  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
+  if (_rootPage == nullptr)
+    return;
+
+  _rootPage->DecRefCount();
+  _rootPage = nullptr;
+  if (!bWait)
+    return;
+
+  while (_pageCountInPool.load() > 1) {
+    this_thread::sleep_for(chrono::milliseconds(1));
   }
 }
 
@@ -150,19 +154,18 @@ void IndexTree::CloneValues(VectorDataValue &vct) {
 
 PageFile *IndexTree::ApplyPageFile() {
   while (true) {
-    {
-      lock_guard<SpinMutex> lock(_fileMutex);
-      if (_fileQueue.size() > 0) {
-        PageFile *rpf = _fileQueue.front();
-        _fileQueue.pop();
-        return rpf;
-      } else if (_rpfCount < Configure::GetMaxPageFileCount()) {
-        _rpfCount++;
-        return new PageFile(_fileName);
-      }
+    unique_lock<SpinMutex> lock(_fileMutex);
+    _fileCv.wait_for(lock, 1ms, [this] {
+      return _rpfCount < Configure::GetMaxPageFileCount();
+    });
+    if (_fileQueue.size() > 0) {
+      PageFile *rpf = _fileQueue.front();
+      _fileQueue.pop();
+      return rpf;
+    } else if (_rpfCount < Configure::GetMaxPageFileCount()) {
+      _rpfCount++;
+      return new PageFile(_fileName);
     }
-
-    this_thread::sleep_for(std::chrono::milliseconds(1));
   }
 }
 

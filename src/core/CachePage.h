@@ -62,8 +62,8 @@ public:
   inline bool WriteTryLock() { return _rwLock.try_lock(); }
   inline void WriteUnlock() { _rwLock.unlock(); }
   inline int32_t GetRefCount() { return _refCount.load(memory_order_relaxed); }
-  inline bool IsOverTime(uint64_t micresecs) {
-    return MicroSecTime() - _dtPageLastWrite > micresecs;
+  inline bool IsOverTime(uint64_t microSecs) {
+    return MicroSecTime() - _dtPageLastWrite > microSecs;
   }
   void IncRefCount(int num = 1) {
     assert(num > 0);

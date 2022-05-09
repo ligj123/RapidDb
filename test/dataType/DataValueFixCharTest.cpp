@@ -64,12 +64,12 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   dv1.ReadData(buf, 0);
   BOOST_TEST(dv1 == dv7);
 
-  DataValueFixChar dv9(pStr, strlen(pStr));
+  DataValueFixChar dv9(pStr, (uint32_t)strlen(pStr));
   uint32_t len = dv9.WriteData(buf + 20);
   dv1.ReadData(buf + 20, len);
   BOOST_TEST(dv1 == dv9);
 
-  DataValueFixChar dv10(pStr, strlen(pStr), 100, true);
+  DataValueFixChar dv10(pStr, (uint32_t)strlen(pStr), 100, true);
   dv10.WriteData(buf + 30);
   dv3.ReadData(buf + 30, 100);
   BOOST_TEST(dv3 == dv10);

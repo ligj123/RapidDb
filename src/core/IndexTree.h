@@ -19,7 +19,6 @@ class LeafPage;
 
 struct PageLock {
   PageLock() : _sm(new SpinMutex), _refCount(0) {}
-
   ~PageLock() { delete _sm; }
 
   SpinMutex *_sm;
@@ -29,7 +28,8 @@ struct PageLock {
 class IndexTree {
 public:
   IndexTree(const string &tableName, const string &fileName,
-            VectorDataValue &vctKey, VectorDataValue &vctVal);
+            VectorDataValue &vctKey, VectorDataValue &vctVal,
+            IndexType iType = IndexType::UNKNOWN);
   ErrorMsg *InsertRecord(LeafRecord *rr);
   void UpdateRootPage(IndexPage *root);
   IndexPage *AllocateNewPage(uint32_t parentId, Byte pageLevel);
@@ -129,11 +129,11 @@ protected:
   LeafPage *SearchRecursively(const LeafRecord &lr);
 
 protected:
-  static std::atomic<uint32_t> _atomicFileId;
   std::string _tableName;
   std::string _fileName;
   std::queue<PageFile *> _fileQueue;
   SpinMutex _fileMutex;
+  condition_variable_any _fileCv;
   /**How much page files were opened for this index tree*/
   uint32_t _rpfCount = 0;
   uint16_t _fileId;
@@ -142,8 +142,8 @@ protected:
   HeadPage *_headPage = nullptr;
   GarbageOwner *_garbageOwner;
 
-  /** To record how much pages are in index page pool */
-  atomic<int64_t> _pageCountInPool = 0;
+  /** To record how much pages of this index tree are in memory */
+  atomic<int32_t> _pageCountInPool = 0;
   /** How much pages are waiting to read or write */
   // atomic<int64_t> _taskWaiting = 0;
   /**To generate new stamp for record, every time increase 1*/
@@ -163,9 +163,12 @@ protected:
   uint16_t _keyOffset; //(KeyVarFieldNum + 2) * sizeof(uint16_t)
   uint16_t _valOffset; //(ValVarFieldNum + 2) * sizeof(uint32_t)
 protected:
+  // The ids have been used in this process
   static MHashSet<uint16_t>::Type _setFiledId;
+  // Used to find free id circled
   static uint16_t _currFiledId;
-  static SpinMutex _spinMutex;
+  // Used to static File IDs
+  static SpinMutex _fileIdMutex;
   friend class HeadPage;
 };
 } // namespace storage

@@ -31,7 +31,7 @@ DataValueBlob::DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength,
 DataValueBlob::DataValueBlob(MVector<Byte>::Type &vct, uint32_t maxLength,
                              bool bKey)
     : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, bKey),
-      maxLength_(maxLength), soleLength_(vct.size()) {
+      maxLength_(maxLength), soleLength_((uint32_t)vct.size()) {
   if (soleLength_ > maxLength_) {
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
                    {to_string(maxLength_), to_string(soleLength_)});

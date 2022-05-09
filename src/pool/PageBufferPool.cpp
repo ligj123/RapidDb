@@ -32,7 +32,6 @@ void PageBufferPool::ClearPool() {
       this_thread::sleep_for(std::chrono::microseconds(10));
     }
 
-    page->GetIndexTree()->DecPages();
     page->DecRefCount();
   }
   _mapCache.clear();

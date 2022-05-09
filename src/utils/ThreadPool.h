@@ -25,6 +25,30 @@ public:
   // If small task, the thread pool maybe get more than one tasks one time to
   // execute
   virtual bool IsSmallTask() { return false; }
+  void IncRefCount(int num = 1, bool lock = false) {
+    assert(num > 0);
+    if (lock) {
+      _spinMutex.lock();
+    }
+    _refCount += num;
+    if (lock) {
+      _spinMutex.unlock();
+    }
+  }
+  void DecRefCount(int num = 1, bool lock = false) {
+    assert(num > 0);
+    if (lock) {
+      _spinMutex.lock();
+    }
+    _refCount -= num;
+    if (lock) {
+      _spinMutex.unlock();
+    }
+    assert(_refCount >= 0);
+    if (_refCount == 0) {
+      delete this;
+    }
+  }
 
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
@@ -38,10 +62,13 @@ protected:
   promise<int> _promise;
   /**Waiting tasks for this task*/
   vector<Task *> _vctWaitTasks;
+  SpinMutex _spinMutex;
+  uint32_t _refCount = 1;
 };
 
 class ThreadPool {
 public:
+  static thread_local int _threadID;
   static thread_local string _threadName;
   static string GetThreadName() { return _threadName; }
 
@@ -61,15 +88,14 @@ public:
   void SetMaxQueueSize(uint32_t qsize) { _maxQueueSize = qsize; }
   uint32_t GetMaxQueueSize() { return _maxQueueSize; }
   bool IsFull() { return _maxQueueSize <= _tasks.size(); }
-  void CreateThread(int id);
-  int GetThreadCount() { return (int)_mapThread.size(); }
+  void CreateThread(int id = -1);
+  int GetThreadCount() { return _aliveThreads; }
   int GetMinThreads() { return _minThreads; }
   int GetMaxThreads() { return _maxThreads; }
-  int GetCurrId() { return _currId; }
   int GetFreeThreads() { return _freeThreads; }
 
 private:
-  unordered_map<int, std::thread *> _mapThread;
+  vector<thread *> _vctThread;
   deque<Task *> _tasks;
   SpinMutex _task_mutex;
   SpinMutex _threadMutex;
@@ -79,7 +105,7 @@ private:
   uint32_t _maxQueueSize;
   int _minThreads;
   int _maxThreads;
-  atomic_int32_t _currId;
+  int _aliveThreads;
   int _freeThreads;
 };
 

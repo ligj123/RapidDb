@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
   BOOST_TEST(dv1 == dv2);
 
   const char *pStr = "abcd";
-  DataValueVarChar dv4(pStr, strlen(pStr));
+  DataValueVarChar dv4(pStr, (uint32_t)strlen(pStr));
   BOOST_TEST(dv4.GetDataType() == DataType::VARCHAR);
   BOOST_TEST(dv4.GetValueType() == ValueType::SOLE_VALUE);
   BOOST_TEST(!dv4.IsNull());
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
   BOOST_TEST(dv2.GetDataLength() == 1);
   BOOST_TEST(dv2.GetValueType() == ValueType::SOLE_VALUE);
 
-  DataValueVarChar dv9(pStr, strlen(pStr));
+  DataValueVarChar dv9(pStr, (uint32_t)strlen(pStr));
   dv9.WriteData(buf + 20);
   dv1.ReadData(buf + 20, 5);
   BOOST_TEST(dv1 == dv9);
