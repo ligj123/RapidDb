@@ -87,7 +87,7 @@ IndexTree::~IndexTree() {
     _rootPage->DecRefCount();
   }
 
-  while (_pageCountInPool.load() > 1) {
+  while (_pagesInMem.load() > 1) {
     this_thread::sleep_for(chrono::milliseconds(1));
   }
 
@@ -131,7 +131,7 @@ void IndexTree::Close(bool bWait) {
   if (!bWait)
     return;
 
-  while (_pageCountInPool.load() > 1) {
+  while (_pagesInMem.load() > 1) {
     this_thread::sleep_for(chrono::milliseconds(1));
   }
 }
@@ -500,17 +500,6 @@ bool IndexTree::ReadRecord(const RawKey &key, uint64_t verStamp,
   page->ReadUnlock();
   page->DecRefCount();
   return b;
-}
-
-bool IndexTree::ReadRecordOverflow(const RawKey &key, VectorDataValue &vctVal) {
-  assert(_headPage->ReadIndexType() == IndexType::PRIMARY);
-  LeafPage *page = SearchRecursively(key);
-  LeafRecord *rr = page->GetRecord(key);
-  bool b = false;
-
-  page->ReadUnlock();
-  page->DecRefCount();
-  return true;
 }
 
 bool IndexTree::ReadPrimaryKeys(const RawKey &key, VectorRawKey &vctKey) {

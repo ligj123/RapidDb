@@ -138,9 +138,21 @@ protected:
   // When read this page from disk and verify it by crc32, if return error, set
   // it to true, means this page need to fix.
   bool _bInvalidPage = false;
+  // If this page has been filled
+  bool _bFilled = false;
   // Page Type
   PageType _pageType;
   // Copy from IndexTree
   uint16_t _fileId;
+};
+
+class PageTask : public Task {
+public:
+  PageTask(CachePage *page) : _page(page) {}
+  bool IsSmallTask() { return true; }
+  void Run() {}
+
+protected:
+  CachePage *_page;
 };
 } // namespace storage

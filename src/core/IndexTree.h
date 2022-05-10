@@ -62,8 +62,6 @@ public:
    */
   bool ReadRecord(const RawKey &key, uint64_t verStamp, VectorDataValue &vctVal,
                   bool bOvf = false);
-  /**Only to read overflow fileds for the last stamp version */
-  bool ReadRecordOverflow(const RawKey &key, VectorDataValue &vctVal);
   /**Read the primary keys by secondary key from secondary index record*/
   bool ReadPrimaryKeys(const RawKey &key, VectorRawKey &vctKey);
   /**
@@ -108,11 +106,9 @@ public:
   }
 
   inline HeadPage *GetHeadPage() { return _headPage; }
-  inline void IncPages() {
-    _pageCountInPool.fetch_add(1, memory_order_relaxed);
-  }
+  inline void IncPages() { _pagesInMem.fetch_add(1, memory_order_relaxed); }
   inline void DecPages() {
-    if (_pageCountInPool.fetch_add(-1, memory_order_relaxed) == 1)
+    if (_pagesInMem.fetch_add(-1, memory_order_relaxed) == 1)
       delete this;
   }
 
@@ -143,11 +139,7 @@ protected:
   GarbageOwner *_garbageOwner;
 
   /** To record how much pages of this index tree are in memory */
-  atomic<int32_t> _pageCountInPool = 0;
-  /** How much pages are waiting to read or write */
-  // atomic<int64_t> _taskWaiting = 0;
-  /**To generate new stamp for record, every time increase 1*/
-  // atomic<int64_t> _stampGen = 0;
+  atomic<int32_t> _pagesInMem = 0;
 
   VectorDataValue _vctKey;
   VectorDataValue _vctValue;
@@ -158,10 +150,17 @@ protected:
   SharedSpinMutex _rootSharedMutex;
   IndexPage *_rootPage = nullptr;
 
-  uint16_t _keyVarLen; // KeyVarFieldNum * sizeof(uint16_t)
-  uint16_t _valVarLen; // ValVarFieldNum * sizeof(uint32_t)
-  uint16_t _keyOffset; //(KeyVarFieldNum + 2) * sizeof(uint16_t)
-  uint16_t _valOffset; //(ValVarFieldNum + 2) * sizeof(uint32_t)
+  // KeyVarFieldNum * sizeof(uint16_t)
+  uint16_t _keyVarLen;
+  // PrimaryKey: ValVarFieldNum * sizeof(uint32_t)
+  // Other: ValVarFieldNum * sizeof(uint16_t)
+  uint16_t _valVarLen;
+  //(KeyVarFieldNum + 2) * sizeof(uint16_t)
+  uint16_t _keyOffset;
+  // PrimaryKey: ValVarFieldNum * sizeof(uint32_t) + Field Null bits
+  // Other: ValVarFieldNum * sizeof(uint16_t) + sizeof(uint16_t)
+  uint16_t _valOffset;
+
 protected:
   // The ids have been used in this process
   static MHashSet<uint16_t>::Type _setFiledId;

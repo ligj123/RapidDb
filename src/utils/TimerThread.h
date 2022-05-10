@@ -55,6 +55,9 @@ public:
       return 0;
     return _instance->_currTime;
   }
+  static size_t GetTaskCount() {
+    return _instance == nullptr ? 0 : _instance->_vctTask.size();
+  }
   static void Start();
   static void Stop();
 

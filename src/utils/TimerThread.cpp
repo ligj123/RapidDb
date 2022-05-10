@@ -24,7 +24,7 @@ void TimerThread::Run() {
     if (_mutex.try_lock()) {
       for (size_t i = 0; i < _vctTask.size();) {
         TimerTask *task = _vctTask[i];
-        if (task->type == TimerType::CIRCLE) {
+        if (task->type == TimerType::TIMING) {
           if (_currTime >= task->dtStart) {
             task->_lambda();
             _vctTask.erase(_vctTask.begin() + i);

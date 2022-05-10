@@ -21,11 +21,11 @@ public:
   virtual void Run() = 0;
   // All child class will return int after call Run, 0: passed; -1: Failed;
   // If need throw exception, it will throw ErrorMsg;
-  future<int> GetFuture() { return _promise.get_future(); }
+  // future<int> GetFuture() { return _promise.get_future(); }
   // If small task, the thread pool maybe get more than one tasks one time to
   // execute
   virtual bool IsSmallTask() { return false; }
-  void IncRefCount(int num = 1, bool lock = false) {
+  void IncRef(int num = 1, bool lock = false) {
     assert(num > 0);
     if (lock) {
       _spinMutex.lock();
@@ -35,7 +35,7 @@ public:
       _spinMutex.unlock();
     }
   }
-  void DecRefCount(int num = 1, bool lock = false) {
+  void DecRef(int num = 1, bool lock = false) {
     assert(num > 0);
     if (lock) {
       _spinMutex.lock();
@@ -59,7 +59,7 @@ public:
 
 protected:
   /**Return int value after finished.*/
-  promise<int> _promise;
+  // promise<int> _promise;
   /**Waiting tasks for this task*/
   vector<Task *> _vctWaitTasks;
   SpinMutex _spinMutex;
