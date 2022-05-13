@@ -91,14 +91,15 @@ protected:
   // Transaction id
   // One transaction is 64 bits uint64_t. Thee highest bit is automate(0) or
   // manual(1) type. The following 15 bits is reserve for distributed version,
-  // it tell which node(computer) rise this transaction. The following 24 bits
-  // is remainder of seconds since epoch. The last 24 bit is self increasing
-  // integer from atomicTranId. For automate type, one transaction only has one
-  // statement, so tran id will increase 1 every time. For manual type, One
-  // tansaction can has many statements, so here 24 bits will split 2 equal
-  // parts. The first 12 bits are trabsaction ids, the other 12 bits are
-  // statement ids in this transaction. If a transaction has more than 4096
-  // statements, it will allocate other zone for this transaction.
+  // it tell which node(computer) rise this transaction. The following 8 bits
+  // is to save this node restart how many times, add one every time and recycle
+  // from 0 to 255. The last 48 bit is self increasing integer from atomicTranId
+  // for automate type, one transaction only has one statement, so tran id will
+  // increase one every time. For manual type, one tansaction can has many
+  // statements, so here 48 bits will split 2 parts. The first 32 bits are
+  // trabsaction ids, the other 16 bits are statement ids in this transaction.
+  // If a transaction has more than 65536 statements, it will allocate other
+  // zone for this transaction.
   uint64_t _tranId;
   // To save the failed reason if the transaction failed or nullptr.
   ErrorMsg *_errorMsg = nullptr;

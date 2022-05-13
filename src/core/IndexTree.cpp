@@ -169,6 +169,69 @@ PageFile *IndexTree::ApplyPageFile() {
   }
 }
 
+void IndexTree::UpdateRootPage(IndexPage *root) {
+  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
+  _rootPage->DecRefCount();
+  _headPage->WriteRootPagePointer(root->GetPageId());
+  _rootPage = root;
+  root->IncRefCount();
+  StoragePool::WriteCachePage(_headPage);
+}
+
+IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
+  PageID newPageId = _garbageOwner->ApplyPage(1);
+  if (newPageId == HeadPage::PAGE_NULL_POINTER)
+    newPageId = _headPage->GetAndIncTotalPageCount();
+  IndexPage *page = nullptr;
+  if (0 != pageLevel) {
+    page = new BranchPage(this, newPageId, pageLevel, parentId);
+  } else {
+    page = new LeafPage(this, newPageId, parentId);
+  }
+
+  PageBufferPool::AddPage(page);
+  IncPages();
+
+  LOG_DEBUG << "Allocate new CachePage, pageLevel=" << (int)pageLevel
+            << "  pageId=" << newPageId;
+  return page;
+}
+
+IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
+  assert(pageId < _headPage->ReadTotalPageCount());
+  IndexPage *page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
+  if (page != nullptr)
+    return page;
+
+  _pageMutex.lock();
+  page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
+  if (page == nullptr) {
+    if (bLeafPage) {
+      page = new LeafPage(this, pageId);
+    } else {
+      page = new BranchPage(this, pageId);
+    }
+
+    PageBufferPool::AddPage(page);
+    IncPages();
+
+    ReadPageTask *task = new ReadPageTask(page);
+    ThreadPool::InstMain().AddTask(task);
+  }
+  _pageMutex.unlock();
+
+  return page;
+}
+
+LeafRecord *IndexTree::GetRecord(const RawKey &key) {
+  LeafPage *page = SearchRecursively(key);
+  LeafRecord *rr = page->GetRecord(key);
+
+  page->ReadUnlock();
+  page->DecRefCount();
+  return rr;
+}
+
 ErrorMsg *IndexTree::InsertRecord(LeafRecord *rr) {
   LeafPage *page = SearchRecursively(*rr);
   ErrorMsg *err = page->InsertRecord(rr);
@@ -180,78 +243,6 @@ ErrorMsg *IndexTree::InsertRecord(LeafRecord *rr) {
   page->WriteUnlock();
   page->DecRefCount();
   return err;
-}
-
-IndexPage *IndexTree::GetPage(uint32_t pageId, bool bLeafPage) {
-  assert(pageId < _headPage->ReadTotalPageCount());
-  IndexPage *page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
-  if (page != nullptr)
-    return page;
-
-  _pageMutex.lock();
-
-  PageLock *lockPage = nullptr;
-  auto iter = _mapMutex.find(pageId);
-  if (iter != _mapMutex.end()) {
-    lockPage = iter->second;
-    lockPage->_refCount++;
-  } else {
-    if (_queueMutex.size() > 0) {
-      lockPage = _queueMutex.front();
-      _queueMutex.pop();
-    } else {
-      lockPage = new PageLock;
-    }
-    lockPage->_refCount++;
-    _mapMutex.insert({pageId, lockPage});
-  }
-
-  _pageMutex.unlock();
-  lockPage->_sm->lock();
-
-  page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
-  if (page == nullptr) {
-    if (bLeafPage) {
-      page = new LeafPage(this, pageId);
-    } else {
-      page = new BranchPage(this, pageId);
-    }
-
-    std::future<int> fut = StoragePool::ReadCachePage(page);
-    fut.get();
-
-    page->Init();
-    PageBufferPool::AddPage(page);
-    page->IncRefCount();
-    IncPages();
-  }
-
-  _pageMutex.lock();
-  _mapMutex.erase(pageId);
-  lockPage->_sm->unlock();
-  if (lockPage->_refCount == 0)
-    _queueMutex.push(lockPage);
-  _pageMutex.unlock();
-
-  return page;
-}
-
-void IndexTree::UpdateRootPage(IndexPage *root) {
-  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  _rootPage->DecRefCount();
-  _headPage->WriteRootPagePointer(root->GetPageId());
-  _rootPage = root;
-  root->IncRefCount();
-  StoragePool::WriteCachePage(_headPage);
-}
-
-LeafRecord *IndexTree::GetRecord(const RawKey &key) {
-  LeafPage *page = SearchRecursively(key);
-  LeafRecord *rr = page->GetRecord(key);
-
-  page->ReadUnlock();
-  page->DecRefCount();
-  return rr;
 }
 
 void IndexTree::GetRecords(const RawKey &key, VectorLeafRecord &vct) {
@@ -367,24 +358,6 @@ void IndexTree::QueryRecord(RawKey *keyStart, RawKey *keyEnd, bool bIncLeft,
 
   page->ReadUnlock();
   page->DecRefCount();
-}
-
-IndexPage *IndexTree::AllocateNewPage(uint32_t parentId, Byte pageLevel) {
-  uint32_t newPageId = _headPage->GetAndIncTotalPageCount();
-  IndexPage *page = nullptr;
-  if (0 != pageLevel) {
-    page = new BranchPage(this, newPageId, pageLevel, parentId);
-  } else {
-    page = new LeafPage(this, newPageId, parentId);
-  }
-
-  PageBufferPool::AddPage(page);
-  page->IncRefCount();
-  IncPages();
-
-  LOG_DEBUG << "Allocate new CachePage, pageLevel=" << (int)pageLevel
-            << "  pageId=" << newPageId;
-  return page;
 }
 
 LeafPage *IndexTree::SearchRecursively(const RawKey &key) {

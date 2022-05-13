@@ -50,4 +50,6 @@ bool StoragePool::_bReadFirst = true;
 SpinMutex StoragePool::_spinMutex;
 bool StoragePool::_bWriteSuspend = false;
 bool StoragePool::_bStop = false;
+
+ThreadPool *ThreadPool::_instMain;
 } // namespace storage

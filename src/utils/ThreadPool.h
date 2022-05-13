@@ -19,12 +19,10 @@ class Task {
 public:
   virtual ~Task() {}
   virtual void Run() = 0;
-  // All child class will return int after call Run, 0: passed; -1: Failed;
-  // If need throw exception, it will throw ErrorMsg;
-  // future<int> GetFuture() { return _promise.get_future(); }
+  int GetResult() { return _result; }
   // If small task, the thread pool maybe get more than one tasks one time to
   // execute
-  virtual bool IsSmallTask() { return false; }
+  virtual bool IsSmallTask() { return true; }
   void IncRef(int num = 1, bool lock = false) {
     assert(num > 0);
     if (lock) {
@@ -50,6 +48,8 @@ public:
     }
   }
 
+  bool AddWaitTasks(Task *task) { _vctWaitTasks.push_back(task); }
+
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
   }
@@ -58,12 +58,12 @@ public:
   }
 
 protected:
-  /**Return int value after finished.*/
-  // promise<int> _promise;
   /**Waiting tasks for this task*/
   vector<Task *> _vctWaitTasks;
   SpinMutex _spinMutex;
   uint32_t _refCount = 1;
+  // 0: passed; -1: failed; 1: pause and resume in following time
+  int _result;
 };
 
 class ThreadPool {
@@ -71,6 +71,16 @@ public:
   static thread_local int _threadID;
   static thread_local string _threadName;
   static string GetThreadName() { return _threadName; }
+  static ThreadPool &InstMain() {
+    if (_instMain == nullptr) {
+      unique_lock<SpinMutex> lock(_smMain);
+      if (_instMain == nullptr) {
+        _instMain = new ThreadPool("Rapid");
+      }
+    }
+
+    return *_instMain;
+  }
 
 public:
   ThreadPool(string threadPrefix, uint32_t maxQueueSize = 1000000,
@@ -94,7 +104,7 @@ public:
   int GetMaxThreads() { return _maxThreads; }
   int GetFreeThreads() { return _freeThreads; }
 
-private:
+protected:
   vector<thread *> _vctThread;
   deque<Task *> _tasks;
   SpinMutex _task_mutex;
@@ -107,6 +117,10 @@ private:
   int _maxThreads;
   int _aliveThreads;
   int _freeThreads;
+
+protected:
+  static ThreadPool *_instMain;
+  static SpinMutex _smMain;
 };
 
 } // namespace storage

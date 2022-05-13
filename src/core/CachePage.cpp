@@ -73,6 +73,7 @@ void CachePage::ReadPage(PageFile *pageFile) {
     _indexTree->ReleasePageFile(pFile);
   }
   _bDirty = false;
+  _bFilled = true;
 }
 
 void CachePage::WritePage(PageFile *pageFile) {

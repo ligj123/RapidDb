@@ -6,6 +6,7 @@
 #include "../header.h"
 #include "../utils/BytesConvert.h"
 #include "../utils/SpinMutex.h"
+#include "../utils/ThreadPool.h"
 #include "../utils/Utilitys.h"
 #include "PageType.h"
 #include <atomic>
@@ -38,6 +39,7 @@ public:
   void DecRefCount(int num = 1);
   virtual void ReadPage(PageFile *pageFile = nullptr);
   virtual void WritePage(PageFile *pageFile = nullptr);
+  virtual void Init() {}
 
   inline ReentrantSharedSpinMutex &GetLock() { return _rwLock; }
   inline bool IsDirty() const { return _bDirty; }
@@ -100,20 +102,34 @@ public:
     Int32ToBytes(value, _bysPage + pos);
   }
 
-  uint64_t ReadLong(uint32_t pos) const {
+  inline uint64_t ReadLong(uint32_t pos) const {
     assert(Configure::GetCachePageSize() > sizeof(int64_t) + pos);
     return Int64FromBytes(_bysPage + pos);
   }
 
-  void WriteLong(uint32_t pos, int64_t value) {
+  inline void WriteLong(uint32_t pos, int64_t value) {
     assert(Configure::GetCachePageSize() > sizeof(int64_t) + pos);
     Int64ToBytes(value, _bysPage + pos);
+  }
+
+  inline MVector<Task *>::Type &GetWaitTasks() { return _vctWaitTask; }
+  inline bool PushWaitTask(Task *task) {
+    if (_bFilled)
+      return false;
+    WriteLock();
+    if (_bFilled)
+      return false;
+    _vctWaitTask.push_back(task);
+    WriteUnlock();
+    return true;
   }
 
 protected:
   virtual ~CachePage();
 
 protected:
+  // The waiting tasks that need to run after read this pages
+  MVector<Task *>::Type _vctWaitTask;
   // The page block, it is equal pages in disk
   Byte *_bysPage = nullptr;
   // Read write lock.
@@ -130,7 +146,7 @@ protected:
   // ID for this page
   PageID _pageId = 0;
   // How many times has this page been referenced
-  atomic<int32_t> _refCount = {1};
+  atomic<int32_t> _refCount = {2};
   // If this page has been changed
   bool _bDirty = false;
   // used only in IndexPage, point out if there have records added or deleted
@@ -146,11 +162,24 @@ protected:
   uint16_t _fileId;
 };
 
-class PageTask : public Task {
+class ReadPageTask : public Task {
 public:
-  PageTask(CachePage *page) : _page(page) {}
-  bool IsSmallTask() { return true; }
-  void Run() {}
+  ReadPageTask(CachePage *page) : _page(page) {}
+  bool IsSmallTask() { return false; }
+  void Run() {
+    _page->WriteLock();
+    _page->ReadPage(nullptr);
+
+    if (_page->GetPageType() == PageType::LEAF_PAGE ||
+        _page->GetPageType() == PageType::BRANCH_PAGE) {
+      ((IndexPage *)_page)->Init();
+    }
+
+    MVector<Task *>::Type vct = _page->GetWaitTasks();
+    ThreadPool::InstMain().AddTasks(vct);
+    vct.clear();
+    _page->WriteUnlock();
+  }
 
 protected:
   CachePage *_page;

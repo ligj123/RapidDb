@@ -30,12 +30,11 @@ public:
   IndexTree(const string &tableName, const string &fileName,
             VectorDataValue &vctKey, VectorDataValue &vctVal,
             IndexType iType = IndexType::UNKNOWN);
-  ErrorMsg *InsertRecord(LeafRecord *rr);
   void UpdateRootPage(IndexPage *root);
-  IndexPage *AllocateNewPage(uint32_t parentId, Byte pageLevel);
+  IndexPage *AllocateNewPage(PageID parentId, Byte pageLevel);
+  IndexPage *GetPage(PageID pageId, bool bLeafPage);
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
-  IndexPage *GetPage(uint32_t pageId, bool bLeafPage);
   // Apply a series of pages for overflow pages. It will search Garbage Pages
   // first. If no suitable, it will apply new page id
   PageID ApplyPageId(uint16_t num) {
@@ -52,6 +51,7 @@ public:
 
   PageFile *ApplyPageFile();
 
+  ErrorMsg *InsertRecord(LeafRecord *rr);
   /**
    * @brief Read a record's data values by key, only used for primary key.
    * @param key The primary key to search.
@@ -108,7 +108,7 @@ public:
   inline HeadPage *GetHeadPage() { return _headPage; }
   inline void IncPages() { _pagesInMem.fetch_add(1, memory_order_relaxed); }
   inline void DecPages() {
-    if (_pagesInMem.fetch_add(-1, memory_order_relaxed) == 1)
+    if (_pagesInMem.fetch_sub(1, memory_order_relaxed) == 1)
       delete this;
   }
 
