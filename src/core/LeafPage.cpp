@@ -16,14 +16,14 @@ uint16_t LeafPage::DATA_BEGIN_OFFSET = 20;
 uint16_t LeafPage::MAX_DATA_LENGTH =
     (uint16_t)(CACHE_PAGE_SIZE - LeafPage::DATA_BEGIN_OFFSET - UI32_LEN);
 
-LeafPage::LeafPage(IndexTree *indexTree, uint32_t pageId, uint32_t parentPageId)
+LeafPage::LeafPage(IndexTree *indexTree, PageID pageId, PageID parentPageId)
     : IndexPage(indexTree, pageId, 0, parentPageId, PageType::LEAF_PAGE),
       _prevPageId(HeadPage::PAGE_NULL_POINTER),
       _nextPageId(HeadPage::PAGE_NULL_POINTER) {
   _vctRecord.reserve(256);
 }
 
-LeafPage::LeafPage(IndexTree *indexTree, uint32_t pageId)
+LeafPage::LeafPage(IndexTree *indexTree, PageID pageId)
     : IndexPage(indexTree, pageId, PageType::LEAF_PAGE),
       _prevPageId(HeadPage::PAGE_NULL_POINTER),
       _nextPageId(HeadPage::PAGE_NULL_POINTER) {
@@ -33,11 +33,13 @@ LeafPage::LeafPage(IndexTree *indexTree, uint32_t pageId)
 LeafPage::~LeafPage() { CleanRecord(); }
 
 void LeafPage::Init() {
+  assert(!_bDirty);
   CleanRecord();
   IndexPage::Init();
   _prevPageId = ReadInt(PREV_PAGE_POINTER_OFFSET);
   _nextPageId = ReadInt(NEXT_PAGE_POINTER_OFFSET);
 }
+
 void LeafPage::LoadRecords() {
   CleanRecord();
 
@@ -71,9 +73,10 @@ bool LeafPage::SaveRecords() {
     _bysPage = CachePool::ApplyPage();
     uint16_t pos =
         (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * sizeof(uint16_t));
-    uint16_t index = 0;
     _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
+    _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
     int refCount = 0;
+    uint16_t index = 0;
 
     for (uint16_t i = 0; i < _vctRecord.size(); i++) {
       LeafRecord *lr = (LeafRecord *)_vctRecord[i];
@@ -145,9 +148,9 @@ ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
 }
 
 bool LeafPage::AddRecord(LeafRecord *lr) {
-  if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR ||
-      _totalDataLength + lr->GetTotalLength() + sizeof(uint16_t) >
-          MAX_DATA_LENGTH) {
+  if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR / 100U ||
+      _totalDataLength + lr->GetTotalLength() + (uint32_t)sizeof(uint16_t) >
+          (uint32_t)MAX_DATA_LENGTH) {
     return false;
   }
 
@@ -167,11 +170,11 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
 }
 
 void LeafPage::DeleteRecord(int32_t pos) {
-  assert(pos >= 0 && pos < _recordNum);
+  assert(pos >= 0 && pos < (int32_t)_recordNum);
 }
 
 void LeafPage::UpdateRecord(int32_t pos) {
-  assert(pos >= 0 && pos < _recordNum);
+  assert(pos >= 0 && pos < (int32_t)_recordNum);
 }
 
 LeafRecord *LeafPage::GetRecord(const RawKey &key) {
@@ -228,7 +231,7 @@ bool LeafPage::GetRecords(const RawKey &key, VectorLeafRecord &vct,
 
 int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc,
                                int32_t start, int32_t end) {
-  if (end >= _recordNum)
+  if (end >= (int32_t)_recordNum)
     end = _recordNum - 1;
   bFind = true;
   int hr;
@@ -258,7 +261,7 @@ int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc,
 
 int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, bool bInc,
                             int32_t start, int32_t end) {
-  if (end >= _recordNum)
+  if (end >= (int32_t)_recordNum)
     end = _recordNum - 1;
   bFind = true;
   bool bUnique =
@@ -312,7 +315,7 @@ int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, bool bInc,
 
 int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, bool bInc,
                             int32_t start, int32_t end) {
-  if (end >= _recordNum)
+  if (end >= (int32_t)_recordNum)
     end = _recordNum - 1;
   bFind = true;
   bool bUnique =
@@ -411,7 +414,7 @@ bool LeafPage::FetchRecords(const RawKey *startKey, const RawKey *endKey,
     vct.push_back(((LeafRecord *)_vctRecord[start])->ReferenceRecord());
   }
 
-  return end >= _recordNum;
+  return end >= (int32_t)_recordNum;
 }
 
 int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {

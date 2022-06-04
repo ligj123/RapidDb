@@ -51,13 +51,13 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   BOOST_TEST(dv6 != dv1);
 
   dv1.SetDefaultValue();
-  BOOST_TEST((string)dv1 == "");
+  BOOST_TEST((MString)dv1 == "");
 
   dv1.SetMaxValue();
   // BOOST_TEST((string)dv1 == "\\uff\\uff\\uff");
 
   dv1.SetMinValue();
-  BOOST_TEST((string)dv1 == "");
+  BOOST_TEST((MString)dv1 == "");
 
   DataValueFixChar dv7;
   dv7.WriteData(buf);
@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
 
   pDv = dv10.Clone(true);
   BOOST_TEST(pDv->GetValueType() == ValueType::SOLE_VALUE);
-  string ss = (string)(*pDv);
+  MString ss = (MString)(*pDv);
   BOOST_TEST(ss.size() == 99);
   delete pDv;
 

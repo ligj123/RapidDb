@@ -36,7 +36,7 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree)
     _totalGarbagePages += num;
   }
 
-  ovfPage->DecRefCount();
+  ovfPage->DecRef();
 };
 
 /** Add new garbage pages into this class
@@ -149,7 +149,7 @@ void GarbageOwner::SavePage() {
   }
 
   ovfPage->WritePage(nullptr);
-  ovfPage->DecRefCount();
+  ovfPage->DecRef();
 }
 
 void GarbageOwner::InsertPage(PageID pageId, int16_t num) {

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../cache/Mallocator.h"
 #include "../file/PageFile.h"
 #include "../header.h"
 #include "../utils/ErrorMsg.h"
@@ -9,7 +10,6 @@
 #include "RawKey.h"
 #include <atomic>
 #include <queue>
-#include <string>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -27,7 +27,7 @@ struct PageLock {
 
 class IndexTree {
 public:
-  IndexTree(const string &tableName, const string &fileName,
+  IndexTree(const MString &tableName, const MString &fileName,
             VectorDataValue &vctKey, VectorDataValue &vctVal,
             IndexType iType = IndexType::UNKNOWN);
   void UpdateRootPage(IndexPage *root);
@@ -50,8 +50,10 @@ public:
   }
 
   PageFile *ApplyPageFile();
+  bool SearchRecursively(const RawKey &key, bool bEdit, IndexPage *&page);
+  bool SearchRecursively(const LeafRecord &lr, bool bEdit, IndexPage *&page);
 
-  ErrorMsg *InsertRecord(LeafRecord *rr);
+  // ErrorMsg *InsertRecord(LeafRecord *rr);
   /**
    * @brief Read a record's data values by key, only used for primary key.
    * @param key The primary key to search.
@@ -60,10 +62,11 @@ public:
    * @param bOvf Include overflow fileds or not.
    * @return Return if find the record and record stamp is right
    */
-  bool ReadRecord(const RawKey &key, uint64_t verStamp, VectorDataValue &vctVal,
-                  bool bOvf = false);
+  // bool ReadRecord(const RawKey &key, uint64_t verStamp, VectorDataValue
+  // &vctVal,
+  //                 bool bOvf = false);
   /**Read the primary keys by secondary key from secondary index record*/
-  bool ReadPrimaryKeys(const RawKey &key, VectorRawKey &vctKey);
+  // bool ReadPrimaryKeys(const RawKey &key, VectorRawKey &vctKey);
   /**
    * @brief To query a secondary index from start key to end key.
    * @param keyStart The start key.
@@ -73,8 +76,9 @@ public:
    * @param vctKey
    * @return Return if find the record and record stamp is right
    */
-  void QueryIndex(const RawKey *keyStart, const RawKey *keyEnd, bool bIncLeft,
-                  bool bIncRight, VectorRawKey &vctKey);
+  // void QueryIndex(const RawKey *keyStart, const RawKey *keyEnd, bool
+  // bIncLeft,
+  //                 bool bIncRight, VectorRawKey &vctKey);
   /**
    * @brief To query a primary index from start key to end key.
    * @param keyStart The start key.
@@ -84,18 +88,19 @@ public:
    * @param vctKey
    * @return Return if find the record and record stamp is right
    */
-  void QueryIndex(const RawKey *keyStart, const RawKey *keyEnd, bool bIncLeft,
-                  bool bIncRight, VectorRow &vctRow);
+  // void QueryIndex(const RawKey *keyStart, const RawKey *keyEnd, bool
+  // bIncLeft,
+  //                 bool bIncRight, VectorRow &vctRow);
 
-  LeafRecord *GetRecord(const RawKey &key);
-  void GetRecords(const RawKey &key, VectorLeafRecord &vct);
-  void QueryRecord(RawKey *keyStart, RawKey *keyEnd, bool bIncLeft,
-                   bool bIncRight, VectorLeafRecord &vct);
+  // LeafRecord *GetRecord(const RawKey &key);
+  // void GetRecords(const RawKey &key, VectorLeafRecord &vct);
+  // void QueryRecord(RawKey *keyStart, RawKey *keyEnd, bool bIncLeft,
+  //                  bool bIncRight, VectorLeafRecord &vct);
 
   inline uint64_t GetRecordsCount() {
     return _headPage->ReadTotalRecordCount();
   }
-  inline string &GetFileName() { return _fileName; }
+  inline MString &GetFileName() { return _fileName; }
   inline uint16_t GetFileId() { return _fileId; }
   inline bool IsClosed() { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
@@ -121,12 +126,10 @@ public:
 
 protected:
   ~IndexTree();
-  LeafPage *SearchRecursively(const RawKey &key);
-  LeafPage *SearchRecursively(const LeafRecord &lr);
 
 protected:
-  std::string _tableName;
-  std::string _fileName;
+  MString _tableName;
+  MString _fileName;
   std::queue<PageFile *> _fileQueue;
   SpinMutex _fileMutex;
   condition_variable_any _fileCv;
@@ -163,7 +166,7 @@ protected:
 
 protected:
   // The ids have been used in this process
-  static MHashSet<uint16_t>::Type _setFiledId;
+  static unordered_set<uint16_t> _setFiledId;
   // Used to find free id circled
   static uint16_t _currFiledId;
   // Used to static File IDs

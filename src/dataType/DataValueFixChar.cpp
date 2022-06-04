@@ -16,7 +16,7 @@ DataValueFixChar::DataValueFixChar(const char *val, uint32_t strLen,
       maxLength_(maxLength) {
   if (strLen + 1 >= maxLength_) {
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(strLen)});
+                   {ToMString(maxLength_), ToMString(strLen)});
   }
 
   bysValue_ = CachePool::Apply(maxLength_);
@@ -32,31 +32,31 @@ DataValueFixChar::DataValueFixChar(Byte *byArray, uint32_t maxLength, bool bKey)
 DataValueFixChar::DataValueFixChar(uint32_t maxLength, bool bKey, std::any val)
     : IDataValue(DataType::FIXCHAR, ValueType::SOLE_VALUE, bKey),
       maxLength_(maxLength) {
-  string str;
-  if (val.type() == typeid(std::string))
-    str = std::any_cast<std::string>(val);
+  MString str;
+  if (val.type() == typeid(MString))
+    str = std::any_cast<MString>(val);
   else if (val.type() == typeid(const char *))
     str = any_cast<const char *>(val);
   else if (val.type() == typeid(char *))
     str = any_cast<char *>(val);
   else if (val.type() == typeid(int64_t))
-    str = move(to_string(any_cast<int64_t>(val)));
+    str = move(ToMString(any_cast<int64_t>(val)));
   else if (val.type() == typeid(int64_t))
-    str = move(to_string(any_cast<int64_t>(val)));
+    str = move(ToMString(any_cast<int64_t>(val)));
   else if (val.type() == typeid(int32_t))
-    str = move(to_string(any_cast<int32_t>(val)));
+    str = move(ToMString(any_cast<int32_t>(val)));
   else if (val.type() == typeid(int16_t))
-    str = move(to_string(any_cast<int16_t>(val)));
+    str = move(ToMString(any_cast<int16_t>(val)));
   else if (val.type() == typeid(uint64_t))
-    str = move(to_string(any_cast<uint64_t>(val)));
+    str = move(ToMString(any_cast<uint64_t>(val)));
   else if (val.type() == typeid(uint32_t))
-    str = move(to_string(any_cast<uint32_t>(val)));
+    str = move(ToMString(any_cast<uint32_t>(val)));
   else if (val.type() == typeid(uint16_t))
-    str = move(to_string(any_cast<uint16_t>(val)));
+    str = move(ToMString(any_cast<uint16_t>(val)));
   else if (val.type() == typeid(int8_t))
-    str = move(to_string(any_cast<int8_t>(val)));
+    str = move(ToMString(any_cast<int8_t>(val)));
   else if (val.type() == typeid(uint8_t))
-    str = move(to_string(any_cast<uint8_t>(val)));
+    str = move(ToMString(any_cast<uint8_t>(val)));
   else
     throw ErrorMsg(DT_UNSUPPORT_CONVERT,
                    {val.type().name(), "DataValueFixChar"});
@@ -64,7 +64,7 @@ DataValueFixChar::DataValueFixChar(uint32_t maxLength, bool bKey, std::any val)
   uint32_t len = (uint32_t)str.size();
   if (len + 1 >= maxLength_)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(len)});
+                   {ToMString(maxLength_), ToMString(len)});
 
   bysValue_ = CachePool::Apply(maxLength_);
   BytesCopy(bysValue_, str.c_str(), len);
@@ -112,7 +112,7 @@ void DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
     dv.ToString(sb);
     if (maxLength_ < sb.GetStrLen() + 1) {
       throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {to_string(maxLength_), to_string(dv.GetDataLength())});
+                     {ToMString(maxLength_), ToMString(dv.GetDataLength())});
     }
 
     if (valType_ != ValueType::SOLE_VALUE) {
@@ -129,7 +129,7 @@ void DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
 
   if (dv.GetDataLength() > maxLength_) {
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(dv.GetDataLength())});
+                   {ToMString(maxLength_), ToMString(dv.GetDataLength())});
   }
 
   if (dv.GetValueType() == ValueType::BYTES_VALUE) {
@@ -167,7 +167,7 @@ std::any DataValueFixChar::GetValue() const {
   switch (valType_) {
   case ValueType::SOLE_VALUE:
   case ValueType::BYTES_VALUE:
-    return string((char *)bysValue_, maxLength_ - 1);
+    return MString((char *)bysValue_, maxLength_ - 1);
   case ValueType::NULL_VALUE:
   default:
     return std::any();
@@ -297,7 +297,7 @@ DataValueFixChar &DataValueFixChar::operator=(const char *val) {
   uint32_t len = (uint32_t)strlen(val);
   if (len + 1 >= maxLength_)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(len)});
+                   {ToMString(maxLength_), ToMString(len)});
   if (valType_ != ValueType::SOLE_VALUE)
     bysValue_ = CachePool::Apply(maxLength_);
 
@@ -308,11 +308,11 @@ DataValueFixChar &DataValueFixChar::operator=(const char *val) {
   return *this;
 }
 
-DataValueFixChar &DataValueFixChar::operator=(const string val) {
+DataValueFixChar &DataValueFixChar::operator=(const MString val) {
   uint32_t len = (uint32_t)val.size();
   if (len + 1 >= maxLength_)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(len)});
+                   {ToMString(maxLength_), ToMString(len)});
   if (valType_ != ValueType::SOLE_VALUE)
     bysValue_ = CachePool::Apply(maxLength_);
 

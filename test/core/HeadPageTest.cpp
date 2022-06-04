@@ -12,8 +12,8 @@ namespace fs = std::filesystem;
 BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(HeadPage_test) {
-  const string FILE_NAME = "./dbTest/testHeadPage" + StrMSTime() + ".dat";
-  const string TABLE_NAME = "testTable";
+  const MString FILE_NAME = "./dbTest/testHeadPage" + StrMSTime() + ".dat";
+  const MString TABLE_NAME = "testTable";
   VectorDataValue vctKey;
   VectorDataValue vctVal;
   IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);

@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../cache/Mallocator.h"
 #include "../config/ErrorID.h"
 #include "../dataType/IDataValue.h"
 #include "../utils/ErrorMsg.h"
@@ -6,7 +7,6 @@
 #include <atomic>
 #include <fstream>
 #include <iostream>
-#include <string>
 
 namespace storage {
 using namespace std;
@@ -15,7 +15,7 @@ class PageFile {
 public:
   static thread_local char _tmpBuff[1024 * 1024];
 
-  PageFile(const string &path);
+  PageFile(const MString &path);
 
   ~PageFile() {
     if (_file.is_open())
@@ -33,7 +33,7 @@ public:
   void close() { _file.close(); }
 
 protected:
-  string _path;
+  MString _path;
   fstream _file;
 };
 } // namespace storage

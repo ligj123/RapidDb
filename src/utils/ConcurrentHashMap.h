@@ -5,11 +5,10 @@
 
 namespace storage {
 using namespace std;
-template <class Key, class T> class ConcurrentHashMap {
+template <class Key, class Val> class ConcurrentHashMap {
 public:
-  typedef std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
-                             Mallocator<std::pair<const Key, T>>>
-      ConHashMap;
+  typedef std::unordered_map<Key, Val> ConHashMap;
+  using Iterator = typename std::unordered_map<Key, Val>::iterator;
 
   ConcurrentHashMap(int groupCount, uint64_t maxCount)
       : _groupCount(groupCount) {
@@ -36,13 +35,15 @@ public:
     return sz;
   }
 
-  bool Insert(Key key, T val) {
+  int GetGroupCount() { return _groupCount; }
+
+  bool Insert(Key key, Val val) {
     int pos = std::hash<Key>{}(key) % _groupCount;
     unique_lock<SpinMutex> lock(*_vctLock[pos]);
     return _vctMap[pos]->insert({key, val}).second;
   }
 
-  bool Find(Key key, T &val) {
+  bool Find(Key key, Val &val) {
     int pos = std::hash<Key>{}(key) % _groupCount;
     unique_lock<SpinMutex> lock(*_vctLock[pos]);
     auto iter = _vctMap[pos]->find(key);
@@ -54,8 +55,10 @@ public:
     }
   }
 
-  auto Begin(int pos) { return _vctMap[pos]->begin(); }
-  auto End(int pos) { return _vctMap[pos]->end(); }
+  Iterator Begin(int pos) { return _vctMap[pos]->begin(); }
+  Iterator End(int pos) { return _vctMap[pos]->end(); }
+  void Erase(int pos, Iterator iter) { _vctMap[pos]->erase(iter); }
+  void Erase(int pos, Key key) { _vctMap[pos]->erase(key); }
 
   void Lock(int pos) { _vctLock[pos]->lock(); }
   void Unlock(int pos) { _vctLock[pos]->unlock(); }

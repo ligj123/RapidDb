@@ -3,9 +3,10 @@
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include <iostream>
-#include <string>
 
 namespace storage {
+CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
+thread_local LocalMap CachePool::_localMap;
 
 LocalMap::~LocalMap() {
   for (auto iter = _map.begin(); iter != _map.end(); iter++) {

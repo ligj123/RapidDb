@@ -52,7 +52,7 @@ uint32_t PersistColumn::ReadData(Byte *pBuf) {
 
   uint32_t len = *((uint32_t *)p);
   p += sizeof(uint32_t);
-  _name = string((char *)p, len);
+  _name = MString((char *)p, len);
   p += len;
 
   _position = *((uint32_t *)p);
@@ -78,7 +78,7 @@ uint32_t PersistColumn::ReadData(Byte *pBuf) {
 
   len = *((uint32_t *)p);
   p += sizeof(uint32_t);
-  _comments = string((char *)p, len);
+  _comments = MString((char *)p, len);
   p += len;
 
   bool bDefault = (*p != 0);
@@ -168,7 +168,7 @@ int TempColumn::CompareTo(Byte *bys1, Byte *bys2) {
   case DataType::BLOB:
     return BytesCompare(bys1, GetLength(bys1), bys2, GetLength(bys2));
   default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)_dataType)});
+    throw new ErrorMsg(DT_UNKNOWN_TYPE, {ToMString((uint32_t)_dataType)});
   }
 }
 } // namespace storage

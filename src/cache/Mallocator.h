@@ -2,12 +2,12 @@
 #include "CachePool.h"
 #include <cstdlib>
 #include <limits>
+#include <list>
 #include <map>
 #include <new>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <list>
 
 namespace storage {
 template <class T> class Mallocator {
@@ -69,24 +69,52 @@ public:
   typedef std::list<T, Mallocator<T>> Type;
 };
 
-typedef std::basic_string<char, std::char_traits<char>, Mallocator<char>> MString;
-// template <class V> struct MVector {
-// public:
-//  typedef std::vector<V> Type;
-//};
+template <class T> struct MDeque {
+public:
+  typedef std::deque<T, Mallocator<T>> Type;
+};
 
-// template <class Key, class T> struct MHashMap {
-// public:
-//   typedef std::unordered_map<Key, T> Type;
-// };
+typedef std::basic_string<char, std::char_traits<char>, Mallocator<char>>
+    MString;
 
-// template <class Key> struct MHashSet {
-// public:
-//   typedef std::unordered_set<Key> Type;
-// };
-
-// template <class Key, class T> struct MTreeMap {
-// public:
-//   typedef std::map<Key, T> Type;
-// };
+inline MString ToMString(int value) {
+  char buf[32];
+  std::sprintf(buf, "%d", value);
+  return MString(buf);
+}
+inline MString ToMString(long value) {
+  char buf[32];
+  std::sprintf(buf, "%ld", value);
+  return MString(buf);
+}
+inline MString ToMString(long long value) {
+  char buf[32];
+  std::sprintf(buf, "%lld", value);
+  return MString(buf);
+}
+inline MString ToMString(unsigned value) {
+  char buf[32];
+  std::sprintf(buf, "%u", value);
+  return MString(buf);
+}
+inline MString ToMString(unsigned long value) {
+  char buf[32];
+  std::sprintf(buf, "%lu", value);
+  return MString(buf);
+}
+inline MString ToMString(unsigned long long value) {
+  char buf[32];
+  std::sprintf(buf, "%llu", value);
+  return MString(buf);
+}
+inline MString ToMString(float value) {
+  char buf[32];
+  std::sprintf(buf, "%f", value);
+  return MString(buf);
+}
+inline MString ToMString(double value) {
+  char buf[32];
+  std::sprintf(buf, "%Lf", value);
+  return MString(buf);
+}
 } // namespace storage

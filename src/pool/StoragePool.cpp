@@ -3,89 +3,55 @@
 #include "../core/IndexTree.h"
 
 namespace storage {
-thread *StoragePool::CreateWriteThread() {
-  thread *t = new thread([]() {
-    ThreadPool::_threadName = "WriteThread";
-    while (true) {
-      try {
-        MHashMap<uint64_t, CachePage *>::Type mapTmp2;
-        if (_mapTmp.size() > 0) {
-          unique_lock<SpinMutex> lock(_spinMutex);
-          mapTmp2.swap(_mapTmp);
-        }
+const uint32_t StoragePool::WRITE_DELAY_MS = 1 * 1000;
+const uint64_t StoragePool::MAX_QUEUE_SIZE =
+    Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
+StoragePool *StoragePool::_storagePool = nullptr;
+SpinMutex StoragePool::_spinMutex;
 
-        for (auto iter = mapTmp2.begin(); iter != mapTmp2.end(); iter++) {
-          if (_mapWrite.find(iter->first) != _mapWrite.end()) {
-            iter->second->DecRefCount();
-            continue;
-          }
-
-          _mapWrite.insert({iter->first, iter->second});
-        }
-
-        if ((_bReadFirst && _threadReadPool.GetTaskCount() > 0) ||
-            _mapWrite.size() == 0 || _bWriteSuspend) {
-          if (_mapWrite.size() == 0) {
-            if (_bStop)
-              break;
-            _bWriteFlush = false;
-          }
-
-          this_thread::sleep_for(std::chrono::milliseconds(1));
-          continue;
-        }
-
-        if (!_bWriteFlush) {
-          if (_mapWrite.size() < MAX_QUEUE_SIZE / 4) {
-            this_thread::sleep_for(std::chrono::milliseconds(1));
-          }
-        }
-
-        for (auto iter = _mapWrite.begin(); iter != _mapWrite.end();) {
-          auto iter2 = iter++;
-          CachePage *page = iter2->second;
-          if (!_bWriteFlush && (_mapWrite.size() < MAX_QUEUE_SIZE / 2) &&
-              // !page->IsFileClosed() &&
-              (MicroSecTime() - page->GetWriteTime() < WRITE_DELAY_MS)) {
-            continue;
-          }
-
-          if (page->IsDirty()) {
-            page->WritePage();
-          }
-
-          page->DecRefCount();
-          _mapWrite.erase(iter2);
-        }
-      } catch (...) {
-        LOG_ERROR << "unknown exception!";
-      }
-    }
+void StoragePool::AddTimerTask() {
+  TimerThread::AddCircleTask("StoragePool", 5000000, []() {
+    StorageTask *task = new StorageTask();
+    _storagePool->_threadPool->AddTask(task);
   });
-  return t;
 }
+void StoragePool::RemoveTimerTask() { TimerThread::RemoveTask("StoragePool"); }
 
 void StoragePool::WriteCachePage(CachePage *page) {
-  {
-    lock_guard<SpinMutex> lock(_spinMutex);
-    if (_mapTmp.find(page->HashCode()) != _mapTmp.end()) {
-      return;
-    }
-
-    page->IncRefCount();
-    page->UpdateWriteTime();
-    _mapTmp.insert({page->HashCode(), page});
-  }
-
-  while (_mapWrite.size() > MAX_QUEUE_SIZE * 2) {
-    this_thread::sleep_for(std::chrono::milliseconds(1));
-  }
+  _storagePool->_fastQueue.Push(page);
 }
 
-future<int> StoragePool::ReadCachePage(CachePage *page) {
-  PageReadTask *task = new PageReadTask(page);
-  _threadReadPool.AddTask(task);
+void StoragePool::PoolManage() {
+  queue<CachePage *> q;
+  _storagePool->_fastQueue.swap(q);
+  while (q.size() > 0) {
+    CachePage *page = q.front();
+    q.pop();
 
-  return task->GetFuture();
+    if (_storagePool->_mapWrite.find(page->HashCode()) !=
+        _storagePool->_mapWrite.end()) {
+      page->DecRef();
+    }
+
+    page->UpdateWriteTime();
+    _storagePool->_mapWrite.insert({page->HashCode(), page});
+  }
+
+  bool bmax = (_storagePool->_mapWrite.size() < MAX_QUEUE_SIZE / 2);
+  for (auto iter = _storagePool->_mapWrite.begin();
+       iter != _storagePool->_mapWrite.end(); iter++) {
+    CachePage *page = iter->second;
+    if (!page->GetIndexTree()->IsClosed() && bmax &&
+        (MicroSecTime() - page->GetWriteTime() < WRITE_DELAY_MS)) {
+      continue;
+    }
+
+    if (page->IsDirty()) {
+      page->WritePage();
+    }
+
+    page->DecRef();
+    _storagePool->_mapWrite.erase(iter);
+  }
 }
 } // namespace storage

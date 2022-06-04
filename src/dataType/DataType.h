@@ -1,8 +1,8 @@
 ﻿#pragma once
+#include "../cache/Mallocator.h"
 #include "../header.h"
 #include <ostream>
 #include <sstream>
-#include <string>
 
 namespace storage {
 enum class DataType : uint32_t {
@@ -109,10 +109,10 @@ inline std::ostream &operator<<(std::ostream &os, const ValueType &vt) {
   return os;
 }
 
-inline std::string DateTypeToString(const DataType dt) {
+inline MString DateTypeToString(const DataType dt) {
   std::stringstream ss;
   ss << dt;
-  return ss.str();
+  return MString(ss.str());
 }
 
 inline DataType ValueOfDataType(Byte type) {
@@ -134,6 +134,6 @@ inline const char *StrOfDataType(DataType type) {
       "FLOAT",   "DOUBLE", "BLOB",  "BOOL",
   };
 
-  return strDt[(uint8_t)type & 0x7F];
+  return strDt[(uint32_t)type & 0x7F];
 }
 } // namespace storage

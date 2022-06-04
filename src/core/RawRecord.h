@@ -27,13 +27,15 @@ public:
   }
   virtual ~RawRecord() {
     if (_bSole && _bysVal != nullptr)
-      CachePool::Release(_bysVal, GetTotalLength());
+      CachePool::Release(_bysVal, *((uint16_t *)_bysVal));
   }
 
   inline Byte *GetBysValue() const { return _bysVal; }
   /**Only the bytes' length in IndexPage, key length + value length without
    * overflow page content*/
-  inline uint16_t GetTotalLength() const { return *((uint16_t *)_bysVal); }
+  inline uint16_t GetTotalLength() const {
+    return _bRemoved ? 0 : *((uint16_t *)_bysVal);
+  }
   inline uint16_t GetKeyLength() const {
     return *((uint16_t *)(_bysVal + sizeof(uint16_t)));
   }

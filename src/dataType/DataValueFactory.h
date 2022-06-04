@@ -75,7 +75,7 @@ inline IDataValue *DataValueFactory(DataType type, bool bKey = false,
     pDv = new DataValueBlob(maxLen, bKey);
     break;
   default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)type)});
+    throw new ErrorMsg(DT_UNKNOWN_TYPE, {ToMString((uint32_t)type)});
   }
 
   return pDv;
@@ -129,7 +129,7 @@ inline std::ostream &operator<<(std::ostream &os, const IDataValue &dv) {
     os << (const DataValueBlob &)dv;
     break;
   default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv.dataType_)});
+    throw new ErrorMsg(DT_UNKNOWN_TYPE, {ToMString((uint32_t)dv.dataType_)});
   }
 
   return os;
@@ -163,7 +163,7 @@ inline bool operator==(const IDataValue &dv1, const IDataValue &dv2) {
     return (const DataValueBlob &)dv1 == (const DataValueBlob &)dv2;
     break;
   default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
+    throw new ErrorMsg(DT_UNKNOWN_TYPE, {ToMString((uint32_t)dv1.dataType_)});
   }
 }
 
@@ -196,7 +196,7 @@ inline bool operator>(const IDataValue &dv1, const IDataValue &dv2) {
     // return (const DataValueBlob &)dv1 > (const DataValueBlob &)dv2;
     break;
   default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
+    throw new ErrorMsg(DT_UNKNOWN_TYPE, {ToMString((uint32_t)dv1.dataType_)});
   }
 }
 
@@ -229,7 +229,7 @@ inline bool operator>=(const IDataValue &dv1, const IDataValue &dv2) {
     // return (const DataValueBlob &)dv1 >= (const DataValueBlob&)dv2;
     break;
   default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
+    throw new ErrorMsg(DT_UNKNOWN_TYPE, {ToMString((uint32_t)dv1.dataType_)});
   }
 }
 

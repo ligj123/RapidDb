@@ -7,9 +7,9 @@
 
 namespace storage {
 namespace fs = std::filesystem;
-string rootPath = "./dbTest";
-string pageName = rootPath + "/testPageFile" + StrMSTime() + ".dat";
-string ovfName = rootPath + "/testOverflow" + StrMSTime() + ".dat";
+MString rootPath = "./dbTest";
+MString pageName = rootPath + "/testPageFile" + StrMSTime() + ".dat";
+MString ovfName = rootPath + "/testOverflow" + StrMSTime() + ".dat";
 
 BOOST_AUTO_TEST_SUITE(PageFileTest)
 //

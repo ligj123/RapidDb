@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../cache/Mallocator.h"
 #include "../config/ErrorID.h"
 #include "../core/ActionType.h"
 #include "../dataType/DataType.h"
@@ -15,7 +16,6 @@
 #include "../utils/Utilitys.h"
 #include <chrono>
 #include <future>
-#include <string>
 
 namespace storage {
 class Transaction;
@@ -62,7 +62,7 @@ public:
   DataType GetDataType(int paraIndex) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     return _vctPara[paraIndex]->GetDataType();
   };
 
@@ -74,7 +74,7 @@ public:
   int GetMaxLength(int paraIndex) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     return _vctPara[paraIndex]->GetMaxLength();
   }
 
@@ -86,7 +86,7 @@ public:
   void SetLong(int paraIndex, int64_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::LONG)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -102,7 +102,7 @@ public:
   void SetInt(int paraIndex, int32_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::INT)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -118,7 +118,7 @@ public:
   void SetShort(int paraIndex, int16_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::SHORT)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -134,7 +134,7 @@ public:
   void SetChar(int paraIndex, char val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::SHORT)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -150,7 +150,7 @@ public:
   void SetULong(int paraIndex, uint64_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::ULONG)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -166,7 +166,7 @@ public:
   void SetUInt(int paraIndex, uint32_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::UINT)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -182,7 +182,7 @@ public:
   void SetUShort(int paraIndex, uint16_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::USHORT)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -198,7 +198,7 @@ public:
   void SetByte(int paraIndex, Byte val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::BYTE)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -214,7 +214,7 @@ public:
   void SetBool(int paraIndex, bool val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::BOOL)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -227,18 +227,18 @@ public:
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  void SetString(int paraIndex, const std::string &val) {
+  void SetString(int paraIndex, const MString &val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (!_vctPara[paraIndex]->IsStringType())
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
           {"STRING", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
     if (val.size() > _vctPara[paraIndex]->GetMaxLength())
       throw ErrorMsg(ErrorID::EXPR_EXCEED_MAX_LENGTH,
-                     {to_string(val.size()),
-                      to_string(_vctPara[paraIndex]->GetMaxLength())});
+                     {ToMString(val.size()),
+                      ToMString(_vctPara[paraIndex]->GetMaxLength())});
     if (_vctPara[paraIndex]->GetDataType() == DataType::FIXCHAR)
       *(DataValueFixChar *)_vctPara[paraIndex] = val;
     else
@@ -254,7 +254,7 @@ public:
   void SetBlob(int paraIndex, uint32_t len, char *val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::BLOB)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -262,7 +262,7 @@ public:
     if (len > _vctPara[paraIndex]->GetMaxLength())
       throw ErrorMsg(
           ErrorID::EXPR_EXCEED_MAX_LENGTH,
-          {to_string(len), to_string(_vctPara[paraIndex]->GetMaxLength())});
+          {ToMString(len), ToMString(_vctPara[paraIndex]->GetMaxLength())});
     ((DataValueBlob *)_vctPara[paraIndex])->Put(len, val);
   }
 
@@ -274,7 +274,7 @@ public:
   void SetDouble(int paraIndex, double val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::DOUBLE)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -290,7 +290,7 @@ public:
   void SetFloat(int paraIndex, float val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::FLOAT)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -306,7 +306,7 @@ public:
   void SetDate(int paraIndex, uint64_t val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
     if (_vctPara[paraIndex]->GetDataType() != DataType::DATETIME)
       throw ErrorMsg(
           ErrorID::EXPR_ERROR_DATATYPE,
@@ -322,7 +322,7 @@ public:
   void SetDataValue(int paraIndex, const IDataValue &val) {
     if (paraIndex < 0 || paraIndex >= _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
+                     {ToMString(paraIndex), ToMString(_vctPara.size())});
 
     _vctPara[paraIndex]->Copy(val);
   }
@@ -334,7 +334,7 @@ public:
   void SetValues(const VectorDataValue &vals) {
     if (vals.size() != _vctPara.size())
       throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(vals.size()), to_string(_vctPara.size())});
+                     {ToMString(vals.size()), ToMString(_vctPara.size())});
     for (int i = 0; i < vals.size(); i++)
       _vctPara[i]->Copy(*vals[i]);
   }

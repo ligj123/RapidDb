@@ -12,8 +12,8 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(BranchRecord_test) {
-  const string FILE_NAME = "./dbTest/testBranchRecord" + StrMSTime() + ".dat";
-  const string TABLE_NAME = "testTable";
+  const MString FILE_NAME = "./dbTest/testBranchRecord" + StrMSTime() + ".dat";
+  const MString TABLE_NAME = "testTable";
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
@@ -63,16 +63,16 @@ BOOST_AUTO_TEST_CASE(BranchRecord_test) {
   delete dvVal;
   rr->ReleaseRecord();
   rr->ReleaseRecord();
-  bp->DecRefCount();
+  bp->DecRef();
   indexTree->Close(true);
   PageBufferPool::ClearPool();
   std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
 
 BOOST_AUTO_TEST_CASE(BranchRecord_Equal_test) {
-  const string FILE_NAME =
+  const MString FILE_NAME =
       "./dbTest/testBranchRecordEqual" + StrMSTime() + ".dat";
-  const string TABLE_NAME = "testTable";
+  const MString TABLE_NAME = "testTable";
 
   DataValueLong *dvKey = new DataValueLong(100LL, true);
   DataValueLong *dvVal = new DataValueLong(200LL, false);
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_Equal_test) {
   delete dvKey;
   delete dvVal;
 
-  bp->DecRefCount();
+  bp->DecRef();
   indexTree->Close(true);
   PageBufferPool::ClearPool();
 

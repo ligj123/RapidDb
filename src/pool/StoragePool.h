@@ -2,51 +2,48 @@
 #include "../cache/Mallocator.h"
 #include "../config/Configure.h"
 #include "../core/CachePage.h"
+#include "../utils/FastQueue.h"
 #include "../utils/Log.h"
 #include "../utils/ThreadPool.h"
-#include <queue>
 
 namespace storage {
 using namespace std;
-class PageReadTask : public Task {
-public:
-  PageReadTask(CachePage *page) : _page(page) {}
-  void Run() override {
-    _page->ReadPage();
-    _promise.set_value(0);
-  }
-  bool IsSmallTask() override { return false; }
-
-protected:
-  CachePage *_page;
-};
 
 class StoragePool {
 public:
-  static void WriteCachePage(CachePage *page);
-  static future<int> ReadCachePage(CachePage *page);
-  static void FlushWriteCachePage() { _bWriteFlush = true; }
-  static void SetWriteSuspend(bool b) { _bWriteSuspend = b; }
-  static uint32_t GetWaitingWriteTaskCount() {
-    return (uint32_t)_mapWrite.size();
-  }
-  static void SetStop() { _bStop = true; }
-
-protected:
-  static thread *CreateWriteThread();
-
-protected:
   static const uint32_t WRITE_DELAY_MS;
   static const uint64_t MAX_QUEUE_SIZE;
-  static ThreadPool _threadReadPool;
 
-  static MHashMap<uint64_t, CachePage *>::Type _mapTmp;
-  static MTreeMap<uint64_t, CachePage *>::Type _mapWrite;
-  static thread *_threadWrite;
-  static bool _bWriteFlush;
-  static bool _bReadFirst;
+public:
+  static void AddTimerTask();
+  static void RemoveTimerTask();
+  static void WriteCachePage(CachePage *page);
+  static size_t GetWaitingPageCount() { return _storagePool->_mapWrite.size(); }
+  static void InitPool(ThreadPool *tp) { _storagePool = new StoragePool(tp); };
+  static void PoolManage();
+
+protected:
+  static StoragePool *_storagePool;
   static SpinMutex _spinMutex;
-  static bool _bWriteSuspend;
-  static bool _bStop;
+
+protected:
+  StoragePool(ThreadPool *tp)
+      : _fastQueue(tp->GetMaxThreads()), _threadPool(tp){};
+  MTreeMap<uint64_t, CachePage *>::Type _mapWrite;
+  FastQueue<CachePage> _fastQueue;
+  ThreadPool *_threadPool;
+  friend class StorageTask;
+};
+
+class StorageTask : public Task {
+  void Run() override {
+    unique_lock<SpinMutex> lock(StoragePool::_spinMutex, defer_lock);
+    _status = TaskStatus::RUNNING;
+    if (lock.try_lock()) {
+      StoragePool::PoolManage();
+    }
+    _status = TaskStatus::INTERVAL;
+  }
+  bool IsSmallTask() override { return false; }
 };
 } // namespace storage

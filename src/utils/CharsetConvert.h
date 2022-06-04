@@ -1,9 +1,10 @@
 ﻿#pragma once
-#include "../utils/BytesConvert.h"
+#include "BytesConvert.h"
 #include <boost/locale/encoding.hpp>
 #include <cstring>
 #include <iostream>
 #include <unordered_map>
+
 namespace storage {
 using namespace std;
 enum class Charsets : uint16_t { UNKNOWN = 0, UTF8, UTF16, UTF32, GBK };
@@ -38,8 +39,10 @@ public:
                                 char *outFrom, int &outLen,
                                 const Charsets cset = Charsets::GBK,
                                 const bool bZero = true) {
-    string str = boost::locale::conv::between(
-        inFrom, inFrom + inLen, mapCharset[Charsets::UTF8], mapCharset[cset]);
+    MString str = boost::locale::conv::between(inFrom, inFrom + inLen,
+                                               mapCharset[Charsets::UTF8],
+                                               mapCharset[cset])
+                      .c_str();
     if (str.size() > outLen) {
       BytesCopy(outFrom, str.c_str(), outLen);
       return ConvResult::PARTIAL;
@@ -57,8 +60,10 @@ public:
                                   char *outFrom, int &outLen,
                                   const Charsets cset = Charsets::GBK,
                                   const bool bZero = true) {
-    string str = boost::locale::conv::between(
-        inFrom, inFrom + inLen, mapCharset[cset], mapCharset[Charsets::UTF8]);
+    MString str =
+        boost::locale::conv::between(inFrom, inFrom + inLen, mapCharset[cset],
+                                     mapCharset[Charsets::UTF8])
+            .c_str();
     if (str.size() > outLen) {
       BytesCopy(outFrom, str.c_str(), outLen);
       return ConvResult::PARTIAL;

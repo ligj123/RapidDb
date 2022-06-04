@@ -26,6 +26,7 @@ void BranchPage::Init() {
 }
 
 void BranchPage::LoadRecords() {
+  assert(!_bDirty);
   if (_vctRecord.size() > 0)
     CleanRecords();
 
@@ -52,6 +53,7 @@ bool BranchPage::SaveRecords() {
     uint16_t pos =
         (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * sizeof(uint16_t));
     _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
+    _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
     int refCount = 0;
 
     for (int i = 0; i < _vctRecord.size(); i++) {
@@ -133,7 +135,7 @@ void BranchPage::InsertRecord(BranchRecord *&rr, int32_t pos) {
 }
 
 bool BranchPage::AddRecord(BranchRecord *&rr) {
-  if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR / 100 ||
+  if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR / 100U ||
       _totalDataLength + rr->GetTotalLength() + sizeof(uint16_t) >
           MAX_DATA_LENGTH) {
     return false;

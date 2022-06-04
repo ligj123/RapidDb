@@ -32,7 +32,7 @@ CachePage::~CachePage() {
   }
 }
 
-void CachePage::DecRefCount(int num) {
+void CachePage::DecRef(int num) {
   assert(num > 0);
   int32_t rc = _refCount.fetch_sub(num, memory_order_relaxed);
 

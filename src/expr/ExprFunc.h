@@ -4,7 +4,7 @@
 using namespace std;
 namespace storage {
 struct FuncStru {
-  string _funcName;
+  MString _funcName;
   MVector<DataType>::Type _parasType;
   DataType _rtType;
 };
@@ -23,7 +23,7 @@ public:
 
 protected:
   // The function name, must convert to upper case
-  string _funcName;
+  MString _funcName;
   // The parameters for this function
   MVector<BaseExpr *>::Type _vctPara;
 };

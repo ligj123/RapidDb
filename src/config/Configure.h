@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <mutex>
-#include <string>
+
 namespace storage {
 class Configure {
 public:

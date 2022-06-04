@@ -9,11 +9,11 @@
 #include <shared_mutex>
 
 namespace storage {
-
+unordered_set<uint16_t> IndexTree::_setFiledId;
 uint16_t IndexTree::_currFiledId = 0;
 SpinMutex IndexTree::_fileIdMutex;
 
-IndexTree::IndexTree(const string &tableName, const string &fileName,
+IndexTree::IndexTree(const MString &tableName, const MString &fileName,
                      VectorDataValue &vctKey, VectorDataValue &vctVal,
                      IndexType iType) {
   _tableName = tableName;
@@ -52,6 +52,8 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
 
     StoragePool::WriteCachePage(_headPage);
     _rootPage = AllocateNewPage(HeadPage::PAGE_NULL_POINTER, 0);
+    _rootPage->SetBeginPage(true);
+    _rootPage->SetEndPage(true);
     StoragePool::WriteCachePage(_rootPage);
   } else {
     _headPage->ReadPage();
@@ -71,7 +73,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   _keyOffset = _keyVarLen + UI16_2_LEN;
   if (_headPage->ReadIndexType() == IndexType::PRIMARY) {
     _valVarLen = _headPage->ReadValueVariableFieldCount() * UI32_LEN;
-    _valOffset = _valVarLen + (_vctValue.size() + 7) << 3;
+    _valOffset = _valVarLen + (uint16_t)((_vctValue.size() + 7) << 3);
   } else {
     _valVarLen = _headPage->ReadValueVariableFieldCount() * UI16_LEN;
     _valOffset = _valVarLen + UI16_2_LEN;
@@ -84,7 +86,7 @@ IndexTree::~IndexTree() {
   _bClosed = true;
   unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
   if (_rootPage != nullptr) {
-    _rootPage->DecRefCount();
+    _rootPage->DecRef();
   }
 
   while (_pagesInMem.load() > 1) {
@@ -113,7 +115,7 @@ IndexTree::~IndexTree() {
     _fileQueue.pop();
   }
 
-  unique_lock<SpinMutex> lock(_fileIdMutex);
+  unique_lock<SpinMutex> lock2(_fileIdMutex);
   _setFiledId.erase(_fileId);
 
   LOG_DEBUG << "Close index tree " << _tableName;
@@ -126,7 +128,7 @@ void IndexTree::Close(bool bWait) {
   if (_rootPage == nullptr)
     return;
 
-  _rootPage->DecRefCount();
+  _rootPage->DecRef();
   _rootPage = nullptr;
   if (!bWait)
     return;
@@ -171,10 +173,10 @@ PageFile *IndexTree::ApplyPageFile() {
 
 void IndexTree::UpdateRootPage(IndexPage *root) {
   unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  _rootPage->DecRefCount();
+  _rootPage->DecRef();
   _headPage->WriteRootPagePointer(root->GetPageId());
   _rootPage = root;
-  root->IncRefCount();
+  root->DecRef();
   StoragePool::WriteCachePage(_headPage);
 }
 
@@ -182,6 +184,7 @@ IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
   PageID newPageId = _garbageOwner->ApplyPage(1);
   if (newPageId == HeadPage::PAGE_NULL_POINTER)
     newPageId = _headPage->GetAndIncTotalPageCount();
+
   IndexPage *page = nullptr;
   if (0 != pageLevel) {
     page = new BranchPage(this, newPageId, pageLevel, parentId);
@@ -216,6 +219,7 @@ IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
     IncPages();
 
     ReadPageTask *task = new ReadPageTask(page);
+    task->AddWaitTasks(ThreadPool::_currTask);
     ThreadPool::InstMain().AddTask(task);
   }
   _pageMutex.unlock();
@@ -223,156 +227,164 @@ IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
   return page;
 }
 
-LeafRecord *IndexTree::GetRecord(const RawKey &key) {
-  LeafPage *page = SearchRecursively(key);
-  LeafRecord *rr = page->GetRecord(key);
+// LeafRecord *IndexTree::GetRecord(const RawKey &key) {
+//   LeafPage *page = SearchRecursively(key);
+//   LeafRecord *rr = page->GetRecord(key);
+//
+//   page->ReadUnlock();
+//   page->DecRef();
+//   return rr;
+// }
 
-  page->ReadUnlock();
-  page->DecRefCount();
-  return rr;
-}
+// ErrorMsg *IndexTree::InsertRecord(LeafRecord *rr) {
+//   LeafPage *page = SearchRecursively(*rr);
+//   ErrorMsg *err = page->InsertRecord(rr);
+//
+//   if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 3U) {
+//     page->PageDivide();
+//   }
+//
+//   page->WriteUnlock();
+//   page->DecRef();
+//   return err;
+// }
 
-ErrorMsg *IndexTree::InsertRecord(LeafRecord *rr) {
-  LeafPage *page = SearchRecursively(*rr);
-  ErrorMsg *err = page->InsertRecord(rr);
+// void IndexTree::GetRecords(const RawKey &key, VectorLeafRecord &vct) {
+//   vct.reserve(256);
+//   LeafPage *page = SearchRecursively(key);
+//   while (true) {
+//     VectorLeafRecord vctLr;
+//     bool bLast = page->GetRecords(key, vctLr);
+//     vct.insert(vct.end(), vctLr.begin(), vctLr.end());
+//     vctLr.clear();
+//
+//     if (!bLast)
+//       break;
+//
+//     uint32_t nextId = page->GetNextPageId();
+//     if (nextId == HeadPage::PAGE_NULL_POINTER)
+//       break;
+//
+//     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
+//     nextPage->ReadLock();
+//     page->ReadUnlock();
+//     page->DecRef();
+//     page = nextPage;
+//   }
+//
+//   page->ReadUnlock();
+//   page->DecRef();
+// }
 
-  if (page->GetTotalDataLength() > LeafPage::MAX_DATA_LENGTH * 3U) {
-    page->PageDivide();
-  }
+// void IndexTree::QueryRecord(RawKey *keyStart, RawKey *keyEnd, bool bIncLeft,
+//                             bool bIncRight, VectorLeafRecord &vctRt) {
+//   vctRt.reserve(256);
+//   LeafPage *page = nullptr;
+//   uint32_t pos = 0;
+//   if (keyStart == nullptr) {
+//     uint32_t id = _headPage->ReadBeginLeafPagePointer();
+//     page = (LeafPage *)GetPage(id, true);
+//     page->ReadLock();
+//   } else {
+//     page = SearchRecursively(*keyStart);
+//     bool bFind;
+//     pos = page->SearchKey(*keyStart, bFind);
+//   }
+//
+//   bool bStart = true;
+//   while (true) {
+//     VectorLeafRecord vct;
+//     page->GetAllRecords(vct);
+//     for (uint32_t i = 0; i < pos; i++) {
+//       vct[i]->ReleaseRecord();
+//     }
+//
+//     if (keyStart != nullptr && bStart && !bIncLeft) {
+//       for (; pos < vct.size(); pos++) {
+//         if (vct[pos]->CompareKey(*keyStart) != 0)
+//           break;
+//
+//         vct[pos]->ReleaseRecord();
+//       }
+//
+//       if (pos >= vct.size()) {
+//         uint32_t idNext = page->GetNextPageId();
+//         if (idNext == HeadPage::PAGE_NULL_POINTER) {
+//           break;
+//         }
+//         LeafPage *pageNext = (LeafPage *)GetPage(idNext, true);
+//         pageNext->ReadLock();
+//         page->ReadUnlock();
+//         page->DecRef();
+//         page = pageNext;
+//         pos = 0;
+//         continue;
+//       } else {
+//         bStart = false;
+//       }
+//     }
+//
+//     int count = 0;
+//     for (; pos < vct.size(); pos++) {
+//       LeafRecord *rr = vct[pos];
+//       if (keyEnd != nullptr) {
+//         int hr = rr->CompareKey(*keyEnd);
+//         if ((!bIncRight && hr >= 0) || hr > 0) {
+//           break;
+//         }
+//       }
+//
+//       count++;
+//       vctRt.push_back(rr);
+//     }
+//
+//     if (pos < vct.size()) {
+//       for (; pos < vct.size(); pos++) {
+//         vct[pos]->ReleaseRecord();
+//       }
+//
+//       vct.clear();
+//       break;
+//     }
+//
+//     vct.clear();
+//     uint32_t nextId = page->GetNextPageId();
+//     if (nextId == HeadPage::PAGE_NULL_POINTER)
+//       break;
+//
+//     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
+//     nextPage->ReadLock();
+//     page->ReadUnlock();
+//     page->DecRef();
+//     page = nextPage;
+//     pos = 0;
+//   }
+//
+//   page->ReadUnlock();
+//   page->DecRef();
+// }
 
-  page->WriteUnlock();
-  page->DecRefCount();
-  return err;
-}
-
-void IndexTree::GetRecords(const RawKey &key, VectorLeafRecord &vct) {
-  vct.reserve(256);
-  LeafPage *page = SearchRecursively(key);
-  while (true) {
-    VectorLeafRecord vctLr;
-    bool bLast = page->GetRecords(key, vctLr);
-    vct.insert(vct.end(), vctLr.begin(), vctLr.end());
-    vctLr.clear();
-
-    if (!bLast)
-      break;
-
-    uint32_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::PAGE_NULL_POINTER)
-      break;
-
-    LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
-    nextPage->ReadLock();
-    page->ReadUnlock();
-    page->DecRefCount();
-    page = nextPage;
-  }
-
-  page->ReadUnlock();
-  page->DecRefCount();
-}
-
-void IndexTree::QueryRecord(RawKey *keyStart, RawKey *keyEnd, bool bIncLeft,
-                            bool bIncRight, VectorLeafRecord &vctRt) {
-  vctRt.reserve(256);
-  LeafPage *page = nullptr;
-  uint32_t pos = 0;
-  if (keyStart == nullptr) {
-    uint32_t id = _headPage->ReadBeginLeafPagePointer();
-    page = (LeafPage *)GetPage(id, true);
-    page->ReadLock();
-  } else {
-    page = SearchRecursively(*keyStart);
-    bool bFind;
-    pos = page->SearchKey(*keyStart, bFind);
-  }
-
-  bool bStart = true;
-  while (true) {
-    VectorLeafRecord vct;
-    page->GetAllRecords(vct);
-    for (uint32_t i = 0; i < pos; i++) {
-      vct[i]->ReleaseRecord();
-    }
-
-    if (keyStart != nullptr && bStart && !bIncLeft) {
-      for (; pos < vct.size(); pos++) {
-        if (vct[pos]->CompareKey(*keyStart) != 0)
-          break;
-
-        vct[pos]->ReleaseRecord();
-      }
-
-      if (pos >= vct.size()) {
-        uint32_t idNext = page->GetNextPageId();
-        if (idNext == HeadPage::PAGE_NULL_POINTER) {
-          break;
-        }
-        LeafPage *pageNext = (LeafPage *)GetPage(idNext, true);
-        pageNext->ReadLock();
-        page->ReadUnlock();
-        page->DecRefCount();
-        page = pageNext;
-        pos = 0;
-        continue;
-      } else {
-        bStart = false;
-      }
-    }
-
-    int count = 0;
-    for (; pos < vct.size(); pos++) {
-      LeafRecord *rr = vct[pos];
-      if (keyEnd != nullptr) {
-        int hr = rr->CompareKey(*keyEnd);
-        if ((!bIncRight && hr >= 0) || hr > 0) {
-          break;
-        }
-      }
-
-      count++;
-      vctRt.push_back(rr);
-    }
-
-    if (pos < vct.size()) {
-      for (; pos < vct.size(); pos++) {
-        vct[pos]->ReleaseRecord();
-      }
-
-      vct.clear();
-      break;
-    }
-
-    vct.clear();
-    uint32_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::PAGE_NULL_POINTER)
-      break;
-
-    LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
-    nextPage->ReadLock();
-    page->ReadUnlock();
-    page->DecRefCount();
-    page = nextPage;
-    pos = 0;
-  }
-
-  page->ReadUnlock();
-  page->DecRefCount();
-}
-
-LeafPage *IndexTree::SearchRecursively(const RawKey &key) {
-  IndexPage *page = nullptr;
-  while (true) {
+/**
+ * @brief
+ */
+bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
+                                  IndexPage *&page) {
+  while (page == nullptr) {
     {
       std::shared_lock<SharedSpinMutex> lock(_rootSharedMutex);
-      bool b = _rootPage->ReadTryLock();
+      bool b = false;
+      if (bEdit && _rootPage->GetPageType() == PageType::LEAF_PAGE) {
+        b = _rootPage->WriteTryLock();
+      } else {
+        b = _rootPage->ReadTryLock();
+      }
 
       if (b) {
         page = _rootPage;
-        page->IncRefCount();
+        page->IncRef();
 
-        if (typeid(*page) == typeid(LeafPage))
-          return (LeafPage *)page;
+        if (page->GetPageType() == PageType::LEAF_PAGE)
+          return true;
         else
           break;
       }
@@ -382,8 +394,8 @@ LeafPage *IndexTree::SearchRecursively(const RawKey &key) {
   }
 
   while (true) {
-    if (typeid(*page) == typeid(LeafPage)) {
-      return (LeafPage *)page;
+    if (page->GetPageType() == PageType::LEAF_PAGE) {
+      return true;
     }
 
     BranchPage *bPage = (BranchPage *)page;
@@ -396,21 +408,29 @@ LeafPage *IndexTree::SearchRecursively(const RawKey &key) {
     IndexPage *childPage =
         (IndexPage *)GetPage(pageId, page->GetPageLevel() == 1);
     assert(childPage != nullptr);
+    if (!childPage->IsValidPage()) {
+      return false;
+    }
 
-    childPage->ReadLock();
+    if (bEdit && childPage->GetPageType() == PageType::LEAF_PAGE) {
+      childPage->WriteLock();
+    } else {
+      childPage->ReadLock();
+    }
+
     page->ReadUnlock();
-    page->DecRefCount();
+    page->DecRef();
     page = childPage;
   }
 }
 
-LeafPage *IndexTree::SearchRecursively(const LeafRecord &lr) {
-  IndexPage *page = nullptr;
-  while (true) {
+bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
+                                  IndexPage *&page) {
+  while (page == nullptr) {
     {
       std::shared_lock<SharedSpinMutex> lock(_rootSharedMutex);
       bool b = false;
-      if (typeid(*_rootPage) == typeid(LeafPage)) {
+      if (bEdit && _rootPage->GetPageType() == PageType::LEAF_PAGE) {
         b = _rootPage->WriteTryLock();
       } else {
         b = _rootPage->ReadTryLock();
@@ -418,9 +438,9 @@ LeafPage *IndexTree::SearchRecursively(const LeafRecord &lr) {
 
       if (b) {
         page = _rootPage;
-        page->IncRefCount();
-        if (typeid(*page) == typeid(LeafPage))
-          return (LeafPage *)page;
+        page->IncRef();
+        if (page->GetPageType() == PageType::LEAF_PAGE)
+          return true;
         else
           break;
       }
@@ -431,7 +451,7 @@ LeafPage *IndexTree::SearchRecursively(const LeafRecord &lr) {
 
   BranchRecord br(this, (RawRecord *)&lr, 0);
   while (true) {
-    if (typeid(*page) == typeid(LeafPage)) {
+    if (page->GetPageType() == PageType::LEAF_PAGE) {
       return (LeafPage *)page;
     }
 
@@ -446,156 +466,159 @@ LeafPage *IndexTree::SearchRecursively(const LeafRecord &lr) {
         (IndexPage *)GetPage(pageId, page->GetPageLevel() == 0);
     assert(childPage != nullptr);
 
-    if (typeid(*childPage) == typeid(LeafPage)) {
+    if (bEdit && childPage->GetPageType() == PageType::LEAF_PAGE) {
       childPage->WriteLock();
     } else {
       childPage->ReadLock();
     }
 
     page->ReadUnlock();
-    page->DecRefCount();
+    page->DecRef();
     page = childPage;
   }
 }
 
-bool IndexTree::ReadRecord(const RawKey &key, uint64_t verStamp,
-                           VectorDataValue &vctVal, bool bOvf) {
-  assert(_headPage->ReadIndexType() == IndexType::PRIMARY);
-  LeafPage *page = SearchRecursively(key);
-  LeafRecord *rr = page->GetRecord(key);
-  bool b = false;
-  if (rr != nullptr) {
-    int hr = rr->GetListValue(vctVal, verStamp);
+// bool IndexTree::ReadRecord(const RawKey &key, uint64_t verStamp,
+//                            VectorDataValue &vctVal, bool bOvf) {
+//   assert(_headPage->ReadIndexType() == IndexType::PRIMARY);
+//   LeafPage *page = SearchRecursively(key);
+//   LeafRecord *rr = page->GetRecord(key);
+//   bool b = false;
+//   if (rr != nullptr) {
+//     int hr = rr->GetListValue(vctVal, verStamp);
+//
+//     rr->ReleaseRecord();
+//   }
+//
+//   page->ReadUnlock();
+//   page->DecRef();
+//   return b;
+// }
 
-    rr->ReleaseRecord();
-  }
+// bool IndexTree::ReadPrimaryKeys(const RawKey &key, VectorRawKey &vctKey) {
+//   assert(_headPage->ReadIndexType() != IndexType::PRIMARY);
+//   if (vctKey.size() > 0)
+//     vctKey.RemoveAll();
+//   vctKey.reserve(256);
+//   LeafPage *page = SearchRecursively(key);
+//   VectorLeafRecord vctLr;
+//   bool bLast = page->GetRecords(key, vctLr);
+//
+//   while (true) {
+//     for (LeafRecord *lr : vctLr) {
+//       vctKey.push_back(lr->GetPrimayKey());
+//       lr->ReleaseRecord();
+//     }
+//
+//     if (!bLast || _headPage->ReadIndexType() != IndexType::NON_UNIQUE)
+//       break;
+//
+//     uint32_t nextId = page->GetNextPageId();
+//     if (nextId == HeadPage::PAGE_NULL_POINTER)
+//       break;
+//
+//     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
+//     nextPage->ReadLock();
+//     page->ReadUnlock();
+//     page->DecRef();
+//     page = nextPage;
+//     bLast = page->GetRecords(key, vctLr, true);
+//   }
+//   page->ReadUnlock();
+//   page->DecRef();
+//
+//   return true;
+// }
 
-  page->ReadUnlock();
-  page->DecRefCount();
-  return b;
-}
+// void IndexTree::QueryIndex(const RawKey *keyStart, const RawKey *keyEnd,
+//                            bool bIncLeft, bool bIncRight,
+//                            VectorRawKey &vctKey) {
+//   vctKey.clear();
+//   vctKey.reserve(1024);
+//   LeafPage *page = nullptr;
+//   uint32_t pos = 0;
+//   if (keyStart == nullptr) {
+//     uint32_t id = _headPage->ReadBeginLeafPagePointer();
+//     page = (LeafPage *)GetPage(id, true);
+//     page->ReadLock();
+//   } else {
+//     page = SearchRecursively(*keyStart);
+//   }
+//
+//   VectorLeafRecord vctLr;
+//   bool bLast = page->FetchRecords(keyStart, keyEnd, bIncLeft, bIncRight,
+//   vctLr);
+//
+//   while (true) {
+//     for (LeafRecord *lr : vctLr) {
+//       vctKey.push_back(lr->GetPrimayKey());
+//     }
+//     vctLr.RemoveAll();
+//     if (!bLast)
+//       break;
+//
+//     uint32_t nextId = page->GetNextPageId();
+//     if (nextId == HeadPage::PAGE_NULL_POINTER)
+//       break;
+//
+//     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
+//     nextPage->ReadLock();
+//     page->ReadUnlock();
+//     page->DecRef();
+//     page = nextPage;
+//
+//     bLast = page->FetchRecords((vctKey.size() == 0 ? keyStart : nullptr),
+//                                keyEnd, bIncLeft, bIncRight, vctLr);
+//   }
+//
+//   page->ReadUnlock();
+//   page->DecRef();
+// }
 
-bool IndexTree::ReadPrimaryKeys(const RawKey &key, VectorRawKey &vctKey) {
-  assert(_headPage->ReadIndexType() != IndexType::PRIMARY);
-  if (vctKey.size() > 0)
-    vctKey.RemoveAll();
-  vctKey.reserve(256);
-  LeafPage *page = SearchRecursively(key);
-  VectorLeafRecord vctLr;
-  bool bLast = page->GetRecords(key, vctLr);
-
-  while (true) {
-    for (LeafRecord *lr : vctLr) {
-      vctKey.push_back(lr->GetPrimayKey());
-      lr->ReleaseRecord();
-    }
-
-    if (!bLast || _headPage->ReadIndexType() != IndexType::NON_UNIQUE)
-      break;
-
-    uint32_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::PAGE_NULL_POINTER)
-      break;
-
-    LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
-    nextPage->ReadLock();
-    page->ReadUnlock();
-    page->DecRefCount();
-    page = nextPage;
-    bLast = page->GetRecords(key, vctLr, true);
-  }
-  page->ReadUnlock();
-  page->DecRefCount();
-
-  return true;
-}
-
-void IndexTree::QueryIndex(const RawKey *keyStart, const RawKey *keyEnd,
-                           bool bIncLeft, bool bIncRight,
-                           VectorRawKey &vctKey) {
-  vctKey.clear();
-  vctKey.reserve(1024);
-  LeafPage *page = nullptr;
-  uint32_t pos = 0;
-  if (keyStart == nullptr) {
-    uint32_t id = _headPage->ReadBeginLeafPagePointer();
-    page = (LeafPage *)GetPage(id, true);
-    page->ReadLock();
-  } else {
-    page = SearchRecursively(*keyStart);
-  }
-
-  VectorLeafRecord vctLr;
-  bool bLast = page->FetchRecords(keyStart, keyEnd, bIncLeft, bIncRight, vctLr);
-
-  while (true) {
-    for (LeafRecord *lr : vctLr) {
-      vctKey.push_back(lr->GetPrimayKey());
-    }
-    vctLr.RemoveAll();
-    if (!bLast)
-      break;
-
-    uint32_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::PAGE_NULL_POINTER)
-      break;
-
-    LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
-    nextPage->ReadLock();
-    page->ReadUnlock();
-    page->DecRefCount();
-    page = nextPage;
-
-    bLast = page->FetchRecords((vctKey.size() == 0 ? keyStart : nullptr),
-                               keyEnd, bIncLeft, bIncRight, vctLr);
-  }
-
-  page->ReadUnlock();
-  page->DecRefCount();
-}
-
-void IndexTree::QueryIndex(const RawKey *keyStart, const RawKey *keyEnd,
-                           bool bIncLeft, bool bIncRight, VectorRow &vctRow) {
-  vctRow.clear();
-  vctRow.reserve(1024);
-  LeafPage *page = nullptr;
-  if (keyStart == nullptr) {
-    uint32_t id = _headPage->ReadBeginLeafPagePointer();
-    page = (LeafPage *)GetPage(id, true);
-    page->ReadLock();
-  } else {
-    page = SearchRecursively(*keyStart);
-  }
-
-  VectorLeafRecord vctLr;
-  bool bLast = page->FetchRecords(keyStart, keyEnd, bIncLeft, bIncRight, vctLr);
-
-  while (true) {
-    for (LeafRecord *lr : vctLr) {
-      VectorDataValue *vctDv = new VectorDataValue;
-      lr->GetListValue(*vctDv);
-      vctRow.push_back(vctDv);
-    }
-
-    vctLr.RemoveAll();
-    if (!bLast)
-      break;
-
-    uint32_t nextId = page->GetNextPageId();
-    if (nextId == HeadPage::PAGE_NULL_POINTER)
-      break;
-
-    LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
-    nextPage->ReadLock();
-    page->ReadUnlock();
-    page->DecRefCount();
-    page = nextPage;
-
-    bLast = page->FetchRecords((vctRow.size() == 0 ? keyStart : nullptr),
-                               keyEnd, bIncLeft, bIncRight, vctLr);
-  }
-
-  page->ReadUnlock();
-  page->DecRefCount();
-}
+// void IndexTree::QueryIndex(const RawKey *keyStart, const RawKey *keyEnd,
+//                            bool bIncLeft, bool bIncRight, VectorRow &vctRow)
+//                            {
+//   vctRow.clear();
+//   vctRow.reserve(1024);
+//   LeafPage *page = nullptr;
+//   if (keyStart == nullptr) {
+//     uint32_t id = _headPage->ReadBeginLeafPagePointer();
+//     page = (LeafPage *)GetPage(id, true);
+//     page->ReadLock();
+//   } else {
+//     page = SearchRecursively(*keyStart);
+//   }
+//
+//   VectorLeafRecord vctLr;
+//   bool bLast = page->FetchRecords(keyStart, keyEnd, bIncLeft, bIncRight,
+//   vctLr);
+//
+//   while (true) {
+//     for (LeafRecord *lr : vctLr) {
+//       VectorDataValue *vctDv = new VectorDataValue;
+//       lr->GetListValue(*vctDv);
+//       vctRow.push_back(vctDv);
+//     }
+//
+//     vctLr.RemoveAll();
+//     if (!bLast)
+//       break;
+//
+//     uint32_t nextId = page->GetNextPageId();
+//     if (nextId == HeadPage::PAGE_NULL_POINTER)
+//       break;
+//
+//     LeafPage *nextPage = (LeafPage *)GetPage(nextId, true);
+//     nextPage->ReadLock();
+//     page->ReadUnlock();
+//     page->DecRef();
+//     page = nextPage;
+//
+//     bLast = page->FetchRecords((vctRow.size() == 0 ? keyStart : nullptr),
+//                                keyEnd, bIncLeft, bIncRight, vctLr);
+//   }
+//
+//   page->ReadUnlock();
+//   page->DecRef();
+// }
 } // namespace storage

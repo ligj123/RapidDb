@@ -1,9 +1,13 @@
 ﻿#pragma once
 #include "../core/CachePage.h"
+#include "../utils/ConcurrentHashMap.h"
 #include "../utils/SpinMutex.h"
+#include "../utils/ThreadPool.h"
+#include "../utils/TimerThread.h"
 
 namespace storage {
 using namespace std;
+
 class PageBufferPool {
 public:
   static uint64_t GetMaxCacheSize() { return _maxCacheSize; }
@@ -19,21 +23,30 @@ public:
   /**Only used for test to remove results from previous test cases*/
   static void ClearPool();
 
-  static uint64_t GetCacheSize() { return _mapCache.size(); }
-  static void SetSuspend(bool b) { _bSuspend = true; }
+  static void AddTimerTask();
+  static void RemoveTimerTask();
+
+  static uint64_t GetCacheSize() { return _mapCache.Size(); }
+  static TaskStatus SetSuspend() { return _taskStatus; }
 
 protected:
   static void PoolManage();
-  static thread *CreateThread();
 
 protected:
-  static MHashMap<uint64_t, CachePage *>::Type _mapCache;
-  static SharedSpinMutex _rwLock;
+  static ConcurrentHashMap<uint64_t, CachePage *> _mapCache;
+  static SpinMutex _spinMutex;
+  // The max cache pages in this pool
   static int64_t _maxCacheSize;
-  static thread _tIndexPageManager;
+  // To save how many pages have been removed from this pool in previous clean
+  // task.
   static int64_t _prevDelNum;
-  static thread *_pageBufferThread;
-  static bool _bSuspend;
-  static bool _bStop;
+  // Task status
+  static TaskStatus _taskStatus;
+  friend class PagePoolTask;
+};
+
+class PagePoolTask : public Task {
+  void Run() override;
+  bool IsSmallTask() override { return false; }
 };
 } // namespace storage

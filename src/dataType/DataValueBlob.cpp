@@ -16,7 +16,7 @@ DataValueBlob::DataValueBlob(const char *val, uint32_t len, uint32_t maxLength,
       maxLength_(maxLength), soleLength_(len) {
   if (soleLength_ > maxLength_) {
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+                   {ToMString(maxLength_), ToMString(soleLength_)});
   }
 
   bysValue_ = CachePool::Apply(soleLength_);
@@ -34,7 +34,7 @@ DataValueBlob::DataValueBlob(MVector<Byte>::Type &vct, uint32_t maxLength,
       maxLength_(maxLength), soleLength_((uint32_t)vct.size()) {
   if (soleLength_ > maxLength_) {
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+                   {ToMString(maxLength_), ToMString(soleLength_)});
   }
 
   bysValue_ = CachePool::Apply(soleLength_);
@@ -75,7 +75,7 @@ void DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
 
   if (dv.GetDataLength() > maxLength_) {
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(dv.GetDataLength())});
+                   {ToMString(maxLength_), ToMString(dv.GetDataLength())});
   }
 
   if (valType_ == ValueType::SOLE_VALUE) {
@@ -216,7 +216,7 @@ DataValueBlob::operator const char *() const {
 void DataValueBlob::Put(uint32_t len, char *val) {
   if (len >= maxLength_)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+                   {ToMString(maxLength_), ToMString(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 

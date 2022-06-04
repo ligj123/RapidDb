@@ -1,4 +1,5 @@
 ﻿#include "DataValueVarChar.h"
+#include "../cache/Mallocator.h"
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include <cstring>
@@ -8,31 +9,31 @@ namespace storage {
 DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey, std::any val)
     : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey),
       maxLength_(maxLength) {
-  string str;
-  if (val.type() == typeid(std::string))
-    str = std::any_cast<std::string>(val);
+  MString str;
+  if (val.type() == typeid(MString))
+    str = std::any_cast<MString>(val);
   else if (val.type() == typeid(const char *))
     str = any_cast<const char *>(val);
   else if (val.type() == typeid(char *))
     str = any_cast<char *>(val);
   else if (val.type() == typeid(int64_t))
-    str = move(to_string(std::any_cast<int64_t>(val)));
+    str = move(ToMString(std::any_cast<int64_t>(val)));
   else if (val.type() == typeid(int64_t))
-    str = move(to_string(std::any_cast<int64_t>(val)));
+    str = move(ToMString(std::any_cast<int64_t>(val)));
   else if (val.type() == typeid(int32_t))
-    str = move(to_string(std::any_cast<int32_t>(val)));
+    str = move(ToMString(std::any_cast<int32_t>(val)));
   else if (val.type() == typeid(int16_t))
-    str = move(to_string(std::any_cast<int16_t>(val)));
+    str = move(ToMString(std::any_cast<int16_t>(val)));
   else if (val.type() == typeid(uint64_t))
-    str = move(to_string(std::any_cast<uint64_t>(val)));
+    str = move(ToMString(std::any_cast<uint64_t>(val)));
   else if (val.type() == typeid(uint32_t))
-    str = move(to_string(std::any_cast<uint32_t>(val)));
+    str = move(ToMString(std::any_cast<uint32_t>(val)));
   else if (val.type() == typeid(uint16_t))
-    str = move(to_string(std::any_cast<uint16_t>(val)));
+    str = move(ToMString(std::any_cast<uint16_t>(val)));
   else if (val.type() == typeid(int8_t))
-    str = move(to_string(std::any_cast<int8_t>(val)));
+    str = move(ToMString(std::any_cast<int8_t>(val)));
   else if (val.type() == typeid(uint8_t))
-    str = move(to_string(std::any_cast<uint8_t>(val)));
+    str = move(ToMString(std::any_cast<uint8_t>(val)));
   else
     throw ErrorMsg(DT_UNSUPPORT_CONVERT,
                    {val.type().name(), "DataValueVarChar"});
@@ -40,7 +41,7 @@ DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey, std::any val)
   soleLength_ = (uint32_t)str.size() + 1;
   if (soleLength_ >= maxLength_)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+                   {ToMString(maxLength_), ToMString(soleLength_)});
 
   bysValue_ = CachePool::Apply(soleLength_);
   BytesCopy(bysValue_, str.c_str(), soleLength_);
@@ -59,7 +60,7 @@ void DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
     dv.ToString(sb);
     if (maxLength_ < sb.GetStrLen() + 1) {
       throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {to_string(maxLength_), to_string(dv.GetDataLength())});
+                     {ToMString(maxLength_), ToMString(dv.GetDataLength())});
     }
 
     if (valType_ == ValueType::SOLE_VALUE) {
@@ -75,7 +76,7 @@ void DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
 
   if (dv.GetDataLength() > maxLength_) {
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(dv.GetDataLength())});
+                   {ToMString(maxLength_), ToMString(dv.GetDataLength())});
   }
 
   if (valType_ == ValueType::SOLE_VALUE) {
@@ -220,7 +221,7 @@ DataValueVarChar &DataValueVarChar::operator=(const char *val) {
   uint32_t len = (uint32_t)strlen(val) + 1;
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+                   {ToMString(maxLength_), ToMString(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 
@@ -231,11 +232,11 @@ DataValueVarChar &DataValueVarChar::operator=(const char *val) {
   return *this;
 }
 
-DataValueVarChar &DataValueVarChar::operator=(const string val) {
+DataValueVarChar &DataValueVarChar::operator=(const MString val) {
   uint32_t len = (uint32_t)val.size() + 1;
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+                   {ToMString(maxLength_), ToMString(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 

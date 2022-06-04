@@ -1,3 +1,4 @@
+#include "../src/utils/SpinMutex.h"
 #include "PressTest.h"
 #include <atomic>
 #include <chrono>
@@ -7,10 +8,9 @@
 #include <mutex>
 #include <random>
 #include <sstream>
-#include <string>
 #include <thread>
 #include <unordered_map>
-#include "../src/utils/SpinMutex.h"
+
 
 namespace storage {
 using namespace std;
@@ -38,8 +38,7 @@ void MutexTest() {
   }
 
   et = chrono::system_clock::now();
-  duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(et - st);
+  duration = std::chrono::duration_cast<std::chrono::milliseconds>(et - st);
   cout << "std::mutex Time(ms):" << duration.count() << endl;
 }
 } // namespace storage

@@ -7,7 +7,6 @@
 #include <deque>
 #include <functional>
 #include <future>
-#include <string>
 #include <thread>
 #include <type_traits>
 #include <unordered_map>
@@ -21,7 +20,7 @@ enum class TimerType : Byte {
 };
 
 struct TimerTask {
-  string _name;
+  MString _name;
   TimerType type;
   union {
     struct { // Repeated times
@@ -36,6 +35,8 @@ struct TimerTask {
   DT_MicroSec _prevTime = 0;
   // This function is used to generate Task and add into queue in thread pool
   std::function<void()> _lambda;
+  // If this task is to free memory task
+  bool _bMemTask = false;
 };
 
 /**This thread will start when this process start and stop when this process
@@ -44,12 +45,12 @@ class TimerThread {
 public:
   TimerThread();
   ~TimerThread();
-  static void AddCircleTask(string name, DT_MicroSec interval,
-                            std::function<void()> lambda,
+  static void AddCircleTask(MString name, DT_MicroSec interval,
+                            std::function<void()> lambda, bool memTask = false,
                             uint64_t rpCount = UNLIMIT_CIRCLE);
-  static void AddTimingTask(string name, DT_MicroSec dtStart,
+  static void AddTimingTask(MString name, DT_MicroSec dtStart,
                             std::function<void()> lambda);
-  static bool RemoveTask(string name);
+  static bool RemoveTask(MString name);
   static DT_MicroSec GetCurrTime() {
     if (_instance == nullptr || !_instance->_bRunning)
       return 0;
@@ -60,6 +61,7 @@ public:
   }
   static void Start();
   static void Stop();
+  static void TriggerMemTask();
 
 protected:
   void Run();

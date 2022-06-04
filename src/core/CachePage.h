@@ -36,7 +36,7 @@ public:
 
 public:
   CachePage(IndexTree *indexTree, PageID pageId, PageType type);
-  void DecRefCount(int num = 1);
+  void DecRef(int num = 1);
   virtual void ReadPage(PageFile *pageFile = nullptr);
   virtual void WritePage(PageFile *pageFile = nullptr);
   virtual void Init() {}
@@ -67,7 +67,7 @@ public:
   inline bool IsOverTime(uint64_t microSecs) {
     return MicroSecTime() - _dtPageLastWrite > microSecs;
   }
-  void IncRefCount(int num = 1) {
+  void IncRef(int num = 1) {
     assert(num > 0);
     _refCount.fetch_add(num, memory_order_relaxed);
   }
@@ -112,24 +112,26 @@ public:
     Int64ToBytes(value, _bysPage + pos);
   }
 
-  inline MVector<Task *>::Type &GetWaitTasks() { return _vctWaitTask; }
+  inline bool IsValidPage() { return _bInvalidPage; }
   inline bool PushWaitTask(Task *task) {
     if (_bFilled)
       return false;
+
     WriteLock();
-    if (_bFilled)
+    if (_bFilled) {
+      WriteUnlock();
       return false;
-    _vctWaitTask.push_back(task);
+    }
+    _waitTasks.push_back(task);
     WriteUnlock();
-    return true;
   }
+  inline MVector<Task *>::Type &GetWaitTasks() { return _waitTasks; }
 
 protected:
   virtual ~CachePage();
 
 protected:
-  // The waiting tasks that need to run after read this pages
-  MVector<Task *>::Type _vctWaitTask;
+  MVector<Task *>::Type _waitTasks;
   // The page block, it is equal pages in disk
   Byte *_bysPage = nullptr;
   // Read write lock.
@@ -167,15 +169,19 @@ public:
   ReadPageTask(CachePage *page) : _page(page) {}
   bool IsSmallTask() { return false; }
   void Run() {
-    _page->WriteLock();
+    _status = TaskStatus::RUNNING;
     _page->ReadPage(nullptr);
 
-    if (_page->GetPageType() == PageType::LEAF_PAGE ||
-        _page->GetPageType() == PageType::BRANCH_PAGE) {
-      ((IndexPage *)_page)->Init();
+    if (_page->IsValidPage()) {
+      _page->Init();
+    } else {
+      // In following time will add code to fix page;
+      abort();
     }
 
-    MVector<Task *>::Type vct = _page->GetWaitTasks();
+    _status = TaskStatus::STOPED;
+    _page->WriteLock();
+    MVector<Task *>::Type &vct = _page->GetWaitTasks();
     ThreadPool::InstMain().AddTasks(vct);
     vct.clear();
     _page->WriteUnlock();

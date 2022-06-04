@@ -1,15 +1,15 @@
 ﻿#ifndef EXCEPTION_EX_H
 #define EXCEPTION_EX_H
+#include "../cache/Mallocator.h"
 #include <boost/stacktrace.hpp>
 #include <exception>
 #include <sstream>
-#include <string>
 
 using namespace std;
 namespace storage {
 class BacktraceException : public exception {
 public:
-  BacktraceException(string what) {
+  BacktraceException(MString what) {
     std::stringstream ss;
     ss << boost::stacktrace::stacktrace() << "\n";
     m_strTrace = ss.str();
@@ -26,11 +26,11 @@ public:
 
   const char *GetBacktrace() const { return m_strTrace.c_str(); }
 
-  const string GetMessage() { return m_strWhat; }
+  const MString GetMessage() { return m_strWhat; }
 
 private:
-  string m_strWhat;
-  string m_strTrace;
+  MString m_strWhat;
+  MString m_strTrace;
 };
 } // namespace storage
 

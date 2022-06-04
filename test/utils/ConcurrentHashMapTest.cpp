@@ -8,7 +8,7 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
-  class ConcurrentHashMapEx : public ConcurrentHashMap<int, string> {
+  class ConcurrentHashMapEx : public ConcurrentHashMap<int, MString> {
   public:
     using ConcurrentHashMap::_groupCount;
     using ConcurrentHashMap::_vctLock;
@@ -24,15 +24,15 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
   BOOST_TEST(hMap._vctMap[0]->bucket_count() >= 10000);
 
   for (int i = 0; i < 500000; i++) {
-    BOOST_TEST(hMap.Insert(i, to_string(i)));
+    BOOST_TEST(hMap.Insert(i, ToMString(i)));
   }
 
   BOOST_TEST(hMap.Size() == 500000);
 
   for (int i = 0; i < 500000; i++) {
-    string str;
+    MString str;
     BOOST_TEST(hMap.Find(i, str));
-    BOOST_TEST(str == to_string(i));
+    BOOST_TEST(str == ToMString(i));
   }
 
   int count = 0;

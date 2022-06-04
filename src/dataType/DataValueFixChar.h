@@ -85,20 +85,20 @@ public:
     sb.Cat((char *)bysValue_, maxLength_ - 1);
   }
 
-  operator string() const {
+  operator MString() const {
     switch (valType_) {
     case ValueType::NULL_VALUE:
       return "";
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return string((char *)bysValue_);
+      return MString((char *)bysValue_);
     }
 
     return "";
   }
 
   DataValueFixChar &operator=(const char *val);
-  DataValueFixChar &operator=(const string val);
+  DataValueFixChar &operator=(const MString val);
   DataValueFixChar &operator=(const DataValueFixChar &src);
 
   bool operator>(const DataValueFixChar &dv) const {

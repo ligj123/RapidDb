@@ -48,7 +48,7 @@ bool IndexPage::PageDivide() {
   } else {
     parentPage = (BranchPage *)_indexTree->GetPage(_parentPageId, false);
     if (!parentPage->WriteTryLock()) {
-      parentPage->DecRefCount();
+      parentPage->DecRef();
       return false;
     }
 
@@ -56,7 +56,7 @@ bool IndexPage::PageDivide() {
     bool bFind;
     posInParent = parentPage->SearchRecord(br, bFind);
     if (!bFind)
-      posInParent = parentPage->GetRecordNum() - 1;
+      posInParent = parentPage->GetRecordNumber() - 1;
     brParentOld = parentPage->DeleteRecord(posInParent);
   }
 
@@ -177,7 +177,7 @@ bool IndexPage::PageDivide() {
   }
 
   parentPage->WriteUnlock();
-  parentPage->DecRefCount();
+  parentPage->DecRef();
 
   if (level == 0) {
     // if is leaf page, set left and right page
@@ -204,7 +204,7 @@ bool IndexPage::PageDivide() {
           ((LeafPage *)vctPage[vctPage.size() - 1])->GetPageId());
       lastPage->SetDirty(true);
       PageDividePool::AddCachePage(lastPage);
-      lastPage->DecRefCount();
+      lastPage->DecRef();
     }
   }
 
@@ -214,7 +214,7 @@ bool IndexPage::PageDivide() {
     indexPage->_bRecordUpdate = true;
     PageDividePool::AddCachePage(indexPage);
     indexPage->WriteUnlock();
-    indexPage->DecRefCount();
+    indexPage->DecRef();
   }
 
   if (brParentOld != nullptr) {

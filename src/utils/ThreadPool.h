@@ -6,49 +6,36 @@
 #include <condition_variable>
 #include <deque>
 #include <future>
-#include <string>
 #include <thread>
 #include <type_traits>
 #include <unordered_map>
 
 namespace storage {
 using namespace std;
+enum class TaskStatus : Byte {
+  UNINIT = 0, // Before initialize
+  STARTED,    // The task has been added into TimerThread, only for special task
+  RUNNING,    // The task is running
+  INTERVAL,   // Interval time between two running
+  PAUSE_WITHOUT_ADD, // Pause task and not need to add this task into ThreadPool
+  PAUSE_WITH_ADD,    // Pause task and add this task into ThreadPool
+  STOPED             // The task has been remove from TimerThread
+};
 
 // All tasks that run in thread pool must inherit this class.
 class Task {
 public:
   virtual ~Task() {}
   virtual void Run() = 0;
-  int GetResult() { return _result; }
+  inline TaskStatus Status() { return _status; }
   // If small task, the thread pool maybe get more than one tasks one time to
   // execute
   virtual bool IsSmallTask() { return true; }
-  void IncRef(int num = 1, bool lock = false) {
-    assert(num > 0);
-    if (lock) {
-      _spinMutex.lock();
-    }
-    _refCount += num;
-    if (lock) {
-      _spinMutex.unlock();
-    }
+  // Only support add task before running
+  void AddWaitTasks(Task *task) {
+    assert(_status == TaskStatus::UNINIT);
+    _vctWaitTasks.push_back(task);
   }
-  void DecRef(int num = 1, bool lock = false) {
-    assert(num > 0);
-    if (lock) {
-      _spinMutex.lock();
-    }
-    _refCount -= num;
-    if (lock) {
-      _spinMutex.unlock();
-    }
-    assert(_refCount >= 0);
-    if (_refCount == 0) {
-      delete this;
-    }
-  }
-
-  bool AddWaitTasks(Task *task) { _vctWaitTasks.push_back(task); }
 
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
@@ -59,18 +46,16 @@ public:
 
 protected:
   /**Waiting tasks for this task*/
-  vector<Task *> _vctWaitTasks;
-  SpinMutex _spinMutex;
-  uint32_t _refCount = 1;
-  // 0: passed; -1: failed; 1: pause and resume in following time
-  int _result;
+  MVector<Task *>::Type _vctWaitTasks;
+  TaskStatus _status = TaskStatus::UNINIT;
 };
 
 class ThreadPool {
 public:
   static thread_local int _threadID;
-  static thread_local string _threadName;
-  static string GetThreadName() { return _threadName; }
+  static thread_local MString _threadName;
+  static thread_local Task *_currTask;
+  static MString GetThreadName() { return _threadName; }
   static ThreadPool &InstMain() {
     if (_instMain == nullptr) {
       unique_lock<SpinMutex> lock(_smMain);
@@ -83,7 +68,7 @@ public:
   }
 
 public:
-  ThreadPool(string threadPrefix, uint32_t maxQueueSize = 1000000,
+  ThreadPool(MString threadPrefix, uint32_t maxQueueSize = 1000000,
              int minThreads = 1,
              int maxThreads = std::thread::hardware_concurrency());
   ~ThreadPool();
@@ -91,13 +76,19 @@ public:
   ThreadPool(const ThreadPool &) = delete;
   ThreadPool &operator=(const ThreadPool &) = delete;
 
-  void AddTask(Task *task);
+  void AddTask(Task *task, bool urgent = false);
   void AddTasks(MVector<Task *>::Type &vct);
   void Stop() { _stopThreads = true; }
-  uint32_t GetTaskCount() { return (uint32_t)_tasks.size(); }
+  uint32_t GetTaskCount() {
+    return (uint32_t)(_smallTasks.size() + _largeTasks.size() +
+                      _urgentTasks.size());
+  }
   void SetMaxQueueSize(uint32_t qsize) { _maxQueueSize = qsize; }
   uint32_t GetMaxQueueSize() { return _maxQueueSize; }
-  bool IsFull() { return _maxQueueSize <= _tasks.size(); }
+  bool IsFull() {
+    return _maxQueueSize <=
+           _smallTasks.size() + _largeTasks.size() + _urgentTasks.size();
+  }
   void CreateThread(int id = -1);
   int GetThreadCount() { return _aliveThreads; }
   int GetMinThreads() { return _minThreads; }
@@ -106,12 +97,14 @@ public:
 
 protected:
   vector<thread *> _vctThread;
-  deque<Task *> _tasks;
+  deque<Task *> _smallTasks;
+  deque<Task *> _largeTasks;
+  deque<Task *> _urgentTasks;
   SpinMutex _task_mutex;
   SpinMutex _threadMutex;
   condition_variable_any _taskCv;
   bool _stopThreads = false;
-  string _threadPrefix;
+  MString _threadPrefix;
   uint32_t _maxQueueSize;
   int _minThreads;
   int _maxThreads;

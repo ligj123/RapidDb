@@ -44,7 +44,8 @@ public:
   // To save if this page is the last page in current level. The highest bit is
   // for begin apge mark, the second bit is for end page mark.
   static const uint16_t PAGE_BEGIN_END_OFFSET;
-  // Used in future. For large transaction,
+  // Used in future. For large transaction, to save how much record in
+  // transaction status, only used in LeafPage .
   static const uint16_t PAGE_TRAN_COUNT;
   // Recors number in this page
   static const uint16_t NUM_RECORD_OFFSET;
@@ -72,7 +73,6 @@ public:
   inline uint32_t GetTotalDataLength() { return _totalDataLength; }
   inline uint32_t GetRecordNumber() { return _recordNum; }
   bool Releaseable() override { return _refCount == 1 && _tranCount == 0; }
-  inline uint32_t GetRecordNum() { return _recordNum; }
   inline bool IsBeginPage() { return _bysPage[PAGE_BEGIN_END_OFFSET] & 0x80; }
   inline void SetBeginPage(bool last) {
     last ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x80)

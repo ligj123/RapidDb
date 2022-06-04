@@ -13,8 +13,8 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(BranchPage_test) {
-  const string FILE_NAME = "./dbTest/testBranchPage" + StrMSTime() + ".dat";
-  const string TABLE_NAME = "testTable";
+  const MString FILE_NAME = "./dbTest/testBranchPage" + StrMSTime() + ".dat";
+  const MString TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
 
   DataValueLong *dvKey = new DataValueLong(100, true);
@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   rr->ReleaseRecord();
   mid->ReleaseRecord();
 
-  bp->DecRefCount();
+  bp->DecRef();
   indexTree->Close(true);
   PageBufferPool::ClearPool();
   delete dvKey;
@@ -82,8 +82,9 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
-  const string FILE_NAME = "./dbTest/testBranchPageSave" + StrMSTime() + ".dat";
-  const string TABLE_NAME = "testTable";
+  const MString FILE_NAME =
+      "./dbTest/testBranchPageSave" + StrMSTime() + ".dat";
+  const MString TABLE_NAME = "testTable";
   const int ROW_COUNT = BranchPage::MAX_DATA_LENGTH / 22;
 
   DataValueLong *dvKey = new DataValueLong(100, true);
@@ -123,7 +124,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
     rr->ReleaseRecord();
   }
 
-  bp->DecRefCount();
+  bp->DecRef();
   indexTree->Close(true);
   PageBufferPool::ClearPool();
   delete dvKey;
@@ -133,8 +134,8 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
-  const string FILE_NAME = "./dbTest/testBranchPage" + StrMSTime() + ".dat";
-  const string TABLE_NAME = "testTable";
+  const MString FILE_NAME = "./dbTest/testBranchPage" + StrMSTime() + ".dat";
+  const MString TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
 
   DataValueLong *dvKey = new DataValueLong(100, true);
@@ -174,7 +175,7 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
     BOOST_TEST((i % 2 != 1) == bp->RecordExist(key));
   }
 
-  bp->DecRefCount();
+  bp->DecRef();
   indexTree->Close(true);
   PageBufferPool::ClearPool();
   delete dvKey;
@@ -184,9 +185,9 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
-  const string FILE_NAME =
+  const MString FILE_NAME =
       "./dbTest/testBranchPageSearchKey" + StrMSTime() + ".dat";
-  const string TABLE_NAME = "testTable";
+  const MString TABLE_NAME = "testTable";
 
   DataValueVarChar *dvKey = new DataValueVarChar(1000, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
@@ -202,7 +203,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
   vctVal.push_back(dvVal->Clone(true));
   uint64_t arLong[] = {1, 123456, 3456, 789, 8776};
   for (int i = 0; i < 5; i++) {
-    string str = "testString" + to_string(arLong[i]);
+    MString str = "testString" + ToMString(arLong[i]);
     *((DataValueVarChar *)vctKey[0]) = str.c_str();
     *((DataValueLong *)vctVal[0]) = i + 100;
     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
@@ -214,14 +215,14 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
   uint64_t arKey[] = {0, 20, 135, 70, 999};
   int arPos[] = {0, 2, 2, 3, 5};
   for (int i = 0; i < 5; i++) {
-    string str = "testString" + to_string(arKey[i]);
+    MString str = "testString" + ToMString(arKey[i]);
     *((DataValueVarChar *)vctKey[0]) = str.c_str();
     RawKey key(vctKey);
     bool bFind;
     BOOST_TEST(arPos[i] == bp->SearchKey(key, bFind));
   }
 
-  bp->DecRefCount();
+  bp->DecRef();
   indexTree->Close(true);
   PageBufferPool::ClearPool();
   delete dvKey;

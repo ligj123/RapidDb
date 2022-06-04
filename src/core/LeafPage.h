@@ -21,14 +21,15 @@ public:
     _recordNum = 0;
     _totalDataLength = 0;
   }
-  LeafPage(IndexTree *indexTree, uint32_t pageId, uint32_t parentPageId);
-  LeafPage(IndexTree *indexTree, uint32_t pageId);
+  LeafPage(IndexTree *indexTree, PageID pageId, PageID parentPageId);
+  LeafPage(IndexTree *indexTree, PageID pageId);
   ~LeafPage();
+  void Init() override;
 
-  inline void SetPrevPageId(uint32_t id) { _prevPageId = id; }
-  inline uint32_t GetPrevPageId() { return _prevPageId; }
-  inline void SetNextPageId(uint32_t id) { _nextPageId = id; }
-  inline uint32_t GetNextPageId() { return _nextPageId; }
+  inline void SetPrevPageId(PageID id) { _prevPageId = id; }
+  inline PageID GetPrevPageId() { return _prevPageId; }
+  inline void SetNextPageId(PageID id) { _nextPageId = id; }
+  inline PageID GetNextPageId() { return _nextPageId; }
   inline bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH; }
 
   void LoadRecords();
@@ -62,7 +63,6 @@ public:
   int32_t SearchKey(const LeafRecord &rr, bool &bFind, bool bInc = true,
                     int32_t start = 0, int32_t end = INT32_MAX);
   uint16_t GetMaxDataLength() const override { return MAX_DATA_LENGTH; }
-  void Init() override;
 
 protected:
   inline LeafRecord *GetVctRecord(int pos) const {

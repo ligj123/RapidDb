@@ -30,11 +30,11 @@ public:
       _value = std::any_cast<int8_t>(val);
     else if (val.type() == typeid(uint8_t))
       _value = std::any_cast<uint8_t>(val);
-    else if (val.type() == typeid(std::string)) {
+    else if (val.type() == typeid(MString)) {
       if (IDataValue::IsAutoPrimaryKey(DT))
-        _value = (T)std::stoi(std::any_cast<std::string>(val));
+        _value = (T)stoi(std::any_cast<MString>(val).c_str());
       else
-        _value = (T)std::stod(std::any_cast<std::string>(val));
+        _value = (T)stod(std::any_cast<MString>(val).c_str());
     } else
       throw ErrorMsg(DT_UNSUPPORT_CONVERT,
                      {val.type().name(), StrOfDataType(DT)});
@@ -54,9 +54,9 @@ public:
       _value = ((DataValueDigit &)dv)._value;
     } else if (dv.IsStringType()) {
       if (IsAutoPrimaryKey())
-        _value = (T)std::atoi(any_cast<string>(dv.GetValue()).c_str());
+        _value = (T)std::atoi(any_cast<MString>(dv.GetValue()).c_str());
       else
-        _value = (T)std::atof(any_cast<string>(dv.GetValue()).c_str());
+        _value = (T)std::atof(any_cast<MString>(dv.GetValue()).c_str());
     } else if (!dv.IsDigital()) {
       throw ErrorMsg(
           2001, {StrOfDataType(dv.GetDataType()), StrOfDataType(dataType_)});

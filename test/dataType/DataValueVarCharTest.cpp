@@ -53,13 +53,13 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
   BOOST_TEST(dv6 != dv1);
 
   dv1.SetDefaultValue();
-  BOOST_TEST((string)dv1 == "");
+  BOOST_TEST((MString)dv1 == "");
 
   dv1.SetMaxValue();
   // BOOST_TEST((string)dv1 == "\\uff\\uff\\uff");
 
   dv1.SetMinValue();
-  BOOST_TEST((string)dv1 == "");
+  BOOST_TEST((MString)dv1 == "");
 
   DataValueVarChar dv7;
   dv7.WriteData(buf);

@@ -2,7 +2,6 @@
 #include "../cache/Mallocator.h"
 #include <exception>
 #include <mutex>
-#include <string>
 #include <unordered_map>
 
 namespace storage {
@@ -11,17 +10,17 @@ using namespace std;
 class ErrorMsg : public exception {
 public:
   ErrorMsg() {}
-  ErrorMsg(int id, MVector<string>::Type paras = {}) {
+  ErrorMsg(int id, MVector<MString>::Type paras = {}) {
     _errId = id;
     auto iter = _mapErrorMsg.find(id);
     if (iter == _mapErrorMsg.end()) {
-      _errMsg = "Failed to find the error id, id=" + to_string(id);
+      _errMsg = MString("Failed to find the error id, id=" + ToMString(id));
     } else {
       _errMsg = iter->second;
       for (int i = 0; i < paras.size(); i++) {
-        string str = "{" + std::to_string(i + 1) + "}";
+        MString str = "{" + ToMString(i + 1) + "}";
         size_t pos = _errMsg.find(str);
-        if (pos != string::npos)
+        if (pos != MString::npos)
           _errMsg.replace(pos, 3, paras[i]);
       }
     }
@@ -42,11 +41,11 @@ public:
   int getErrId() { return _errId; }
 
 protected:
-  static unordered_map<int, string> LoadErrorMsg();
+  static unordered_map<int, MString> LoadErrorMsg();
 
 protected:
-  static unordered_map<int, string> _mapErrorMsg;
+  static unordered_map<int, MString> _mapErrorMsg;
   int _errId = 0;
-  string _errMsg;
+  MString _errMsg;
 };
 } // namespace storage

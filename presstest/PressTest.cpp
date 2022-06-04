@@ -3,10 +3,10 @@
 //
 
 #include "PressTest.h"
+#include "../src/cache/Mallocator.h"
 #include "../src/utils/Log.h"
 #include <filesystem>
 #include <iostream>
-#include <string>
 
 namespace fs = std::filesystem;
 static const std::string ROOT_PATH = "./dbTest";
@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     help();
     exit(0);
   }
-  std::string str(argv[1]);
+  MString str(argv[1]);
   transform(str.begin(), str.end(), str.begin(),
             [](unsigned char c) -> unsigned char { return std::tolower(c); });
 

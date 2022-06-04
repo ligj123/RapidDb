@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../cache/Mallocator.h"
 #include "../cache/StrBuff.h"
 #include "../config/ErrorID.h"
 #include "../dataType/DataValueDigit.h"
@@ -125,7 +126,7 @@ public:
                      {"LIKE left", StrOfDataType(left->GetDataType())});
     }
 
-    string lStr;
+    MString lStr;
     if (left->GetDataType() == DataType::FIXCHAR)
       lStr = *(DataValueFixChar *)left;
     else
@@ -136,7 +137,7 @@ public:
     if (lStr.size() < patten.size())
       return false;
     if (bLper && bRper)
-      return (lStr.find(patten) != string::npos);
+      return (lStr.find(patten) != MString::npos);
     else if (bLper) {
       return (lStr.substr(lStr.size() - patten.size()) == patten);
     } else if (bRper) {
@@ -149,7 +150,7 @@ public:
 protected:
   ExprColumn *_exprColumn;
   ExprConst *_exprPatten;
-  string patten;
+  MString patten;
   bool bLper;
   bool bRper;
 };
@@ -227,7 +228,7 @@ protected:
 
 class ExprCondition : public ExprLogic {
 public:
-  ExprCondition(ExprLogic *child, ExprLogic *indexExpr, string indexName)
+  ExprCondition(ExprLogic *child, ExprLogic *indexExpr, MString indexName)
       : _child(child), _indexExpr(indexExpr), _indexName(indexName) {}
   ~ExprCondition() { delete _child; }
 
@@ -240,7 +241,7 @@ public:
   }
 
   BaseExpr *GetIndexExpr() { return _indexExpr; }
-  string GetIndexName() { return _indexName; }
+  MString GetIndexName() { return _indexName; }
 
 protected:
   // Other query conditions except index condition, maybe null without other
@@ -251,7 +252,7 @@ protected:
   ExprLogic *_indexExpr;
   // Index name, only used for secondary index. If primary index, it will be
   // empty.
-  string _indexName;
+  MString _indexName;
 };
 
 class ExprOn : public ExprLogic {
