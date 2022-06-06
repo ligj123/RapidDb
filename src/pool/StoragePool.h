@@ -20,11 +20,11 @@ public:
   static void WriteCachePage(CachePage *page);
   static size_t GetWaitingPageCount() { return _storagePool->_mapWrite.size(); }
   static void InitPool(ThreadPool *tp) { _storagePool = new StoragePool(tp); };
-  static void PoolManage();
 
 protected:
   static StoragePool *_storagePool;
   static SpinMutex _spinMutex;
+  static void PoolManage();
 
 protected:
   StoragePool(ThreadPool *tp)

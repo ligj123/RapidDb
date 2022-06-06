@@ -103,54 +103,48 @@ BOOST_AUTO_TEST_CASE(BufferPool_test) {
   BOOST_TEST(1 == pool.GetMapBuffer().size());
   BOOST_TEST(0 == pool.GetMapFree().size());
 }
-
+//
 // BOOST_AUTO_TEST_CASE(CachePool_test) {
-//   class CachePoolEx : public CachePool {
-//   public:
-//     using CachePool::_gCachePool;
-//     using CachePool::_mapPool;
-//     using CachePool::_queueFreeBuf;
-//   };
+//  class CachePoolEx : public CachePool {
+//  public:
+//    using CachePool::_gCachePool;
+//    using CachePool::_mapPool;
+//    using CachePool::_queueFreeBuf;
+//  };
 //
-//   CachePoolEx::_gCachePool = new CachePoolEx();
-//   uint32_t maxEle = (uint32_t)Configure::GetCacheBlockSize() / 32;
-//   for (uint32_t i = 0; i < maxEle; i++) {
-//     CachePoolEx::Apply(32);
-//   }
+//  CachePoolEx::_gCachePool = new CachePoolEx();
+//  uint32_t maxEle = (uint32_t)Configure::GetCacheBlockSize() / 32;
+//  for (uint32_t i = 0; i < maxEle; i++) {
+//    CachePoolEx::Apply(32);
+//  }
 //
-//   BOOST_TEST(1 == ((CachePoolEx
-//   *)CachePoolEx::_gCachePool)->_mapPool.size());
+//  BOOST_TEST(1 == ((CachePoolEx *)CachePoolEx::_gCachePool)->_mapPool.size());
 //
-//   Byte *bys = CachePoolEx::Apply(32);
-//   BOOST_TEST(0 ==
-//              ((CachePoolEx
-//              *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+//  Byte *bys = CachePoolEx::Apply(32);
+//  BOOST_TEST(0 ==
+//             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 //
-//   CachePoolEx::Release(bys, 32);
-//   BOOST_TEST(0 ==
-//              ((CachePoolEx
-//              *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+//  CachePoolEx::Release(bys, 32);
+//  BOOST_TEST(0 ==
+//             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 //
-//   bys = CachePoolEx::Apply(32);
-//   BOOST_TEST(0 ==
-//              ((CachePoolEx
-//              *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+//  bys = CachePoolEx::Apply(32);
+//  BOOST_TEST(0 ==
+//             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 //
-//   Byte *bys2 = CachePoolEx::Apply(40);
-//   // BOOST_TEST(2 == ((CachePoolEx
-//   // *)CachePoolEx::_gCachePool)->_mapPool.size());
-//   BOOST_TEST(0 ==
-//              ((CachePoolEx
-//              *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+//  Byte *bys2 = CachePoolEx::Apply(40);
+//  // BOOST_TEST(2 == ((CachePoolEx
+//  // *)CachePoolEx::_gCachePool)->_mapPool.size());
+//  BOOST_TEST(0 ==
+//             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 //
-//   CachePoolEx::Release(bys, 32);
-//   CachePoolEx::Release(bys2, 40);
-//   // BOOST_TEST(2 == ((CachePoolEx
-//   // *)CachePoolEx::_gCachePool)->_mapPool.size());
-//   BOOST_TEST(0 ==
-//              ((CachePoolEx
-//              *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
-// }
+//  CachePoolEx::Release(bys, 32);
+//  CachePoolEx::Release(bys2, 40);
+//  // BOOST_TEST(2 == ((CachePoolEx
+//  // *)CachePoolEx::_gCachePool)->_mapPool.size());
+//  BOOST_TEST(0 ==
+//             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+//}
 
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

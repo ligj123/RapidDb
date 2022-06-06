@@ -135,7 +135,7 @@ protected:
   condition_variable_any _fileCv;
   /**How much page files were opened for this index tree*/
   uint32_t _rpfCount = 0;
-  uint16_t _fileId;
+  uint32_t _fileId;
   bool _bClosed = false;
   /** Head page */
   HeadPage *_headPage = nullptr;
@@ -166,9 +166,9 @@ protected:
 
 protected:
   // The ids have been used in this process
-  static unordered_set<uint16_t> _setFiledId;
+  static unordered_set<uint32_t> _setFiledId;
   // Used to find free id circled
-  static uint16_t _currFiledId;
+  static uint32_t _currFiledId;
   // Used to static File IDs
   static SpinMutex _fileIdMutex;
   friend class HeadPage;

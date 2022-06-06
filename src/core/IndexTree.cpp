@@ -9,8 +9,8 @@
 #include <shared_mutex>
 
 namespace storage {
-unordered_set<uint16_t> IndexTree::_setFiledId;
-uint16_t IndexTree::_currFiledId = 0;
+unordered_set<uint32_t> IndexTree::_setFiledId;
+uint32_t IndexTree::_currFiledId = 1;
 SpinMutex IndexTree::_fileIdMutex;
 
 IndexTree::IndexTree(const MString &tableName, const MString &fileName,

@@ -161,7 +161,7 @@ protected:
   // Page Type
   PageType _pageType;
   // Copy from IndexTree
-  uint16_t _fileId;
+  uint32_t _fileId;
 };
 
 class ReadPageTask : public Task {

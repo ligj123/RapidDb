@@ -10,28 +10,27 @@
 
 namespace storage {
 void InsertSpeedPrimaryTest(uint64_t row_count) {
-  cout << "InsertSpeedPrimaryTest" << endl;
-  // const string FILE_NAME =
-  //     "./dbTest/testInsertSpeedPrimary" + StrMSTime() + ".dat";
-  // const string TABLE_NAME = "testTable";
+  const MString FILE_NAME =
+      "./dbTest/testInsertSpeedPrimary" + StrMSTime() + ".dat";
+  const MString TABLE_NAME = "testTable";
 
-  //// PageDividePool::SetThreadStatus(true);
-  //// StoragePool::SetWriteSuspend(true);
-  // if (row_count < 1000)
-  //   row_count = 10000000;
+  // PageDividePool::SetThreadStatus(true);
+  // StoragePool::SetWriteSuspend(true);
+  if (row_count < 1000)
+    row_count = 10000000;
 
-  // DataValueLong *dvKey = new DataValueLong(100, true);
-  // DataValueLong *dvVal = new DataValueLong(200, false);
-  // VectorDataValue vctKey = {dvKey->Clone()};
-  // VectorDataValue vctVal = {dvVal->Clone()};
-  // IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey,
-  // vctVal); indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
+  DataValueLong *dvKey = new DataValueLong(100, true);
+  DataValueLong *dvVal = new DataValueLong(200, false);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  // IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal,
+  // IndexType::PRIMARY);
 
-  // vctKey.push_back(dvKey->Clone());
-  // vctVal.push_back(dvVal->Clone());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
-  // uint64_t dtStart = MilliSecTime();
-  // uint64_t dtPrev = dtStart;
+  uint64_t dtStart = MilliSecTime();
+  uint64_t dtPrev = dtStart;
 
   // for (uint64_t i = 0; i < row_count; i++) {
   //   uint64_t num = i;
@@ -57,18 +56,18 @@ void InsertSpeedPrimaryTest(uint64_t row_count) {
   //  }
   //}
 
-  // uint64_t dtEnd = MilliSecTime();
-  // cout << "Insert Used Time: " << (dtEnd - dtStart) << endl;
+  uint64_t dtEnd = MilliSecTime();
+  cout << "Insert Used Time: " << (dtEnd - dtStart) << endl;
   // PageDividePool::SetThreadStatus(false);
   // StoragePool::SetWriteSuspend(false);
   // indexTree->Close(true);
-  // delete dvKey;
-  // delete dvVal;
-  //// PageBufferPool::ClearPool();
-  // dtEnd = MilliSecTime();
-  // cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
+  delete dvKey;
+  delete dvVal;
+  // PageBufferPool::ClearPool();
+  dtEnd = MilliSecTime();
+  cout << "Total Used Time: " << (dtEnd - dtStart) << endl;
 
-  //// std::filesystem::remove(std::filesystem::path(FILE_NAME));
+  // std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
 
 void InsertSpeedUniqueTest(uint64_t row_count) {

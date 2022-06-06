@@ -34,17 +34,17 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   BOOST_TEST(dv1 < dv4);
   BOOST_TEST(dv1 <= dv4);
   BOOST_TEST(dv1 != dv4);
-  BOOST_TEST(std::any_cast<string>(dv4.GetValue()) == "abcd     ");
+  BOOST_TEST(std::any_cast<MString>(dv4.GetValue()) == "abcd     ");
 
   dv2 = dv4;
   BOOST_TEST(dv4 == dv2);
 
   Byte buf[2000] = "abcd     ";
   DataValueFixChar dv6(buf, 10, true);
-  BOOST_TEST(std::any_cast<string>(dv6.GetValue()) == "abcd     ");
+  BOOST_TEST(std::any_cast<MString>(dv6.GetValue()) == "abcd     ");
   BOOST_TEST(dv6.GetValueType() == ValueType::BYTES_VALUE);
 
-  string str = std::any_cast<string>(dv6.GetValue());
+  MString str = std::any_cast<MString>(dv6.GetValue());
 
   BOOST_TEST(dv6 > dv1);
   BOOST_TEST(dv6 >= dv1);

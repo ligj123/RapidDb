@@ -93,7 +93,7 @@ void ThreadPool::CreateThread(int id) {
     }
 
     std::unique_lock<SpinMutex> thread_lock(_threadMutex);
-    if (_stopThreads) {
+    if (!_stopThreads) {
       thread *t = _vctThread[id];
       _vctThread[id] = nullptr;
       _aliveThreads--;

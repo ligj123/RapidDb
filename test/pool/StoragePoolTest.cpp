@@ -7,55 +7,100 @@
 
 namespace storage {
 namespace fs = std::filesystem;
+atomic_int32_t atm(0);
+
 BOOST_AUTO_TEST_SUITE(PoolTest)
-//
-// BOOST_AUTO_TEST_CASE(StoragePool_test) {
-//  const string FILE_NAME = "./dbTest/testStoragePool" + StrMSTime() + ".dat";
-//  const string TABLE_NAME = "testTable";
-//  const int NUM = 10000;
-//  VectorDataValue vctKey;
-//  VectorDataValue vctVal;
-//  string strTest = "abcdefg1234567890中文测试abcdefghigjlmnopqrstuvwrst";
-//  strTest += strTest;
-//  strTest += strTest;
-//  size_t size = strTest.size() + 1;
-//  const char *pStrTest = strTest.c_str();
-//  MVector<CachePage *>::Type vctPage;
-//
-//  IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-//  for (int i = 1; i <= NUM; i++) {
-//    CachePage *page = new CachePage(indexTree, i);
-//    page->WriteInt(0, i);
-//    BytesCopy(page->GetBysPage() + 4, pStrTest, size);
-//    BytesCopy(page->GetBysPage() + Configure::GetCachePageSize() - size,
-//              pStrTest, size);
-//    page->SetDirty(true);
-//    StoragePool::WriteCachePage(page);
-//    vctPage.push_back(page);
-//  }
-//
-//  StoragePool::FlushWriteCachePage();
-//  indexTree->Close(true);
-//
-//  indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-//  for (int i = 1; i <= NUM; i++) {
-//    CachePage *page = new CachePage(indexTree, i);
-//    future<int> fut = StoragePool::ReadCachePage(page);
-//    fut.get();
-//    BOOST_TEST(i == page->ReadInt(0));
-//    BOOST_TEST(memcmp(pStrTest, page->GetBysPage() + 4, size) == 0);
-//    BOOST_TEST(memcmp(pStrTest,
-//                      page->GetBysPage() + Configure::GetCachePageSize() -
-//                      size, size) == 0);
-//    vctPage.push_back(page);
-//  }
-//
-//  for (CachePage *page : vctPage) {
-//    delete page;
-//  }
-//
-//  indexTree->Close(true);
-//  fs::remove(fs::path(FILE_NAME));
-//}
+
+BOOST_AUTO_TEST_CASE(StoragePool_test) {
+  const MString FILE_NAME = "./dbTest/testStoragePool" + StrMSTime() + ".dat";
+  const MString TABLE_NAME = "testTable";
+  const int NUM = 10000;
+
+  class StorageTask : public Task {
+  public:
+    StorageTask(IndexTree *indexTree, const char *pStrTest, size_t sz)
+        : _indexTree(indexTree), _pStrTest(pStrTest), _strSize(sz) {}
+
+    bool IsSmallTask() override { return false; }
+    void Run() {
+      while (true) {
+        int ii = atm.fetch_add(1, memory_order_relaxed);
+        if (ii >= NUM) {
+          break;
+        }
+
+        CachePage *page = new CachePage(_indexTree, ii, PageType::UNKNOWN);
+        page->WriteInt(0, ii);
+        BytesCopy(page->GetBysPage() + 4, _pStrTest, _strSize);
+        BytesCopy(page->GetBysPage() + Configure::GetCachePageSize() - _strSize,
+                  _pStrTest, _strSize);
+        page->SetDirty(true);
+        StoragePool::WriteCachePage(page);
+      }
+    }
+
+    IndexTree *_indexTree;
+    const char *_pStrTest;
+    size_t _strSize;
+  };
+
+  ThreadPool *tp = new ThreadPool("StorageTest");
+  StoragePool::InitPool(tp);
+  string strTest = "abcdefg1234567890中文测试abcdefghigjlmnopqrstuvwrst";
+  strTest += strTest;
+  strTest += strTest;
+  size_t sz = strTest.size() + 1;
+  const char *pStrTest = strTest.c_str();
+
+  VectorDataValue vctKey;
+  VectorDataValue vctVal;
+  IndexTree *indexTree =
+      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
+
+  int hc = std::thread::hardware_concurrency();
+  for (int i = 1; i <= hc; i++) {
+    StorageTask *task = new StorageTask(indexTree, pStrTest, sz);
+    tp->AddTask(task);
+  }
+
+  while (atm.load(memory_order_relaxed) < NUM &&
+         StoragePool::GetWaitingPageCount() > 0) {
+    this_thread::sleep_for(1ms);
+  }
+  indexTree->Close(true);
+
+  class PageCmpTask : public Task {
+  public:
+    PageCmpTask(CachePage *page, int id, const char *pStrTest, size_t sz)
+        : _page(page), _id(id), _pStrTest(pStrTest), _strSize(sz) {}
+    bool IsSmallTask() override { return false; }
+    void Run() {
+      BOOST_TEST(_id == _page->ReadInt(0));
+      BOOST_TEST(memcmp(_pStrTest, _page->GetBysPage() + 4, _strSize) == 0);
+      BOOST_TEST(
+          memcmp(_pStrTest,
+                 _page->GetBysPage() + Configure::GetCachePageSize() - _strSize,
+                 _strSize) == 0);
+    }
+
+    CachePage *_page;
+    int _id;
+    const char *_pStrTest;
+    size_t _strSize;
+  };
+
+  indexTree =
+      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::UNKNOWN);
+  for (int i = 1; i <= NUM; i++) {
+    CachePage *page = new CachePage(indexTree, i, PageType::UNKNOWN);
+    PageCmpTask *ctask = new PageCmpTask(page, i, pStrTest, sz);
+    page->PushWaitTask(ctask);
+    ReadPageTask *rtask = new ReadPageTask(page);
+    tp->AddTask(rtask);
+  }
+
+  indexTree->Close(true);
+  fs::remove(fs::path(FILE_NAME));
+}
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

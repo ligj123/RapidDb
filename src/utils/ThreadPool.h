@@ -57,14 +57,14 @@ public:
   static thread_local Task *_currTask;
   static MString GetThreadName() { return _threadName; }
   static ThreadPool &InstMain() {
-    if (_instMain == nullptr) {
-      unique_lock<SpinMutex> lock(_smMain);
-      if (_instMain == nullptr) {
-        _instMain = new ThreadPool("Rapid");
-      }
-    }
-
+    assert(_instMain != nullptr);
     return *_instMain;
+  }
+  static void InitMain(uint32_t maxQueueSize = 1000000, int minThreads = 1,
+                       int maxThreads = std::thread::hardware_concurrency()) {
+    assert(_instMain == nullptr);
+    unique_lock<SpinMutex> lock(_smMain);
+    _instMain = new ThreadPool("Rapid");
   }
 
 public:
