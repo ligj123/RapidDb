@@ -17,21 +17,21 @@ static const char *PRIMARY_KEY = "PARMARYKEY";
 class BaseTable {
 public:
   BaseTable() {}
-  BaseTable(const MString &name, const MString &alias, const MString &desc)
+  BaseTable(const string &name, const string &alias, const string &desc)
       : _name(name), _alias(alias), _desc(desc) {}
   virtual ~BaseTable() {}
-  inline const MString &GetTableName() const { return _name; }
-  inline void SetTableName(MString name) {
+  inline const string &GetTableName() const { return _name; }
+  inline void SetTableName(string name) {
     IsValidName(name);
     _name = name;
   }
-  inline const MString GetTableAlias() { return _alias; }
-  inline void SetTableAlias(MString alias) {
+  inline const string GetTableAlias() { return _alias; }
+  inline void SetTableAlias(string alias) {
     IsValidName(alias);
     _alias = alias;
   }
-  inline const MString &GetDescription() const { return _desc; }
-  inline void SetTableDesc(const MString &desc) { _desc = desc; }
+  inline const string &GetDescription() const { return _desc; }
+  inline void SetTableDesc(const string &desc) { _desc = desc; }
 
 public:
   static void *operator new(size_t size) {
@@ -43,11 +43,11 @@ public:
 
 protected:
   /**Table name*/
-  MString _name;
+  string _name;
   /**Table alias*/
-  MString _alias;
+  string _alias;
   /**Table describer*/
-  MString _desc;
+  string _desc;
 };
 
 class TempTable : public BaseTable {};

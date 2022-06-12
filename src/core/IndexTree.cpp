@@ -13,7 +13,7 @@ unordered_set<uint32_t> IndexTree::_setFiledId;
 uint32_t IndexTree::_currFiledId = 1;
 SpinMutex IndexTree::_fileIdMutex;
 
-IndexTree::IndexTree(const MString &tableName, const MString &fileName,
+IndexTree::IndexTree(const string &tableName, const string &fileName,
                      VectorDataValue &vctKey, VectorDataValue &vctVal,
                      IndexType iType) {
   _tableName = tableName;
@@ -54,6 +54,7 @@ IndexTree::IndexTree(const MString &tableName, const MString &fileName,
     _rootPage = AllocateNewPage(HeadPage::PAGE_NULL_POINTER, 0);
     _rootPage->SetBeginPage(true);
     _rootPage->SetEndPage(true);
+    _rootPage->IncRef();
     StoragePool::WriteCachePage(_rootPage);
   } else {
     _headPage->ReadPage();
@@ -78,6 +79,7 @@ IndexTree::IndexTree(const MString &tableName, const MString &fileName,
     _valVarLen = _headPage->ReadValueVariableFieldCount() * UI16_LEN;
     _valOffset = _valVarLen + UI16_2_LEN;
   }
+
   _garbageOwner = new GarbageOwner(this);
   LOG_DEBUG << "Open index tree " << tableName;
 }
@@ -87,6 +89,7 @@ IndexTree::~IndexTree() {
   unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
   if (_rootPage != nullptr) {
     _rootPage->DecRef();
+    _rootPage = nullptr;
   }
 
   while (_pagesInMem.load() > 1) {
@@ -119,23 +122,6 @@ IndexTree::~IndexTree() {
   _setFiledId.erase(_fileId);
 
   LOG_DEBUG << "Close index tree " << _tableName;
-}
-
-void IndexTree::Close(bool bWait) {
-  _bClosed = true;
-
-  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  if (_rootPage == nullptr)
-    return;
-
-  _rootPage->DecRef();
-  _rootPage = nullptr;
-  if (!bWait)
-    return;
-
-  while (_pagesInMem.load() > 1) {
-    this_thread::sleep_for(chrono::milliseconds(1));
-  }
 }
 
 void IndexTree::CloneKeys(VectorDataValue &vct) {
@@ -181,7 +167,8 @@ void IndexTree::UpdateRootPage(IndexPage *root) {
 }
 
 IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
-  PageID newPageId = _garbageOwner->ApplyPage(1);
+  PageID newPageId = _garbageOwner == nullptr ? HeadPage::PAGE_NULL_POINTER
+                                              : _garbageOwner->ApplyPage(1);
   if (newPageId == HeadPage::PAGE_NULL_POINTER)
     newPageId = _headPage->GetAndIncTotalPageCount();
 

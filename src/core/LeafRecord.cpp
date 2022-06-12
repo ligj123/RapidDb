@@ -110,7 +110,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   }
 
   if (lenKey > Configure::GetMaxKeyLength()) {
-    throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)});
+    throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {to_string(lenKey)});
   }
 
   int totalLen = lenKey + lenPri + UI16_2_LEN;
@@ -182,6 +182,7 @@ LeafRecord::~LeafRecord() {
 }
 
 void LeafRecord::ReleaseRecord(bool bUndo) {
+  assert(_refCount > 0);
   _refCount--;
   if (_refCount == 0) {
     if (_overflowPage != nullptr) {
@@ -231,7 +232,7 @@ void LeafRecord::GetListKey(VectorDataValue &vctKey) const {
 int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
                                  uint64_t recStamp, Statement *stmt,
                                  ActionType type, bool gapLock) {
-  assert(_refCount.load(memory_order_relaxed) == 1);
+  assert(_refCount == 1);
   RecStruct recStruOld(_bysVal, _indexTree->GetKeyVarLen(), _overflowPage);
   MVector<Byte>::Type vctSn;
   uint32_t oldLenVal = CalcValidValueLength(recStruOld, true, vctSn);
@@ -487,7 +488,7 @@ uint32_t LeafRecord::CalcKeyLength(const VectorDataValue &vctKey) {
   }
 
   if (lenKey > Configure::GetMaxKeyLength()) {
-    throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)});
+    throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {to_string(lenKey)});
   }
   return lenKey;
 }

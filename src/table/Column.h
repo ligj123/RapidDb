@@ -13,10 +13,10 @@ using namespace std;
 class BaseColumn {
 public:
   BaseColumn() : _name(), _position(), _dataType() {}
-  BaseColumn(MString name, int32_t pos, DataType dataType)
+  BaseColumn(string name, int32_t pos, DataType dataType)
       : _name(name), _position(pos), _dataType(dataType) {}
   virtual ~BaseColumn() {}
-  const MString &GetName() const { return _name; }
+  const string &GetName() const { return _name; }
   int32_t GetPosition() { return _position; }
   DataType GetDataType() { return _dataType; }
 
@@ -29,7 +29,7 @@ public:
   }
 
 protected:
-  MString _name;      // The column's name
+  string _name;       // The column's name
   int32_t _position;  // The position that start from 0
   DataType _dataType; // Which data type for this column
 };
@@ -39,8 +39,8 @@ public:
   PersistColumn()
       : BaseColumn(), _bNullable(false), _comments(), _maxLength(0),
         _initVal(0), _incStep(1), _charset(), _pDefaultVal(nullptr) {}
-  PersistColumn(const MString &name, int32_t pos, DataType dataType,
-                const MString &comments, bool bNullable, int32_t maxLen,
+  PersistColumn(const string &name, int32_t pos, DataType dataType,
+                const string &comments, bool bNullable, int32_t maxLen,
                 int64_t initVal, int64_t incStep, Charsets charset,
                 IDataValue *defaultVal)
       : BaseColumn(name, pos, dataType), _bNullable(bNullable),
@@ -57,7 +57,7 @@ public:
   int64_t GetIncStep() const { return _incStep; }
   Charsets GetCharset() { return _charset; }
   const IDataValue *GetDefaultVal() { return _pDefaultVal; }
-  const MString &GetComments() { return _comments; }
+  const string &GetComments() { return _comments; }
 
 protected:
   bool _bNullable;    // Can bu null or not for this column
@@ -66,21 +66,20 @@ protected:
   int64_t _initVal;   // The initalize value for auto-increment column, the
                       // default is 0
   int64_t _incStep;   // The step between two increment, the default is 1
-  MString _comments;  // Comments for this column
+  string _comments;   // Comments for this column
   IDataValue *_pDefaultVal; // The default value if has or null
 };
 
 class TempColumn : public BaseColumn {
 public:
-  TempColumn(const MString &name, uint32_t pos, DataType dataType,
-             MString alias, int dataBasicStart, int prevVarCols,
-             int colNullPlace)
+  TempColumn(const string &name, uint32_t pos, DataType dataType, string alias,
+             int dataBasicStart, int prevVarCols, int colNullPlace)
       : BaseColumn(name, pos, dataType), _alias(alias),
         _dataBasicStart(dataBasicStart), _prevVarCols(prevVarCols),
         _colNullPlace(colNullPlace) {}
   ~TempColumn() {}
 
-  const MString &GetAlias() const { return _alias; }
+  const string &GetAlias() const { return _alias; }
   const int GetDataBasicStart() const { return _dataBasicStart; }
   const int GetPrevVarCols() const { return _prevVarCols; }
   const int GetColNullPlace() const { return _colNullPlace; }
@@ -119,7 +118,7 @@ public:
   int CompareTo(Byte *bys1, Byte *bys2);
 
 protected:
-  MString _alias; // The ailas of this column
+  string _alias; // The ailas of this column
   /**The data position in this record that start from row's values,
    * all variable columns's length set to 0 in this variable.
    * The variable columns' length saved to byte arrays*/

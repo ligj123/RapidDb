@@ -74,8 +74,7 @@ public:
   typedef std::deque<T, Mallocator<T>> Type;
 };
 
-typedef std::basic_string<char, std::char_traits<char>, Mallocator<char>>
-    MString;
+using MString = basic_string<char, std::char_traits<char>, Mallocator<char>>;
 
 inline MString ToMString(int value) {
   char buf[32];
@@ -114,7 +113,7 @@ inline MString ToMString(float value) {
 }
 inline MString ToMString(double value) {
   char buf[32];
-  std::sprintf(buf, "%Lf", value);
+  std::sprintf(buf, "%f", value);
   return MString(buf);
 }
 } // namespace storage

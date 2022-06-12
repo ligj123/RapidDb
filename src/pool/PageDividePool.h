@@ -21,7 +21,14 @@ public:
   static void PoolManage();
 
   static size_t GetTaskCount() { return _divPool->_mapPage.size(); }
-  static void InitPool(ThreadPool *tp) { _divPool = new PageDividePool(tp); }
+  static void InitPool(ThreadPool *tp) {
+    assert(_divPool == nullptr);
+    _divPool = new PageDividePool(tp);
+  }
+  static void StopPool() {
+    delete _divPool;
+    _divPool = nullptr;
+  }
 
 protected:
   static SpinMutex _spinMutex;
@@ -45,6 +52,7 @@ class PageDivideTask : public Task {
     }
     _status = TaskStatus::INTERVAL;
   }
+
   bool IsSmallTask() override { return false; }
 };
 } // namespace storage

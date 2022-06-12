@@ -92,7 +92,7 @@ void CachePage::WritePage(PageFile *pageFile) {
     if (_pageType != PageType::OVERFLOW_PAGE) {
       crc32.reset();
       crc32.process_bytes(_bysPage, CRC32_PAGE_OFFSET);
-      *((int *)tmp[CRC32_PAGE_OFFSET]) = crc32.checksum();
+      *((int *)&tmp[CRC32_PAGE_OFFSET]) = crc32.checksum();
     }
 
     pFile->WritePage(Configure::GetDiskClusterSize() +
@@ -101,7 +101,7 @@ void CachePage::WritePage(PageFile *pageFile) {
   } else {
     crc32.reset();
     crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
-    *((int *)tmp[CRC32_HEAD_OFFSET]) = crc32.checksum();
+    *((int *)&tmp[CRC32_HEAD_OFFSET]) = crc32.checksum();
 
     pFile->WritePage(0, tmp, (uint32_t)Configure::GetDiskClusterSize());
   }

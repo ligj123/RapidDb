@@ -7,7 +7,7 @@ namespace storage {
 struct IndexProp {
   IndexType type;
   struct Column {
-    MString colName;
+    string colName;
     int colPos = 0;
   };
   MVector<Column>::Type vctCol;
@@ -15,8 +15,8 @@ struct IndexProp {
 
 class PersistTable : public BaseTable {
 public:
-  PersistTable(MString &rootPath, MString &dbName, MString &tableName,
-               MString &tableAlias, MString &description);
+  PersistTable(string &rootPath, string &dbName, string &tableName,
+               string &tableAlias, string &description);
   PersistTable(){};
   ~PersistTable();
 
@@ -24,10 +24,10 @@ public:
   const IndexProp &GetPrimaryKeyColumns() const {
     return _mapIndex.at(PRIMARY_KEY);
   }
-  const MHashMap<MString, IndexProp>::Type &GetMapIndex() const {
+  const MHashMap<string, IndexProp>::Type &GetMapIndex() const {
     return _mapIndex;
   }
-  IndexType GetIndexType(MString &indexName) const {
+  IndexType GetIndexType(string &indexName) const {
     auto iter = _mapIndex.find(indexName);
     if (iter == _mapIndex.end())
       return IndexType::UNKNOWN;
@@ -38,29 +38,29 @@ public:
     return _vctColumn;
   }
 
-  const PersistColumn *GetColumn(MString &fieldName) const;
+  const PersistColumn *GetColumn(string &fieldName) const;
   const PersistColumn *GetColumn(int pos);
-  MHashMap<MString, int>::Type GetMapColumnPos() { return _mapColumnPos; }
-  MHashMap<int, MString>::Type GetIndexFirstFieldMap() {
+  MHashMap<string, int>::Type GetMapColumnPos() { return _mapColumnPos; }
+  MHashMap<int, string>::Type GetIndexFirstFieldMap() {
     return _mapIndexFirstField;
   }
 
-  void AddColumn(MString &columnName, DataType dataType, bool nullable,
-                 uint32_t maxLen, MString &comment, Charsets charset,
+  void AddColumn(string &columnName, DataType dataType, bool nullable,
+                 uint32_t maxLen, string &comment, Charsets charset,
                  any &valDefault);
-  void SetPrimaryKey(MVector<MString>::Type &priCols);
+  void SetPrimaryKey(MVector<string>::Type &priCols);
 
-  void AddSecondaryKey(MString &indexName, IndexType indexType,
-                       MVector<MString>::Type &colNames);
+  void AddSecondaryKey(string &indexName, IndexType indexType,
+                       MVector<string>::Type &colNames);
   // Only used in developing time, in the future will save table schema to
   // system table
   void ReadData();
   void WriteData();
   IndexTree *GetPrimaryIndexTree() const { return _primaryTree; }
-  const MHashMap<MString, IndexTree *>::Type &GetMapTree() const {
+  const MHashMap<string, IndexTree *>::Type &GetMapTree() const {
     return _mapTree;
   }
-  const IndexTree *GetIndexTree(const MString &indexName) const {
+  const IndexTree *GetIndexTree(const string &indexName) const {
     auto iter = _mapTree.find(indexName);
     assert(iter != _mapTree.end());
     return iter->second;
@@ -72,7 +72,7 @@ public:
   void GenColumsDataValues(VectorDataValue &vct) const;
 
 protected:
-  inline bool IsExistedColumn(MString name) {
+  inline bool IsExistedColumn(string name) {
     return _mapColumnPos.find(name) != _mapColumnPos.end();
   }
   void Clear();
@@ -82,22 +82,22 @@ protected:
   IndexTree *_primaryTree = nullptr;
   /**The map for index tree, include the primary index tree. The keys is index
    * name. */
-  MHashMap<MString, IndexTree *>::Type _mapTree;
+  MHashMap<string, IndexTree *>::Type _mapTree;
   /**The root path for the database.*/
-  MString _rootPath;
+  string _rootPath;
   /**The datebase name that this table belong to*/
-  MString _dbName;
+  string _dbName;
   /**Include all columns in this table, they will order by actual position in
    * the table.*/
   MVector<PersistColumn *>::Type _vctColumn;
   /** The map for column name and their position in column list */
-  MHashMap<MString, int>::Type _mapColumnPos;
+  MHashMap<string, int>::Type _mapColumnPos;
   /**The first parameter is the unique name for a index and the primary key's
   name is fixed, must be PRIMARY_KEY. The second parameter is IndexProp.*/
-  MHashMap<MString, IndexProp>::Type _mapIndex;
+  MHashMap<string, IndexProp>::Type _mapIndex;
   /**The first column position to constitute the index;
   The second parameter,  the unique name for a index;*/
-  MHashMap<int, MString>::Type _mapIndexFirstField;
+  MHashMap<int, string>::Type _mapIndexFirstField;
 };
 
 } // namespace storage

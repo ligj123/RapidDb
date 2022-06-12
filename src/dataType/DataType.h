@@ -109,7 +109,13 @@ inline std::ostream &operator<<(std::ostream &os, const ValueType &vt) {
   return os;
 }
 
-inline MString DateTypeToString(const DataType dt) {
+inline string DateTypeToString(const DataType dt) {
+  std::stringstream ss;
+  ss << dt;
+  return ss.str();
+}
+
+inline MString DateTypeToMString(const DataType dt) {
   std::stringstream ss;
   ss << dt;
   return MString(ss.str());

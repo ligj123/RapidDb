@@ -20,7 +20,7 @@ enum class TimerType : Byte {
 };
 
 struct TimerTask {
-  MString _name;
+  string _name;
   TimerType type;
   union {
     struct { // Repeated times
@@ -45,12 +45,12 @@ class TimerThread {
 public:
   TimerThread();
   ~TimerThread();
-  static void AddCircleTask(MString name, DT_MicroSec interval,
+  static void AddCircleTask(string name, DT_MicroSec interval,
                             std::function<void()> lambda, bool memTask = false,
                             uint64_t rpCount = UNLIMIT_CIRCLE);
-  static void AddTimingTask(MString name, DT_MicroSec dtStart,
+  static void AddTimingTask(string name, DT_MicroSec dtStart,
                             std::function<void()> lambda);
-  static bool RemoveTask(MString name);
+  static bool RemoveTask(string name);
   static DT_MicroSec GetCurrTime() {
     if (_instance == nullptr || !_instance->_bRunning)
       return 0;

@@ -10,13 +10,13 @@ BOOST_AUTO_TEST_SUITE(PageFileTest)
 
 BOOST_AUTO_TEST_CASE(PageFile_test) {
   namespace fs = std::filesystem;
-  MString rootPath = "./dbTest";
-  MString pageName = rootPath + "/testPageFile" + StrMSTime() + ".dat";
-  MString ovfName = rootPath + "/testOverflow" + StrMSTime() + ".dat";
+  string rootPath = "./dbTest";
+  string pageName = rootPath + "/testPageFile" + StrMSTime() + ".dat";
+  string ovfName = rootPath + "/testOverflow" + StrMSTime() + ".dat";
 
   uint32_t pageLen = (uint32_t)Configure::GetCachePageSize();
   try {
-    MString nofile = "./unexistdir/filename";
+    string nofile = "./unexistdir/filename";
     PageFile errFile(nofile);
     throw "Here should have an exception!";
   } catch (ErrorMsg &msg) {

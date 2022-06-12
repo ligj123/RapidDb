@@ -10,7 +10,9 @@ DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey, std::any val)
     : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey),
       maxLength_(maxLength) {
   MString str;
-  if (val.type() == typeid(MString))
+  if (val.type() == typeid(string))
+    str = std::any_cast<string>(val).c_str();
+  else if (val.type() == typeid(MString))
     str = std::any_cast<MString>(val);
   else if (val.type() == typeid(const char *))
     str = any_cast<const char *>(val);
@@ -41,7 +43,7 @@ DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey, std::any val)
   soleLength_ = (uint32_t)str.size() + 1;
   if (soleLength_ >= maxLength_)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {ToMString(maxLength_), ToMString(soleLength_)});
+                   {to_string(maxLength_), to_string(soleLength_)});
 
   bysValue_ = CachePool::Apply(soleLength_);
   BytesCopy(bysValue_, str.c_str(), soleLength_);
@@ -60,7 +62,7 @@ void DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
     dv.ToString(sb);
     if (maxLength_ < sb.GetStrLen() + 1) {
       throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {ToMString(maxLength_), ToMString(dv.GetDataLength())});
+                     {to_string(maxLength_), to_string(dv.GetDataLength())});
     }
 
     if (valType_ == ValueType::SOLE_VALUE) {
@@ -76,7 +78,7 @@ void DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
 
   if (dv.GetDataLength() > maxLength_) {
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {ToMString(maxLength_), ToMString(dv.GetDataLength())});
+                   {to_string(maxLength_), to_string(dv.GetDataLength())});
   }
 
   if (valType_ == ValueType::SOLE_VALUE) {
@@ -221,7 +223,7 @@ DataValueVarChar &DataValueVarChar::operator=(const char *val) {
   uint32_t len = (uint32_t)strlen(val) + 1;
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {ToMString(maxLength_), ToMString(soleLength_)});
+                   {to_string(maxLength_), to_string(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 
@@ -236,7 +238,22 @@ DataValueVarChar &DataValueVarChar::operator=(const MString val) {
   uint32_t len = (uint32_t)val.size() + 1;
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {ToMString(maxLength_), ToMString(soleLength_)});
+                   {to_string(maxLength_), to_string(soleLength_)});
+  if (valType_ == ValueType::SOLE_VALUE)
+    CachePool::Release(bysValue_, soleLength_);
+
+  soleLength_ = len;
+  valType_ = ValueType::SOLE_VALUE;
+  bysValue_ = CachePool::Apply(soleLength_);
+  BytesCopy(bysValue_, val.c_str(), soleLength_);
+  return *this;
+}
+
+DataValueVarChar &DataValueVarChar::operator=(const string val) {
+  uint32_t len = (uint32_t)val.size() + 1;
+  if (len >= maxLength_ - 1)
+    throw ErrorMsg(DT_INPUT_OVER_LENGTH,
+                   {to_string(maxLength_), to_string(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 

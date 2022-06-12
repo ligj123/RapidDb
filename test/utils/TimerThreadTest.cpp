@@ -11,7 +11,7 @@ BOOST_AUTO_TEST_CASE(TimerThread_test) {
   TimerThread::Start();
   int count = 0;
   TimerThread::AddCircleTask(
-      "circle_test", 1000, [&count]() { count++; }, 10);
+      "circle_test", 1000, [&count]() { count++; }, false, 10);
   this_thread::sleep_for(1s);
   BOOST_TEST(count == 10);
   BOOST_TEST(TimerThread::GetTaskCount() == 0);

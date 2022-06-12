@@ -17,7 +17,7 @@ std::ostream &operator<<(std::ostream &strm, severity_level level) {
   return strm;
 }
 
-MString FileName(MString pathName) {
+string FileName(string pathName) {
   return pathName.substr(pathName.find_last_of("/\\") + 1);
 }
 

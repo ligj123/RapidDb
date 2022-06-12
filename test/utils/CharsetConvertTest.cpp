@@ -8,7 +8,7 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(CharsetConvert_test) {
-  const char *pAsc = "中国你好HelloChina!!@";
+  const char *pAsc = "\xd6\xd0\xb9\xfa\xc4\xe3\xba\xc3HelloChina!!@";
   const char *pUtf8 = u8"中国你好HelloChina!!@";
 
   char tmp[100];

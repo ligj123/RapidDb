@@ -10,9 +10,9 @@
 
 namespace storage {
 void InsertSpeedPrimaryTest(uint64_t row_count) {
-  const MString FILE_NAME =
+  const string FILE_NAME =
       "./dbTest/testInsertSpeedPrimary" + StrMSTime() + ".dat";
-  const MString TABLE_NAME = "testTable";
+  const string TABLE_NAME = "testTable";
 
   // PageDividePool::SetThreadStatus(true);
   // StoragePool::SetWriteSuspend(true);

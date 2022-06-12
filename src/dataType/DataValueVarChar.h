@@ -16,7 +16,7 @@ public:
         maxLength_(maxLength), soleLength_(strLen + 1) {
     if (soleLength_ >= maxLength_) {
       throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {ToMString(maxLength_), ToMString(soleLength_)});
+                     {to_string(maxLength_), to_string(soleLength_)});
     }
 
     bysValue_ = CachePool::Apply(soleLength_);
@@ -144,8 +144,21 @@ public:
     return "";
   }
 
+  operator string() const {
+    switch (valType_) {
+    case ValueType::NULL_VALUE:
+      return "";
+    case ValueType::SOLE_VALUE:
+    case ValueType::BYTES_VALUE:
+      return string((char *)bysValue_);
+    }
+
+    return "";
+  }
+
   DataValueVarChar &operator=(const char *val);
   DataValueVarChar &operator=(const MString val);
+  DataValueVarChar &operator=(const string val);
   DataValueVarChar &operator=(const DataValueVarChar &src);
 
   bool operator>(const DataValueVarChar &dv) const {

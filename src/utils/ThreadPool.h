@@ -53,22 +53,31 @@ protected:
 class ThreadPool {
 public:
   static thread_local int _threadID;
-  static thread_local MString _threadName;
+  static thread_local string _threadName;
   static thread_local Task *_currTask;
-  static MString GetThreadName() { return _threadName; }
+  static string GetThreadName() { return _threadName; }
   static ThreadPool &InstMain() {
     assert(_instMain != nullptr);
     return *_instMain;
   }
-  static void InitMain(uint32_t maxQueueSize = 1000000, int minThreads = 1,
-                       int maxThreads = std::thread::hardware_concurrency()) {
+  static ThreadPool *
+  InitMain(uint32_t maxQueueSize = 1000000, int minThreads = 1,
+           int maxThreads = std::thread::hardware_concurrency()) {
     assert(_instMain == nullptr);
     unique_lock<SpinMutex> lock(_smMain);
-    _instMain = new ThreadPool("Rapid");
+    _instMain =
+        new ThreadPool("RapidMain", maxQueueSize, minThreads, maxThreads);
+    return _instMain;
+  }
+
+  void StopMain() {
+    _instMain->Stop();
+    delete _instMain;
+    _instMain = nullptr;
   }
 
 public:
-  ThreadPool(MString threadPrefix, uint32_t maxQueueSize = 1000000,
+  ThreadPool(string threadPrefix, uint32_t maxQueueSize = 1000000,
              int minThreads = 1,
              int maxThreads = std::thread::hardware_concurrency());
   ~ThreadPool();
@@ -104,7 +113,7 @@ protected:
   SpinMutex _threadMutex;
   condition_variable_any _taskCv;
   bool _stopThreads = false;
-  MString _threadPrefix;
+  string _threadPrefix;
   uint32_t _maxQueueSize;
   int _minThreads;
   int _maxThreads;

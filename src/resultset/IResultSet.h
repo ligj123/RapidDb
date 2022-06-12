@@ -65,13 +65,13 @@ class IResultSet {
    * @param fieldIndex the field index, start from 0
    * @return the field name
    */
-  virtual MString GetFieldName(int fieldIndex) = 0;
+  virtual MString &GetFieldName(int fieldIndex) = 0;
   /**
    * Get field index from name
    * @param fieldName the field name
    * @return the field index
    */
-  virtual int GetFieldIndex(MString fieldName) = 0;
+  virtual int GetFieldIndex(MString &fieldName) = 0;
   /**
    * Get the field long value
    * @param fieldIndex the filed index
@@ -101,7 +101,7 @@ class IResultSet {
    * @param fieldIndex the filed index
    * @return the field string value
    */
-  virtual MString GetString(int fieldIndex) = 0;
+  virtual MString &GetString(int fieldIndex) = 0;
   /**
    * Get the field double value
    * @param fieldIndex the filed index
@@ -137,49 +137,49 @@ class IResultSet {
    * @param fieldName the field name
    * @return the field long value
    */
-  virtual long GetLong(MString fieldName) = 0;
+  virtual long GetLong(MString &fieldName) = 0;
   /**
    * Get the field int value from field name
    * @param fieldName the field name
    * @return the field int value
    */
-  virtual int GetInt(MString fieldName) = 0;
+  virtual int GetInt(MString &fieldName) = 0;
   /**
    * Get the field boolean value from field name
    * @param fieldName the field name
    * @return the field boolean value
    */
-  virtual bool GetBoolean(MString fieldName) = 0;
+  virtual bool GetBoolean(MString &fieldName) = 0;
   /**
    * Get the field blob value from field name
    * @param fieldName the field name
    * @return the field blob value, pair<blob length, blob value>
    */
-  virtual pair<uint32_t, char *> &GetBlob(MString fieldName) = 0;
+  virtual pair<uint32_t, char *> &GetBlob(MString &fieldName) = 0;
   /**
    * Get the field string value from field name
    * @param fieldName the field name
    * @return the field string value
    */
-  virtual MString GetString(MString fieldName) = 0;
+  virtual MString &GetString(MString &fieldName) = 0;
   /**
    * Get the field double value from field name
    * @param fieldName the field name
    * @return the field double value
    */
-  virtual double GetDouble(MString fieldName) = 0;
+  virtual double GetDouble(MString &fieldName) = 0;
   /**
    * Get the field float value from field name
    * @param fieldName the field name
    * @return the field float value
    */
-  virtual float GetFloat(MString fieldName) = 0;
+  virtual float GetFloat(MString &fieldName) = 0;
   /**
    * Get the field date value from field name
    * @param fieldName the field name
    * @return the field double value
    */
-  virtual time_t getDate(MString fieldName) = 0;
+  virtual time_t getDate(MString &fieldName) = 0;
   /**
    * Get the field short value from field name
    * @param fieldName the field name
@@ -187,14 +187,14 @@ class IResultSet {
    * @throws StorageInvalidDataTypeException
    * @throws StorageInvalidFiledNameException
    */
-  virtual short GetShort(MString fieldName) = 0;
+  virtual short GetShort(MString &fieldName) = 0;
   /**
    * Get a field DataValue
    * @param fieldName the field name
    * @return the field value
    * @throws StorageInvalidFiledNameException
    */
-  virtual IDataValue *GetDataValue(MString fieldName) = 0;
+  virtual IDataValue *GetDataValue(MString &fieldName) = 0;
 
   /**
    * Get the current row with DataValue type

@@ -19,7 +19,14 @@ public:
   static void RemoveTimerTask();
   static void WriteCachePage(CachePage *page);
   static size_t GetWaitingPageCount() { return _storagePool->_mapWrite.size(); }
-  static void InitPool(ThreadPool *tp) { _storagePool = new StoragePool(tp); };
+  static void InitPool(ThreadPool *tp) {
+    assert(_storagePool == nullptr);
+    _storagePool = new StoragePool(tp);
+  };
+  static void StopPool() {
+    delete _storagePool;
+    _storagePool = nullptr;
+  }
 
 protected:
   static StoragePool *_storagePool;

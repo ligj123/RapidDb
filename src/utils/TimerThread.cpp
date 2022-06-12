@@ -25,13 +25,13 @@ void TimerThread::Run() {
       for (size_t i = 0; i < _vctTask.size();) {
         TimerTask *task = _vctTask[i];
         if (task->type == TimerType::TIMING) {
-          if (_currTime >= task->dtStart) {
+          if (task->dtStart <= _currTime) {
             task->_lambda();
             _vctTask.erase(_vctTask.begin() + i);
             continue;
           }
         } else {
-          if (task->_prevTime + task->interval >= _currTime) {
+          if (task->_prevTime + task->interval <= _currTime) {
             task->_lambda();
             if (task->rpCount != UNLIMIT_CIRCLE) {
               task->rpCount--;
@@ -53,7 +53,7 @@ void TimerThread::Run() {
   }
 }
 
-void TimerThread::AddCircleTask(MString name, DT_MicroSec interval,
+void TimerThread::AddCircleTask(string name, DT_MicroSec interval,
                                 std::function<void()> lambda, bool memTask,
                                 uint64_t rpCount) {
   unique_lock<SpinMutex> lock(_instance->_mutex);
@@ -67,7 +67,7 @@ void TimerThread::AddCircleTask(MString name, DT_MicroSec interval,
   _instance->_vctTask.push_back(task);
 }
 
-void TimerThread::AddTimingTask(MString name, DT_MicroSec dtStart,
+void TimerThread::AddTimingTask(string name, DT_MicroSec dtStart,
                                 std::function<void()> lambda) {
   unique_lock<SpinMutex> lock(_instance->_mutex);
   TimerTask *task = new TimerTask;
@@ -78,7 +78,7 @@ void TimerThread::AddTimingTask(MString name, DT_MicroSec dtStart,
   _instance->_vctTask.push_back(task);
 }
 
-bool TimerThread::RemoveTask(MString name) {
+bool TimerThread::RemoveTask(string name) {
   unique_lock<SpinMutex> lock(_instance->_mutex);
   for (size_t i = 0; i < _instance->_vctTask.size();) {
     TimerTask *task = _instance->_vctTask[i];

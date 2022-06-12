@@ -10,7 +10,7 @@ StoragePool *StoragePool::_storagePool = nullptr;
 SpinMutex StoragePool::_spinMutex;
 
 void StoragePool::AddTimerTask() {
-  TimerThread::AddCircleTask("StoragePool", 5000000, []() {
+  TimerThread::AddCircleTask("StoragePool", 1000000, []() {
     StorageTask *task = new StorageTask();
     _storagePool->_threadPool->AddTask(task);
   });

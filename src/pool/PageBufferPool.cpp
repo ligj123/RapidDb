@@ -136,10 +136,13 @@ void PageBufferPool::RemoveTimerTask() {
 void PagePoolTask::Run() {
   unique_lock<SpinMutex> lock(PageBufferPool::_spinMutex, defer_lock);
   PageBufferPool::_taskStatus = TaskStatus::RUNNING;
+  _status = TaskStatus::RUNNING;
+
   if (lock.try_lock()) {
     PageBufferPool::PoolManage();
   }
 
   PageBufferPool::_taskStatus = TaskStatus::INTERVAL;
+  _status = TaskStatus::INTERVAL;
 }
 } // namespace storage

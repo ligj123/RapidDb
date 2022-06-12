@@ -59,6 +59,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   bool bStop = false;
   for (int i = 0; i < 20; i++) {
     tp.AddTask(new TestTask(&bStop));
+    this_thread::sleep_for(1ms);
   }
 
   this_thread::sleep_for(chrono::milliseconds(10));
@@ -71,6 +72,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   bStop = false;
   for (int i = 0; i < 20; i++) {
     tp.AddTask(new TestTask(&bStop));
+    this_thread::sleep_for(1ms);
   }
 
   this_thread::sleep_for(chrono::milliseconds(10));

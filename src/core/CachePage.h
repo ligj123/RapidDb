@@ -124,6 +124,8 @@ public:
     }
     _waitTasks.push_back(task);
     WriteUnlock();
+
+    return true;
   }
   inline MVector<Task *>::Type &GetWaitTasks() { return _waitTasks; }
 

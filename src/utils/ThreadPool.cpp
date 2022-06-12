@@ -2,13 +2,13 @@
 #include <stdexcept>
 
 namespace storage {
-thread_local MString ThreadPool::_threadName = "main";
+thread_local string ThreadPool::_threadName = "main";
 thread_local int ThreadPool::_threadID = -1;
 thread_local Task *ThreadPool::_currTask = nullptr;
 ThreadPool *ThreadPool::_instMain = nullptr;
 SpinMutex ThreadPool::_smMain;
 
-ThreadPool::ThreadPool(MString threadPrefix, uint32_t maxQueueSize,
+ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
                        int minThreads, int maxThreads)
     : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize),
       _stopThreads(false), _minThreads(minThreads), _maxThreads(maxThreads),
@@ -37,7 +37,7 @@ void ThreadPool::CreateThread(int id) {
   }
 
   thread *t = new thread([this, id]() {
-    _threadName = _threadPrefix + "_" + ToMString(id);
+    _threadName = _threadPrefix + "_" + to_string(id);
     _threadID = id;
     MVector<Task *>::Type vct;
 

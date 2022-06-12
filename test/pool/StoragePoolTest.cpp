@@ -12,8 +12,8 @@ atomic_int32_t atm(0);
 BOOST_AUTO_TEST_SUITE(PoolTest)
 
 BOOST_AUTO_TEST_CASE(StoragePool_test) {
-  const MString FILE_NAME = "./dbTest/testStoragePool" + StrMSTime() + ".dat";
-  const MString TABLE_NAME = "testTable";
+  const string FILE_NAME = "./dbTest/testStoragePool" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
   const int NUM = 10000;
 
   class StorageTask : public Task {
@@ -67,7 +67,8 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
          StoragePool::GetWaitingPageCount() > 0) {
     this_thread::sleep_for(1ms);
   }
-  indexTree->Close(true);
+  indexTree->Close();
+  delete indexTree;
 
   class PageCmpTask : public Task {
   public:
@@ -99,7 +100,8 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     tp->AddTask(rtask);
   }
 
-  indexTree->Close(true);
+  indexTree->Close();
+  delete indexTree;
   fs::remove(fs::path(FILE_NAME));
 }
 BOOST_AUTO_TEST_SUITE_END()

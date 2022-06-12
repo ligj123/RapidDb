@@ -9,7 +9,7 @@ using namespace std;
 namespace storage {
 class BacktraceException : public exception {
 public:
-  BacktraceException(MString what) {
+  BacktraceException(string what) {
     std::stringstream ss;
     ss << boost::stacktrace::stacktrace() << "\n";
     m_strTrace = ss.str();
@@ -26,11 +26,11 @@ public:
 
   const char *GetBacktrace() const { return m_strTrace.c_str(); }
 
-  const MString GetMessage() { return m_strWhat; }
+  const string GetMessage() { return m_strWhat; }
 
 private:
-  MString m_strWhat;
-  MString m_strTrace;
+  string m_strWhat;
+  string m_strTrace;
 };
 } // namespace storage
 

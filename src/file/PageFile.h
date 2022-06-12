@@ -15,7 +15,7 @@ class PageFile {
 public:
   static thread_local char _tmpBuff[1024 * 1024];
 
-  PageFile(const MString &path);
+  PageFile(const string &path);
 
   ~PageFile() {
     if (_file.is_open())
@@ -33,7 +33,7 @@ public:
   void close() { _file.close(); }
 
 protected:
-  MString _path;
+  string _path;
   fstream _file;
 };
 } // namespace storage

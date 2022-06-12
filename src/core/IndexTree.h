@@ -27,9 +27,11 @@ struct PageLock {
 
 class IndexTree {
 public:
-  IndexTree(const MString &tableName, const MString &fileName,
+  IndexTree(const string &tableName, const string &fileName,
             VectorDataValue &vctKey, VectorDataValue &vctVal,
             IndexType iType = IndexType::UNKNOWN);
+  ~IndexTree();
+
   void UpdateRootPage(IndexPage *root);
   IndexPage *AllocateNewPage(PageID parentId, Byte pageLevel);
   IndexPage *GetPage(PageID pageId, bool bLeafPage);
@@ -100,11 +102,11 @@ public:
   inline uint64_t GetRecordsCount() {
     return _headPage->ReadTotalRecordCount();
   }
-  inline MString &GetFileName() { return _fileName; }
+  inline string &GetFileName() { return _fileName; }
   inline uint16_t GetFileId() { return _fileId; }
   inline bool IsClosed() { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
-  void Close(bool bWait);
+  void Close() { _bClosed = true; };
   inline void ReleasePageFile(PageFile *rpf) {
     lock_guard<SpinMutex> lock(_fileMutex);
     _fileQueue.push(rpf);
@@ -112,10 +114,7 @@ public:
 
   inline HeadPage *GetHeadPage() { return _headPage; }
   inline void IncPages() { _pagesInMem.fetch_add(1, memory_order_relaxed); }
-  inline void DecPages() {
-    if (_pagesInMem.fetch_sub(1, memory_order_relaxed) == 1)
-      delete this;
-  }
+  inline void DecPages() { _pagesInMem.fetch_sub(1, memory_order_relaxed); }
 
   inline uint16_t GetKeyVarLen() { return _keyVarLen; }
   inline uint16_t GetValVarLen() { return _valVarLen; }
@@ -125,11 +124,8 @@ public:
   inline const VectorDataValue &GetVctValue() const { return _vctValue; }
 
 protected:
-  ~IndexTree();
-
-protected:
-  MString _tableName;
-  MString _fileName;
+  string _tableName;
+  string _fileName;
   std::queue<PageFile *> _fileQueue;
   SpinMutex _fileMutex;
   condition_variable_any _fileCv;

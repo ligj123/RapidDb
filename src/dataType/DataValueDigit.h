@@ -35,6 +35,11 @@ public:
         _value = (T)stoi(std::any_cast<MString>(val).c_str());
       else
         _value = (T)stod(std::any_cast<MString>(val).c_str());
+    } else if (val.type() == typeid(string)) {
+      if (IDataValue::IsAutoPrimaryKey(DT))
+        _value = (T)stoi(std::any_cast<string>(val));
+      else
+        _value = (T)stod(std::any_cast<string>(val));
     } else
       throw ErrorMsg(DT_UNSUPPORT_CONVERT,
                      {val.type().name(), StrOfDataType(DT)});

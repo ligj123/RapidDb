@@ -13,7 +13,7 @@ public:
   FileVersion(int16_t majorVer, uint8_t minorVer, uint8_t patchVer)
       : _majorVer(majorVer), _minorVer(minorVer), _patchVer(patchVer) {}
 
-  void ParseVersion(MString text) {
+  void ParseVersion(string text) {
     regex reg("([0-9]+)\\.([0-9]+)\\.([0-9]+)");
     cmatch mt;
     if (!regex_match(text.c_str(), mt, reg)) {

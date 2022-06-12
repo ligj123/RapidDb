@@ -51,6 +51,12 @@ public:
 
   // Push an element
   void Push(T *ele) {
+    if (ThreadPool::_threadID == -1) {
+      unique_lock<SpinMutex> lock(_spinMutex);
+      _queue.push(ele);
+      return;
+    }
+
     if (_localInner.size() <= (size_t)_index) {
       for (size_t i = _localInner.size(); i <= (size_t)_index; i++) {
         _localInner.push_back(nullptr);

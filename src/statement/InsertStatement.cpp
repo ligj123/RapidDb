@@ -9,7 +9,7 @@ InsertStatement::InsertStatement(ExprInsert *exprInsert, Transaction *tran)
 
 int InsertStatement::ExecuteUpdate() {
   if (!_tran->AbleAddTask()) {
-    _errorMsg = ErrorMsg(TRAN_ADD_TASK_FAILED, {ToMString(_tran->GetTranId())});
+    _errorMsg = ErrorMsg(TRAN_ADD_TASK_FAILED, {to_string(_tran->GetTranId())});
     LOG_ERROR
         << "Try to insert a record into table with invalid transaction. ID="
         << _tran->GetTranId();
@@ -18,7 +18,7 @@ int InsertStatement::ExecuteUpdate() {
 
   PersistTable *table = _exprInsert->GetTableDesc();
   ExprValueArrayIn *vAin = _exprInsert->GetExprValueArrayIn();
-  const MHashMap<MString, IndexProp>::Type &mIndex = table->GetMapIndex();
+  const MHashMap<string, IndexProp>::Type &mIndex = table->GetMapIndex();
   IndexTree *priTree = table->GetPrimaryIndexTree();
 
   for (VectorDataValue *row : _vctRow) {

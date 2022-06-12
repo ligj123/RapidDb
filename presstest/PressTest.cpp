@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     help();
     exit(0);
   }
-  MString str(argv[1]);
+  string str(argv[1]);
   transform(str.begin(), str.end(), str.begin(),
             [](unsigned char c) -> unsigned char { return std::tolower(c); });
 

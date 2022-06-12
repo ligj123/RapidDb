@@ -28,6 +28,7 @@ public:
   bool EqualPageId(const BranchRecord &br) const;
 
   inline void ReleaseRecord() {
+    assert(_refCount > 0);
     _refCount--;
     if (_refCount == 0)
       delete this;
