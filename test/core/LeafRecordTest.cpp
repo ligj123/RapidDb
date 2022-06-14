@@ -6,100 +6,101 @@
 #include "../../src/dataType/DataValueFactory.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/utils/Utilitys.h"
+#include "CoreSuit.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
 
 namespace storage {
 namespace fs = std::filesystem;
-BOOST_AUTO_TEST_SUITE(CoreTest)
-//
-// BOOST_AUTO_TEST_CASE(LeafRecord_test) {
-//  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
-//  const string TABLE_NAME = "testTable";
-//  DataValueLong *dvKey = new DataValueLong(100LL, true);
-//  DataValueLong *dvVal = new DataValueLong(200LL, false);
-//  VectorDataValue vctKey = {dvKey->Clone()};
-//  VectorDataValue vctVal = {dvVal->Clone()};
-//  IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-//  indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-//
-//  vctKey.push_back(dvKey->Clone(true));
-//  vctVal.push_back(dvVal->Clone(true));
-//  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
-//  BOOST_TEST(8 == lr->GetKeyLength());
-//  BOOST_TEST(20 == lr->GetValueLength());
-//  BOOST_TEST(32 == lr->GetTotalLength());
-//
-//  PriValStruct *valStru = lr->GetPriValStruct();
-//  BOOST_TEST(valStru->bLastOvf == false);
-//  BOOST_TEST(valStru->bOvf == false);
-//  BOOST_TEST(valStru->verCount == 1);
-//  BOOST_TEST(valStru->pageValOffset == 23);
-//  BOOST_TEST(valStru->arrStamp[0] == 1);
-//  BOOST_TEST(valStru->arrPageLen[0] == 9);
-//
-//  VectorDataValue vctKey2;
-//  lr->GetListKey(vctKey2);
-//  BOOST_TEST(1 == vctKey2.size());
-//  BOOST_TEST(*vctKey2[0] == *dvKey);
-//
-//  VectorDataValue vctVal2;
-//  lr->GetListValue(vctVal2);
-//  BOOST_TEST(1 == vctVal2.size());
-//  BOOST_TEST(*dvVal == *vctVal[0]);
-//
-//  Byte buff[100] = {};
-//  int pos = 0;
-//  UInt16ToBytes((uint16_t)(15 + dvKey->GetPersistenceLength(true) +
-//                           dvVal->GetPersistenceLength(false)),
-//                buff + pos);
-//  pos += 2;
-//  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff + pos);
-//  pos += 2;
-//
-//  pos += dvKey->WriteData(buff + pos, true);
-//  buff[pos] = 1;
-//  pos++;
-//  UInt64ToBytes(100, buff + pos);
-//  pos += 8;
-//  UInt16ToBytes(9, buff + pos);
-//  pos += 2;
-//
-//  pos += dvVal->WriteData(buff + pos, false);
-//  lr->ReleaseRecord();
-//
-//  lr = new LeafRecord(indexTree, buff);
-//  BOOST_TEST(buff == lr->GetBysValue());
-//  BOOST_TEST(8 == lr->GetKeyLength());
-//  BOOST_TEST(20 == lr->GetValueLength());
-//  BOOST_TEST(32 == lr->GetTotalLength());
-//
-//  valStru = lr->GetPriValStruct();
-//  BOOST_TEST(valStru->bLastOvf == false);
-//  BOOST_TEST(valStru->bOvf == false);
-//  BOOST_TEST(valStru->verCount == 1);
-//  BOOST_TEST(valStru->pageValOffset == 23);
-//  BOOST_TEST(valStru->arrStamp[0] == 100);
-//  BOOST_TEST(valStru->arrPageLen[0] == 9);
-//
-//  VectorDataValue vctKey3;
-//  lr->GetListKey(vctKey3);
-//  BOOST_TEST(vctKey3.size() == 1);
-//  BOOST_TEST(*dvKey == *vctKey3[0]);
-//
-//  VectorDataValue vctVal3;
-//  lr->GetListValue(vctVal3);
-//  BOOST_TEST(1 == vctVal3.size());
-//  BOOST_TEST(*dvVal == *vctVal3[0]);
-//
-//  lr->ReleaseRecord();
-//  indexTree->Close(true);
-//  delete dvKey;
-//  delete dvVal;
-//
-//  fs::remove(fs::path(FILE_NAME));
-//}
-//
+BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
+
+BOOST_AUTO_TEST_CASE(LeafRecord_test) {
+  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  DataValueLong *dvKey = new DataValueLong(100LL, true);
+  DataValueLong *dvVal = new DataValueLong(200LL, false);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
+  indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
+
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+  BOOST_TEST(8 == lr->GetKeyLength());
+  BOOST_TEST(20 == lr->GetValueLength());
+  BOOST_TEST(32 == lr->GetTotalLength());
+
+  PriValStruct *valStru = lr->GetPriValStruct();
+  BOOST_TEST(valStru->bLastOvf == false);
+  BOOST_TEST(valStru->bOvf == false);
+  BOOST_TEST(valStru->verCount == 1);
+  BOOST_TEST(valStru->pageValOffset == 23);
+  BOOST_TEST(valStru->arrStamp[0] == 1);
+  BOOST_TEST(valStru->arrPageLen[0] == 9);
+
+  VectorDataValue vctKey2;
+  lr->GetListKey(vctKey2);
+  BOOST_TEST(1 == vctKey2.size());
+  BOOST_TEST(*vctKey2[0] == *dvKey);
+
+  VectorDataValue vctVal2;
+  lr->GetListValue(vctVal2);
+  BOOST_TEST(1 == vctVal2.size());
+  BOOST_TEST(*dvVal == *vctVal[0]);
+
+  Byte buff[100] = {};
+  int pos = 0;
+  UInt16ToBytes((uint16_t)(15 + dvKey->GetPersistenceLength(true) +
+                           dvVal->GetPersistenceLength(false)),
+                buff + pos);
+  pos += 2;
+  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff + pos);
+  pos += 2;
+
+  pos += dvKey->WriteData(buff + pos, true);
+  buff[pos] = 1;
+  pos++;
+  UInt64ToBytes(100, buff + pos);
+  pos += 8;
+  UInt16ToBytes(9, buff + pos);
+  pos += 2;
+
+  pos += dvVal->WriteData(buff + pos, false);
+  lr->ReleaseRecord();
+
+  lr = new LeafRecord(indexTree, buff);
+  BOOST_TEST(buff == lr->GetBysValue());
+  BOOST_TEST(8 == lr->GetKeyLength());
+  BOOST_TEST(20 == lr->GetValueLength());
+  BOOST_TEST(32 == lr->GetTotalLength());
+
+  valStru = lr->GetPriValStruct();
+  BOOST_TEST(valStru->bLastOvf == false);
+  BOOST_TEST(valStru->bOvf == false);
+  BOOST_TEST(valStru->verCount == 1);
+  BOOST_TEST(valStru->pageValOffset == 23);
+  BOOST_TEST(valStru->arrStamp[0] == 100);
+  BOOST_TEST(valStru->arrPageLen[0] == 9);
+
+  VectorDataValue vctKey3;
+  lr->GetListKey(vctKey3);
+  BOOST_TEST(vctKey3.size() == 1);
+  BOOST_TEST(*dvKey == *vctKey3[0]);
+
+  VectorDataValue vctVal3;
+  lr->GetListValue(vctVal3);
+  BOOST_TEST(1 == vctVal3.size());
+  BOOST_TEST(*dvVal == *vctVal3[0]);
+
+  lr->ReleaseRecord();
+  indexTree->Close(true);
+  delete dvKey;
+  delete dvVal;
+
+  fs::remove(fs::path(FILE_NAME));
+}
+
 // BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
 //  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";

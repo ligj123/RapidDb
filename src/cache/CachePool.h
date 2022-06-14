@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "BufferPool.h"
+#include <iostream>
 #include <mutex>
 #include <queue>
 #include <set>
@@ -42,7 +43,10 @@ public:
       return new Byte[bufSize];
     else {
       CachePool *pool = GetInstance();
-      return pool->_localMap.Pop(sz);
+      Byte *bys = pool->_localMap.Pop(sz);
+      cout << "Apply size: " << bufSize << "  actual size: " << sz
+           << "  addr: " << (void *)bys << endl;
+      return bys;
     }
   }
   /**Apply a memory block from cache and set the actual allocated size*/
@@ -53,12 +57,17 @@ public:
       return new Byte[realSize];
     } else {
       CachePool *pool = GetInstance();
-      return pool->_localMap.Pop((uint16_t)realSize);
+      Byte *bys = pool->_localMap.Pop((uint16_t)realSize);
+      cout << "Apply size: " << bufSize << "  actual size: " << realSize
+           << "  addr: " << (void *)bys << endl;
+      return bys;
     }
   }
   /**Release a memory block with unfixed size*/
   static inline void Release(Byte *pBuf, uint32_t bufSize) {
     uint32_t sz = CalcBufSize(bufSize);
+    cout << "Release size: " << bufSize << "  actual size: " << sz
+         << "  addr: " << (void *)pBuf << endl;
     if (sz == UINT32_MAX)
       delete[] pBuf;
     else {

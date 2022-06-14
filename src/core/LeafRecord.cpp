@@ -13,7 +13,7 @@ static thread_local boost::crc_32_type crc32;
 void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
                     uint32_t fieldNum, uint32_t valVarLen, Byte ver) {
   Byte verNum = (*recStru._byVerNum) & 0x0f;
-  uint32_t byNum = (fieldNum + 7) << 3;
+  uint32_t byNum = (fieldNum + 7) >> 3;
   Byte *bys = recStru._bysValStart;
   uint32_t offset = 0;
   for (Byte i = 0; i < verNum; i++) {
@@ -47,7 +47,7 @@ RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen,
     _pidStart = (PageID *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
                            UI32_LEN * verNum * 2);
     _pageNum = (uint16_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
-                            UI32_LEN * verNum * 2 + UI16_LEN);
+                            UI32_LEN * verNum * 2 + UI32_LEN);
     *_pidStart = overPage->GetPageId();
     *_pageNum = overPage->GetPageNum();
     _bysValStart = overPage->GetBysPage();
@@ -156,7 +156,8 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   }
 
   uint16_t totalLen =
-      UI16_2_LEN + lenKey + infoLen + (_overflowPage == nullptr ? lenVal : 0);
+      UI16_2_LEN + lenKey + infoLen +
+      (_overflowPage == nullptr ? lenVal : UI32_LEN * 2 + UI16_LEN);
 
   _bysVal = CachePool::Apply(totalLen);
   RecStruct recStru(_bysVal, indexTree->GetKeyVarLen(), lenKey, 1,
@@ -511,7 +512,7 @@ void LeafRecord::FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
                                 uint32_t valLen) {
   *recStru._totalLen = totalLen;
   *recStru._keyLen = keyLen;
-  *recStru._byVerNum = (recStru._pidStart == nullptr ? 0x80 : 0) + verNum;
+  *recStru._byVerNum = (recStru._pidStart == nullptr ? 0 : 0x80) + verNum;
   recStru._arrStamp[0] = stamp;
   recStru._arrValLen[0] = valLen;
 }

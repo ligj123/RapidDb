@@ -60,7 +60,7 @@ struct ValueStruct {
 
 void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
                     uint32_t fieldNum, uint32_t valVarLen, Byte ver = 0xff);
-                    
+
 class LeafPage;
 class Statement;
 class LeafRecord : public RawRecord {

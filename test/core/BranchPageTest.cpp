@@ -15,7 +15,7 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 BOOST_AUTO_TEST_CASE(BranchPage_test) {
   const string FILE_NAME = "./dbTest/testBranchPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
-  const int ROW_COUNT = 100;
+  const int ROW_COUNT = 3;
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
