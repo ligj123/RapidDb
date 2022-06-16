@@ -74,7 +74,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   _keyOffset = _keyVarLen + UI16_2_LEN;
   if (_headPage->ReadIndexType() == IndexType::PRIMARY) {
     _valVarLen = _headPage->ReadValueVariableFieldCount() * UI32_LEN;
-    _valOffset = _valVarLen + (uint16_t)((_vctValue.size() + 7) << 3);
+    _valOffset = _valVarLen + (uint16_t)((_vctValue.size() + 7) >> 3);
   } else {
     _valVarLen = _headPage->ReadValueVariableFieldCount() * UI16_LEN;
     _valOffset = _valVarLen + UI16_2_LEN;

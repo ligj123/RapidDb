@@ -21,80 +21,43 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   DataValueLong *dvVal = new DataValueLong(200LL, false);
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
-  IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-  indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
+  IndexTree *indexTree =
+      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
 
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
   LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
   BOOST_TEST(8 == lr->GetKeyLength());
-  BOOST_TEST(20 == lr->GetValueLength());
-  BOOST_TEST(32 == lr->GetTotalLength());
+  BOOST_TEST(9 == lr->GetValueLength());
+  BOOST_TEST(34 == lr->GetTotalLength());
+  BOOST_TEST(lr->IsSole());
+  BOOST_TEST(!lr->IsTransaction());
+  BOOST_TEST(!lr->IsGapLock());
 
-  PriValStruct *valStru = lr->GetPriValStruct();
-  BOOST_TEST(valStru->bLastOvf == false);
-  BOOST_TEST(valStru->bOvf == false);
-  BOOST_TEST(valStru->verCount == 1);
-  BOOST_TEST(valStru->pageValOffset == 23);
-  BOOST_TEST(valStru->arrStamp[0] == 1);
-  BOOST_TEST(valStru->arrPageLen[0] == 9);
+  Byte byArr[512];
+  lr->SaveData(byArr);
+  LeafRecord *lr2 = new LeafRecord(indexTree, byArr);
 
   VectorDataValue vctKey2;
-  lr->GetListKey(vctKey2);
-  BOOST_TEST(1 == vctKey2.size());
-  BOOST_TEST(*vctKey2[0] == *dvKey);
+  lr2->GetListKey(vctKey2);
+  BOOST_TEST(vctKey2[0]->GetLong() == 100LL);
+  RawKey *key = lr2->GetKey();
+  RawKey key2(vctKey);
+  BOOST_TEST(*key == key2);
+  delete key;
 
   VectorDataValue vctVal2;
-  lr->GetListValue(vctVal2);
-  BOOST_TEST(1 == vctVal2.size());
-  BOOST_TEST(*dvVal == *vctVal[0]);
+  int hr = lr2->GetListValue(vctVal2);
+  BOOST_TEST(hr == 0);
+  BOOST_TEST(vctVal2[0]->GetLong() == 200LL);
 
-  Byte buff[100] = {};
-  int pos = 0;
-  UInt16ToBytes((uint16_t)(15 + dvKey->GetPersistenceLength(true) +
-                           dvVal->GetPersistenceLength(false)),
-                buff + pos);
-  pos += 2;
-  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff + pos);
-  pos += 2;
-
-  pos += dvKey->WriteData(buff + pos, true);
-  buff[pos] = 1;
-  pos++;
-  UInt64ToBytes(100, buff + pos);
-  pos += 8;
-  UInt16ToBytes(9, buff + pos);
-  pos += 2;
-
-  pos += dvVal->WriteData(buff + pos, false);
-  lr->ReleaseRecord();
-
-  lr = new LeafRecord(indexTree, buff);
-  BOOST_TEST(buff == lr->GetBysValue());
-  BOOST_TEST(8 == lr->GetKeyLength());
-  BOOST_TEST(20 == lr->GetValueLength());
-  BOOST_TEST(32 == lr->GetTotalLength());
-
-  valStru = lr->GetPriValStruct();
-  BOOST_TEST(valStru->bLastOvf == false);
-  BOOST_TEST(valStru->bOvf == false);
-  BOOST_TEST(valStru->verCount == 1);
-  BOOST_TEST(valStru->pageValOffset == 23);
-  BOOST_TEST(valStru->arrStamp[0] == 100);
-  BOOST_TEST(valStru->arrPageLen[0] == 9);
-
-  VectorDataValue vctKey3;
-  lr->GetListKey(vctKey3);
-  BOOST_TEST(vctKey3.size() == 1);
-  BOOST_TEST(*dvKey == *vctKey3[0]);
-
-  VectorDataValue vctVal3;
-  lr->GetListValue(vctVal3);
-  BOOST_TEST(1 == vctVal3.size());
-  BOOST_TEST(*dvVal == *vctVal3[0]);
+  BOOST_TEST(lr->CompareTo(*lr2) == 0);
+  BOOST_TEST(lr->CompareKey(key2) == 0);
+  BOOST_TEST(lr->CompareKey(*lr2));
 
   lr->ReleaseRecord();
-  indexTree->Close(true);
+  lr2->ReleaseRecord();
+  indexTree->Close();
   delete dvKey;
   delete dvVal;
 

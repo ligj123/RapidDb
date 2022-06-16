@@ -65,7 +65,7 @@ class LeafPage;
 class Statement;
 class LeafRecord : public RawRecord {
 protected:
-  ~LeafRecord();
+  ~LeafRecord() {}
 
 public:
   // Load LeafRecord from LeafPage
@@ -85,10 +85,9 @@ public:
 
   void GetListKey(VectorDataValue &vct) const;
 
-  int GetListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX,
-                   Statement *stmt = nullptr, bool bQuery = true) const {
-    MVector<int>::Type vctPos;
-    return GetListValue(vctPos, vct, verStamp, stmt, bQuery);
+  inline int GetListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX,
+                          Statement *stmt = nullptr, bool bQuery = true) const {
+    return GetListValue({}, vct, verStamp, stmt, bQuery);
   }
   int GetListValue(const MVector<int>::Type &vctPos, VectorDataValue &vct,
                    uint64_t verStamp = UINT64_MAX, Statement *stmt = nullptr,
@@ -106,8 +105,10 @@ public:
   // record with this and call below method to set old record
   void SaveUndoRecord(LeafRecord *undoRec) { _undoRec = undoRec; }
   inline uint16_t GetValueLength() const override {
-    return (*((uint16_t *)_bysVal) -
-            *((uint16_t *)(_bysVal + sizeof(uint16_t))) - sizeof(uint16_t) * 2);
+    Byte *bys = _bysVal + UI16_2_LEN + (*(uint16_t *)(_bysVal + UI16_LEN));
+    Byte vNum = (*bys) & 0x0F;
+
+    return *(uint32_t *)(bys + 1 + UI64_LEN * vNum);
   }
 
   inline uint16_t SaveData(Byte *bysPage) {

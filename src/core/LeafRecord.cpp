@@ -176,16 +176,13 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   }
 }
 
-LeafRecord::~LeafRecord() {
-  if (_undoRec != nullptr) {
-    _undoRec->ReleaseRecord();
-  }
-}
-
 void LeafRecord::ReleaseRecord(bool bUndo) {
   assert(_refCount > 0);
   _refCount--;
   if (_refCount == 0) {
+    if (_undoRec != nullptr) {
+      _undoRec->ReleaseRecord(bUndo);
+    }
     if (_overflowPage != nullptr) {
       if (bUndo) {
         _indexTree->ReleasePageId(_overflowPage->GetPageId(),
