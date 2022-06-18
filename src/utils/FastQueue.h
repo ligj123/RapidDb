@@ -93,10 +93,20 @@ public:
     return val;
   }
 
-  void swap(queue<T *> &queue) {
+  void Swap(queue<T *> &queue) {
     unique_lock<SpinMutex> lock(_spinMutex);
     ElementMove();
     queue.swap(_queue);
+  }
+
+  bool Empty() {
+    if (_queue.size() > 0)
+      return false;
+    for (InnerQueue *q : _vctInner) {
+      if (q->_head != q->_tail)
+        return false;
+    }
+    return true;
   }
 
 protected:

@@ -21,9 +21,18 @@ void PageDividePool::AddCachePage(IndexPage *page) {
   _divPool->_fastQueue.Push(page);
 }
 
+void PageDividePool::StopPool() {
+  while (!_divPool->_fastQueue.Empty()) {
+    PageDivideTask *task = new PageDivideTask();
+    _divPool->_threadPool->AddTask(task);
+    this_thread::sleep_for(1ms);
+  }
+  delete _divPool;
+  _divPool = nullptr;
+}
 void PageDividePool::PoolManage() {
   queue<IndexPage *> q;
-  _divPool->_fastQueue.swap(q);
+  _divPool->_fastQueue.Swap(q);
   while (q.size() > 0) {
     IndexPage *page = q.front();
     q.pop();

@@ -21,9 +21,20 @@ void StoragePool::WriteCachePage(CachePage *page) {
   _storagePool->_fastQueue.Push(page);
 }
 
+void StoragePool::StopPool() {
+  while (!_storagePool->_fastQueue.Empty()) {
+    StorageTask *task = new StorageTask();
+    _storagePool->_threadPool->AddTask(task);
+    this_thread::sleep_for(1ms);
+  }
+
+  delete _storagePool;
+  _storagePool = nullptr;
+}
+
 void StoragePool::PoolManage() {
   queue<CachePage *> q;
-  _storagePool->_fastQueue.swap(q);
+  _storagePool->_fastQueue.Swap(q);
   while (q.size() > 0) {
     CachePage *page = q.front();
     q.pop();
@@ -37,12 +48,13 @@ void StoragePool::PoolManage() {
     _storagePool->_mapWrite.insert({page->HashCode(), page});
   }
 
-  bool bmax = (_storagePool->_mapWrite.size() < MAX_QUEUE_SIZE / 2);
+  bool bmax = (_storagePool->_mapWrite.size() > MAX_QUEUE_SIZE / 2);
   for (auto iter = _storagePool->_mapWrite.begin();
-       iter != _storagePool->_mapWrite.end(); iter++) {
+       iter != _storagePool->_mapWrite.end();) {
     CachePage *page = iter->second;
     if (!page->GetIndexTree()->IsClosed() && bmax &&
         (MicroSecTime() - page->GetWriteTime() < WRITE_DELAY_MS)) {
+      iter++;
       continue;
     }
 
@@ -51,7 +63,7 @@ void StoragePool::PoolManage() {
     }
 
     page->DecRef();
-    _storagePool->_mapWrite.erase(iter);
+    iter = _storagePool->_mapWrite.erase(iter);
   }
 }
 } // namespace storage

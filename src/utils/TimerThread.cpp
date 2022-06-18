@@ -80,7 +80,7 @@ void TimerThread::AddTimingTask(string name, DT_MicroSec dtStart,
 
 bool TimerThread::RemoveTask(string name) {
   unique_lock<SpinMutex> lock(_instance->_mutex);
-  for (size_t i = 0; i < _instance->_vctTask.size();) {
+  for (size_t i = 0; i < _instance->_vctTask.size(); i++) {
     TimerTask *task = _instance->_vctTask[i];
     if (task->_name == name) {
       _instance->_vctTask.erase(_instance->_vctTask.begin() + i);

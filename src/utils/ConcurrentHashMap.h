@@ -57,8 +57,17 @@ public:
 
   Iterator Begin(int pos) { return _vctMap[pos]->begin(); }
   Iterator End(int pos) { return _vctMap[pos]->end(); }
-  void Erase(int pos, Iterator iter) { _vctMap[pos]->erase(iter); }
-  void Erase(int pos, Key key) { _vctMap[pos]->erase(key); }
+  Iterator Erase(int pos, Iterator iter) { return _vctMap[pos]->erase(iter); }
+  void Erase(int pos, const Key &key) { _vctMap[pos]->erase(key); }
+  void Clear(int pos) {
+    _vctLock[pos]->lock();
+    ConHashMap *map = _vctMap[pos];
+    for (auto iter = map->begin(); iter != map->end(); iter++) {
+      iter->second->DecRef();
+    }
+    map->clear();
+    _vctLock[pos]->unlock();
+  }
 
   void Lock(int pos) { _vctLock[pos]->lock(); }
   void Unlock(int pos) { _vctLock[pos]->unlock(); }

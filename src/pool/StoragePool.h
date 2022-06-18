@@ -23,10 +23,7 @@ public:
     assert(_storagePool == nullptr);
     _storagePool = new StoragePool(tp);
   };
-  static void StopPool() {
-    delete _storagePool;
-    _storagePool = nullptr;
-  }
+  static void StopPool();
 
 protected:
   static StoragePool *_storagePool;

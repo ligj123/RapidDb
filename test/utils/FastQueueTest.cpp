@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(FastQueue_test) {
   thread t([]() {
     while (!bStop2) {
       queue<DataValueLong *> q;
-      fastQueue.swap(q);
+      fastQueue.Swap(q);
 
       while (q.size() > 0) {
         DataValueLong *dv = q.front();

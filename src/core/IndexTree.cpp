@@ -48,6 +48,20 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
       _headPage->WriteAutoIncrementKey2(0);
       _headPage->WriteAutoIncrementKey3(0);
       _headPage->WriteIndexType(iType);
+
+      uint16_t count = 0;
+      for (IDataValue *dv : vctKey) {
+        if (!dv->IsFixLength())
+          count++;
+      }
+      _headPage->WriteKeyVariableFieldCount(count);
+
+      count = 0;
+      for (IDataValue *dv : vctVal) {
+        if (!dv->IsFixLength())
+          count++;
+      }
+      _headPage->WriteValueVariableFieldCount(count);
     }
 
     StoragePool::WriteCachePage(_headPage);
@@ -65,6 +79,22 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
 
     uint32_t rootId = _headPage->ReadRootPagePointer();
     _rootPage = GetPage(rootId, rootId == 0);
+
+#ifdef _DEBUG
+    uint16_t count = 0;
+    for (IDataValue *dv : vctKey) {
+      if (!dv->IsFixLength())
+        count++;
+    }
+    assert(count == _headPage->ReadKeyVariableFieldCount());
+
+    count = 0;
+    for (IDataValue *dv : vctVal) {
+      if (!dv->IsFixLength())
+        count++;
+    }
+    assert(count == _headPage->ReadValueVariableFieldCount());
+#endif
   }
 
   _vctKey.swap(vctKey);

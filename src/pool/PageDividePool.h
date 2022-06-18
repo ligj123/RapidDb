@@ -25,10 +25,7 @@ public:
     assert(_divPool == nullptr);
     _divPool = new PageDividePool(tp);
   }
-  static void StopPool() {
-    delete _divPool;
-    _divPool = nullptr;
-  }
+  static void StopPool();
 
 protected:
   static SpinMutex _spinMutex;

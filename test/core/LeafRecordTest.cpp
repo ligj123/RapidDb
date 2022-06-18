@@ -4,6 +4,8 @@
 #include "../../src/dataType/DataValueBlob.h"
 #include "../../src/dataType/DataValueDigit.h"
 #include "../../src/dataType/DataValueFactory.h"
+#include "../../src/dataType/DataValueFixChar.h"
+#include "../../src/dataType/DataValueVarChar.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/utils/Utilitys.h"
 #include "CoreSuit.h"
@@ -53,13 +55,72 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 
   BOOST_TEST(lr->CompareTo(*lr2) == 0);
   BOOST_TEST(lr->CompareKey(key2) == 0);
-  BOOST_TEST(lr->CompareKey(*lr2));
+  BOOST_TEST(lr->CompareKey(*lr2) == 0);
 
   lr->ReleaseRecord();
   lr2->ReleaseRecord();
   indexTree->Close();
   delete dvKey;
   delete dvVal;
+  delete indexTree;
+
+  fs::remove(fs::path(FILE_NAME));
+}
+
+BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
+  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+
+  DataValueInt dvInt(100, true);
+  const char *p1 = "abcdefghijklmnopqrst";
+  DataValueVarChar dvVar(p1, strlen(p1), 100, true);
+  DataValueLong dvLong(200, false);
+  const char *p2 = "abcdefghijklmnopqrst1234567890";
+  DataValueFixChar dvFix(p2, strlen(p2), 100, false);
+  const char *p3 =
+      "abcdefghijklmnopqrst1234567890abcdefghijklmnopqrst1234567890";
+  DataValueBlob dvBlob(p3, strlen(p3), 100, false);
+
+  VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
+  VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
+  IndexTree *indexTree =
+      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
+
+  vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
+  vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+  BOOST_TEST(8 == lr->GetKeyLength());
+  BOOST_TEST(9 == lr->GetValueLength());
+  BOOST_TEST(34 == lr->GetTotalLength());
+  BOOST_TEST(lr->IsSole());
+  BOOST_TEST(!lr->IsTransaction());
+  BOOST_TEST(!lr->IsGapLock());
+
+  Byte byArr[512];
+  lr->SaveData(byArr);
+  LeafRecord *lr2 = new LeafRecord(indexTree, byArr);
+
+  VectorDataValue vctKey2;
+  lr2->GetListKey(vctKey2);
+  BOOST_TEST(vctKey2[0]->GetLong() == 100LL);
+  RawKey *key = lr2->GetKey();
+  RawKey key2(vctKey);
+  BOOST_TEST(*key == key2);
+  delete key;
+
+  VectorDataValue vctVal2;
+  int hr = lr2->GetListValue(vctVal2);
+  BOOST_TEST(hr == 0);
+  BOOST_TEST(vctVal2[0]->GetLong() == 200LL);
+
+  BOOST_TEST(lr->CompareTo(*lr2) == 0);
+  BOOST_TEST(lr->CompareKey(key2) == 0);
+  BOOST_TEST(lr->CompareKey(*lr2) == 0);
+
+  lr->ReleaseRecord();
+  lr2->ReleaseRecord();
+  indexTree->Close();
+  delete indexTree;
 
   fs::remove(fs::path(FILE_NAME));
 }

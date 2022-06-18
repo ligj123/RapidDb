@@ -538,7 +538,7 @@ void LeafRecord::FillValueBuff(ValueStruct &valStru,
     if (vctVal[i]->IsNull()) {
       valStru.bysNull[i / 8] |= 1 << (i % 8);
     }
-    uint32_t vl = vctVal[i]->WriteData(bys, true);
+    uint32_t vl = vctVal[i]->WriteData(bys, false);
     bys += vl;
     if (!vctVal[i]->IsFixLength()) {
       *vlen = vl;

@@ -27,14 +27,7 @@ CachePage *PageBufferPool::GetPage(uint64_t hashId) {
 
 void PageBufferPool::ClearPool() {
   for (int i = 0; i < _mapCache.GetGroupCount(); i++) {
-    _mapCache.Lock(i);
-
-    for (auto iter = _mapCache.Begin(i); iter != _mapCache.End(i); iter++) {
-      iter->second->DecRef();
-      _mapCache.Erase(i, iter);
-    }
-
-    _mapCache.Unlock(i);
+    _mapCache.Clear(i);
   }
 }
 
