@@ -134,9 +134,11 @@ public:
 
 public:
   static void *operator new(size_t size) {
+    cout << "IDataValue new" << endl;
     return CachePool::Apply((uint32_t)size);
   }
   static void operator delete(void *ptr, size_t size) {
+    cout << "IDataValue delete" << endl;
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
@@ -152,11 +154,25 @@ protected:
 class VectorDataValue : public MVector<IDataValue *>::Type {
 public:
   using vector::vector;
+
+  VectorDataValue(VectorDataValue &&src) noexcept {
+    clear();
+    swap(src);
+  }
+
   ~VectorDataValue() {
     for (auto iter = begin(); iter != end(); iter++) {
       if (bDelAll_ || !(*iter)->IsReuse())
         delete *iter;
     }
+
+    clear();
+  }
+
+  VectorDataValue &operator=(VectorDataValue &&other) noexcept {
+    clear();
+    swap(other);
+    return *this;
   }
 
   void RemoveAll() {

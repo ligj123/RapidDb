@@ -95,6 +95,11 @@ inline std::ostream &operator<<(std::ostream &os, const RawKey &key) {
 class VectorRawKey : public MVector<RawKey *>::Type {
 public:
   using vector::vector;
+  VectorRawKey(VectorRawKey &&src) noexcept {
+    clear();
+    swap(src);
+  }
+
   ~VectorRawKey() {
     for (auto iter = begin(); iter != end(); iter++) {
       delete (*iter);
@@ -107,6 +112,12 @@ public:
     }
 
     clear();
+  }
+
+  VectorRawKey &operator=(VectorRawKey &&other) noexcept {
+    clear();
+    swap(other);
+    return *this;
   }
 };
 } // namespace storage

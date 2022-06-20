@@ -183,6 +183,12 @@ std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
 class VectorLeafRecord : public MVector<LeafRecord *>::Type {
 public:
   using vector::vector;
+
+  VectorLeafRecord(VectorLeafRecord &&src) noexcept {
+    clear();
+    swap(src);
+  }
+
   ~VectorLeafRecord() {
     for (auto iter = begin(); iter != end(); iter++) {
       (*iter)->ReleaseRecord();
@@ -195,6 +201,12 @@ public:
     }
 
     clear();
+  }
+
+  VectorLeafRecord &operator=(VectorLeafRecord &&other) noexcept {
+    clear();
+    swap(other);
+    return *this;
   }
 };
 } // namespace storage

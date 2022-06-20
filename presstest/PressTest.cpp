@@ -4,6 +4,11 @@
 
 #include "PressTest.h"
 #include "../src/cache/Mallocator.h"
+#include "../src/dataType/DataValueBlob.h"
+#include "../src/dataType/DataValueDigit.h"
+#include "../src/dataType/DataValueFactory.h"
+#include "../src/dataType/DataValueFixChar.h"
+#include "../src/dataType/DataValueVarChar.h"
 #include "../src/utils/Log.h"
 #include <filesystem>
 #include <iostream>
