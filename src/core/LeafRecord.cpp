@@ -428,7 +428,7 @@ int LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
       varField++;
       flen = valStru.varFiledsLen[varField];
     } else {
-      flen = vdSrc[i]->GetDataLength();
+      flen = vdSrc[i]->GetMaxLength();
     }
 
     if (valStru.bysNull[i / 8] & (1 << i % 8)) {

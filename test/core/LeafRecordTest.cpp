@@ -86,15 +86,12 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   IndexTree *indexTree =
       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
 
-  vctKey.push_back(dvInt.Clone(true));
-  vctKey.push_back(dvVar.Clone(true));
-  vctVal.push_back(dvLong.Clone(true));
-  vctVal.push_back(dvFix.Clone(true));
-  vctVal.push_back(dvBlob.Clone(true));
+  vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
+  vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
   LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
-  BOOST_TEST(8 == lr->GetKeyLength());
-  BOOST_TEST(9 == lr->GetValueLength());
-  BOOST_TEST(34 == lr->GetTotalLength());
+  BOOST_TEST(27 == lr->GetKeyLength());
+  BOOST_TEST(173 == lr->GetValueLength());
+  BOOST_TEST(217 == lr->GetTotalLength());
   BOOST_TEST(lr->IsSole());
   BOOST_TEST(!lr->IsTransaction());
   BOOST_TEST(!lr->IsGapLock());
@@ -105,7 +102,9 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
 
   VectorDataValue vctKey2;
   lr2->GetListKey(vctKey2);
-  BOOST_TEST(vctKey2[0]->GetLong() == 100LL);
+  BOOST_TEST(vctKey2[0] == dvInt);
+  BOOST_TEST(vctKey2[1] == dvVar);
+
   RawKey *key = lr2->GetKey();
   RawKey key2(vctKey);
   BOOST_TEST(*key == key2);
@@ -114,7 +113,9 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   VectorDataValue vctVal2;
   int hr = lr2->GetListValue(vctVal2);
   BOOST_TEST(hr == 0);
-  BOOST_TEST(vctVal2[0]->GetLong() == 200LL);
+  BOOST_TEST(vctVal2[0] == dvLong);
+  BOOST_TEST(vctVal2[1] == dvFix);
+  BOOST_TEST(vctVal2[2] == dvBlob);
 
   BOOST_TEST(lr->CompareTo(*lr2) == 0);
   BOOST_TEST(lr->CompareKey(key2) == 0);

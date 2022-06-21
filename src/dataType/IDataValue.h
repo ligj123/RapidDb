@@ -134,11 +134,9 @@ public:
 
 public:
   static void *operator new(size_t size) {
-    cout << "IDataValue new" << endl;
     return CachePool::Apply((uint32_t)size);
   }
   static void operator delete(void *ptr, size_t size) {
-    cout << "IDataValue delete" << endl;
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
