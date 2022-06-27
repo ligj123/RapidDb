@@ -1,6 +1,7 @@
 ﻿#include "LeafRecord.h"
 #include "../config/ErrorID.h"
 #include "../dataType/DataValueFactory.h"
+#include "../pool/StoragePool.h"
 #include "../statement/Statement.h"
 #include "../utils/ErrorMsg.h"
 #include "IndexTree.h"
@@ -71,7 +72,7 @@ RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, OverflowPage *overPage) {
   _arrStamp = (uint64_t *)(bys + UI16_2_LEN + keyLen + 1);
   _arrValLen = (uint32_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum);
 
-  if ((*_byVerNum) & 0x80) {
+  if ((*_byVerNum) & REC_OVERFLOW) {
     assert(overPage != nullptr);
     _arrCrc32 = (uint32_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
                              UI32_LEN * verNum);
@@ -79,8 +80,6 @@ RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, OverflowPage *overPage) {
                            UI32_LEN * verNum * 2);
     _pageNum = (uint16_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
                             UI32_LEN * verNum * 2 + UI16_LEN);
-    *_pidStart = overPage->GetPageId();
-    *_pageNum = overPage->GetPageNum();
     _bysValStart = overPage->GetBysPage();
   } else {
     _arrCrc32 = nullptr;
@@ -150,8 +149,8 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   if (lenVal > max_lenVal) {
     uint16_t num =
         (lenVal + CachePage::CACHE_PAGE_SIZE - 1) / CachePage::CACHE_PAGE_SIZE;
-    _overflowPage =
-        OverflowPage::GetPage(indexTree, indexTree->ApplyPageId(num), num);
+    _overflowPage = OverflowPage::GetPage(
+        indexTree, indexTree->ApplyPageId(num), num, true);
     infoLen += UI32_LEN + UI32_LEN + UI16_LEN;
   }
 
@@ -173,6 +172,8 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   if (_overflowPage != nullptr) {
     crc32.reset();
     crc32.process_bytes(recStru._bysValStart, lenVal);
+    recStru._arrCrc32[0] = crc32.checksum();
+    StoragePool::WriteCachePage(_overflowPage);
   }
 }
 
@@ -416,7 +417,7 @@ int LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
   const VectorDataValue &vdSrc = _indexTree->GetVctValue();
   SetValueStruct(recStru, &valStru, (uint32_t)vdSrc.size(),
                  _indexTree->GetValVarLen(), ver);
-  assert((*recStru._byVerNum & LAST_OVERFLOW) == 0 || _overflowPage != nullptr);
+  assert((*recStru._byVerNum & REC_OVERFLOW) == 0 || _overflowPage != nullptr);
 
   vctVal.clear();
   int varField = -1;
@@ -509,7 +510,8 @@ void LeafRecord::FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
                                 uint32_t valLen) {
   *recStru._totalLen = totalLen;
   *recStru._keyLen = keyLen;
-  *recStru._byVerNum = (recStru._pidStart == nullptr ? 0 : 0x80) + verNum;
+  *recStru._byVerNum =
+      (recStru._pidStart == nullptr ? 0 : REC_OVERFLOW) + verNum;
   recStru._arrStamp[0] = stamp;
   recStru._arrValLen[0] = valLen;
 }

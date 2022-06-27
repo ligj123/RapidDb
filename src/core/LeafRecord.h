@@ -10,15 +10,14 @@
 
 using namespace std;
 namespace storage {
-static const Byte LAST_OVERFLOW = 0x80;
-static const Byte OTHER_OVERFLOW = 0x40;
+static const Byte REC_OVERFLOW = 0x80;
 static const Byte VERSION_NUM = 0x0f;
 
 // Only for primary index
 struct RecStruct {
   RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen, Byte verNum,
             OverflowPage *overPage = nullptr);
-  RecStruct(Byte *bys, uint16_t varKeyOff, OverflowPage *overPage = nullptr);
+  RecStruct(Byte *bys, uint16_t varKeyOff, OverflowPage *overPage);
 
   // To save total length for record, not include values in overflow page
   // length, only to calc the occupied bytes in LeafPage
@@ -140,6 +139,21 @@ public:
     return _statement != nullptr && _actionType != ActionType::UNKNOWN;
   }
   bool IsGapLock() { return _statement != nullptr && _gapLock; }
+  bool FillOverPage() {
+    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
+    Byte ver = *(_bysVal + UI16_2_LEN + keyLen);
+    if ((ver & REC_OVERFLOW) == 0 || _overflowPage != nullptr)
+      return true;
+
+    ver = ver & VERSION_NUM;
+    Byte *bys =
+        _bysVal + UI16_2_LEN + keyLen + 1 + UI64_LEN * ver + UI32_LEN * ver * 2;
+    PageID pid = *(PageID *)(bys);
+    uint16_t pnum = *(uint16_t *)(bys + UI32_LEN);
+
+    _overflowPage = OverflowPage::GetPage(_indexTree, pid, pnum);
+    return !_overflowPage->IsFilled();
+  }
 
 protected:
   // To calc key length

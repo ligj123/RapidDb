@@ -12,7 +12,8 @@ OverflowPage *OverflowPage::GetPage(IndexTree *indexTree, PageID startId,
       return ovp;
   }
 
-  OverflowPage *ovp = new OverflowPage(indexTree, startId, pageNum);
+  OverflowPage *ovp = new OverflowPage(indexTree, startId, pageNum, bNew);
+  indexTree->IncPages();
   PageBufferPool::AddPage(ovp);
   return ovp;
 }

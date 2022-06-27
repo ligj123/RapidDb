@@ -17,7 +17,7 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree)
   if (_usedPageNum == 0)
     return;
   OverflowPage *ovfPage =
-      new OverflowPage(indexTree, _firstPageId, _usedPageNum);
+      new OverflowPage(indexTree, _firstPageId, _usedPageNum, false);
   ovfPage->ReadPage(nullptr);
   boost::crc_32_type crc32;
   crc32.process_bytes(ovfPage->GetBysPage(),
@@ -140,7 +140,7 @@ void GarbageOwner::SavePage() {
   }
 
   OverflowPage *ovfPage =
-      new OverflowPage(_indexTree, _firstPageId, _usedPageNum);
+      new OverflowPage(_indexTree, _firstPageId, _usedPageNum, true);
   int count = 0;
   for (auto iter = _treeFreePage.begin(); iter != _treeFreePage.end(); iter++) {
     ovfPage->WriteInt(count, iter->first);

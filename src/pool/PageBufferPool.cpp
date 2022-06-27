@@ -22,6 +22,7 @@ void PageBufferPool::AddPage(CachePage *page) {
 CachePage *PageBufferPool::GetPage(uint64_t hashId) {
   CachePage *page = nullptr;
   _mapCache.Find(hashId, page);
+  page->IncRef();
   return page;
 }
 

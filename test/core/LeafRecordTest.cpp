@@ -59,10 +59,12 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 
   lr->ReleaseRecord();
   lr2->ReleaseRecord();
+
+  ClearCase();
   indexTree->Close();
+
   delete dvKey;
   delete dvVal;
-  delete indexTree;
 
   fs::remove(fs::path(FILE_NAME));
 }
@@ -79,7 +81,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   DataValueFixChar dvFix(p2, (uint32_t)strlen(p2), 100, false);
   const char *p3 =
       "abcdefghijklmnopqrst1234567890abcdefghijklmnopqrst1234567890";
-  DataValueBlob dvBlob(p3, (uint32_t)strlen(p3), 100, false);
+  DataValueBlob dvBlob(p3, (uint32_t)strlen(p3), 20000, false);
 
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
@@ -102,8 +104,8 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
 
   VectorDataValue vctKey2;
   lr2->GetListKey(vctKey2);
-  BOOST_TEST(vctKey2[0] == dvInt);
-  BOOST_TEST(vctKey2[1] == dvVar);
+  BOOST_TEST(*vctKey2[0] == dvInt);
+  BOOST_TEST(*vctKey2[1] == dvVar);
 
   RawKey *key = lr2->GetKey();
   RawKey key2(vctKey);
@@ -113,9 +115,9 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   VectorDataValue vctVal2;
   int hr = lr2->GetListValue(vctVal2);
   BOOST_TEST(hr == 0);
-  BOOST_TEST(vctVal2[0] == dvLong);
-  BOOST_TEST(vctVal2[1] == dvFix);
-  BOOST_TEST(vctVal2[2] == dvBlob);
+  BOOST_TEST(*vctVal2[0] == dvLong);
+  BOOST_TEST(*vctVal2[1] == dvFix);
+  BOOST_TEST(*vctVal2[2] == dvBlob);
 
   BOOST_TEST(lr->CompareTo(*lr2) == 0);
   BOOST_TEST(lr->CompareKey(key2) == 0);
@@ -123,8 +125,33 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
 
   lr->ReleaseRecord();
   lr2->ReleaseRecord();
+
+  string str(18000, 'a');
+  DataValueBlob dvBlob2(str.c_str(), (uint32_t)str.size(), 20000, false);
+  vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
+  vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob2.Clone(true)};
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+
+  lr->SaveData(byArr);
+  lr2 = new LeafRecord(indexTree, byArr);
+  lr2->FillOverPage();
+  lr2->GetListKey(vctKey2);
+  BOOST_TEST(*vctKey2[0] == dvInt);
+  BOOST_TEST(*vctKey2[1] == dvVar);
+
+  hr = lr2->GetListValue(vctVal2);
+  BOOST_TEST(hr == 0);
+  BOOST_TEST(*vctVal2[0] == dvLong);
+  BOOST_TEST(*vctVal2[1] == dvFix);
+  BOOST_TEST(*vctVal2[2] == dvBlob2);
+
+  BOOST_TEST(lr->CompareTo(*lr2) == 0);
+  BOOST_TEST(lr->CompareKey(*lr2) == 0);
+
+  lr->ReleaseRecord();
+  lr2->ReleaseRecord();
   indexTree->Close();
-  delete indexTree;
+  indexTree->Close();
 
   fs::remove(fs::path(FILE_NAME));
 }

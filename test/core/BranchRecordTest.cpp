@@ -66,7 +66,6 @@ BOOST_AUTO_TEST_CASE(BranchRecord_test) {
   bp->DecRef();
   indexTree->Close();
   PageBufferPool::ClearPool();
-  delete indexTree;
   std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
 

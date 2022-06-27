@@ -76,7 +76,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   bp->DecRef();
   indexTree->Close();
   PageBufferPool::ClearPool();
-  delete indexTree;
+  indexTree->Close();
 
   delete dvKey;
   delete dvVal;

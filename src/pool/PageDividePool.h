@@ -19,13 +19,14 @@ public:
   static void RemoveTimerTask();
   static void AddCachePage(IndexPage *page);
   static void PoolManage();
+  static void StopPool();
+  static void PushTask();
 
   static size_t GetTaskCount() { return _divPool->_mapPage.size(); }
   static void InitPool(ThreadPool *tp) {
     assert(_divPool == nullptr);
     _divPool = new PageDividePool(tp);
   }
-  static void StopPool();
 
 protected:
   static SpinMutex _spinMutex;

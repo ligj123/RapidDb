@@ -24,6 +24,7 @@ public:
     _storagePool = new StoragePool(tp);
   };
   static void StopPool();
+  static void PushTask();
 
 protected:
   static StoragePool *_storagePool;

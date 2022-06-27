@@ -68,7 +68,6 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
     _rootPage = AllocateNewPage(HeadPage::PAGE_NULL_POINTER, 0);
     _rootPage->SetBeginPage(true);
     _rootPage->SetEndPage(true);
-    _rootPage->IncRef();
     StoragePool::WriteCachePage(_rootPage);
   } else {
     _headPage->ReadPage();
@@ -152,6 +151,19 @@ IndexTree::~IndexTree() {
   _setFiledId.erase(_fileId);
 
   LOG_DEBUG << "Close index tree " << _tableName;
+}
+
+void IndexTree ::Close() {
+  _bClosed = true;
+  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
+  if (_rootPage != nullptr) {
+    _rootPage->DecRef();
+    _rootPage = nullptr;
+  }
+  lock.unlock();
+  while (_pagesInMem.load() > 0) {
+    this_thread::sleep_for(chrono::milliseconds(1));
+  }
 }
 
 void IndexTree::CloneKeys(VectorDataValue &vct) {
@@ -238,6 +250,8 @@ IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
     ReadPageTask *task = new ReadPageTask(page);
     task->AddWaitTasks(ThreadPool::_currTask);
     ThreadPool::InstMain().AddTask(task);
+  } else {
+    page->DecRef();
   }
   _pageMutex.unlock();
 

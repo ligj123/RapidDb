@@ -68,7 +68,6 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     this_thread::sleep_for(1ms);
   }
   indexTree->Close();
-  delete indexTree;
 
   class PageCmpTask : public Task {
   public:
@@ -101,7 +100,6 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
   }
 
   indexTree->Close();
-  delete indexTree;
   fs::remove(fs::path(FILE_NAME));
 }
 BOOST_AUTO_TEST_SUITE_END()

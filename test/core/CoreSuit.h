@@ -23,6 +23,7 @@ struct SuiteFixture {
     PageBufferPool::RemoveTimerTask();
     PageDividePool::RemoveTimerTask();
     StoragePool::RemoveTimerTask();
+    delete _threadPool;
     PageDividePool::StopPool();
     StoragePool::StopPool();
     PageBufferPool::ClearPool();
@@ -33,4 +34,10 @@ struct SuiteFixture {
 
   ThreadPool *_threadPool;
 };
+
+void ClearCase() {
+  PageDividePool::PushTask();
+  StoragePool::PushTask();
+  PageBufferPool::ClearPool();
+}
 } // namespace storage

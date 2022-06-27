@@ -30,7 +30,6 @@ public:
   IndexTree(const string &tableName, const string &fileName,
             VectorDataValue &vctKey, VectorDataValue &vctVal,
             IndexType iType = IndexType::UNKNOWN);
-  ~IndexTree();
 
   void UpdateRootPage(IndexPage *root);
   IndexPage *AllocateNewPage(PageID parentId, Byte pageLevel);
@@ -106,7 +105,7 @@ public:
   inline uint16_t GetFileId() { return _fileId; }
   inline bool IsClosed() { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
-  void Close() { _bClosed = true; };
+  void Close();
   inline void ReleasePageFile(PageFile *rpf) {
     lock_guard<SpinMutex> lock(_fileMutex);
     _fileQueue.push(rpf);
@@ -114,7 +113,12 @@ public:
 
   inline HeadPage *GetHeadPage() { return _headPage; }
   inline void IncPages() { _pagesInMem.fetch_add(1, memory_order_relaxed); }
-  inline void DecPages() { _pagesInMem.fetch_sub(1, memory_order_relaxed); }
+  inline void DecPages() {
+    int ii = _pagesInMem.fetch_sub(1, memory_order_relaxed);
+    if (ii == 1) {
+      delete this;
+    }
+  }
 
   inline uint16_t GetKeyVarLen() { return _keyVarLen; }
   inline uint16_t GetValVarLen() { return _valVarLen; }
@@ -122,6 +126,9 @@ public:
   inline uint16_t GetValOffset() { return _valOffset; }
   inline const VectorDataValue &GetVctKey() const { return _vctKey; }
   inline const VectorDataValue &GetVctValue() const { return _vctValue; }
+
+protected:
+  ~IndexTree();
 
 protected:
   string _tableName;
