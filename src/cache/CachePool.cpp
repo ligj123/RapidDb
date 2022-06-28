@@ -8,7 +8,29 @@ namespace storage {
 CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
 thread_local LocalMap CachePool::_localMap;
 
+#ifdef _DEBUG_TEST
+vector<unordered_map<uint16_t, vector<Byte *>> *> CachePool::_vctMap;
+SpinMutex CachePool::_spinLocal;
+#endif
+
+LocalMap::LocalMap() {
+#ifdef _DEBUG_TEST
+  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+  CachePool::_vctMap.push_back(&_map);
+#endif
+}
+
 LocalMap::~LocalMap() {
+#ifdef _DEBUG_TEST
+  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+  for (auto iter = CachePool::_vctMap.begin(); iter != CachePool::_vctMap.end();
+       iter++) {
+    if (*iter == &_map) {
+      CachePool::_vctMap.erase(iter);
+    }
+  }
+#endif
+
   for (auto iter = _map.begin(); iter != _map.end(); iter++) {
     CachePool::BatchRelease(iter->first, iter->second, true);
   }
@@ -116,4 +138,22 @@ CachePool::~CachePool() {
     _queueFreeBuf.pop();
   }
 }
+
+#ifdef _DEBUG_TEST
+size_t CachePool::GetMemoryUsed() {
+  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+  for (auto mm : _vctMap) {
+    for (auto iter = mm->begin(); iter != mm->end(); iter++) {
+      BatchRelease(iter->first, iter->second, true);
+    }
+  }
+
+  auto map = _gCachePool->_mapPool;
+  size_t sz = 0;
+  for (auto iter = map.begin(); iter != map.end(); iter++) {
+    sz += iter->second->UsedMem();
+  }
+  return sz;
+}
+#endif // _DEBUG_TEST
 } // namespace storage

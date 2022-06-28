@@ -25,7 +25,9 @@ public:
   inline bool IsEmpty() { return _vctFree.size() == 0; }
   inline bool IsFull() { return _vctFree.size() == _maxEle; }
   inline Byte *GetBuf() { return _pBuf; }
-
+#ifdef _DEBUG_TEST
+  size_t UsedMem() { return _eleSize * (_maxEle - _vctFree.size()); }
+#endif // _DEBUG_TEST
 protected:
   Byte *_pBuf;
   uint16_t _eleSize;
@@ -41,7 +43,15 @@ public:
   void Release(vector<Byte *> &vct, bool bAll);
   Byte *Apply();
   void Release(Byte *bys);
-
+#ifdef _DEBUG_TEST
+  size_t UsedMem() {
+    size_t sz = 0;
+    for (auto iter = _mapBuffer.begin(); iter != _mapBuffer.end(); iter++) {
+      sz += iter->second->UsedMem();
+    }
+    return sz;
+  }
+#endif // _DEBUG_TEST
 protected:
   unordered_map<Byte *, Buffer *> _mapBuffer;
   unordered_map<Byte *, Buffer *> _mapFreeBuffer;

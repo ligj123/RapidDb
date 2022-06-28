@@ -160,10 +160,6 @@ void IndexTree ::Close() {
     _rootPage->DecRef();
     _rootPage = nullptr;
   }
-  lock.unlock();
-  while (_pagesInMem.load() > 0) {
-    this_thread::sleep_for(chrono::milliseconds(1));
-  }
 }
 
 void IndexTree::CloneKeys(VectorDataValue &vct) {

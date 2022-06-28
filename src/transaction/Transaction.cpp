@@ -17,7 +17,7 @@ void Transaction::SetTransactionstatus(TranStatus status) {
   } else {
     _stopTime = MicroSecTime();
 
-#ifdef _DEBUG
+#ifdef _DEBUG_TEST
     if (status == TranStatus::CLOSED) {
       assert(_tranStatus == TranStatus::COMMITTING);
     } else if (status == TranStatus::FAILED) {

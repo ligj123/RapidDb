@@ -35,7 +35,7 @@ struct SuiteFixture {
   ThreadPool *_threadPool;
 };
 
-void ClearCase() {
+static void ClearCase() {
   PageDividePool::PushTask();
   StoragePool::PushTask();
   PageBufferPool::ClearPool();

@@ -13,6 +13,7 @@ class CachePool;
 /**thread local variable to save bytes buffer*/
 class LocalMap {
 public:
+  LocalMap();
   ~LocalMap();
   void Push(Byte *pBuf, uint16_t eleSize);
   Byte *Pop(uint16_t eleSize);
@@ -67,6 +68,12 @@ public:
       pool->_localMap.Push(pBuf, (uint16_t)sz);
     }
   }
+
+#ifdef _DEBUG_TEST
+  static size_t GetMemoryUsed();
+  static vector<unordered_map<uint16_t, vector<Byte *>> *> _vctMap;
+  static SpinMutex _spinLocal;
+#endif // DEBUG
 
 public:
   CachePool();

@@ -60,12 +60,15 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   lr->ReleaseRecord();
   lr2->ReleaseRecord();
 
-  ClearCase();
   indexTree->Close();
+  ClearCase();
 
   delete dvKey;
   delete dvVal;
-
+#ifdef _DEBUG_TEST
+  size_t sz = CachePool::GetMemoryUsed();
+  BOOST_TEST(sz == 0ULL);
+#endif
   fs::remove(fs::path(FILE_NAME));
 }
 
@@ -151,7 +154,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   lr->ReleaseRecord();
   lr2->ReleaseRecord();
   indexTree->Close();
-  indexTree->Close();
+  ClearCase();
 
   fs::remove(fs::path(FILE_NAME));
 }
