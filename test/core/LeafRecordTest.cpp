@@ -19,6 +19,7 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+
   DataValueLong *dvKey = new DataValueLong(100LL, true);
   DataValueLong *dvVal = new DataValueLong(200LL, false);
   VectorDataValue vctKey = {dvKey->Clone()};
@@ -65,10 +66,6 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 
   delete dvKey;
   delete dvVal;
-#ifdef _DEBUG_TEST
-  size_t sz = CachePool::GetMemoryUsed();
-  BOOST_TEST(sz == 0ULL);
-#endif
   fs::remove(fs::path(FILE_NAME));
 }
 

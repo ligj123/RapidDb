@@ -2,6 +2,7 @@
 #include "../config/Configure.h"
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
+#include "../utils/Log.h"
 #include <iostream>
 
 namespace storage {
@@ -21,19 +22,20 @@ LocalMap::LocalMap() {
 }
 
 LocalMap::~LocalMap() {
+  for (auto iter = _map.begin(); iter != _map.end(); iter++) {
+    CachePool::BatchRelease(iter->first, iter->second, true);
+  }
+
 #ifdef _DEBUG_TEST
   unique_lock<SpinMutex> lock(CachePool::_spinLocal);
   for (auto iter = CachePool::_vctMap.begin(); iter != CachePool::_vctMap.end();
        iter++) {
     if (*iter == &_map) {
       CachePool::_vctMap.erase(iter);
+      return;
     }
   }
 #endif
-
-  for (auto iter = _map.begin(); iter != _map.end(); iter++) {
-    CachePool::BatchRelease(iter->first, iter->second, true);
-  }
 
   bStoped = true;
 }
@@ -156,4 +158,60 @@ size_t CachePool::GetMemoryUsed() {
   return sz;
 }
 #endif // _DEBUG_TEST
+
+/**Apply a menory block for an index page*/
+Byte *CachePool::ApplyPage() {
+  CachePool *pool = GetInstance();
+  Byte *bys = pool->_localMap.Pop((uint16_t)Configure::GetCachePageSize());
+  LOG_INFO << "ApplyPage: " << (void *)bys;
+  return bys;
+}
+
+/**Release a memory block for an index page*/
+void CachePool::ReleasePage(Byte *page) {
+  CachePool *pool = GetInstance();
+  pool->_localMap.Push(page, (uint16_t)Configure::GetCachePageSize());
+  LOG_INFO << "ReleasePage: " << (void *)page;
+}
+
+/**Apply a memory block from cache*/
+Byte *CachePool::Apply(uint32_t bufSize) {
+  uint32_t sz = CalcBufSize(bufSize);
+  if (sz == UINT32_MAX)
+    return new Byte[bufSize];
+  else {
+    CachePool *pool = GetInstance();
+    Byte *bys = pool->_localMap.Pop(sz);
+    LOG_INFO << "Apply1 size: " << bufSize << "  Actual size: " << sz
+             << " Addr:" << (void *)bys;
+    ;
+    return bys;
+  }
+}
+/**Apply a memory block from cache and set the actual allocated size*/
+Byte *CachePool::Apply(uint32_t bufSize, uint32_t &realSize) {
+  realSize = CalcBufSize(bufSize);
+  if (realSize == UINT32_MAX) {
+    realSize = bufSize;
+    return new Byte[realSize];
+  } else {
+    CachePool *pool = GetInstance();
+    Byte *bys = pool->_localMap.Pop((uint16_t)realSize);
+    LOG_INFO << "Apply2 size: " << bufSize << "  Actual size: " << realSize
+             << " Addr:" << (void *)bys;
+    return bys;
+  }
+}
+/**Release a memory block with unfixed size*/
+void CachePool::Release(Byte *pBuf, uint32_t bufSize) {
+  uint32_t sz = CalcBufSize(bufSize);
+  if (sz == UINT32_MAX)
+    delete[] pBuf;
+  else {
+    CachePool *pool = GetInstance();
+    pool->_localMap.Push(pBuf, (uint16_t)sz);
+    LOG_INFO << "Release size: " << bufSize << "  Actual size: " << sz
+             << " Addr:" << (void *)pBuf;
+  }
+}
 } // namespace storage

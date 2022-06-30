@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <stdint.h>
 using namespace std;
-
+#define _DEBUG_TEST
 typedef unsigned char Byte;
 typedef uint32_t PageID;
 typedef uint64_t VersionStamp;

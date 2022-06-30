@@ -25,49 +25,55 @@ protected:
 
 class CachePool {
 public:
-  /**Apply a menory block for an index page*/
-  static Byte *ApplyPage() {
-    CachePool *pool = GetInstance();
-    return pool->_localMap.Pop((uint16_t)Configure::GetCachePageSize());
-  }
+  ///**Apply a menory block for an index page*/
+  // static Byte *ApplyPage() {
+  //   CachePool *pool = GetInstance();
+  //   return pool->_localMap.Pop((uint16_t)Configure::GetCachePageSize());
+  // }
 
-  /**Release a memory block for an index page*/
-  static void ReleasePage(Byte *page) {
-    CachePool *pool = GetInstance();
-    pool->_localMap.Push(page, (uint16_t)Configure::GetCachePageSize());
-  }
+  ///**Release a memory block for an index page*/
+  // static void ReleasePage(Byte *page) {
+  //   CachePool *pool = GetInstance();
+  //   pool->_localMap.Push(page, (uint16_t)Configure::GetCachePageSize());
+  // }
 
-  /**Apply a memory block from cache*/
-  static inline Byte *Apply(uint32_t bufSize) {
-    uint32_t sz = CalcBufSize(bufSize);
-    if (sz == UINT32_MAX)
-      return new Byte[bufSize];
-    else {
-      CachePool *pool = GetInstance();
-      return pool->_localMap.Pop(sz);
-    }
-  }
-  /**Apply a memory block from cache and set the actual allocated size*/
-  static inline Byte *Apply(uint32_t bufSize, uint32_t &realSize) {
-    realSize = CalcBufSize(bufSize);
-    if (realSize == UINT32_MAX) {
-      realSize = bufSize;
-      return new Byte[realSize];
-    } else {
-      CachePool *pool = GetInstance();
-      return pool->_localMap.Pop((uint16_t)realSize);
-    }
-  }
-  /**Release a memory block with unfixed size*/
-  static inline void Release(Byte *pBuf, uint32_t bufSize) {
-    uint32_t sz = CalcBufSize(bufSize);
-    if (sz == UINT32_MAX)
-      delete[] pBuf;
-    else {
-      CachePool *pool = GetInstance();
-      pool->_localMap.Push(pBuf, (uint16_t)sz);
-    }
-  }
+  ///**Apply a memory block from cache*/
+  // static inline Byte *Apply(uint32_t bufSize) {
+  //   uint32_t sz = CalcBufSize(bufSize);
+  //   if (sz == UINT32_MAX)
+  //     return new Byte[bufSize];
+  //   else {
+  //     CachePool *pool = GetInstance();
+  //     return pool->_localMap.Pop(sz);
+  //   }
+  // }
+  ///**Apply a memory block from cache and set the actual allocated size*/
+  // static inline Byte *Apply(uint32_t bufSize, uint32_t &realSize) {
+  //   realSize = CalcBufSize(bufSize);
+  //   if (realSize == UINT32_MAX) {
+  //     realSize = bufSize;
+  //     return new Byte[realSize];
+  //   } else {
+  //     CachePool *pool = GetInstance();
+  //     return pool->_localMap.Pop((uint16_t)realSize);
+  //   }
+  // }
+  ///**Release a memory block with unfixed size*/
+  // static inline void Release(Byte *pBuf, uint32_t bufSize) {
+  //   uint32_t sz = CalcBufSize(bufSize);
+  //   if (sz == UINT32_MAX)
+  //     delete[] pBuf;
+  //   else {
+  //     CachePool *pool = GetInstance();
+  //     pool->_localMap.Push(pBuf, (uint16_t)sz);
+  //   }
+  // }
+
+  static Byte *ApplyPage();
+  static void ReleasePage(Byte *page);
+  static Byte *Apply(uint32_t bufSize);
+  static Byte *Apply(uint32_t bufSize, uint32_t &realSize);
+  static void Release(Byte *pBuf, uint32_t bufSize);
 
 #ifdef _DEBUG_TEST
   static size_t GetMemoryUsed();

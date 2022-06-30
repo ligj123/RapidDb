@@ -11,7 +11,7 @@ static const std::string ROOT_PATH = "./dbTest";
 struct GlobalFixTure {
   GlobalFixTure() {
     std::cout << "Start global fixture." << std::endl;
-    Logger::init(ERROR);
+    Logger::init(INFO);
 
     fs::path path(ROOT_PATH);
     if (!fs::exists(path))

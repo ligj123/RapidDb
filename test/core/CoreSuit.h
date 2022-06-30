@@ -10,7 +10,9 @@ using namespace std;
 namespace storage {
 struct SuiteFixture {
   SuiteFixture() {
-    std::cout << "Suite core setup" << std::endl;
+    std::cout << "Suite core setup, MemoryUsed: " << CachePool::GetMemoryUsed()
+              << std::endl;
+
     TimerThread::Start();
     _threadPool = ThreadPool::InitMain();
     StoragePool::InitPool(_threadPool);
@@ -29,7 +31,8 @@ struct SuiteFixture {
     PageBufferPool::ClearPool();
     TimerThread::Stop();
 
-    std::cout << "Suite core tear down" << std::endl;
+    std::cout << "Suite core tear down, MemoryUsed: "
+              << CachePool::GetMemoryUsed() << std::endl;
   }
 
   ThreadPool *_threadPool;
