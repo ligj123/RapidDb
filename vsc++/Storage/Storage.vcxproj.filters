@@ -85,7 +85,6 @@
     <ClCompile Include="..\..\src\expr\ExprFunc.cpp">
       <Filter>expr</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\GlobalInit.cpp" />
     <ClCompile Include="..\..\src\resultset\CacheResultSet.cpp">
       <Filter>resultset</Filter>
     </ClCompile>
@@ -108,6 +107,9 @@
       <Filter>core</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\utils\TimerThread.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\utils\StackTrace.cpp">
       <Filter>utils</Filter>
     </ClCompile>
   </ItemGroup>
@@ -315,6 +317,12 @@
       <Filter>core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\utils\TimerThread.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\FastQueue.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\utils\StackTrace.h">
       <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>

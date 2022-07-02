@@ -70,7 +70,7 @@ protected:
   static TimerThread *_instance;
   DT_MicroSec _currTime;
   thread *_thread;
-  MVector<TimerTask *>::Type _vctTask;
+  vector<TimerTask *> _vctTask;
   bool _bRunning;
   SpinMutex _mutex;
 };

@@ -3,6 +3,7 @@
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Log.h"
+#include "../utils/StackTrace.h"
 #include <iostream>
 
 namespace storage {
@@ -12,6 +13,7 @@ thread_local LocalMap CachePool::_localMap;
 #ifdef _DEBUG_TEST
 vector<unordered_map<uint16_t, vector<Byte *>> *> CachePool::_vctMap;
 SpinMutex CachePool::_spinLocal;
+unordered_map<Byte *, string> CachePool::_mapApply;
 #endif
 
 LocalMap::LocalMap() {
@@ -157,13 +159,15 @@ size_t CachePool::GetMemoryUsed() {
   }
   return sz;
 }
-#endif // _DEBUG_TEST
 
 /**Apply a menory block for an index page*/
 Byte *CachePool::ApplyPage() {
   CachePool *pool = GetInstance();
   Byte *bys = pool->_localMap.Pop((uint16_t)Configure::GetCachePageSize());
-  LOG_INFO << "ApplyPage: " << (void *)bys;
+
+  string str = StackTrace(5);
+  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+  _mapApply.emplace(bys, "ApplyPage: " + str);
   return bys;
 }
 
@@ -171,7 +175,9 @@ Byte *CachePool::ApplyPage() {
 void CachePool::ReleasePage(Byte *page) {
   CachePool *pool = GetInstance();
   pool->_localMap.Push(page, (uint16_t)Configure::GetCachePageSize());
-  LOG_INFO << "ReleasePage: " << (void *)page;
+
+  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+  _mapApply.erase(page);
 }
 
 /**Apply a memory block from cache*/
@@ -182,9 +188,11 @@ Byte *CachePool::Apply(uint32_t bufSize) {
   else {
     CachePool *pool = GetInstance();
     Byte *bys = pool->_localMap.Pop(sz);
-    LOG_INFO << "Apply1 size: " << bufSize << "  Actual size: " << sz
-             << " Addr:" << (void *)bys;
-    ;
+
+    string str = StackTrace(5);
+    unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+    _mapApply.emplace(bys, "Apply1 size: " + to_string(bufSize) +
+                               "  actual size: " + to_string(sz) + "\n" + str);
     return bys;
   }
 }
@@ -197,8 +205,12 @@ Byte *CachePool::Apply(uint32_t bufSize, uint32_t &realSize) {
   } else {
     CachePool *pool = GetInstance();
     Byte *bys = pool->_localMap.Pop((uint16_t)realSize);
-    LOG_INFO << "Apply2 size: " << bufSize << "  Actual size: " << realSize
-             << " Addr:" << (void *)bys;
+
+    string str = StackTrace(5);
+    unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+    _mapApply.emplace(bys, "Apply2:  size: " + to_string(bufSize) +
+                               "  actual size: " + to_string(realSize) + "\n" +
+                               str);
     return bys;
   }
 }
@@ -210,8 +222,10 @@ void CachePool::Release(Byte *pBuf, uint32_t bufSize) {
   else {
     CachePool *pool = GetInstance();
     pool->_localMap.Push(pBuf, (uint16_t)sz);
-    LOG_INFO << "Release size: " << bufSize << "  Actual size: " << sz
-             << " Addr:" << (void *)pBuf;
+
+    unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+    _mapApply.erase(pBuf);
   }
 }
+#endif // _DEBUG_TEST
 } // namespace storage

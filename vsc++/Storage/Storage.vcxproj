@@ -40,7 +40,6 @@
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp" />
     <ClCompile Include="..\..\src\expr\ExprFunc.cpp" />
     <ClCompile Include="..\..\src\file\PageFile.cpp" />
-    <ClCompile Include="..\..\src\GlobalInit.cpp" />
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp" />
     <ClCompile Include="..\..\src\pool\PageDividePool.cpp" />
     <ClCompile Include="..\..\src\pool\StoragePool.cpp" />
@@ -56,6 +55,7 @@
     <ClCompile Include="..\..\src\utils\Log.cpp" />
     <ClCompile Include="..\..\src\utils\ThreadPool.cpp" />
     <ClCompile Include="..\..\src\utils\TimerThread.cpp" />
+    <ClCompile Include="..\..\src\utils\StackTrace.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\binlog\LogServer.h" />
@@ -122,8 +122,10 @@
     <ClInclude Include="..\..\src\utils\ConcurrentHashMap.h" />
     <ClInclude Include="..\..\src\utils\ErrorMsg.h" />
     <ClInclude Include="..\..\src\utils\ExceptionEx.h" />
+    <ClInclude Include="..\..\src\utils\FastQueue.h" />
     <ClInclude Include="..\..\src\utils\Log.h" />
     <ClInclude Include="..\..\src\utils\SpinMutex.h" />
+    <ClInclude Include="..\..\src\utils\StackTrace.h" />
     <ClInclude Include="..\..\src\utils\ThreadPool.h" />
     <ClInclude Include="..\..\src\utils\TimerThread.h" />
     <ClInclude Include="..\..\src\utils\Utilitys.h" />
@@ -228,12 +230,13 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions>/D "_CRT_SECURE_NO_WARNINGS" %(AdditionalOptions)</AdditionalOptions>
+      <CompileAsWinRT>
+      </CompileAsWinRT>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

@@ -92,6 +92,12 @@
     <ClCompile Include="..\..\test\utils\BytesConvertTest.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\test\utils\FastQueueTest.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\utils\TimerThreadTest.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="cache">
@@ -115,5 +121,10 @@
     <Filter Include="table">
       <UniqueIdentifier>{2d703e1d-4906-4039-936c-4297a6c57e0b}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\test\core\CoreSuit.h">
+      <Filter>core</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

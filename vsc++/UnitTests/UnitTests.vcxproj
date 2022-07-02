@@ -48,13 +48,18 @@
     <ClCompile Include="..\..\test\utils\CharsetConvertTest.cpp" />
     <ClCompile Include="..\..\test\utils\ConcurrentHashMapTest.cpp" />
     <ClCompile Include="..\..\test\utils\ErrorMsgTest.cpp" />
+    <ClCompile Include="..\..\test\utils\FastQueueTest.cpp" />
     <ClCompile Include="..\..\test\utils\SpinMutexTest.cpp" />
     <ClCompile Include="..\..\test\utils\ThreadPoolTest.cpp" />
+    <ClCompile Include="..\..\test\utils\TimerThreadTest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Storage\Storage.vcxproj">
       <Project>{ce4feb1f-2237-4fc0-90c1-e2b458a3856b}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\test\core\CoreSuit.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
