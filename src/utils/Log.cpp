@@ -23,7 +23,8 @@ string FileName(string pathName) {
 
 src::severity_logger<severity_level> Logger::slg_;
 
-void Logger::init(severity_level filterFile, severity_level filterConsole) {
+void Logger::init(std::string strPath, severity_level filterFile,
+                  severity_level filterConsole) {
   logging::formatter formatter =
       expr::stream << expr::format_date_time(log_timestamp, "%Y-%m-%d %H:%M:%S")
                    << " [" << log_severity << "] " << expr::message;
@@ -31,7 +32,9 @@ void Logger::init(severity_level filterFile, severity_level filterConsole) {
   auto console_sink =
       logging::add_console_log(std::clog, keywords::format = formatter);
   console_sink->set_filter(log_severity >= filterConsole);
-  std::filesystem::path logPath = std::filesystem::current_path();
+  std::filesystem::path logPath = strPath.size() == 0
+                                      ? ::filesystem::current_path()
+                                      : std::filesystem::path(strPath);
   logPath += "/log";
   if (!std::filesystem::exists(logPath))
     std::filesystem::create_directories(logPath);

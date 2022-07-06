@@ -43,12 +43,14 @@ protected:
 
 class PageDivideTask : public Task {
   void Run() override {
-    _status = TaskStatus::RUNNING;
     unique_lock<SpinMutex> lock(PageDividePool::_spinMutex, defer_lock);
     if (lock.try_lock()) {
+      _status = TaskStatus::RUNNING;
       PageDividePool::PoolManage();
+      _status = TaskStatus::STOPED;
+    } else {
+      _status = TaskStatus::INTERVAL;
     }
-    _status = TaskStatus::INTERVAL;
   }
 
   bool IsSmallTask() override { return false; }

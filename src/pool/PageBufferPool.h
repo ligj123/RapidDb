@@ -27,7 +27,10 @@ public:
   static void RemoveTimerTask();
 
   static uint64_t GetCacheSize() { return _mapCache.Size(); }
-  static TaskStatus SetSuspend() { return _taskStatus; }
+  static void InitPool(ThreadPool *tp) {
+    assert(_threadPool == nullptr);
+    _threadPool = tp;
+  }
 
 protected:
   static void PoolManage();
@@ -40,13 +43,22 @@ protected:
   // To save how many pages have been removed from this pool in previous clean
   // task.
   static int64_t _prevDelNum;
-  // Task status
-  static TaskStatus _taskStatus;
+  static ThreadPool *_threadPool;
   friend class PagePoolTask;
 };
 
 class PagePoolTask : public Task {
-  void Run() override;
+  void Run() override {
+    unique_lock<SpinMutex> lock(PageBufferPool::_spinMutex, defer_lock);
+
+    if (lock.try_lock()) {
+      _status = TaskStatus::RUNNING;
+      PageBufferPool::PoolManage();
+      _status = TaskStatus::STOPED;
+    } else {
+      _status = TaskStatus::INTERVAL;
+    }
+  }
   bool IsSmallTask() override { return false; }
 };
 } // namespace storage

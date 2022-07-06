@@ -130,6 +130,7 @@ IndexTree::~IndexTree() {
   if (_headPage->IsDirty()) {
     _headPage->WritePage();
   }
+  _headPage->DecRef(2);
   _headPage = nullptr;
 
   while (_queueMutex.size() > 0) {

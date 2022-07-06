@@ -25,10 +25,11 @@ void help() {
 
 int main(int argc, char *argv[]) {
   std::cout << "Initialize press test.\n";
-  Logger::init(ERROR, INFO);
   fs::path path(ROOT_PATH);
   if (!fs::exists(path))
     fs::create_directories(path);
+
+  Logger::init("./", ERROR, INFO);
 
   if (argc <= 1) {
     help();

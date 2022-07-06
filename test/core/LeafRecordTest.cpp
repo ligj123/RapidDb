@@ -62,7 +62,6 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   lr2->ReleaseRecord();
 
   indexTree->Close();
-  ClearCase();
 
   delete dvKey;
   delete dvVal;
@@ -151,7 +150,6 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   lr->ReleaseRecord();
   lr2->ReleaseRecord();
   indexTree->Close();
-  ClearCase();
 
   fs::remove(fs::path(FILE_NAME));
 }

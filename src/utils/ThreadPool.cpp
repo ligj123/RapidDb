@@ -83,7 +83,8 @@ void ThreadPool::CreateThread(int id) {
         assert(task->Status() > TaskStatus::RUNNING);
         _currTask = nullptr;
 
-        if (task->Status() == TaskStatus::PAUSE_WITH_ADD) {
+        if (task->Status() == TaskStatus::PAUSE_WITH_ADD ||
+            task->Status() == TaskStatus::INTERVAL) {
           AddTask(task);
         } else if (task->Status() == TaskStatus::STOPED) {
           delete task;
@@ -123,9 +124,12 @@ ThreadPool::~ThreadPool() {
     delete t;
     _aliveThreads--;
   }
+
+  assert(GetTaskCount() == 0);
 }
 
 void ThreadPool::AddTask(Task *task, bool urgent) {
+  assert(!_stopThreads);
   {
     std::unique_lock<SpinMutex> queue_lock(_task_mutex);
     if (urgent) {
@@ -144,6 +148,7 @@ void ThreadPool::AddTask(Task *task, bool urgent) {
 }
 
 void ThreadPool::AddTasks(MVector<Task *>::Type &vct) {
+  assert(!_stopThreads);
   if (vct.size() == 0)
     return;
 

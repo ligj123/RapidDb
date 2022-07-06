@@ -10,24 +10,22 @@ static const std::string ROOT_PATH = "./dbTest";
 
 struct GlobalFixTure {
   GlobalFixTure() {
-    std::cout << "Start global fixture." << std::endl;
-#ifdef _DEBUG_TEST
-    std::cout << "MemoryUsed: " << CachePool::GetMemoryUsed() << std::endl;
-#endif // _DEBUG_TEST
-    Logger::init(INFO);
-
     fs::path path(ROOT_PATH);
     if (!fs::exists(path))
       fs::create_directories(path);
+
+    Logger::init("./", INFO, INFO);
+
+    LOG_INFO << "Start global fixture." << std::endl;
   };
 
   ~GlobalFixTure() {
-    std::cout << "Stop global fixture." << std::endl;
+    LOG_INFO << "Stop global fixture." << std::endl;
 #ifdef _DEBUG_TEST
-    std::cout << "MemoryUsed: " << CachePool::GetMemoryUsed() << std::endl;
+    LOG_INFO << "MemoryUsed: " << CachePool::GetMemoryUsed() << std::endl;
     unordered_map<Byte *, string> &map = CachePool::_mapApply;
     for (auto iter = map.begin(); iter != map.end(); iter++) {
-      std::cout << (void *)iter->first << "    " << iter->second;
+      LOG_INFO << (void *)iter->first << "    " << iter->second;
     }
 #endif // _DEBUG_TEST
   }

@@ -20,19 +20,19 @@
 #include <string>
 
 #define LOG_DEBUG                                                              \
-  BOOST_LOG_SEV(Logger::slg_, DEBUG)                             \
+  BOOST_LOG_SEV(Logger::slg_, DEBUG)                                           \
       << "<" << ThreadPool::GetThreadName() << ">  "
 #define LOG_INFO                                                               \
-  BOOST_LOG_SEV(Logger::slg_, INFO)                              \
+  BOOST_LOG_SEV(Logger::slg_, INFO)                                            \
       << "<" << ThreadPool::GetThreadName() << ">  "
 #define LOG_WARN                                                               \
-  BOOST_LOG_SEV(Logger::slg_, WARN)                              \
+  BOOST_LOG_SEV(Logger::slg_, WARN)                                            \
       << "<" << ThreadPool::GetThreadName() << ">  "
 #define LOG_ERROR                                                              \
-  BOOST_LOG_SEV(Logger::slg_, ERROR)                             \
+  BOOST_LOG_SEV(Logger::slg_, ERROR)                                           \
       << "<" << ThreadPool::GetThreadName() << ">  "
 #define LOG_FATAL                                                              \
-  BOOST_LOG_SEV(Logger::slg_, FATAL)                             \
+  BOOST_LOG_SEV(Logger::slg_, FATAL)                                           \
       << "<" << ThreadPool::GetThreadName() << ">  "
 
 namespace storage {
@@ -47,7 +47,7 @@ enum severity_level : uint8_t { DEBUG = 0, INFO, WARN, ERROR, FATAL };
 
 class Logger {
 public:
-  static void init(severity_level filterFile = ERROR,
+  static void init(std::string strPath = "", severity_level filterFile = ERROR,
                    severity_level filterConsole = WARN);
 
 public:

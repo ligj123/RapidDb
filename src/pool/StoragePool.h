@@ -43,11 +43,13 @@ protected:
 class StorageTask : public Task {
   void Run() override {
     unique_lock<SpinMutex> lock(StoragePool::_spinMutex, defer_lock);
-    _status = TaskStatus::RUNNING;
     if (lock.try_lock()) {
+      _status = TaskStatus::RUNNING;
       StoragePool::PoolManage();
+      _status = TaskStatus::STOPED;
+    } else {
+      _status = TaskStatus::INTERVAL;
     }
-    _status = TaskStatus::INTERVAL;
   }
   bool IsSmallTask() override { return false; }
 };

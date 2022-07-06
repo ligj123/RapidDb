@@ -11,9 +11,9 @@ SpinMutex PageBufferPool::_spinMutex;
 int64_t PageBufferPool::_maxCacheSize =
     Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 int64_t PageBufferPool::_prevDelNum = 100;
-TaskStatus PageBufferPool::_taskStatus = TaskStatus::UNINIT;
 ConcurrentHashMap<uint64_t, CachePage *>
     PageBufferPool::_mapCache(100, PageBufferPool::_maxCacheSize);
+ThreadPool *PageBufferPool::_threadPool;
 
 void PageBufferPool::AddPage(CachePage *page) {
   _mapCache.Insert(page->HashCode(), page);
@@ -119,24 +119,11 @@ void PageBufferPool::PoolManage() {
 void PageBufferPool::AddTimerTask() {
   TimerThread::AddCircleTask("PageBufferPool", 5000000, []() {
     PagePoolTask *task = new PagePoolTask();
-    ThreadPool::InstMain().AddTask(task);
+    _threadPool->AddTask(task);
   });
 }
 
 void PageBufferPool::RemoveTimerTask() {
   TimerThread::RemoveTask("PageBufferPool");
-}
-
-void PagePoolTask::Run() {
-  unique_lock<SpinMutex> lock(PageBufferPool::_spinMutex, defer_lock);
-  PageBufferPool::_taskStatus = TaskStatus::RUNNING;
-  _status = TaskStatus::RUNNING;
-
-  if (lock.try_lock()) {
-    PageBufferPool::PoolManage();
-  }
-
-  PageBufferPool::_taskStatus = TaskStatus::INTERVAL;
-  _status = TaskStatus::INTERVAL;
 }
 } // namespace storage
