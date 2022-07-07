@@ -183,6 +183,7 @@ void CachePool::ReleasePage(Byte *page) {
 
 /**Apply a memory block from cache*/
 Byte *CachePool::Apply(uint32_t bufSize) {
+  assert(bufSize > 0);
   uint32_t sz = CalcBufSize(bufSize);
   if (sz == UINT32_MAX)
     return new Byte[bufSize];
@@ -199,6 +200,7 @@ Byte *CachePool::Apply(uint32_t bufSize) {
 }
 /**Apply a memory block from cache and set the actual allocated size*/
 Byte *CachePool::Apply(uint32_t bufSize, uint32_t &realSize) {
+  assert(bufSize > 0);
   realSize = CalcBufSize(bufSize);
   if (realSize == UINT32_MAX) {
     realSize = bufSize;

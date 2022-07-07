@@ -21,6 +21,13 @@ struct GlobalFixTure {
 
   ~GlobalFixTure() {
     LOG_INFO << "Stop global fixture." << std::endl;
+
+    for (auto const &dir_entry :
+         std::filesystem::directory_iterator{ROOT_PATH}) {
+      if (dir_entry.is_regular_file()) {
+        std::filesystem::remove(dir_entry);
+      }
+    }
 #ifdef _DEBUG_TEST
     LOG_INFO << "MemoryUsed: " << CachePool::GetMemoryUsed() << std::endl;
     unordered_map<Byte *, string> &map = CachePool::_mapApply;

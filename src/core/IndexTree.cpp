@@ -126,6 +126,7 @@ IndexTree::~IndexTree() {
   }
 
   _garbageOwner->SavePage();
+  delete _garbageOwner;
   _garbageOwner = nullptr;
   if (_headPage->IsDirty()) {
     _headPage->WritePage();

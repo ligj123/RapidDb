@@ -1,7 +1,7 @@
-#define BOOST_STACKTRACE_LINK
 #include "StackTrace.h"
 
 #ifdef _MSVC_LANG
+#include <string>
 #else
 #include <boost/stacktrace.hpp>
 #include <iostream>
@@ -11,9 +11,15 @@
 
 namespace storage {
 #ifdef _MSVC_LANG
-std::string StackTrace(int depth) { return ""; }
+std::string StackTrace(int depth) {
+  static int count = 0;
+  count++;
+  return "NO: " + std::to_string(count);
+}
 #else
 std::string StackTrace(int depth) {
+  static int count = 0;
+  count++;
   boost::stacktrace::stacktrace st;
   auto iter = st.begin() + 1;
   std::stringstream ss;
@@ -27,7 +33,7 @@ std::string StackTrace(int depth) {
        << iter->source_line() << "\n";
   }
 
-  return ss.str();
+  return "NO: " + std::to_string(count) + "\n" + ss.str();
 }
 #endif // _MSVC_LANG
 

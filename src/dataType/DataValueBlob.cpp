@@ -93,9 +93,9 @@ void DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
     ((DataValueBlob &)dv).bysValue_ = nullptr;
     ((DataValueBlob &)dv).valType_ = ValueType::NULL_VALUE;
   } else if (dv.GetValueType() != ValueType::NULL_VALUE) {
+    soleLength_ = dv.GetDataLength();
     bysValue_ = CachePool::Apply(soleLength_);
     valType_ = ValueType::SOLE_VALUE;
-    soleLength_ = dv.GetDataLength();
     BytesCopy(bysValue_, ((DataValueBlob &)dv).bysValue_, soleLength_);
   } else {
     valType_ = ValueType::NULL_VALUE;
