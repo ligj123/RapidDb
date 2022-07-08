@@ -3,6 +3,7 @@
 #ifdef _MSVC_LANG
 #include <string>
 #else
+#define BOOST_STACKTRACE_LINK
 #include <boost/stacktrace.hpp>
 #include <iostream>
 #include <sstream>

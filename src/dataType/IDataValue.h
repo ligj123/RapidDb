@@ -153,10 +153,7 @@ class VectorDataValue : public MVector<IDataValue *>::Type {
 public:
   using vector::vector;
 
-  VectorDataValue(VectorDataValue &&src) noexcept {
-    clear();
-    swap(src);
-  }
+  VectorDataValue(VectorDataValue &&src) noexcept { swap(src); }
 
   ~VectorDataValue() {
     for (auto iter = begin(); iter != end(); iter++) {
@@ -168,7 +165,7 @@ public:
   }
 
   VectorDataValue &operator=(VectorDataValue &&other) noexcept {
-    clear();
+    RemoveAll();
     swap(other);
     return *this;
   }

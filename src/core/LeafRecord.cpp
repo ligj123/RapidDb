@@ -419,7 +419,7 @@ int LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
                  _indexTree->GetValVarLen(), ver);
   assert((*recStru._byVerNum & REC_OVERFLOW) == 0 || _overflowPage != nullptr);
 
-  vctVal.clear();
+  vctVal.RemoveAll();
   int varField = -1;
   Byte *bys = valStru.bysValue;
   int ipos = 0;

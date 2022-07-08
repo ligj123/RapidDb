@@ -198,10 +198,7 @@ class VectorLeafRecord : public MVector<LeafRecord *>::Type {
 public:
   using vector::vector;
 
-  VectorLeafRecord(VectorLeafRecord &&src) noexcept {
-    clear();
-    swap(src);
-  }
+  VectorLeafRecord(VectorLeafRecord &&src) noexcept { swap(src); }
 
   ~VectorLeafRecord() {
     for (auto iter = begin(); iter != end(); iter++) {
@@ -218,7 +215,7 @@ public:
   }
 
   VectorLeafRecord &operator=(VectorLeafRecord &&other) noexcept {
-    clear();
+    RemoveAll();
     swap(other);
     return *this;
   }

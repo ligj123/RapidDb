@@ -151,141 +151,42 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   indexTree->Close();
 }
 
-// BOOST_AUTO_TEST_CASE(LeafRecord_Equal_test) {
-//  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
-//  const string TABLE_NAME = "testTable";
-//
-//  DataValueLong *dvKey = new DataValueLong(100, true);
-//  DataValueLong *dvVal = new DataValueLong(200, false);
-//  VectorDataValue vctKey = {dvKey->Clone(false)};
-//  VectorDataValue vctVal = {dvVal->Clone(false)};
-//
-//  IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-//  indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-//  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(
-//      HeadPage::PAGE_NULL_POINTER, (Byte)0);
-//
-//  Byte buff1[100] = {0};
-//  uint32_t pos = 0;
-//  UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
-//                    dvVal->GetPersistenceLength(false),
-//                buff1 + pos);
-//  pos += 2;
-//  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true), buff1 + pos);
-//  pos += 2;
-//
-//  pos += dvKey->WriteData(buff1 + pos, true);
-//
-//  buff1[pos] = 1;
-//  pos++;
-//  UInt64ToBytes(100, buff1 + pos);
-//  pos += 8;
-//  UInt16ToBytes(9, buff1 + pos);
-//  pos += 2;
-//
-//  pos += dvVal->WriteData(buff1 + pos, false);
-//
-//  Byte buff2[100] = {0};
-//  pos = 0;
-//  UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
-//                    dvVal->GetPersistenceLength(false),
-//                buff2 + pos);
-//  pos += 2;
-//  UInt16ToBytes(dvKey->GetPersistenceLength(true), buff2 + pos);
-//  pos += 2;
-//
-//  pos += dvKey->WriteData(buff2 + pos, true);
-//
-//  buff2[pos] = 1;
-//  pos++;
-//  UInt64ToBytes(100, buff2 + pos);
-//  pos += 8;
-//  UInt16ToBytes(9, buff2 + pos);
-//  pos += 2;
-//
-//  pos += dvVal->WriteData(buff2 + pos, false);
-//
-//  LeafRecord *rr1 = new LeafRecord(lp, buff1);
-//  LeafRecord *rr2 = new LeafRecord(lp, buff2);
-//
-//  BOOST_TEST(rr1->CompareTo(*rr2) == 0);
-//  BOOST_TEST(rr1->CompareKey(*rr2) == 0);
-//  RawKey *key = rr2->GetKey();
-//  BOOST_TEST(rr1->CompareKey(*key) == 0);
-//  delete key;
-//
-//  delete dvVal;
-//  dvVal = new DataValueLong(210, false);
-//  pos = 0;
-//  UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
-//                    dvVal->GetPersistenceLength(false),
-//                buff2 + pos);
-//  pos += 2;
-//  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true), buff2 + pos);
-//  pos += 2;
-//
-//  pos += dvKey->WriteData(buff2 + pos, true);
-//
-//  buff2[pos] = 1;
-//  pos++;
-//  UInt64ToBytes(100, buff2 + pos);
-//  pos += 8;
-//  UInt16ToBytes(9, buff2 + pos);
-//  pos += 2;
-//
-//  pos += dvVal->WriteData(buff2 + pos, false);
-//
-//  rr2->ReleaseRecord();
-//  rr2 = new LeafRecord(lp, buff2);
-//
-//  BOOST_TEST(rr1->CompareTo(*rr2) != 0);
-//  BOOST_TEST(rr1->CompareKey(*rr2) == 0);
-//  key = rr2->GetKey();
-//  BOOST_TEST(rr1->CompareKey(*key) == 0);
-//  delete key;
-//  BOOST_TEST(0 > rr1->CompareTo(*rr2));
-//
-//  delete dvKey;
-//  dvKey = new DataValueLong(110, true);
-//  pos = 0;
-//  UInt16ToBytes(15 + dvKey->GetPersistenceLength(true) +
-//                    dvVal->GetPersistenceLength(false),
-//                buff2 + pos);
-//  pos += 2;
-//  UInt16ToBytes((uint16_t)dvKey->GetPersistenceLength(true), buff2 + pos);
-//  pos += 2;
-//
-//  pos += dvKey->WriteData(buff2 + pos, true);
-//
-//  buff2[pos] = 1;
-//  pos++;
-//  UInt64ToBytes(100, buff2 + pos);
-//  pos += 8;
-//  UInt16ToBytes(9, buff2 + pos);
-//  pos += 2;
-//
-//  pos += dvVal->WriteData(buff2 + pos, false);
-//
-//  rr2->ReleaseRecord();
-//  rr2 = new LeafRecord(lp, buff2);
-//
-//  BOOST_TEST(rr1->CompareKey(*rr2) != 0);
-//  BOOST_TEST(0 > rr1->CompareTo(*rr2));
-//  key = rr2->GetKey();
-//  BOOST_TEST(0 > rr1->CompareKey(*key));
-//
-//  vctKey.push_back(dvKey->Clone(true));
-//  RawKey *key2 = new RawKey(vctKey);
-//  BOOST_TEST(0 == key2->CompareTo(*key));
-//
-//  delete key2;
-//  delete dvKey;
-//  delete dvVal;
-//  lp->DecRefCount();
-//  indexTree->Close(true);
-//  fs::remove(fs::path(FILE_NAME));
-//}
-//
+BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
+  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+
+  DataValueInt dvInt(100, true);
+  const char *p1 = "abcdefghijklmnopqrst";
+  DataValueVarChar dvVar(p1, (uint32_t)strlen(p1), 100, true);
+  DataValueLong dvLong(200, false);
+  const char *p2 = "abcdefghijklmnopqrst1234567890";
+  DataValueFixChar dvFix(p2, (uint32_t)strlen(p2), 100, false);
+  const char *p3 =
+      "abcdefghijklmnopqrst1234567890abcdefghijklmnopqrst1234567890";
+  DataValueBlob dvBlob(p3, (uint32_t)strlen(p3), 20000, false);
+
+  VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
+  VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
+  IndexTree *indexTree =
+      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
+
+  HeadPage *hp = indexTree->GetHeadPage();
+
+  vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
+  vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+  string sblob = p3;
+  dvLong = 300;
+  vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
+  vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
+
+  for (int i = 0; i < 7; i++) {
+    sblob += p3;
+    vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
+    lr->UpdateRecord()
+  }
+}
+
 // BOOST_AUTO_TEST_CASE(LeafRecord_Block_test) {
 //  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";

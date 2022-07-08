@@ -95,10 +95,7 @@ inline std::ostream &operator<<(std::ostream &os, const RawKey &key) {
 class VectorRawKey : public MVector<RawKey *>::Type {
 public:
   using vector::vector;
-  VectorRawKey(VectorRawKey &&src) noexcept {
-    clear();
-    swap(src);
-  }
+  VectorRawKey(VectorRawKey &&src) noexcept { swap(src); }
 
   ~VectorRawKey() {
     for (auto iter = begin(); iter != end(); iter++) {
@@ -115,7 +112,7 @@ public:
   }
 
   VectorRawKey &operator=(VectorRawKey &&other) noexcept {
-    clear();
+    RemoveAll();
     swap(other);
     return *this;
   }
