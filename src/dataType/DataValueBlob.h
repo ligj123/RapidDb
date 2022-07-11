@@ -83,7 +83,7 @@ public:
   void SetMaxValue() override;
   void SetDefaultValue() override;
   operator const char *() const;
-  void Put(uint32_t len, char *val);
+  void Put(uint32_t len, const char *val);
   char *Get(uint32_t &len) {
     len = soleLength_;
     return (char *)bysValue_;

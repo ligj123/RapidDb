@@ -165,7 +165,7 @@ Byte *CachePool::ApplyPage() {
   CachePool *pool = GetInstance();
   Byte *bys = pool->_localMap.Pop((uint16_t)Configure::GetCachePageSize());
 
-  string str = StackTrace(10);
+  string str = StackTrace();
   unique_lock<SpinMutex> lock(CachePool::_spinLocal);
   _mapApply.emplace(bys, "ApplyPage\n" + str);
   return bys;
@@ -191,7 +191,7 @@ Byte *CachePool::Apply(uint32_t bufSize) {
     CachePool *pool = GetInstance();
     Byte *bys = pool->_localMap.Pop(sz);
 
-    string str = StackTrace(10);
+    string str = StackTrace();
     unique_lock<SpinMutex> lock(CachePool::_spinLocal);
     _mapApply.emplace(bys, "Apply1 size: " + to_string(bufSize) +
                                "  actual size: " + to_string(sz) + "\n" + str);
@@ -209,7 +209,7 @@ Byte *CachePool::Apply(uint32_t bufSize, uint32_t &realSize) {
     CachePool *pool = GetInstance();
     Byte *bys = pool->_localMap.Pop((uint16_t)realSize);
 
-    string str = StackTrace(10);
+    string str = StackTrace();
     unique_lock<SpinMutex> lock(CachePool::_spinLocal);
     _mapApply.emplace(bys, "Apply2:  size: " + to_string(bufSize) +
                                "  actual size: " + to_string(realSize) + "\n" +

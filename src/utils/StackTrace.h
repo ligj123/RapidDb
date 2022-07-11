@@ -2,5 +2,5 @@
 #include <string>
 
 namespace storage {
-std::string StackTrace(int depth = 5);
+std::string StackTrace();
 } // namespace storage

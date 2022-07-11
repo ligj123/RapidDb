@@ -11,6 +11,7 @@
 #include "CoreSuit.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
+#include "../../src/utils/Utilitys.h"
 
 namespace storage {
 namespace fs = std::filesystem;
@@ -151,7 +152,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   indexTree->Close();
 }
 
-BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
+ BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
   const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
@@ -168,7 +169,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
   IndexTree *indexTree =
-      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
+      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal,
+      IndexType::PRIMARY);
 
   HeadPage *hp = indexTree->GetHeadPage();
 
@@ -178,14 +180,39 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
   string sblob = p3;
   dvLong = 300;
   vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
-  vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
+  lr->UpdateRecord(vctVal, 2, nullptr, ActionType::UPDATE, false);
 
+  BOOST_TEST(lr->GetVersionNumber()==1);
+  MVector<uint64_t>::Type vct;
+  lr->GetVerStamps(vct);
+  BOOST_TEST(vct.size() == 1);
+  BOOST_TEST(vct[0] == 2);
+
+  VectorDataValue vctDv;
+  lr->GetListValue({0, 2}, vctDv, 2);
+
+  BOOST_TEST(vctVal.size() == 2);
+  BOOST_TEST(dvLong == vctDv[0]);
+  BOOST_TEST(dvBlob == vctDv[1]);
+
+  vector<uint64_t> vrStmp = {11, 15, 21, 26, 31, 35, 40};
+  vector<uint64_t> vvStmp = {10, 15, 20, 25, 30, 35, 40};
   for (int i = 0; i < 7; i++) {
+    hp->AddNewRecordVersion(vvStmp[i], MicroSecTime() + i * 10);
     sblob += p3;
+    dvLong = 400 + i * 100;
+    dvBlob.Put((uint32_t)sblob.size(), sblob.data());
     vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
-    lr->UpdateRecord()
+    lr->UpdateRecord(vctVal, vrStmp[i], nullptr, ActionType::UPDATE, false);
   }
-}
+
+  int hr = lr->GetListValue(vctDv, 18);
+  BOOST_TEST(hr == 0);
+  BOOST_TEST(vctDv.size() == 3);
+  BOOST_TEST(*vctDv[0] == 600);
+  BOOST_TEST(dvFix == *vctDv[1]);
+  BOOST_TEST(vctDv[2]->GetDataLength() == 240);
+ }    
 
 // BOOST_AUTO_TEST_CASE(LeafRecord_Block_test) {
 //  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";

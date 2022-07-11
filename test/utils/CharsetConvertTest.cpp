@@ -9,7 +9,7 @@ BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(CharsetConvert_test) {
   const char *pAsc = "\xd6\xd0\xb9\xfa\xc4\xe3\xba\xc3HelloChina!!@";
-  const char *pUtf8 = u8"中国你好HelloChina!!@";
+  const char *pUtf8 = (const char *)u8"中国你好HelloChina!!@";
 
   char tmp[100];
   int len = 100;
@@ -48,7 +48,7 @@ BOOST_AUTO_TEST_CASE(CharsetConvert_test) {
                                         Charsets::GBK, true);
   BOOST_TEST(rt == ConvResult::OK);
   BOOST_TEST(std::wcscmp(tmp2, pUncode) == 0);
-  BOOST_TEST(tmp2[len] == 0);
+  BOOST_TEST((uint32_t)tmp2[len] == 0);
 
   len = 100;
   rt = CodeConvert::MultiCharFromWideChar(pUncode, (int)wcslen(pUncode), tmp,

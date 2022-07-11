@@ -1,24 +1,36 @@
 #include "StackTrace.h"
 
 #ifdef _MSVC_LANG
-#include <string>
-#else
+#define BOOST_STACKTRACE_INTERNAL_BUILD_LIBS
 #define BOOST_STACKTRACE_LINK
+#define BOOST_STACKTRACE_USE_WINDBG_CACHED
+#include <boost/stacktrace/detail/frame_msvc.ipp>
+#include <boost/stacktrace/safe_dump_to.hpp>
+#else
+#define BOOST_STACKTRACE_INTERNAL_BUILD_LIBS
+#define BOOST_STACKTRACE_USE_ADDR2LINE
+#define BOOST_STACKTRACE_LINK
+
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
+#include <boost/stacktrace/detail/frame_unwind.ipp>
+#include <boost/stacktrace/safe_dump_to.hpp>
+#endif
 #include <boost/stacktrace.hpp>
 #include <iostream>
 #include <sstream>
 #include <string>
-#endif
 
 namespace storage {
-#ifdef _MSVC_LANG
-std::string StackTrace(int depth) {
-  static int count = 0;
-  count++;
-  return "NO: " + std::to_string(count);
-}
+std::string StackTrace() {
+#ifdef _STACK_DEPTH
+  static int depth = _STACK_DEPTH;
 #else
-std::string StackTrace(int depth) {
+  static int depth = 5;
+#endif // STACK_DEPTH
+
   static int count = 0;
   count++;
   boost::stacktrace::stacktrace st;
@@ -36,6 +48,4 @@ std::string StackTrace(int depth) {
 
   return "NO: " + std::to_string(count) + "\n" + ss.str();
 }
-#endif // _MSVC_LANG
-
 } // namespace storage

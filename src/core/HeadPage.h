@@ -110,11 +110,10 @@ public:
   FileVersion ReadFileVersion();
 
   inline Byte ReadRecordVersionCount() { return (Byte)_mapVerStamp.size(); }
-  // Only locked all the table, here can update record version, so here do not
+  // Only locked the entire table, here can update record version, so here do not
   // need lock
-  inline void AddNewRecordVersion(DT_MicroSec timeStamp) {
+  inline void AddNewRecordVersion(VersionStamp ver, DT_MicroSec timeStamp) {
     assert(_mapVerStamp.size() < MAX_RECORD_VERSION_COUNT);
-    VersionStamp ver = _currRecordStamp.load(memory_order_relaxed);
     if (_mapVerStamp.size() > 0) {
       auto iter = _mapVerStamp.rbegin();
       assert(timeStamp > iter->first && ver > iter->second);

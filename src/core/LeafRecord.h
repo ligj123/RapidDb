@@ -155,6 +155,22 @@ public:
     return !_overflowPage->IsFilled();
   }
 
+  int GetVersionNumber() {
+    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
+  return *(_bysVal + UI16_2_LEN + keyLen);
+  }
+
+  void GetVerStamps(MVector<uint64_t>::Type &vctStamp) {
+    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
+    Byte ver = *(_bysVal + UI16_2_LEN + keyLen);
+    uint64_t *arrStamp = (uint64_t *)(_bysVal + UI16_2_LEN + keyLen + 1);
+    vctStamp.clear();
+
+    for (Byte ii = 0; ii < ver; ii++) {
+      vctStamp.push_back(arrStamp[ii]);    
+    }
+  }
+
 protected:
   // To calc key length
   inline uint32_t CalcKeyLength(const VectorDataValue &vctKey);
