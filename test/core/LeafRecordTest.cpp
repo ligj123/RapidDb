@@ -192,8 +192,8 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   lr->GetListValue({0, 2}, vctDv, 2);
 
   BOOST_TEST(vctVal.size() == 2);
-  BOOST_TEST(dvLong == vctDv[0]);
-  BOOST_TEST(dvBlob == vctDv[1]);
+  BOOST_TEST(dvLong == *vctDv[0]);
+  BOOST_TEST(dvBlob == *vctDv[1]);
 
   vector<uint64_t> vrStmp = {11, 15, 21, 26, 31, 35, 40};
   vector<uint64_t> vvStmp = {10, 15, 20, 25, 30, 35, 40};
@@ -206,12 +206,22 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
     lr->UpdateRecord(vctVal, vrStmp[i], nullptr, ActionType::UPDATE, false);
   }
 
+  MVector<uint64_t>::Type vctStamp;
+  lr->GetVerStamps(vctStamp);
+  BOOST_TEST(vctStamp.size() == 7);
+  for (size_t i = 0; i < 7; i++) {
+    BOOST_TEST(vctStamp[i] == vvStmp[i]);
+  }
+
   int hr = lr->GetListValue(vctDv, 18);
   BOOST_TEST(hr == 0);
   BOOST_TEST(vctDv.size() == 3);
-  BOOST_TEST(*vctDv[0] == 600);
+  BOOST_TEST(vctDv[0]->GetLong() == 600);
   BOOST_TEST(dvFix == *vctDv[1]);
   BOOST_TEST(vctDv[2]->GetDataLength() == 240);
+
+  lr->ReleaseRecord();
+  indexTree->Close();
  }    
 
 // BOOST_AUTO_TEST_CASE(LeafRecord_Block_test) {

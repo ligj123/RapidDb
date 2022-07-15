@@ -213,7 +213,7 @@ DataValueBlob::operator const char *() const {
   return nullptr;
 }
 
-void DataValueBlob::Put(uint32_t len, char *val) {
+void DataValueBlob::Put(uint32_t len, const char *val) {
   if (len >= maxLength_)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
                    {to_string(maxLength_), to_string(soleLength_)});

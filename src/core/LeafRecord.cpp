@@ -264,7 +264,7 @@ int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
                     1 + (uint32_t)vctSn.size(), _overflowPage);
   FillHeaderBuff(recStru, totalLen, *recStruOld._keyLen,
                  1 + (uint32_t)vctSn.size(), recStamp, lenVal);
-  BytesCopy(recStru._bysKey, recStruOld._bysKey, *recStruOld._keyLen);
+  BytesCopy(recStru._varKeyLen, recStruOld._varKeyLen, *recStruOld._keyLen);
 
   if (type == ActionType::UPDATE) {
     ValueStruct valStru;
@@ -315,7 +315,6 @@ uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
     return 0;
 
   uint32_t len = 0;
-
   Byte verNum = (*recStru._byVerNum) & 0x0f;
 
   auto iter = setVer.begin();
@@ -442,6 +441,7 @@ int LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
     }
 
     bys += flen;
+    ipos++;
   }
 
   return 0;
