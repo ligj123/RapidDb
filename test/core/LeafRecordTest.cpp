@@ -191,9 +191,10 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   VectorDataValue vctDv;
   lr->GetListValue({0, 2}, vctDv, 2);
 
-  BOOST_TEST(vctVal.size() == 2);
+  BOOST_TEST(vctDv.size() == 2);
   BOOST_TEST(dvLong == *vctDv[0]);
   BOOST_TEST(dvBlob == *vctDv[1]);
+
 
   vector<uint64_t> vrStmp = {11, 15, 21, 26, 31, 35, 40};
   vector<uint64_t> vvStmp = {10, 15, 20, 25, 30, 35, 40};

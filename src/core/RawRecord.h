@@ -72,7 +72,8 @@ protected:
   // This record marked as delete. only use when it has not multi versions and
   // this record will be removed thoroughly.
   bool _bRemoved = false;
-  // Gap lock to next record
+  // Gap lock to previous record. NOT NEXT RECORD is due to page will split by
+  // last record, the new record will be insert into ahead of the found record.
   bool _gapLock = false;
 };
 } // namespace storage

@@ -36,19 +36,16 @@ RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen,
                      Byte verNum, OverflowPage *overPage) {
   _totalLen = (uint16_t *)bys;
   _keyLen = (uint16_t *)(bys + UI16_LEN);
-  _varKeyLen = (uint16_t *)(bys + UI16_2_LEN);
-  _bysKey = bys + UI16_2_LEN + varKeyOff;
-  _byVerNum = bys + UI16_2_LEN + keyLen;
+  _byVerNum = bys + UI16_2_LEN;
+  _varKeyLen = (uint16_t *)(bys + UI16_2_LEN + 1);
+  _bysKey = bys + UI16_2_LEN + 1 + varKeyOff;
   _arrStamp = (uint64_t *)(bys + UI16_2_LEN + keyLen + 1);
   _arrValLen = (uint32_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum);
 
   if (overPage != nullptr) {
-    _arrCrc32 = (uint32_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
-                             UI32_LEN * verNum);
-    _pidStart = (PageID *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
-                           UI32_LEN * verNum * 2);
-    _pageNum = (uint16_t *)(bys + UI16_2_LEN + keyLen + 1 + UI64_LEN * verNum +
-                            UI32_LEN * verNum * 2 + UI32_LEN);
+    _arrCrc32 = (uint32_t *)(((Byte *)_arrValLen) + UI32_LEN * verNum);
+    _pidStart = (PageID *)(((Byte *)_arrCrc32) + UI32_LEN);
+    _pageNum = (uint16_t *)(((Byte *)_pidStart) + UI32_LEN);
     *_pidStart = overPage->GetPageId();
     *_pageNum = overPage->GetPageNum();
     _bysValStart = overPage->GetBysPage();
@@ -438,10 +435,10 @@ int LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
       IDataValue *dv = vdSrc[i]->Clone();
       dv->ReadData(bys, flen, true);
       vctVal.push_back(dv);
-    }
+     ipos++;
+   }
 
     bys += flen;
-    ipos++;
   }
 
   return 0;

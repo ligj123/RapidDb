@@ -25,19 +25,19 @@ struct RecStruct {
   // To save key length, include the bytes to save variable fileds length and
   // key content.
   uint16_t *_keyLen;
+  // The byte to save the number of versions(low 4bits) and if overflow or not
+  // (the highest bit)
+  Byte *_byVerNum;
   // The start position to save variable fileds length in key, this is an array
   // with 0~N elements.
   uint16_t *_varKeyLen;
   // To save key content after serialize.
   Byte *_bysKey;
-  // The byte to save the number of versions(low 4bits) and if overflow or not
-  // (the highest bit)
-  Byte *_byVerNum;
   // The array to save version stamps for every version, 1~N elements.
   uint64_t *_arrStamp;
   // The array to save length for every version content.
   uint32_t *_arrValLen;
-  // The array to save the crc32 if overflow
+  // The address to save the crc32 if it has overflow page
   uint32_t *_arrCrc32;
   // The start page id
   PageID *_pidStart;
