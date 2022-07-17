@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
     using ConcurrentHashMap::ConcurrentHashMap;
   };
 
-  ConcurrentHashMapEx hMap(100, 1000000);
+  ConcurrentHashMapEx hMap(100, 1000000, [](MString str) {});
   BOOST_TEST(hMap._groupCount == 100);
   BOOST_TEST(hMap._vctMap.size() == 100);
   BOOST_TEST(hMap._vctLock.size() = 100);

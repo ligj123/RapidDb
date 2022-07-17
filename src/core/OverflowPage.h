@@ -5,7 +5,7 @@ namespace storage {
 class OverflowPage : public CachePage {
 public:
   static OverflowPage *GetPage(IndexTree *indexTree, PageID startId,
-                               uint16_t pageNum, bool bNew = false);
+                               uint16_t pageNum, bool bNew);
 
 public:
   OverflowPage(IndexTree *indexTree, PageID startId, uint16_t pageNum,

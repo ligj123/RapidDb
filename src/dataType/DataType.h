@@ -140,6 +140,7 @@ inline const char *StrOfDataType(DataType type) {
       "FLOAT",   "DOUBLE", "BLOB",  "BOOL",
   };
 
-  return strDt[(uint32_t)type & 0x7F];
+  Byte i = (uint32_t)type & 0x7F;
+  return strDt[i];
 }
 } // namespace storage

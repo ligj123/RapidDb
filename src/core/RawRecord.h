@@ -37,7 +37,7 @@ public:
     return _bRemoved ? 0 : *((uint16_t *)_bysVal);
   }
   inline uint16_t GetKeyLength() const {
-    return *((uint16_t *)(_bysVal + sizeof(uint16_t)));
+    return *((uint16_t *)(_bysVal + UI16_LEN));
   }
   inline void SetParentPage(IndexPage *page) { _parentPage = page; }
   inline IndexPage *GetParentPage() const { return _parentPage; }

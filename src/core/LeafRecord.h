@@ -104,10 +104,9 @@ public:
   // record with this and call below method to set old record
   void SaveUndoRecord(LeafRecord *undoRec) { _undoRec = undoRec; }
   inline uint16_t GetValueLength() const override {
-    Byte *bys = _bysVal + UI16_2_LEN + (*(uint16_t *)(_bysVal + UI16_LEN));
-    Byte vNum = (*bys) & 0x0F;
-
-    return *(uint32_t *)(bys + 1 + UI64_LEN * vNum);
+    Byte vNum = *(_bysVal + UI16_2_LEN) & VERSION_NUM;
+    return *(uint32_t *)(_bysVal + UI16_2_LEN + 1 +
+                         (*(uint16_t *)(_bysVal + UI16_LEN)) + UI64_LEN * vNum);
   }
 
   inline uint16_t SaveData(Byte *bysPage) {
@@ -140,34 +139,31 @@ public:
   }
   bool IsGapLock() { return _statement != nullptr && _gapLock; }
   bool FillOverPage() {
-    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
-    Byte ver = *(_bysVal + UI16_2_LEN + keyLen);
+    Byte ver = *(_bysVal + UI16_2_LEN);
     if ((ver & REC_OVERFLOW) == 0 || _overflowPage != nullptr)
       return true;
 
+    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     ver = ver & VERSION_NUM;
     Byte *bys =
         _bysVal + UI16_2_LEN + keyLen + 1 + UI64_LEN * ver + UI32_LEN * ver * 2;
     PageID pid = *(PageID *)(bys);
     uint16_t pnum = *(uint16_t *)(bys + UI32_LEN);
 
-    _overflowPage = OverflowPage::GetPage(_indexTree, pid, pnum);
+    _overflowPage = OverflowPage::GetPage(_indexTree, pid, pnum, false);
     return !_overflowPage->IsFilled();
   }
 
-  int GetVersionNumber() {
-    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
-  return *(_bysVal + UI16_2_LEN + keyLen);
-  }
+  int GetVersionNumber() { return *(_bysVal + UI16_2_LEN) & VERSION_NUM; }
 
   void GetVerStamps(MVector<uint64_t>::Type &vctStamp) {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
-    Byte ver = *(_bysVal + UI16_2_LEN + keyLen);
+    Byte ver = GetVersionNumber();
     uint64_t *arrStamp = (uint64_t *)(_bysVal + UI16_2_LEN + keyLen + 1);
     vctStamp.clear();
 
     for (Byte ii = 0; ii < ver; ii++) {
-      vctStamp.push_back(arrStamp[ii]);    
+      vctStamp.push_back(arrStamp[ii]);
     }
   }
 

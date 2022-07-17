@@ -100,7 +100,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   _vctValue.swap(vctVal);
 
   _keyVarLen = _headPage->ReadKeyVariableFieldCount() * UI16_LEN;
-  _keyOffset = _keyVarLen + UI16_2_LEN;
+  _keyOffset = _keyVarLen + UI16_2_LEN + 1;
   if (_headPage->ReadIndexType() == IndexType::PRIMARY) {
     _valVarLen = _headPage->ReadValueVariableFieldCount() * UI32_LEN;
     _valOffset = _valVarLen + (uint16_t)((_vctValue.size() + 7) >> 3);
@@ -131,7 +131,7 @@ IndexTree::~IndexTree() {
   if (_headPage->IsDirty()) {
     _headPage->WritePage();
   }
-  _headPage->DecRef(2);
+  delete _headPage;
   _headPage = nullptr;
 
   while (_queueMutex.size() > 0) {

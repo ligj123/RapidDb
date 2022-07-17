@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
 #include "SpinMutex.h"
+#include <functional>
 #include <mutex>
 
 namespace storage {
@@ -10,8 +11,9 @@ public:
   typedef std::unordered_map<Key, Val> ConHashMap;
   using Iterator = typename std::unordered_map<Key, Val>::iterator;
 
-  ConcurrentHashMap(int groupCount, uint64_t maxCount)
-      : _groupCount(groupCount) {
+  ConcurrentHashMap(int groupCount, uint64_t maxCount,
+                    function<void(Val)> funcFind)
+      : _groupCount(groupCount), _funcFind(funcFind) {
     _vctMap.reserve(groupCount);
     _vctLock.reserve(groupCount);
     for (int i = 0; i < groupCount; i++) {
@@ -51,6 +53,7 @@ public:
       return false;
     } else {
       val = iter->second;
+      _funcFind(val);
       return true;
     }
   }
@@ -76,5 +79,6 @@ protected:
   vector<ConHashMap *> _vctMap;
   vector<SpinMutex *> _vctLock;
   int _groupCount;
+  function<void(Val)> _funcFind;
 };
 } // namespace storage

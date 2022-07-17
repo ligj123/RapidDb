@@ -12,7 +12,8 @@ int64_t PageBufferPool::_maxCacheSize =
     Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 int64_t PageBufferPool::_prevDelNum = 100;
 ConcurrentHashMap<uint64_t, CachePage *>
-    PageBufferPool::_mapCache(100, PageBufferPool::_maxCacheSize);
+    PageBufferPool::_mapCache(100, PageBufferPool::_maxCacheSize,
+                              [](CachePage *page) { page->IncRef(); });
 ThreadPool *PageBufferPool::_threadPool;
 
 void PageBufferPool::AddPage(CachePage *page) {
@@ -22,7 +23,6 @@ void PageBufferPool::AddPage(CachePage *page) {
 CachePage *PageBufferPool::GetPage(uint64_t hashId) {
   CachePage *page = nullptr;
   _mapCache.Find(hashId, page);
-  page->IncRef();
   return page;
 }
 
