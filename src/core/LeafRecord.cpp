@@ -198,7 +198,7 @@ LeafRecord::LeafRecord(LeafRecord &src)
 void LeafRecord::GetListKey(VectorDataValue &vctKey) const {
   _indexTree->CloneKeys(vctKey);
   uint16_t pos = _indexTree->GetKeyOffset();
-  uint16_t lenPos = TWO_SHORT_LEN + 1;
+  uint16_t lenPos = pos - _indexTree->GetKeyVarLen();
   uint16_t len = 0;
 
   for (uint16_t i = 0; i < vctKey.size(); i++) {

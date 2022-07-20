@@ -292,7 +292,49 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Second_test) {
   const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string FILE_NAME2 = "./dbTest/testLeafRecord" + StrMSTime() + "2.dat";
   const string TABLE_NAME = "testTable";
+  const string TABLE_NAME2 = "testTable2";
+
+  DataValueInt dvInt(100, true);
+  const char *p1 = "abcdefghijklmnopqrst";
+  DataValueVarChar dvVar(p1, (uint32_t)strlen(p1), 100, true);
+  DataValueLong dvLong(200, false);
+
+  VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
+  VectorDataValue vctVal = {dvLong.Clone()};
+  IndexTree *indexTree =
+      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
+
+  vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
+  vctVal = {dvLong.Clone(true)};
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+
+  DataValueLong dvLKey(200, true);
+  VectorDataValue vctSec = {dvLKey.Clone(true), dvVar.Clone(true)};
+  vctKey = {dvInt.Clone(), dvVar.Clone()};
+  IndexTree *secTree =
+      new IndexTree(TABLE_NAME2, FILE_NAME2, vctSec, vctKey, IndexType::UNIQUE);
+
+  vctSec = {dvLong.Clone(true), dvVar.Clone(true)};
+  Byte *bys = lr->GetBysValue() + UI16_2_LEN + 1;
+  uint16_t lKey = lr->GetKeyLength();
+  LeafRecord *lrSec =
+      new LeafRecord(secTree, vctSec, bys, lKey, ActionType::INSERT, nullptr);
+
+  VectorDataValue vctDv;
+  lrSec->GetListKey(vctDv);
+  BOOST_TEST(vctDv.size() == 2);
+  BOOST_TEST(dvLong == *vctDv[0]);
+  BOOST_TEST(dvVar == *vctDv[1]);
+
+  RawKey *key = lrSec->GetPrimayKey();
+  BOOST_TEST(lr->CompareKey(*key) == 0);
+
+  lrSec->ReleaseRecord();
+  lr->ReleaseRecord();
+  indexTree->Close();
+  secTree->Close();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
