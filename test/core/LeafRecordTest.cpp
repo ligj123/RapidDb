@@ -330,6 +330,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Second_test) {
 
   RawKey *key = lrSec->GetPrimayKey();
   BOOST_TEST(lr->CompareKey(*key) == 0);
+  delete key;
 
   lrSec->ReleaseRecord();
   lr->ReleaseRecord();

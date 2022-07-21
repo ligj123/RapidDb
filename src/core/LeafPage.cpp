@@ -418,17 +418,17 @@ bool LeafPage::FetchRecords(const RawKey *startKey, const RawKey *endKey,
 }
 
 int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {
-  uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
+  uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
   return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                      ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
+                      ReadShort(start + UI16_LEN) - _indexTree->GetKeyVarLen(),
                       key.GetBysVal(), key.GetLength());
 }
 
 int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
-  uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
+  uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
   if (key) {
     return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                        ReadShort(start + SHORT_LEN) -
+                        ReadShort(start + UI16_LEN) -
                             _indexTree->GetKeyVarLen(),
                         rr.GetBysValue() + _indexTree->GetKeyOffset(),
                         rr.GetKeyLength() - _indexTree->GetKeyVarLen());

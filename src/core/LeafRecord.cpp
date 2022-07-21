@@ -36,10 +36,10 @@ RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen,
                      Byte verNum, OverflowPage *overPage) {
   _totalLen = (uint16_t *)bys;
   _keyLen = (uint16_t *)(bys + UI16_LEN);
-  _byVerNum = bys + UI16_2_LEN;
-  _varKeyLen = (uint16_t *)(bys + UI16_2_LEN + 1);
-  _bysKey = bys + UI16_2_LEN + 1 + varKeyOff;
-  _arrStamp = (uint64_t *)(bys + UI16_2_LEN + keyLen + 1);
+  _varKeyLen = (uint16_t *)(bys + UI16_2_LEN);
+  _bysKey = bys + UI16_2_LEN + varKeyOff;
+  _byVerNum = bys + UI16_2_LEN + *_keyLen;
+  _arrStamp = (uint64_t *)(_byVerNum + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
 
   if (overPage != nullptr) {
@@ -62,10 +62,10 @@ RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, OverflowPage *overPage) {
   _keyLen = (uint16_t *)(bys + UI16_LEN);
   uint16_t keyLen = *_keyLen;
   _varKeyLen = (uint16_t *)(bys + UI16_2_LEN);
-  _byVerNum = bys + UI16_2_LEN;
   _bysKey = bys + UI16_2_LEN + varKeyOff;
-  Byte verNum = (*_byVerNum) & 0x0f;
-  _arrStamp = (uint64_t *)(bys + UI16_2_LEN + keyLen + 1);
+  _byVerNum = bys + UI16_2_LEN + keyLen;
+  Byte verNum = (*_byVerNum) & VERSION_NUM;
+  _arrStamp = (uint64_t *)(_byVerNum + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
 
   if ((*_byVerNum) & REC_OVERFLOW) {
@@ -239,7 +239,7 @@ int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
   uint32_t lenVal = CalcValueLength(vctVal, type);
   uint32_t lenInfo = 1 + (UI64_LEN + UI32_LEN) * (1 + (uint32_t)vctSn.size());
   uint32_t max_lenVal = (uint32_t)Configure::GetMaxRecordLength() -
-                        *recStruOld._keyLen - TWO_SHORT_LEN - lenInfo;
+                        *recStruOld._keyLen - UI16_2_LEN - lenInfo;
   if (lenVal + oldLenVal > max_lenVal) {
     uint16_t num = (lenVal + oldLenVal + CachePage::CACHE_PAGE_SIZE - 1) /
                    CachePage::CACHE_PAGE_SIZE;

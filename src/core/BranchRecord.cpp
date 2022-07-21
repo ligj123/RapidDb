@@ -18,16 +18,15 @@ BranchRecord::BranchRecord(IndexTree *indexTree, RawRecord *rec,
       (_indexTree->GetHeadPage()->ReadIndexType() == IndexType::NON_UNIQUE
            ? rec->GetValueLength()
            : 0);
-  uint16_t totalLen = lenKey + lenVal + PAGE_ID_LEN + TWO_SHORT_LEN;
+  uint16_t totalLen = lenKey + lenVal + PAGE_ID_LEN + UI16_2_LEN;
   _bysVal = CachePool::Apply(totalLen);
 
   *((uint16_t *)_bysVal) = totalLen;
-  *((uint16_t *)(_bysVal + sizeof(uint16_t))) = lenKey;
+  *((uint16_t *)(_bysVal + UI16_LEN)) = lenKey;
 
-  uint16_t offset = TWO_SHORT_LEN;
-  BytesCopy(_bysVal + TWO_SHORT_LEN, rec->GetBysValue() + TWO_SHORT_LEN,
+  BytesCopy(_bysVal + UI16_2_LEN, rec->GetBysValue() + UI16_2_LEN,
             lenKey + lenVal);
-  *((uint32_t *)(_bysVal + lenKey + lenVal + TWO_SHORT_LEN)) = childPageId;
+  *((uint32_t *)(_bysVal + lenKey + lenVal + UI16_2_LEN)) = childPageId;
 }
 
 RawKey *BranchRecord::GetKey() const {
@@ -38,7 +37,7 @@ RawKey *BranchRecord::GetKey() const {
 void BranchRecord::GetListKey(VectorDataValue &vct) const {
   _indexTree->CloneKeys(vct);
   uint16_t pos = _indexTree->GetKeyOffset();
-  uint16_t lenPos = TWO_SHORT_LEN;
+  uint16_t lenPos = UI16_2_LEN;
 
   for (int i = 0; i < vct.size(); i++) {
     uint16_t len = 0;
@@ -59,7 +58,7 @@ void BranchRecord::GetListValue(VectorDataValue &vct) const {
   _indexTree->CloneValues(vct);
   uint16_t valVarNum = _indexTree->GetHeadPage()->ReadValueVariableFieldCount();
   uint16_t pos = GetKeyLength() + _indexTree->GetKeyOffset();
-  uint16_t lenPos = TWO_SHORT_LEN + GetKeyLength();
+  uint16_t lenPos = UI16_2_LEN + GetKeyLength();
 
   for (int i = 0; i < vct.size(); i++) {
     int len = 0;
@@ -100,12 +99,11 @@ int BranchRecord::CompareKey(const RawRecord &rr) const {
 }
 
 bool BranchRecord::EqualPageId(const BranchRecord &br) const {
-  return (
-      BytesCompare(_bysVal + GetKeyLength() + GetValueLength() + TWO_SHORT_LEN,
-                   PAGE_ID_LEN,
-                   br._bysVal + br.GetKeyLength() + br.GetValueLength() +
-                       TWO_SHORT_LEN,
-                   PAGE_ID_LEN) == 0);
+  return (BytesCompare(_bysVal + GetKeyLength() + GetValueLength() + UI16_2_LEN,
+                       PAGE_ID_LEN,
+                       br._bysVal + br.GetKeyLength() + br.GetValueLength() +
+                           UI16_2_LEN,
+                       PAGE_ID_LEN) == 0);
 }
 
 std::ostream &operator<<(std::ostream &os, const BranchRecord &br) {

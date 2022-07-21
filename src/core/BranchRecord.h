@@ -41,7 +41,7 @@ public:
     if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE)
       return 0;
 
-    return (uint16_t)(*((uint16_t *)_bysVal) - TWO_SHORT_LEN - PAGE_ID_LEN -
+    return (uint16_t)(*((uint16_t *)_bysVal) - UI16_2_LEN - PAGE_ID_LEN -
                       *((uint16_t *)(_bysVal + sizeof(uint16_t))));
   }
 

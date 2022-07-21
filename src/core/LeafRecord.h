@@ -139,11 +139,11 @@ public:
   }
   bool IsGapLock() { return _statement != nullptr && _gapLock; }
   bool FillOverPage() {
-    Byte ver = *(_bysVal + UI16_2_LEN);
+    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
+    Byte ver = *(_bysVal + UI16_2_LEN + keyLen);
     if ((ver & REC_OVERFLOW) == 0 || _overflowPage != nullptr)
       return true;
 
-    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     ver = ver & VERSION_NUM;
     Byte *bys =
         _bysVal + UI16_2_LEN + keyLen + 1 + UI64_LEN * ver + UI32_LEN * ver * 2;
@@ -154,7 +154,10 @@ public:
     return !_overflowPage->IsFilled();
   }
 
-  int GetVersionNumber() { return *(_bysVal + UI16_2_LEN) & VERSION_NUM; }
+  int GetVersionNumber() {
+    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
+    return *(_bysVal + UI16_2_LEN + keyLen) & VERSION_NUM;
+  }
 
   void GetVerStamps(MVector<uint64_t>::Type &vctStamp) {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);

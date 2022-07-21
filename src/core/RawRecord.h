@@ -6,11 +6,6 @@
 #include <cstdint>
 
 namespace storage {
-static const uint16_t TWO_SHORT_LEN = 2 * sizeof(uint16_t);
-static const uint16_t SHORT_LEN = 2;
-static const uint16_t INT_LEN = 4;
-static const uint16_t LLONG_LEN = 8;
-
 class IndexPage;
 class IndexTree;
 

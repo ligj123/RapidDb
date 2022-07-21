@@ -220,12 +220,12 @@ int32_t BranchPage::SearchKey(const RawKey &key, bool &bFind) const {
 }
 
 int BranchPage::CompareTo(uint32_t recPos, const BranchRecord &rr) const {
-  uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
-  uint32_t lenKey = ReadShort(start + SHORT_LEN);
+  uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
+  uint32_t lenKey = ReadShort(start + UI16_LEN);
 
   if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
     return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                        ReadShort(start + SHORT_LEN) -
+                        ReadShort(start + UI16_LEN) -
                             _indexTree->GetKeyVarLen(),
                         rr.GetBysValue() + _indexTree->GetKeyOffset(),
                         rr.GetKeyLength() - _indexTree->GetKeyVarLen());
@@ -238,10 +238,10 @@ int BranchPage::CompareTo(uint32_t recPos, const BranchRecord &rr) const {
 }
 
 int BranchPage::CompareTo(uint32_t recPos, const RawKey &key) const {
-  uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * SHORT_LEN);
+  uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
 
   return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                      ReadShort(start + SHORT_LEN) - _indexTree->GetKeyVarLen(),
+                      ReadShort(start + UI16_LEN) - _indexTree->GetKeyVarLen(),
                       key.GetBysVal(), key.GetLength());
 }
 
