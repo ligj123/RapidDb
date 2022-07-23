@@ -30,7 +30,7 @@ struct RecStruct {
   Byte *_byVerNum;
   // The start position to save variable fileds length in key, this is an array
   // with 0~N elements.
-  uint16_t *_varKeyLen;
+  // uint16_t *_varKeyLen;
   // To save key content after serialize.
   Byte *_bysKey;
   // The array to save version stamps for every version, 1~N elements.
@@ -104,7 +104,7 @@ public:
   // record with this and call below method to set old record
   void SaveUndoRecord(LeafRecord *undoRec) { _undoRec = undoRec; }
   inline uint16_t GetValueLength() const override {
-    Byte vNum = *(_bysVal + UI16_2_LEN) & VERSION_NUM;
+    Byte vNum = GetVersionNumber();
     return *(uint32_t *)(_bysVal + UI16_2_LEN + 1 +
                          (*(uint16_t *)(_bysVal + UI16_LEN)) + UI64_LEN * vNum);
   }
@@ -154,7 +154,7 @@ public:
     return !_overflowPage->IsFilled();
   }
 
-  int GetVersionNumber() {
+  Byte GetVersionNumber() const {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     return *(_bysVal + UI16_2_LEN + keyLen) & VERSION_NUM;
   }

@@ -99,8 +99,8 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   _vctKey.swap(vctKey);
   _vctValue.swap(vctVal);
 
-  _keyVarLen = _headPage->ReadKeyVariableFieldCount() * UI16_LEN;
-  _keyOffset = _keyVarLen + UI16_2_LEN;
+  //_keyVarLen = _headPage->ReadKeyVariableFieldCount() * UI16_LEN;
+  //_keyOffset = _keyVarLen + UI16_2_LEN;
   if (_headPage->ReadIndexType() == IndexType::PRIMARY) {
     _valVarLen = _headPage->ReadValueVariableFieldCount() * UI32_LEN;
     _valOffset = _valVarLen + (uint16_t)((_vctValue.size() + 7) >> 3);

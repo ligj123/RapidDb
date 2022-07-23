@@ -120,9 +120,9 @@ public:
     }
   }
 
-  inline uint16_t GetKeyVarLen() { return _keyVarLen; }
+  inline uint16_t GetKeyVarLen() { return 0; }
   inline uint16_t GetValVarLen() { return _valVarLen; }
-  inline uint16_t GetKeyOffset() { return _keyOffset; }
+  inline uint16_t GetKeyOffset() { return UI16_2_LEN; }
   inline uint16_t GetValOffset() { return _valOffset; }
   inline const VectorDataValue &GetVctKey() const { return _vctKey; }
   inline const VectorDataValue &GetVctValue() const { return _vctValue; }
@@ -157,12 +157,12 @@ protected:
   IndexPage *_rootPage = nullptr;
 
   // KeyVarFieldNum * sizeof(uint16_t)
-  uint16_t _keyVarLen;
+  // uint16_t _keyVarLen;
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t)
   // Other: ValVarFieldNum * sizeof(uint16_t)
   uint16_t _valVarLen;
   //(KeyVarFieldNum + 2) * sizeof(uint16_t)
-  uint16_t _keyOffset;
+  // uint16_t _keyOffset;
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t) + Field Null bits
   // Other: ValVarFieldNum * sizeof(uint16_t) + sizeof(uint16_t)
   uint16_t _valOffset;

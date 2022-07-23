@@ -38,7 +38,7 @@ RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen,
   _keyLen = (uint16_t *)(bys + UI16_LEN);
   _varKeyLen = (uint16_t *)(bys + UI16_2_LEN);
   _bysKey = bys + UI16_2_LEN + varKeyOff;
-  _byVerNum = bys + UI16_2_LEN + *_keyLen;
+  _byVerNum = bys + UI16_2_LEN + keyLen;
   _arrStamp = (uint64_t *)(_byVerNum + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
 
@@ -449,7 +449,7 @@ RawKey *LeafRecord::GetKey() const {
 }
 
 RawKey *LeafRecord::GetPrimayKey() const {
-  int start = GetKeyLength() + _indexTree->GetValOffset();
+  int start = GetKeyLength() + UI16_2_LEN;
   int len = GetTotalLength() - start;
   Byte *buf = CachePool::Apply(len);
   BytesCopy(buf, _bysVal + start, len);
