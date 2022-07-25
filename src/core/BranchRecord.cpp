@@ -34,44 +34,8 @@ RawKey *BranchRecord::GetKey() const {
                     GetKeyLength() - _indexTree->GetKeyVarLen());
 }
 
-void BranchRecord::GetListKey(VectorDataValue &vct) const {
-  _indexTree->CloneKeys(vct);
-  uint16_t pos = _indexTree->GetKeyOffset();
-  uint16_t lenPos = UI16_2_LEN;
-
-  for (int i = 0; i < vct.size(); i++) {
-    uint16_t len = 0;
-    if (!vct[i]->IsFixLength()) {
-      len = *(uint16_t *)(_bysVal + lenPos);
-      lenPos += sizeof(uint16_t);
-    }
-
-    pos += vct[i]->ReadData(_bysVal + pos, len);
-  }
-}
-
-void BranchRecord::GetListValue(VectorDataValue &vct) const {
-  if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
-    return;
-  }
-
-  _indexTree->CloneValues(vct);
-  uint16_t valVarNum = _indexTree->GetHeadPage()->ReadValueVariableFieldCount();
-  uint16_t pos = GetKeyLength() + _indexTree->GetKeyOffset();
-  uint16_t lenPos = UI16_2_LEN + GetKeyLength();
-
-  for (int i = 0; i < vct.size(); i++) {
-    int len = 0;
-    if (!vct[i]->IsFixLength()) {
-      len = *(uint16_t *)(_bysVal + lenPos);
-      lenPos += sizeof(uint16_t);
-    }
-
-    pos += vct[i]->ReadData(_bysVal + pos, len);
-  }
-}
-
 int BranchRecord::CompareTo(const RawRecord &rr) const {
+  assert(typeid(rr) == typeid(BranchRecord));
   if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
     return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
                         GetKeyLength() - _indexTree->GetKeyVarLen(),
@@ -107,23 +71,26 @@ bool BranchRecord::EqualPageId(const BranchRecord &br) const {
 }
 
 std::ostream &operator<<(std::ostream &os, const BranchRecord &br) {
-  VectorDataValue vctKey;
-  br.GetListKey(vctKey);
   os << "TotalLen=" << br.GetTotalLength() << "  Keys=";
-  for (IDataValue *dv : vctKey) {
-    os << *dv << "; ";
+
+  os << std::uppercase << std::hex << std::setfill('0') << "0x";
+  Byte *bys = br._bysVal + UI16_2_LEN;
+  for (uint32_t i = 0; i < br.GetKeyLength(); i++) {
+    os << std::setw(2) << bys++;
+    if (i % 4 == 0)
+      os << ' ';
   }
 
   if (br._indexTree->GetHeadPage()->ReadIndexType() == IndexType::NON_UNIQUE) {
-    VectorDataValue vctVal;
-    br.GetListValue(vctVal);
-    os << "  Values=";
-    for (IDataValue *dv : vctVal) {
-      os << *dv << "; ";
+    os << "\nValues=";
+    for (uint32_t i = 0; i < br.GetValueLength(); i++) {
+      os << std::setw(2) << bys++;
+      if (i % 4 == 0)
+        os << ' ';
     }
   }
 
-  os << "  ChildPageId=" << br.GetChildPageId();
+  os << "\nChildPageId=" << br.GetChildPageId();
   return os;
 }
 } // namespace storage

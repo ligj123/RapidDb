@@ -6,8 +6,8 @@
 
 namespace storage {
 const uint16_t BranchPage::DATA_BEGIN_OFFSET = 12;
-const uint16_t BranchPage::MAX_DATA_LENGTH =
-    (uint16_t)(Configure::GetCachePageSize() - DATA_BEGIN_OFFSET -
+const uint16_t IndexPage::MAX_DATA_LENGTH_BRANCH =
+    (uint16_t)(Configure::GetCachePageSize() - BranchPage::DATA_BEGIN_OFFSET -
                sizeof(uint32_t));
 
 BranchPage::~BranchPage() { CleanRecords(); }
@@ -40,7 +40,7 @@ void BranchPage::LoadRecords() {
 }
 
 bool BranchPage::SaveRecords() {
-  if (_totalDataLength > MAX_DATA_LENGTH)
+  if (_totalDataLength > MAX_DATA_LENGTH_BRANCH)
     return false;
 
   unique_lock<SpinMutex> lock(_pageLock, try_to_lock);
@@ -135,9 +135,9 @@ void BranchPage::InsertRecord(BranchRecord *&rr, int32_t pos) {
 }
 
 bool BranchPage::AddRecord(BranchRecord *&rr) {
-  if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR / 100U ||
+  if (_totalDataLength > MAX_DATA_LENGTH_BRANCH * LOAD_FACTOR / 100U ||
       _totalDataLength + rr->GetTotalLength() + sizeof(uint16_t) >
-          MAX_DATA_LENGTH) {
+          MAX_DATA_LENGTH_BRANCH) {
     return false;
   }
 

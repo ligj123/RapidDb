@@ -20,8 +20,6 @@ public:
   ~BranchRecord() {}
 
   RawKey *GetKey() const;
-  void GetListKey(VectorDataValue &vct) const;
-  void GetListValue(VectorDataValue &vct) const;
   int CompareTo(const RawRecord &other) const;
   int CompareKey(const RawKey &key) const;
   int CompareKey(const RawRecord &other) const;

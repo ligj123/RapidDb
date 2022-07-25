@@ -3,7 +3,6 @@
 #include "../dataType/DataValueFactory.h"
 #include "../pool/StoragePool.h"
 #include "../statement/Statement.h"
-#include "../utils/ErrorMsg.h"
 #include "IndexTree.h"
 #include "LeafPage.h"
 #include <boost/crc.hpp>
@@ -32,12 +31,11 @@ void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
   }
 }
 
-RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen,
-                     Byte verNum, OverflowPage *overPage) {
+RecStruct::RecStruct(Byte *bys, uint16_t keyLen, Byte verNum,
+                     OverflowPage *overPage) {
   _totalLen = (uint16_t *)bys;
   _keyLen = (uint16_t *)(bys + UI16_LEN);
-  _varKeyLen = (uint16_t *)(bys + UI16_2_LEN);
-  _bysKey = bys + UI16_2_LEN + varKeyOff;
+  _bysKey = bys + UI16_2_LEN;
   _byVerNum = bys + UI16_2_LEN + keyLen;
   _arrStamp = (uint64_t *)(_byVerNum + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
@@ -57,12 +55,11 @@ RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen,
   }
 }
 
-RecStruct::RecStruct(Byte *bys, uint16_t varKeyOff, OverflowPage *overPage) {
+RecStruct::RecStruct(Byte *bys, OverflowPage *overPage) {
   _totalLen = (uint16_t *)bys;
   _keyLen = (uint16_t *)(bys + UI16_LEN);
   uint16_t keyLen = *_keyLen;
-  _varKeyLen = (uint16_t *)(bys + UI16_2_LEN);
-  _bysKey = bys + UI16_2_LEN + varKeyOff;
+  _bysKey = bys + UI16_2_LEN;
   _byVerNum = bys + UI16_2_LEN + keyLen;
   Byte verNum = (*_byVerNum) & VERSION_NUM;
   _arrStamp = (uint64_t *)(_byVerNum + 1);
@@ -95,30 +92,16 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   _actionType = type;
 
   int i;
-  uint16_t lenKey = _indexTree->GetKeyVarLen();
-  for (i = 0; i < vctKey.size(); i++) {
-    lenKey += vctKey[i]->GetPersistenceLength(true);
-  }
-
-  if (lenKey > Configure::GetMaxKeyLength()) {
-    throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {to_string(lenKey)});
-  }
+  uint16_t lenKey = CalcKeyLength(vctKey);
 
   int totalLen = lenKey + lenPri + UI16_2_LEN;
   _bysVal = CachePool::Apply(totalLen);
   *((uint16_t *)_bysVal) = totalLen;
   *((uint16_t *)(_bysVal + UI16_LEN)) = lenKey;
 
-  uint16_t pos = _indexTree->GetKeyOffset();
-  uint16_t lenPos = UI16_2_LEN;
-
+  uint16_t pos = UI16_2_LEN;
   for (i = 0; i < vctKey.size(); i++) {
     uint16_t len = vctKey[i]->WriteData(_bysVal + pos, true);
-    if (!vctKey[i]->IsFixLength()) {
-      *((uint16_t *)(_bysVal + lenPos)) = len;
-      lenPos += sizeof(uint16_t);
-    }
-
     pos += len;
   }
 
@@ -151,8 +134,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
       (_overflowPage == nullptr ? lenVal : UI32_LEN * 2 + UI16_LEN);
 
   _bysVal = CachePool::Apply(totalLen);
-  RecStruct recStru(_bysVal, indexTree->GetKeyVarLen(), lenKey, 1,
-                    _overflowPage);
+  RecStruct recStru(_bysVal, lenKey, 1, _overflowPage);
   FillHeaderBuff(recStru, totalLen, lenKey, 1, recStamp, lenVal);
   FillKeyBuff(recStru, vctKey);
 
@@ -195,22 +177,6 @@ LeafRecord::LeafRecord(LeafRecord &src)
   src._overflowPage = nullptr;
 }
 
-void LeafRecord::GetListKey(VectorDataValue &vctKey) const {
-  _indexTree->CloneKeys(vctKey);
-  uint16_t pos = _indexTree->GetKeyOffset();
-  uint16_t lenPos = pos - _indexTree->GetKeyVarLen();
-  uint16_t len = 0;
-
-  for (uint16_t i = 0; i < vctKey.size(); i++) {
-    if (!vctKey[i]->IsFixLength()) {
-      len = *((uint16_t *)(_bysVal + lenPos));
-      lenPos += sizeof(uint16_t);
-    }
-
-    pos += vctKey[i]->ReadData(_bysVal + pos, len);
-  }
-}
-
 /** @brief When update or delete this record, set new values into record and
  * save old value into _undoRec, only use for primary index
  * @param vctVal the vector of data value. If ActionType==Delete, it is empty
@@ -224,7 +190,7 @@ int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
                                  uint64_t recStamp, Statement *stmt,
                                  ActionType type, bool gapLock) {
   assert(_refCount == 1);
-  RecStruct recStruOld(_bysVal, _indexTree->GetKeyVarLen(), _overflowPage);
+  RecStruct recStruOld(_bysVal, _overflowPage);
   MVector<Byte>::Type vctSn;
   uint32_t oldLenVal = CalcValidValueLength(recStruOld, true, vctSn);
   _actionType = type;
@@ -232,6 +198,7 @@ int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
   _gapLock = gapLock;
 
   if (oldLenVal == 0 && type == ActionType::DELETE) {
+    _bRemoved = true;
     return -(*recStruOld._totalLen);
   }
 
@@ -252,11 +219,11 @@ int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
                       (_overflowPage == nullptr ? lenVal + oldLenVal : 0);
 
   _bysVal = CachePool::Apply(totalLen);
-  RecStruct recStru(_bysVal, _indexTree->GetKeyVarLen(), *recStruOld._keyLen,
-                    1 + (uint32_t)vctSn.size(), _overflowPage);
+  RecStruct recStru(_bysVal, *recStruOld._keyLen, 1 + (uint32_t)vctSn.size(),
+                    _overflowPage);
   FillHeaderBuff(recStru, totalLen, *recStruOld._keyLen,
                  1 + (uint32_t)vctSn.size(), recStamp, lenVal);
-  BytesCopy(recStru._varKeyLen, recStruOld._varKeyLen, *recStruOld._keyLen);
+  BytesCopy(recStru._bysKey, recStruOld._bysKey, *recStruOld._keyLen);
 
   if (type == ActionType::UPDATE) {
     ValueStruct valStru;
@@ -378,7 +345,7 @@ int LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
     return -1;
   }
 
-  RecStruct recStru(lr->_bysVal, _indexTree->GetKeyVarLen(), lr->_overflowPage);
+  RecStruct recStru(lr->_bysVal, lr->_overflowPage);
   Byte ver = 0;
   Byte verNum = *(recStru._byVerNum) & 0x0f;
   for (; ver < verNum; ver++) {
@@ -476,31 +443,6 @@ int LeafRecord::CompareKey(const LeafRecord &lr) const {
                       lr.GetKeyLength() - _indexTree->GetKeyVarLen());
 }
 
-uint32_t LeafRecord::CalcKeyLength(const VectorDataValue &vctKey) {
-  uint32_t lenKey = _indexTree->GetKeyVarLen();
-  for (int i = 0; i < vctKey.size(); i++) {
-    lenKey += vctKey[i]->GetPersistenceLength(true);
-  }
-
-  if (lenKey > Configure::GetMaxKeyLength()) {
-    throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {to_string(lenKey)});
-  }
-  return lenKey;
-}
-
-uint32_t LeafRecord::CalcValueLength(const VectorDataValue &vctVal,
-                                     ActionType type) {
-  if (type == ActionType::DELETE)
-    return 0;
-
-  uint32_t lenVal =
-      (uint32_t)(vctVal.size() + 7) / 8 + _indexTree->GetValVarLen();
-  for (size_t i = 0; i < vctVal.size(); i++) {
-    lenVal += vctVal[i]->GetPersistenceLength(false);
-  }
-  return lenVal;
-}
-
 void LeafRecord::FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
                                 uint32_t keyLen, Byte verNum, uint64_t stamp,
                                 uint32_t valLen) {
@@ -515,15 +457,10 @@ void LeafRecord::FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
 void LeafRecord::FillKeyBuff(RecStruct &recStru,
                              const VectorDataValue &vctKey) {
   Byte *bys = recStru._bysKey;
-  uint16_t *varLen = recStru._varKeyLen;
 
   for (size_t i = 0; i < vctKey.size(); i++) {
     uint16_t vl = vctKey[i]->WriteData(bys, true);
     bys += vl;
-    if (!vctKey[i]->IsFixLength()) {
-      *varLen = vl;
-      varLen++;
-    }
   }
 }
 
@@ -545,12 +482,39 @@ void LeafRecord::FillValueBuff(ValueStruct &valStru,
   }
 }
 
+uint32_t LeafRecord::CalcValueLength(const VectorDataValue &vctVal,
+                                     ActionType type) {
+  if (type == ActionType::DELETE)
+    return 0;
+
+  uint32_t lenVal =
+      (uint32_t)(vctVal.size() + 7) / 8 + _indexTree->GetValVarLen();
+  for (size_t i = 0; i < vctVal.size(); i++) {
+    lenVal += vctVal[i]->GetPersistenceLength(false);
+  }
+  return lenVal;
+}
+
+uint16_t LeafRecord::GetValueLength() const {
+  if (_indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY) {
+    Byte vNum = GetVersionNumber();
+    return *(uint32_t *)(_bysVal + UI16_2_LEN + 1 +
+                         (*(uint16_t *)(_bysVal + UI16_LEN)) + UI64_LEN * vNum);
+  } else {
+    return *(uint16_t *)_bysVal - *(uint16_t *)(_bysVal + UI16_LEN) -
+           UI16_2_LEN;
+  }
+}
+
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr) {
-  VectorDataValue vctKey;
-  lr.GetListKey(vctKey);
   os << "TotalLen=" << lr.GetTotalLength() << "  Keys=";
-  for (IDataValue *dv : vctKey) {
-    os << *dv << "; ";
+
+  os << std::uppercase << std::hex << std::setfill('0') << "0x";
+  Byte *bys = lr._bysVal + UI16_2_LEN;
+  for (uint32_t i = 0; i < lr.GetKeyLength(); i++) {
+    os << std::setw(2) << bys++;
+    if (i % 4 == 0)
+      os << ' ';
   }
 
   VectorDataValue vctVal;

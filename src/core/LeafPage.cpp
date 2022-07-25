@@ -10,10 +10,10 @@
 #include "PageType.h"
 
 namespace storage {
-uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 12;
-uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 16;
-uint16_t LeafPage::DATA_BEGIN_OFFSET = 20;
-uint16_t LeafPage::MAX_DATA_LENGTH =
+const uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 12;
+const uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 16;
+const uint16_t LeafPage::DATA_BEGIN_OFFSET = 20;
+const uint16_t LeafPage::MAX_DATA_LENGTH_LEAF =
     (uint16_t)(CACHE_PAGE_SIZE - LeafPage::DATA_BEGIN_OFFSET - UI32_LEN);
 
 LeafPage::LeafPage(IndexTree *indexTree, PageID pageId, PageID parentPageId)
@@ -61,7 +61,7 @@ void LeafPage::CleanRecord() {
 }
 
 bool LeafPage::SaveRecords() {
-  if (_totalDataLength > MAX_DATA_LENGTH)
+  if (_totalDataLength > MAX_DATA_LENGTH_LEAF)
     return false;
 
   unique_lock<SpinMutex> lock(_pageLock, try_to_lock);
@@ -71,8 +71,7 @@ bool LeafPage::SaveRecords() {
   if (_bRecordUpdate) {
     Byte *tmp = _bysPage;
     _bysPage = CachePool::ApplyPage();
-    uint16_t pos =
-        (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * sizeof(uint16_t));
+    uint16_t pos = (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * UI16_LEN);
     _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
     _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
     int refCount = 0;
@@ -87,7 +86,7 @@ bool LeafPage::SaveRecords() {
         continue;
       }
 
-      WriteShort(DATA_BEGIN_OFFSET + sizeof(uint16_t) * index, pos);
+      WriteShort(DATA_BEGIN_OFFSET + UI16_LEN * index, pos);
       pos += lr->SaveData(_bysPage + pos);
       index++;
     }
@@ -148,9 +147,9 @@ ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
 }
 
 bool LeafPage::AddRecord(LeafRecord *lr) {
-  if (_totalDataLength > MAX_DATA_LENGTH * LOAD_FACTOR / 100U ||
+  if (_totalDataLength > MAX_DATA_LENGTH_LEAF * LOAD_FACTOR / 100U ||
       _totalDataLength + lr->GetTotalLength() + (uint32_t)sizeof(uint16_t) >
-          (uint32_t)MAX_DATA_LENGTH) {
+          (uint32_t)MAX_DATA_LENGTH_LEAF) {
     return false;
   }
 
@@ -169,12 +168,12 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
   return true;
 }
 
-void LeafPage::DeleteRecord(int32_t pos) {
-  assert(pos >= 0 && pos < (int32_t)_recordNum);
-}
+void LeafPage::UpdateRecord(int32_t szChange, bool bRemove) {
+  if (bRemove) {
+    _recordNum--;
+  }
 
-void LeafPage::UpdateRecord(int32_t pos) {
-  assert(pos >= 0 && pos < (int32_t)_recordNum);
+  _totalDataLength += szChange;
 }
 
 LeafRecord *LeafPage::GetRecord(const RawKey &key) {

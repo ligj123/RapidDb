@@ -9,7 +9,6 @@ class BranchRecord;
 class BranchPage : public IndexPage {
 public:
   static const uint16_t DATA_BEGIN_OFFSET;
-  static const uint16_t MAX_DATA_LENGTH;
 
 public:
   BranchPage(IndexTree *indexTree, uint32_t pageId, Byte pageLevel,
@@ -36,8 +35,7 @@ public:
   int32_t SearchKey(const RawKey &key, bool &bFind) const;
   BranchRecord *GetRecordByPos(int32_t pos, bool bAutoLast);
 
-  bool IsPageFull() const { return _totalDataLength >= MAX_DATA_LENGTH; }
-  uint16_t GetMaxDataLength() const override { return MAX_DATA_LENGTH; }
+  bool IsPageFull() const { return _totalDataLength >= MAX_DATA_LENGTH_BRANCH; }
   void Init() override;
 
 protected:

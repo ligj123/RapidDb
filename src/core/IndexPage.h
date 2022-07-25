@@ -42,7 +42,7 @@ public:
   // Page level, leaf page=0, branch page from 1 start
   static const uint16_t PAGE_LEVEL_OFFSET;
   // To save if this page is the last page in current level. The highest bit is
-  // for begin apge mark, the second bit is for end page mark.
+  // for begin page mark, the second bit is for end page mark.
   static const uint16_t PAGE_BEGIN_END_OFFSET;
   // Used in future. For large transaction, to save how much record in
   // transaction status, only used in LeafPage .
@@ -53,6 +53,10 @@ public:
   static const uint16_t TOTAL_DATA_LENGTH_OFFSET;
   // Parent page point
   static const uint16_t PARENT_PAGE_POINTER_OFFSET;
+  // The max records length in leaf page
+  static const uint16_t MAX_DATA_LENGTH_LEAF;
+  // The max records length in branch page
+  static const uint16_t MAX_DATA_LENGTH_BRANCH;
 
 public:
   IndexPage(IndexTree *indexTree, uint32_t pageId, PageType type);
@@ -60,7 +64,10 @@ public:
             uint32_t parentPageId, PageType type);
   ~IndexPage();
   virtual void Init();
-  virtual uint16_t GetMaxDataLength() const = 0;
+  inline uint16_t GetMaxDataLength() const {
+    return GetPageType() == PageType::LEAF_PAGE ? MAX_DATA_LENGTH_LEAF
+                                                : MAX_DATA_LENGTH_BRANCH;
+  };
   virtual bool SaveRecords() = 0;
   bool PageDivide();
 
@@ -74,13 +81,13 @@ public:
   inline uint32_t GetRecordNumber() { return _recordNum; }
   bool Releaseable() override { return _refCount == 1 && _tranCount == 0; }
   inline bool IsBeginPage() { return _bysPage[PAGE_BEGIN_END_OFFSET] & 0x80; }
-  inline void SetBeginPage(bool last) {
-    last ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x80)
-         : (_bysPage[PAGE_BEGIN_END_OFFSET] & 0x7f);
+  inline void SetBeginPage(bool bBegin) {
+    bBegin ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x80)
+           : (_bysPage[PAGE_BEGIN_END_OFFSET] & 0x7f);
   }
   inline bool IsEndPage() { return _bysPage[PAGE_BEGIN_END_OFFSET] & 0x40; }
-  inline void SetEndPage(bool last) {
-    last ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x40)
+  inline void SetEndPage(bool bEnd) {
+    bEnd ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x40)
          : (_bysPage[PAGE_BEGIN_END_OFFSET] & 0xbf);
   }
   inline uint32_t GetTranCount() { return _tranCount; }

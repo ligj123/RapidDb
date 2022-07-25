@@ -41,9 +41,6 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   lr->SaveData(byArr);
   LeafRecord *lr2 = new LeafRecord(indexTree, byArr);
 
-  VectorDataValue vctKey2;
-  lr2->GetListKey(vctKey2);
-  BOOST_TEST(vctKey2[0]->GetLong() == 100LL);
   RawKey *key = lr2->GetKey();
   RawKey key2(vctKey);
   BOOST_TEST(*key == key2);
@@ -68,7 +65,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 }
 
 BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
-  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string FILE_NAME = "./dbTest/testLeafRecordBig" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueInt dvInt(100, true);
@@ -89,9 +86,9 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
   LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
-  BOOST_TEST(27 == lr->GetKeyLength());
+  BOOST_TEST(25 == lr->GetKeyLength());
   BOOST_TEST(173 == lr->GetValueLength());
-  BOOST_TEST(217 == lr->GetTotalLength());
+  BOOST_TEST(215 == lr->GetTotalLength());
   BOOST_TEST(lr->IsSole());
   BOOST_TEST(!lr->IsTransaction());
   BOOST_TEST(!lr->IsGapLock());
@@ -100,14 +97,11 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   lr->SaveData(byArr);
   LeafRecord *lr2 = new LeafRecord(indexTree, byArr);
 
-  VectorDataValue vctKey2;
-  lr2->GetListKey(vctKey2);
-  BOOST_TEST(*vctKey2[0] == dvInt);
-  BOOST_TEST(*vctKey2[1] == dvVar);
+  RawKey rkey(vctKey);
+  BOOST_TEST(lr2->CompareKey(rkey) == 0);
 
   RawKey *key = lr2->GetKey();
-  RawKey key2(vctKey);
-  BOOST_TEST(*key == key2);
+  BOOST_TEST(*key == rkey);
   delete key;
 
   VectorDataValue vctVal2;
@@ -118,7 +112,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   BOOST_TEST(*vctVal2[2] == dvBlob);
 
   BOOST_TEST(lr->CompareTo(*lr2) == 0);
-  BOOST_TEST(lr->CompareKey(key2) == 0);
+  BOOST_TEST(lr->CompareKey(rkey) == 0);
   BOOST_TEST(lr->CompareKey(*lr2) == 0);
 
   lr->ReleaseRecord();
@@ -133,9 +127,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   lr->SaveData(byArr);
   lr2 = new LeafRecord(indexTree, byArr);
   lr2->FillOverPage();
-  lr2->GetListKey(vctKey2);
-  BOOST_TEST(*vctKey2[0] == dvInt);
-  BOOST_TEST(*vctKey2[1] == dvVar);
+  BOOST_TEST(lr2->CompareKey(rkey) == 0);
 
   hr = lr2->GetListValue(vctVal2);
   BOOST_TEST(hr == 0);
@@ -152,7 +144,8 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
 }
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
-  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string FILE_NAME =
+      "./dbTest/testLeafRecordMulti_Version" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueInt dvInt(100, true);
@@ -291,8 +284,10 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
 }
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Second_test) {
-  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
-  const string FILE_NAME2 = "./dbTest/testLeafRecord" + StrMSTime() + "2.dat";
+  const string FILE_NAME =
+      "./dbTest/testLeafRecordSecond" + StrMSTime() + ".dat";
+  const string FILE_NAME2 =
+      "./dbTest/testLeafRecordSecond" + StrMSTime() + "2.dat";
   const string TABLE_NAME = "testTable";
   const string TABLE_NAME2 = "testTable2";
 
@@ -317,16 +312,13 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Second_test) {
       new IndexTree(TABLE_NAME2, FILE_NAME2, vctSec, vctKey, IndexType::UNIQUE);
 
   vctSec = {dvLong.Clone(true), dvVar.Clone(true)};
-  Byte *bys = lr->GetBysValue() + UI16_2_LEN + 1;
+  Byte *bys = lr->GetBysValue() + UI16_2_LEN;
   uint16_t lKey = lr->GetKeyLength();
   LeafRecord *lrSec =
       new LeafRecord(secTree, vctSec, bys, lKey, ActionType::INSERT, nullptr);
 
-  VectorDataValue vctDv;
-  lrSec->GetListKey(vctDv);
-  BOOST_TEST(vctDv.size() == 2);
-  BOOST_TEST(dvLong == *vctDv[0]);
-  BOOST_TEST(dvVar == *vctDv[1]);
+  RawKey rkey(vctSec);
+  BOOST_TEST(lrSec->CompareKey(rkey) == 0);
 
   RawKey *key = lrSec->GetPrimayKey();
   BOOST_TEST(lr->CompareKey(*key) == 0);

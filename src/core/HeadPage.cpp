@@ -113,9 +113,6 @@ void HeadPage::WriteKeyVariableFieldCount(uint16_t num) {
   _keyAlterableFieldCount = num;
   WriteShort(KEY_ALTERABLE_FIELD_COUNT_OFFSET, num);
   _bDirty = true;
-
-  _indexTree->_keyVarLen = num * UI16_LEN;
-  _indexTree->_keyOffset = (num + 2) * UI16_LEN;
 }
 
 void HeadPage::WriteValueVariableFieldCount(uint16_t num) {

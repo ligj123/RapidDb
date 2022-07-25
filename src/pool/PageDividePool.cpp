@@ -18,6 +18,7 @@ void PageDividePool::RemoveTimerTask() {
 }
 
 void PageDividePool::AddCachePage(IndexPage *page) {
+  page->IncRef();
   _divPool->_fastQueue.Push(page);
 }
 

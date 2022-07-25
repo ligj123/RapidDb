@@ -10,10 +10,9 @@ class VectorLeafRecord;
 
 class LeafPage : public IndexPage {
 public:
-  static uint16_t PREV_PAGE_POINTER_OFFSET;
-  static uint16_t NEXT_PAGE_POINTER_OFFSET;
-  static uint16_t DATA_BEGIN_OFFSET;
-  static uint16_t MAX_DATA_LENGTH;
+  static const uint16_t PREV_PAGE_POINTER_OFFSET;
+  static const uint16_t NEXT_PAGE_POINTER_OFFSET;
+  static const uint16_t DATA_BEGIN_OFFSET;
 
 public:
   void clear() {
@@ -30,7 +29,7 @@ public:
   inline PageID GetPrevPageId() { return _prevPageId; }
   inline void SetNextPageId(PageID id) { _nextPageId = id; }
   inline PageID GetNextPageId() { return _nextPageId; }
-  inline bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH; }
+  inline bool IsPageFull() { return _totalDataLength >= MAX_DATA_LENGTH_LEAF; }
 
   void LoadRecords();
   void CleanRecord();
@@ -41,8 +40,7 @@ public:
   record to this page, return nullptr, else return error massage.*/
   ErrorMsg *InsertRecord(LeafRecord *lr, int32_t pos = -1);
   bool AddRecord(LeafRecord *record);
-  void DeleteRecord(int32_t pos);
-  void UpdateRecord(int32_t pos);
+  void UpdateRecord(int32_t szChange, bool bRemove);
   void GetAllRecords(VectorLeafRecord &vct);
   /**
    * @brief Fetch the records from startKey to endKey
@@ -62,7 +60,6 @@ public:
                     int32_t start = 0, int32_t end = INT32_MAX);
   int32_t SearchKey(const LeafRecord &rr, bool &bFind, bool bInc = true,
                     int32_t start = 0, int32_t end = INT32_MAX);
-  uint16_t GetMaxDataLength() const override { return MAX_DATA_LENGTH; }
 
 protected:
   inline LeafRecord *GetVctRecord(int pos) const {

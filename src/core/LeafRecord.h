@@ -3,6 +3,7 @@
 #include "../dataType/IDataValue.h"
 #include "../transaction/TranStatus.h"
 #include "../utils/BytesConvert.h"
+#include "../utils/ErrorMsg.h"
 #include "OverflowPage.h"
 #include "RawKey.h"
 #include "RawRecord.h"
@@ -15,9 +16,11 @@ static const Byte VERSION_NUM = 0x0f;
 
 // Only for primary index
 struct RecStruct {
-  RecStruct(Byte *bys, uint16_t varKeyOff, uint16_t keyLen, Byte verNum,
+  RecStruct(Byte *bys, uint16_t keyLen, Byte verNum,
             OverflowPage *overPage = nullptr);
-  RecStruct(Byte *bys, uint16_t varKeyOff, OverflowPage *overPage);
+
+  // Load record struct from byte array,
+  RecStruct(Byte *bys, OverflowPage *overPage);
 
   // To save total length for record, not include values in overflow page
   // length, only to calc the occupied bytes in LeafPage
@@ -82,7 +85,7 @@ public:
   int32_t UpdateRecord(const VectorDataValue &newVal, uint64_t recStamp,
                        Statement *stmt, ActionType type, bool gapLock);
 
-  void GetListKey(VectorDataValue &vct) const;
+  // void GetListKey(VectorDataValue &vct) const;
 
   inline int GetListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX,
                           Statement *stmt = nullptr, bool bQuery = true) const {
@@ -103,11 +106,10 @@ public:
   // When insert or upsert, if there has old record in leaf page, replace old
   // record with this and call below method to set old record
   void SaveUndoRecord(LeafRecord *undoRec) { _undoRec = undoRec; }
-  inline uint16_t GetValueLength() const override {
-    Byte vNum = GetVersionNumber();
-    return *(uint32_t *)(_bysVal + UI16_2_LEN + 1 +
-                         (*(uint16_t *)(_bysVal + UI16_LEN)) + UI64_LEN * vNum);
-  }
+
+  // Get the value's length. If there have more than one version, return the
+  // first version's length.
+  inline uint16_t GetValueLength() const override;
 
   inline uint16_t SaveData(Byte *bysPage) {
     uint16_t len = GetTotalLength();
@@ -172,7 +174,17 @@ public:
 
 protected:
   // To calc key length
-  inline uint32_t CalcKeyLength(const VectorDataValue &vctKey);
+  inline uint32_t CalcKeyLength(const VectorDataValue &vctKey) {
+    uint32_t lenKey = 0;
+    for (int i = 0; i < vctKey.size(); i++) {
+      lenKey += vctKey[i]->GetPersistenceLength(true);
+    }
+
+    if (lenKey > Configure::GetMaxKeyLength()) {
+      throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {to_string(lenKey)});
+    }
+    return lenKey;
+  }
   // To calc a version's value length
   inline uint32_t CalcValueLength(const VectorDataValue &vctVal,
                                   ActionType type);
