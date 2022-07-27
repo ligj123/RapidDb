@@ -109,7 +109,7 @@ public:
 
   // Get the value's length. If there have more than one version, return the
   // first version's length.
-  inline uint16_t GetValueLength() const override;
+  uint16_t GetValueLength() const override;
 
   inline uint16_t SaveData(Byte *bysPage) {
     uint16_t len = GetTotalLength();

@@ -114,11 +114,11 @@ public:
 
   inline bool IsValidPage() { return _bInvalidPage; }
   inline bool PushWaitTask(Task *task) {
-    if (_bFilled)
+    if (_bLoaded)
       return false;
 
     WriteLock();
-    if (_bFilled) {
+    if (_bLoaded) {
       WriteUnlock();
       return false;
     }
@@ -128,6 +128,8 @@ public:
     return true;
   }
   inline MVector<Task *>::Type &GetWaitTasks() { return _waitTasks; }
+  inline bool IsPageLoaded() { return _bLoaded; }
+  inline void SetPageLoaded() { _bLoaded = true; }
 
 protected:
   virtual ~CachePage();
@@ -158,8 +160,8 @@ protected:
   // When read this page from disk and verify it by crc32, if return error, set
   // it to true, means this page need to fix.
   bool _bInvalidPage = false;
-  // If this page has been filled
-  bool _bFilled = false;
+  // If this page has been loaded from disk file or new create page
+  bool _bLoaded = false;
   // Page Type
   PageType _pageType;
   // Copy from IndexTree

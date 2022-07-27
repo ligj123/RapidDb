@@ -79,6 +79,7 @@ protected:
   vector<ConHashMap *> _vctMap;
   vector<SpinMutex *> _vctLock;
   int _groupCount;
-  function<void(Val)> _funcFind;
+  // The lambad called in method find when find the key
+  function<void(Val)> _funcFind = nullptr;
 };
 } // namespace storage

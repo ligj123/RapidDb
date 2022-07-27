@@ -61,6 +61,8 @@ void HeadPage::ReadPage(PageFile *pageFile) {
       _setVerStamp.insert(ver);
     }
   }
+
+  _bLoaded = true;
 }
 
 void HeadPage::WritePage(PageFile *pageFile) {

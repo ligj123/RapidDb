@@ -13,7 +13,7 @@ namespace storage {
 const uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 12;
 const uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 16;
 const uint16_t LeafPage::DATA_BEGIN_OFFSET = 20;
-const uint16_t LeafPage::MAX_DATA_LENGTH_LEAF =
+const uint16_t IndexPage::MAX_DATA_LENGTH_LEAF =
     (uint16_t)(CACHE_PAGE_SIZE - LeafPage::DATA_BEGIN_OFFSET - UI32_LEN);
 
 LeafPage::LeafPage(IndexTree *indexTree, PageID pageId, PageID parentPageId)

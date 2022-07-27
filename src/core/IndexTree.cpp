@@ -55,6 +55,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
           count++;
       }
       _headPage->WriteKeyVariableFieldCount(count);
+      _headPage->SetPageLoaded();
 
       count = 0;
       for (IDataValue *dv : vctVal) {
@@ -152,10 +153,14 @@ IndexTree::~IndexTree() {
   unique_lock<SpinMutex> lock2(_fileIdMutex);
   _setFiledId.erase(_fileId);
 
+  if (_funcDestory != nullptr) {
+    _funcDestory();
+  }
   LOG_DEBUG << "Close index tree " << _tableName;
 }
 
-void IndexTree ::Close() {
+void IndexTree ::Close(function<void()> funcDestory) {
+  _funcDestory = funcDestory;
   _bClosed = true;
   unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
   if (_rootPage != nullptr) {
@@ -219,6 +224,7 @@ IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
     page = new LeafPage(this, newPageId, parentId);
   }
 
+  page->SetPageLoaded();
   PageBufferPool::AddPage(page);
   IncPages();
 
@@ -246,13 +252,10 @@ IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
     IncPages();
 
     ReadPageTask *task = new ReadPageTask(page);
-    task->AddWaitTasks(ThreadPool::_currTask);
     ThreadPool::InstMain().AddTask(task);
-  } else {
-    page->DecRef();
   }
-  _pageMutex.unlock();
 
+  _pageMutex.unlock();
   return page;
 }
 

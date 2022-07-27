@@ -105,7 +105,7 @@ public:
   inline uint16_t GetFileId() { return _fileId; }
   inline bool IsClosed() { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
-  void Close();
+  void Close(function<void()> funcDestory = nullptr);
   inline void ReleasePageFile(PageFile *rpf) {
     lock_guard<SpinMutex> lock(_fileMutex);
     _fileQueue.push(rpf);
@@ -166,6 +166,8 @@ protected:
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t) + Field Null bits
   // Other: ValVarFieldNum * sizeof(uint16_t) + sizeof(uint16_t)
   uint16_t _valOffset;
+  // Set this function when close tree and call it in destory method
+  function<void()> _funcDestory = nullptr;
 
 protected:
   // The ids have been used in this process

@@ -143,16 +143,21 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   lp->WriteUnlock();
 
   lp->SaveRecords();
-  lp->WritePage();
-  indexTree->GetHeadPage()->WritePage();
   lp->DecRef();
-  indexTree->Close();
+
+  // Below code is to wait indexTree has been destory.
+  SpinMutex sp;
+  sp.lock();
+  indexTree->Close([&sp]() { sp.unlock(); });
+  sp.lock();
 
   indexTree =
       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
   lp = (LeafPage *)indexTree->GetPage(1, true);
-  while ()
-    lp->ReadPage();
+  while (lp->IsPageLoaded()) {
+    this_thread::yield();
+  }
+
   lp->LoadRecords();
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -163,9 +168,8 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
     BOOST_TEST(pos == i);
   }
 
-  lp->DecRefCount();
-  indexTree->Close(true);
-  PageBufferPool::ClearPool();
+  lp->DecRef();
+  indexTree->Close();
   delete dvKey;
   delete dvVal;
 
