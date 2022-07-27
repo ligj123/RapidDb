@@ -30,12 +30,11 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree =
       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
-  indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(0, (Byte)0);
+  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(1, (Byte)0);
 
   BOOST_TEST(nullptr == lp->GetLastRecord());
 
-  vctKey.push_back(dvKey->Clone());
+  vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
   RawKey *key = new RawKey(vctKey);
   BOOST_TEST(nullptr == lp->GetRecord(*key));
@@ -71,7 +70,6 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   delete key;
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT - 1;
-  *((DataValueLong *)vctVal[0]) = ROW_COUNT + 99LL;
   lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
   key = lr->GetKey();
 
@@ -118,53 +116,62 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   PageBufferPool::AddTimerTask();
 }
 
-// BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testLeafPageSaveLoad" + StrMSTime() + ".dat";
-//  const string TABLE_NAME = "testTable";
-//  const int ROW_COUNT = LeafPage::MAX_DATA_LENGTH / 34;
-//
-//  DataValueLong *dvKey = new DataValueLong(100, true);
-//  DataValueLong *dvVal = new DataValueLong(200, false);
-//  VectorDataValue vctKey = {dvKey->Clone()};
-//  VectorDataValue vctVal = {dvVal->Clone()};
-//  IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-//  indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-//  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)0);
-//
-//  vctKey.push_back(dvKey->Clone());
-//  vctVal.push_back(dvVal->Clone());
-//
-//  lp->WriteLock();
-//  for (int i = 0; i < ROW_COUNT; i++) {
-//    *((DataValueLong *)vctKey[0]) = i;
-//    *((DataValueLong *)vctVal[0]) = i + 100LL;
-//    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1ULL);
-//    lp->InsertRecord(lr, (i % 2 == 0 ? -1 : i));
-//  }
-//  lp->WriteUnlock();
-//
-//  lp->SaveRecords();
-//
-//  lp->LoadRecords();
-//  for (int i = 0; i < ROW_COUNT; i++) {
-//    *((DataValueLong *)vctKey[0]) = i;
-//    RawKey key(vctKey);
-//    bool bFind;
-//    int pos = lp->SearchKey(key, bFind);
-//    BOOST_TEST(bFind);
-//    BOOST_TEST(pos == i);
-//  }
-//
-//  lp->DecRefCount();
-//  indexTree->Close(true);
-//  PageBufferPool::ClearPool();
-//  delete dvKey;
-//  delete dvVal;
-//
-//  std::filesystem::remove(std::filesystem::path(FILE_NAME));
-//}
-//
+BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
+  const string FILE_NAME =
+      "./dbTest/testLeafPageSaveLoad" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = LeafPage::MAX_DATA_LENGTH_LEAF / 100;
+
+  DataValueLong *dvKey = new DataValueLong(100, true);
+  DataValueLong *dvVal = new DataValueLong(200, false);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree =
+      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
+  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(1, (Byte)0);
+
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
+
+  lp->WriteLock();
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    *((DataValueLong *)vctVal[0]) = i + 100;
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+    lp->InsertRecord(lr, (i % 2 == 0 ? -1 : i));
+  }
+  lp->WriteUnlock();
+
+  lp->SaveRecords();
+  lp->WritePage();
+  indexTree->GetHeadPage()->WritePage();
+  lp->DecRef();
+  indexTree->Close();
+
+  indexTree =
+      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
+  lp = (LeafPage *)indexTree->GetPage(1, true);
+  while ()
+    lp->ReadPage();
+  lp->LoadRecords();
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    RawKey key(vctKey);
+    bool bFind;
+    int pos = lp->SearchKey(key, bFind);
+    BOOST_TEST(bFind);
+    BOOST_TEST(pos == i);
+  }
+
+  lp->DecRefCount();
+  indexTree->Close(true);
+  PageBufferPool::ClearPool();
+  delete dvKey;
+  delete dvVal;
+
+  std::filesystem::remove(std::filesystem::path(FILE_NAME));
+}
+
 // BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
 //  const string FILE_NAME =
 //      "./dbTest/testLeafPageSaveLoad" + StrMSTime() + ".dat";

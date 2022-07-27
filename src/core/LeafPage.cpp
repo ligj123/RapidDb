@@ -134,7 +134,7 @@ ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
     pos = _recordNum;
   }
 
-  _totalDataLength += lr->GetTotalLength() + sizeof(uint16_t);
+  _totalDataLength += lr->GetTotalLength() + UI16_LEN;
   lr->SetParentPage(this);
   _vctRecord.insert(_vctRecord.begin() + pos, lr);
   _recordNum++;
@@ -148,7 +148,7 @@ ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
 
 bool LeafPage::AddRecord(LeafRecord *lr) {
   if (_totalDataLength > MAX_DATA_LENGTH_LEAF * LOAD_FACTOR / 100U ||
-      _totalDataLength + lr->GetTotalLength() + (uint32_t)sizeof(uint16_t) >
+      _totalDataLength + lr->GetTotalLength() + UI16_LEN >
           (uint32_t)MAX_DATA_LENGTH_LEAF) {
     return false;
   }
@@ -215,7 +215,7 @@ bool LeafPage::GetRecords(const RawKey &key, VectorLeafRecord &vct,
 
   if (_vctRecord.size() == 0) {
     for (uint16_t i = pos; i < end; i++) {
-      uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + i * sizeof(uint16_t));
+      uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + i * UI16_LEN);
       vct.push_back(new LeafRecord(this, _bysPage + offset));
     }
   } else {
@@ -373,7 +373,7 @@ LeafRecord *LeafPage::GetLastRecord() {
     return GetVctRecord(_recordNum - 1)->ReferenceRecord();
   } else {
     uint16_t offset =
-        ReadShort(DATA_BEGIN_OFFSET + (_recordNum - 1) * sizeof(uint16_t));
+        ReadShort(DATA_BEGIN_OFFSET + (_recordNum - 1) * UI16_LEN);
     return new LeafRecord(this, _bysPage + offset);
   }
 }

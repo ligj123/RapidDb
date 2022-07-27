@@ -57,6 +57,7 @@ void PageDividePool::PoolManage() {
     if (page->GetTranCount() > 0UL ||
         (unfull && !page->IsOverTime(BUFFER_FLUSH_INTEVAL_MS) &&
          !page->IsOverlength() && !page->GetIndexTree()->IsClosed())) {
+      iter++;
       continue;
     }
 
@@ -64,6 +65,7 @@ void PageDividePool::PoolManage() {
     if (!b || page->GetTranCount() > 0UL) {
       if (b)
         page->WriteUnlock();
+      iter++;
       continue;
     }
 

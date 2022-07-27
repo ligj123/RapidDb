@@ -2,6 +2,7 @@
 #include <stdint.h>
 using namespace std;
 #define _DEBUG_TEST
+#define _MAX_QUEUE_COUNT 5
 typedef unsigned char Byte;
 typedef uint32_t PageID;
 typedef uint64_t VersionStamp;

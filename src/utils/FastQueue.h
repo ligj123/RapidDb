@@ -18,8 +18,9 @@ struct InnerQueue {
 };
 // To decrease lock time, every thread will has a thread_local list. In this
 // way it does not need to lock when add an element into thread local list.
-// Every instance will use _index to indentify the position in this vector.
-static thread_local vector<InnerQueue *> _localInner;
+// Every instance will use _index in FastQueue to indentify the position in this
+// vector.
+static thread_local vector<InnerQueue *> _localInner(_MAX_QUEUE_COUNT, nullptr);
 // To record how many instances of FastQueue in this process. Every instance's
 // index will get value from it and then it will increase one. The index will
 // be used to indentify how to set and get InnerQueue from _localVct
@@ -39,6 +40,7 @@ public:
     }
 
     _index = _queueCount.fetch_add(1, memory_order_relaxed);
+    assert(_index < _MAX_QUEUE_COUNT);
   }
 
   ~FastQueue() {
@@ -51,19 +53,15 @@ public:
 
   // Push an element
   void Push(T *ele) {
+#ifdef _DEBUG_TEST
     if (ThreadPool::_threadID == -1) {
       unique_lock<SpinMutex> lock(_spinMutex);
       _queue.push(ele);
       return;
     }
-
-    if (_localInner.size() <= (size_t)_index) {
-      for (size_t i = _localInner.size(); i <= (size_t)_index; i++) {
-        _localInner.push_back(nullptr);
-      }
-
-      _localInner.push_back(_vctInner[ThreadPool::_threadID]);
-    }
+#else
+    assert(ThreadPool::_threadID >= 0);
+#endif //_DEBUG_TEST
 
     InnerQueue *q = _localInner[_index];
     if (q == nullptr) {

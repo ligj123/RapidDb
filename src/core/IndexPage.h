@@ -82,13 +82,15 @@ public:
   bool Releaseable() override { return _refCount == 1 && _tranCount == 0; }
   inline bool IsBeginPage() { return _bysPage[PAGE_BEGIN_END_OFFSET] & 0x80; }
   inline void SetBeginPage(bool bBegin) {
-    bBegin ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x80)
-           : (_bysPage[PAGE_BEGIN_END_OFFSET] & 0x7f);
+    _bysPage[PAGE_BEGIN_END_OFFSET] =
+        bBegin ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x80)
+               : (_bysPage[PAGE_BEGIN_END_OFFSET] & 0x7f);
   }
   inline bool IsEndPage() { return _bysPage[PAGE_BEGIN_END_OFFSET] & 0x40; }
   inline void SetEndPage(bool bEnd) {
-    bEnd ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x40)
-         : (_bysPage[PAGE_BEGIN_END_OFFSET] & 0xbf);
+    _bysPage[PAGE_BEGIN_END_OFFSET] =
+        bEnd ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x40)
+             : (_bysPage[PAGE_BEGIN_END_OFFSET] & 0xbf);
   }
   inline uint32_t GetTranCount() { return _tranCount; }
 
