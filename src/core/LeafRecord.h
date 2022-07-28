@@ -153,7 +153,7 @@ public:
     uint16_t pnum = *(uint16_t *)(bys + UI32_LEN);
 
     _overflowPage = OverflowPage::GetPage(_indexTree, pid, pnum, false);
-    return !_overflowPage->IsFilled();
+    return !_overflowPage->IsPageLoaded();
   }
 
   Byte GetVersionNumber() const {
