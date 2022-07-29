@@ -142,14 +142,17 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   }
   lp->WriteUnlock();
 
-  lp->SaveRecords();
   lp->DecRef();
 
   // Below code is to wait indexTree has been destory.
-  SpinMutex sp;
-  sp.lock();
-  indexTree->Close([&sp]() { sp.unlock(); });
-  sp.lock();
+  atomic_bool bFin = false;
+  indexTree->Close([&bFin]() { bFin.store(true, memory_order_relaxed); });
+  PageDividePool::PoolManage();
+  StoragePool::PoolManage();
+  PageBufferPool::PoolManage();
+  while (!bFin.load()) {
+    std::this_thread::yield();
+  }
 
   indexTree =
       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
@@ -172,8 +175,6 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   indexTree->Close();
   delete dvKey;
   delete dvVal;
-
-  std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
 
 // BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {

@@ -46,10 +46,10 @@ void StoragePool::PoolManage() {
     if (_storagePool->_mapWrite.find(page->HashCode()) !=
         _storagePool->_mapWrite.end()) {
       page->DecRef();
+    } else {
+      page->UpdateWriteTime();
+      _storagePool->_mapWrite.insert({page->HashCode(), page});
     }
-
-    page->UpdateWriteTime();
-    _storagePool->_mapWrite.insert({page->HashCode(), page});
   }
 
   bool bmax = (_storagePool->_mapWrite.size() > MAX_QUEUE_SIZE / 2);

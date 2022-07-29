@@ -11,6 +11,7 @@ SpinMutex PageBufferPool::_spinMutex;
 int64_t PageBufferPool::_maxCacheSize =
     Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 int64_t PageBufferPool::_prevDelNum = 100;
+// Initialize _mapCache and add lambad to increase page reference when call find
 ConcurrentHashMap<uint64_t, CachePage *>
     PageBufferPool::_mapCache(100, PageBufferPool::_maxCacheSize,
                               [](CachePage *page) { page->IncRef(); });
@@ -34,14 +35,6 @@ void PageBufferPool::ClearPool() {
 
 void PageBufferPool::PoolManage() {
   int64_t numDel = _mapCache.Size() - _maxCacheSize * 4 / 5;
-  if (numDel <= 0) {
-    LOG_INFO << "MaxPage=" << _maxCacheSize
-             << "\tUsedPage=" << _mapCache.Size();
-    //  << "\tPageDividePool=" << PageDividePool::GetWaitingPageSize();
-    // LOG_INFO << "\tWaitWriteQueue:" <<
-    // StoragePool::GetWaitingWriteTaskCount();
-    return;
-  }
 
   if (numDel > _prevDelNum * 2) {
     numDel = _prevDelNum * 2;
@@ -80,8 +73,8 @@ void PageBufferPool::PoolManage() {
       if ((int64_t)queue.size() < grDel) {
         queue.push(page);
       } else if (page->GetAccessTime() < queue.top()->GetAccessTime()) {
-        queue.push(page);
         queue.pop();
+        queue.push(page);
       }
     }
 
@@ -90,6 +83,7 @@ void PageBufferPool::PoolManage() {
     for (CachePage *page : flist) {
       _mapCache.Erase(i, page->HashCode());
       page->DecRef();
+      delCount++;
     }
 
     while (queue.size() > 0) {

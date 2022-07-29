@@ -25,11 +25,11 @@ public:
   };
   static void StopPool();
   static void PushTask();
+  static void PoolManage();
 
 protected:
   static StoragePool *_storagePool;
   static SpinMutex _spinMutex;
-  static void PoolManage();
 
 protected:
   StoragePool(ThreadPool *tp)

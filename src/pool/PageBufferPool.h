@@ -22,6 +22,7 @@ public:
   static CachePage *GetPage(uint64_t hashId);
   /**Only used for test to remove results from previous test cases*/
   static void ClearPool();
+  static void PoolManage();
 
   static void AddTimerTask();
   static void RemoveTimerTask();
@@ -31,9 +32,6 @@ public:
     assert(_threadPool == nullptr);
     _threadPool = tp;
   }
-
-protected:
-  static void PoolManage();
 
 protected:
   static ConcurrentHashMap<uint64_t, CachePage *> _mapCache;

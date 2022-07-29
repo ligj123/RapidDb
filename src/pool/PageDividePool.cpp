@@ -44,10 +44,10 @@ void PageDividePool::PoolManage() {
 
     if (_divPool->_mapPage.find(page->HashCode()) != _divPool->_mapPage.end()) {
       page->DecRef();
+    } else {
+      page->UpdateWriteTime();
+      _divPool->_mapPage.insert({page->HashCode(), page});
     }
-
-    page->UpdateWriteTime();
-    _divPool->_mapPage.insert({page->HashCode(), page});
   }
 
   bool unfull = (_divPool->_mapPage.size() < QUEUE_LIMIT_SIZE);
