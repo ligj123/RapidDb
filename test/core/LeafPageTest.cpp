@@ -117,6 +117,10 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
 }
 
 BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
+  PageBufferPool::RemoveTimerTask();
+  PageDividePool::RemoveTimerTask();
+  StoragePool::RemoveTimerTask();
+
   const string FILE_NAME =
       "./dbTest/testLeafPageSaveLoad" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
@@ -128,7 +132,8 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree =
       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
-  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(1, (Byte)0);
+  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(
+      HeadPage::PAGE_NULL_POINTER, (Byte)0);
 
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
@@ -154,14 +159,14 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
     std::this_thread::yield();
   }
 
-  indexTree =
-      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
-  lp = (LeafPage *)indexTree->GetPage(1, true);
-  while (lp->IsPageLoaded()) {
-    this_thread::yield();
-  }
-
+  indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
+  lp = new LeafPage(indexTree, 1);
+  indexTree->IncPages();
+  lp->DecRef();
+  lp->ReadPage();
+  lp->Init();
   lp->LoadRecords();
+  vctKey.push_back(dvKey->Clone(true));
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     RawKey key(vctKey);
@@ -175,6 +180,10 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   indexTree->Close();
   delete dvKey;
   delete dvVal;
+
+  StoragePool::AddTimerTask();
+  PageDividePool::AddTimerTask();
+  PageBufferPool::AddTimerTask();
 }
 
 // BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {

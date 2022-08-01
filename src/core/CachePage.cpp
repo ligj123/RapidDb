@@ -56,7 +56,7 @@ void CachePage::ReadPage(PageFile *pageFile) {
     if (_pageType != PageType::OVERFLOW_PAGE) {
       crc32.reset();
       crc32.process_bytes(_bysPage, CRC32_PAGE_OFFSET);
-      if (crc32.checksum() != ReadInt(CRC32_PAGE_OFFSET)) {
+      if (crc32.checksum() != (uint32_t)ReadInt(CRC32_PAGE_OFFSET)) {
         _bInvalidPage = true;
       }
     }
@@ -65,7 +65,7 @@ void CachePage::ReadPage(PageFile *pageFile) {
                     (uint32_t)Configure::GetDiskClusterSize());
     crc32.reset();
     crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
-    if (crc32.checksum() != ReadInt(CRC32_HEAD_OFFSET)) {
+    if (crc32.checksum() != (uint32_t)ReadInt(CRC32_HEAD_OFFSET)) {
       _bInvalidPage = true;
     }
   }

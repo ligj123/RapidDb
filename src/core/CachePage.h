@@ -73,42 +73,42 @@ public:
   }
 
   inline Byte ReadByte(uint32_t pos) const {
-    assert(Configure::GetCachePageSize() > sizeof(Byte) + pos);
+    assert(Configure::GetCachePageSize() >= sizeof(Byte) + pos);
     return _bysPage[pos];
   }
 
   inline void WriteByte(uint32_t pos, Byte value) {
-    assert(Configure::GetCachePageSize() > sizeof(Byte) + pos);
+    assert(Configure::GetCachePageSize() >= sizeof(Byte) + pos);
     _bysPage[pos] = value;
   }
 
   inline int16_t ReadShort(uint32_t pos) const {
-    assert(Configure::GetCachePageSize() > sizeof(int16_t) + pos);
+    assert(Configure::GetCachePageSize() >= UI16_LEN + pos);
     return Int16FromBytes(_bysPage + pos);
   }
 
   inline void WriteShort(uint32_t pos, int16_t value) {
-    assert(Configure::GetCachePageSize() > sizeof(int16_t) + pos);
+    assert(Configure::GetCachePageSize() >= UI16_LEN + pos);
     Int16ToBytes(value, _bysPage + pos);
   }
 
   inline int32_t ReadInt(uint32_t pos) const {
-    assert(Configure::GetCachePageSize() > sizeof(int32_t) + pos);
+    assert(Configure::GetCachePageSize() >= UI32_LEN + pos);
     return Int32FromBytes(_bysPage + pos);
   }
 
   inline void WriteInt(uint32_t pos, int32_t value) {
-    assert(Configure::GetCachePageSize() > sizeof(int32_t) + pos);
+    assert(Configure::GetCachePageSize() >= UI32_LEN + pos);
     Int32ToBytes(value, _bysPage + pos);
   }
 
   inline uint64_t ReadLong(uint32_t pos) const {
-    assert(Configure::GetCachePageSize() > sizeof(int64_t) + pos);
+    assert(Configure::GetCachePageSize() >= UI64_LEN + pos);
     return Int64FromBytes(_bysPage + pos);
   }
 
   inline void WriteLong(uint32_t pos, int64_t value) {
-    assert(Configure::GetCachePageSize() > sizeof(int64_t) + pos);
+    assert(Configure::GetCachePageSize() >= UI64_LEN + pos);
     Int64ToBytes(value, _bysPage + pos);
   }
 
@@ -170,7 +170,7 @@ protected:
 
 class ReadPageTask : public Task {
 public:
-  ReadPageTask(CachePage *page) : _page(page) {}
+  ReadPageTask(CachePage *page) : _page(page) { page->IncRef(); }
   bool IsSmallTask() { return false; }
   void Run() {
     _status = TaskStatus::RUNNING;
@@ -189,6 +189,7 @@ public:
     ThreadPool::InstMain().AddTasks(vct);
     vct.clear();
     _page->WriteUnlock();
+    _page->DecRef();
   }
 
 protected:

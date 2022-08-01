@@ -101,6 +101,7 @@ void HeadPage::WriteFileVersion() {
   WriteByte(FILE_VERSION_OFFSET + 2, CURRENT_FILE_VERSION.GetMinorVersion());
   WriteByte(FILE_VERSION_OFFSET + 3, CURRENT_FILE_VERSION.GetPatchVersion());
   _bDirty = true;
+  _bHeadChanged = true;
 }
 
 FileVersion HeadPage::ReadFileVersion() {
@@ -115,6 +116,7 @@ void HeadPage::WriteKeyVariableFieldCount(uint16_t num) {
   _keyAlterableFieldCount = num;
   WriteShort(KEY_ALTERABLE_FIELD_COUNT_OFFSET, num);
   _bDirty = true;
+  _bHeadChanged = true;
 }
 
 void HeadPage::WriteValueVariableFieldCount(uint16_t num) {
@@ -125,5 +127,6 @@ void HeadPage::WriteValueVariableFieldCount(uint16_t num) {
 
   _indexTree->_valVarLen = num * UI16_LEN;
   _indexTree->_valOffset = (num + 2) * UI16_LEN;
+  _bHeadChanged = true;
 }
 } // namespace storage

@@ -99,6 +99,8 @@ protected:
   map<DT_MicroSec, VersionStamp, KeyCmp> _mapVerStamp;
   set<VersionStamp, KeyCmp> _setVerStamp;
   SpinMutex _spinMutex;
+  // HeadPage has changed or not
+  bool _bHeadChanged = false;
 
 public:
   HeadPage(IndexTree *indexTree)
@@ -110,8 +112,8 @@ public:
   FileVersion ReadFileVersion();
 
   inline Byte ReadRecordVersionCount() { return (Byte)_mapVerStamp.size(); }
-  // Only locked the entire table, here can update record version, so here do not
-  // need lock
+  // Only locked the entire table, here can update record version, so here do
+  // not need lock
   inline void AddNewRecordVersion(VersionStamp ver, DT_MicroSec timeStamp) {
     assert(_mapVerStamp.size() < MAX_RECORD_VERSION_COUNT);
     if (_mapVerStamp.size() > 0) {
@@ -121,6 +123,7 @@ public:
 
     _mapVerStamp.insert({timeStamp, ver});
     _setVerStamp.insert(ver);
+    _bHeadChanged = true;
   }
   /**Now only support input the time of version. It maybe change in following
    * time*/
@@ -163,6 +166,7 @@ public:
 
   void WriteRecordStamp(VersionStamp recordStamp) {
     _currRecordStamp.store(recordStamp, memory_order_relaxed);
+    _bHeadChanged = true;
   }
 
   inline PageID GetAndIncTotalPageCount(uint32_t pageNum = 1) {
@@ -175,6 +179,7 @@ public:
 
   void WriteTotalPageCount(uint32_t totalPage) {
     _totalPageCount.store(totalPage, memory_order_relaxed);
+    _bHeadChanged = true;
   }
 
   inline uint64_t ReadTotalRecordCount() {
@@ -183,6 +188,7 @@ public:
 
   inline void WriteTotalRecordCount(uint64_t totalRecNum) {
     _totalRecordCount.store(totalRecNum, memory_order_relaxed);
+    _bHeadChanged = true;
   }
 
   inline uint64_t GetAndIncTotalRecordCount() {
@@ -191,6 +197,7 @@ public:
 
   inline void WriteRootPagePointer(uint32_t pointer) {
     _rootPageId.store(pointer, memory_order_relaxed);
+    _bHeadChanged = true;
   }
 
   inline uint32_t ReadRootPagePointer() {
@@ -199,6 +206,7 @@ public:
 
   inline void WriteBeginLeafPagePointer(uint32_t pointer) {
     _beginLeafPageId.store(pointer, memory_order_relaxed);
+    _bHeadChanged = true;
   }
 
   inline uint32_t ReadBeginLeafPagePointer() {
@@ -207,6 +215,7 @@ public:
 
   inline void WriteEndLeafPagePointer(uint32_t pointer) {
     _endLeafPageId.store(pointer, memory_order_relaxed);
+    _bHeadChanged = true;
   }
 
   inline uint64_t ReadEndLeafPagePointer() {
@@ -217,6 +226,7 @@ public:
     lock_guard<SpinMutex> lock(_spinMutex);
     _indexType = type;
     WriteByte(INDEX_TYPE_OFFSET, (Byte)type);
+    _bHeadChanged = true;
   }
 
   inline IndexType ReadIndexType() { return _indexType; }
@@ -231,6 +241,7 @@ public:
 
   inline void WriteAutoIncrementKey(uint64_t key) {
     _autoIncrementKey1.store(key, memory_order_relaxed);
+    _bHeadChanged = true;
   }
 
   inline uint64_t GetAndAddAutoIncrementKey2(uint64_t step) {
@@ -243,6 +254,7 @@ public:
 
   inline void WriteAutoIncrementKey2(uint64_t key) {
     _autoIncrementKey2.store(key, memory_order_relaxed);
+    _bHeadChanged = true;
   }
 
   inline uint64_t GetAndAddAutoIncrementKey3(uint64_t step) {
@@ -255,6 +267,7 @@ public:
 
   void WriteAutoIncrementKey3(uint64_t key) {
     _autoIncrementKey3.store(key, memory_order_relaxed);
+    _bHeadChanged = true;
   }
 
   inline uint16_t ReadKeyVariableFieldCount() {
@@ -283,6 +296,9 @@ public:
     WriteShort(GARBAGE_SAVE_PAGES_NUM_OFFSET, usedPage);
     WriteInt(GRABAGE_TOTAL_ITEMS_OFFSET, totalPage);
     WriteInt(GARBAGE_CRC32_OFFSET, crc32);
+    _bHeadChanged = true;
   }
+
+  bool IsHeadChanged() { return _bHeadChanged; }
 };
 } // namespace storage
