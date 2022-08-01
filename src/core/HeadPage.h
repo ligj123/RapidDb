@@ -18,8 +18,6 @@ class HeadPage : public CachePage {
 public:
   /**The max versions can be support at the same time in a table*/
   static const uint16_t MAX_RECORD_VERSION_COUNT;
-  /**Invalid page id = UINT32_MAX*/
-  static const PageID PAGE_NULL_POINTER;
 
   /**Offset to save page type*/
   static const uint16_t PAGE_TYPE_OFFSET;

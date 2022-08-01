@@ -132,8 +132,8 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree =
       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
-  LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(
-      HeadPage::PAGE_NULL_POINTER, (Byte)0);
+  LeafPage *lp =
+      (LeafPage *)indexTree->AllocateNewPage(PAGE_NULL_POINTER, (Byte)0);
 
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
 //
 //    uint32_t lNext = lp->GetNextPageId();
 //    lp->DecRefCount();
-//    if (lNext == HeadPage::PAGE_NULL_POINTER) {
+//    if (lNext == PAGE_NULL_POINTER) {
 //      break;
 //    }
 //
@@ -288,7 +288,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
 //
 //    uint32_t lNext = lp->GetNextPageId();
 //    lp->DecRefCount();
-//    if (lNext == HeadPage::PAGE_NULL_POINTER) {
+//    if (lNext == PAGE_NULL_POINTER) {
 //      break;
 //    }
 //

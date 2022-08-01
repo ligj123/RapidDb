@@ -48,7 +48,7 @@ void CachePage::ReadPage(PageFile *pageFile) {
 
   PageFile *pFile =
       (pageFile == nullptr ? _indexTree->ApplyPageFile() : pageFile);
-  if (_pageId != HeadPage::PAGE_NULL_POINTER) {
+  if (_pageId != PAGE_NULL_POINTER) {
     pFile->ReadPage(Configure::GetDiskClusterSize() +
                         _pageId * Configure::GetCachePageSize(),
                     (char *)_bysPage, (uint32_t)Configure::GetCachePageSize());
@@ -82,13 +82,13 @@ void CachePage::WritePage(PageFile *pageFile) {
   char *tmp = PageFile::_tmpBuff;
   {
     unique_lock<SpinMutex> lock(_pageLock);
-    BytesCopy(tmp, _bysPage,
-              (_pageId != HeadPage::PAGE_NULL_POINTER ? CACHE_PAGE_SIZE
-                                                      : HEAD_PAGE_SIZE));
+    BytesCopy(
+        tmp, _bysPage,
+        (_pageId != PAGE_NULL_POINTER ? CACHE_PAGE_SIZE : HEAD_PAGE_SIZE));
     _bDirty = false;
   }
 
-  if (_pageId != HeadPage::PAGE_NULL_POINTER) {
+  if (_pageId != PAGE_NULL_POINTER) {
     if (_pageType != PageType::OVERFLOW_PAGE) {
       crc32.reset();
       crc32.process_bytes(_bysPage, CRC32_PAGE_OFFSET);

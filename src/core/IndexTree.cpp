@@ -66,7 +66,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
     }
 
     StoragePool::WriteCachePage(_headPage);
-    _rootPage = AllocateNewPage(HeadPage::PAGE_NULL_POINTER, 0);
+    _rootPage = AllocateNewPage(PAGE_NULL_POINTER, 0);
     _rootPage->SetBeginPage(true);
     _rootPage->SetEndPage(true);
     StoragePool::WriteCachePage(_rootPage);
@@ -212,9 +212,9 @@ void IndexTree::UpdateRootPage(IndexPage *root) {
 }
 
 IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
-  PageID newPageId = _garbageOwner == nullptr ? HeadPage::PAGE_NULL_POINTER
+  PageID newPageId = _garbageOwner == nullptr ? PAGE_NULL_POINTER
                                               : _garbageOwner->ApplyPage(1);
-  if (newPageId == HeadPage::PAGE_NULL_POINTER)
+  if (newPageId == PAGE_NULL_POINTER)
     newPageId = _headPage->GetAndIncTotalPageCount();
 
   IndexPage *page = nullptr;

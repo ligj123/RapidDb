@@ -39,9 +39,9 @@ bool IndexPage::PageDivide() {
   BranchRecord *brParentOld = nullptr;
   BranchPage *parentPage = nullptr;
   int posInParent = 0;
-  if (_parentPageId == HeadPage::PAGE_NULL_POINTER) {
-    parentPage = (BranchPage *)_indexTree->AllocateNewPage(
-        HeadPage::PAGE_NULL_POINTER, GetPageLevel() + 1);
+  if (_parentPageId == PAGE_NULL_POINTER) {
+    parentPage = (BranchPage *)_indexTree->AllocateNewPage(PAGE_NULL_POINTER,
+                                                           GetPageLevel() + 1);
     parentPage->WriteLock();
     _parentPageId = parentPage->GetPageId();
     _indexTree->UpdateRootPage(parentPage);
@@ -195,7 +195,7 @@ bool IndexPage::PageDivide() {
     ((LeafPage *)vctPage[vctPage.size() - 1])->SetPrevPageId(prevPointer);
     ((LeafPage *)vctPage[vctPage.size() - 1])->SetNextPageId(lastPointer);
 
-    if (lastPointer == HeadPage::PAGE_NULL_POINTER) {
+    if (lastPointer == PAGE_NULL_POINTER) {
       _indexTree->GetHeadPage()->WriteEndLeafPagePointer(
           ((LeafPage *)vctPage[vctPage.size() - 1])->GetPageId());
     } else {

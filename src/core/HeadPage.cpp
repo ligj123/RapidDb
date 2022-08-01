@@ -4,7 +4,6 @@
 
 namespace storage {
 const uint16_t HeadPage::MAX_RECORD_VERSION_COUNT = 8;
-const PageID HeadPage::PAGE_NULL_POINTER = UINT32_MAX;
 
 const uint16_t HeadPage::PAGE_TYPE_OFFSET = 0;
 const uint16_t HeadPage::INDEX_TYPE_OFFSET = 1;

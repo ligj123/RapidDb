@@ -18,15 +18,13 @@ const uint16_t IndexPage::MAX_DATA_LENGTH_LEAF =
 
 LeafPage::LeafPage(IndexTree *indexTree, PageID pageId, PageID parentPageId)
     : IndexPage(indexTree, pageId, 0, parentPageId, PageType::LEAF_PAGE),
-      _prevPageId(HeadPage::PAGE_NULL_POINTER),
-      _nextPageId(HeadPage::PAGE_NULL_POINTER) {
+      _prevPageId(PAGE_NULL_POINTER), _nextPageId(PAGE_NULL_POINTER) {
   _vctRecord.reserve(256);
 }
 
 LeafPage::LeafPage(IndexTree *indexTree, PageID pageId)
     : IndexPage(indexTree, pageId, PageType::LEAF_PAGE),
-      _prevPageId(HeadPage::PAGE_NULL_POINTER),
-      _nextPageId(HeadPage::PAGE_NULL_POINTER) {
+      _prevPageId(PAGE_NULL_POINTER), _nextPageId(PAGE_NULL_POINTER) {
   _vctRecord.reserve(256);
 }
 

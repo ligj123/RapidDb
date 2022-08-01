@@ -91,15 +91,15 @@ void GarbageOwner::ReleasePage(PageID pid, uint16_t num) {
  */
 PageID GarbageOwner::ApplyPage(uint16_t num) {
   if (_totalGarbagePages < num || _rangePage.rbegin()->first < num) {
-    return HeadPage::PAGE_NULL_POINTER;
+    return PAGE_NULL_POINTER;
   }
   unique_lock<ReentrantSpinMutex> lock(_spinMutex, defer_lock);
   if (!lock.try_lock()) {
-    return HeadPage::PAGE_NULL_POINTER;
+    return PAGE_NULL_POINTER;
   }
   auto iter = _rangePage.lower_bound(num);
   if (iter == _rangePage.end()) {
-    return HeadPage::PAGE_NULL_POINTER;
+    return PAGE_NULL_POINTER;
   }
 
   int16_t num2 = iter->first;
@@ -122,7 +122,7 @@ void GarbageOwner::SavePage() {
   }
 
   if (_totalGarbagePages == 0) {
-    _firstPageId = HeadPage::PAGE_NULL_POINTER;
+    _firstPageId = PAGE_NULL_POINTER;
     _usedPageNum = 0;
     _indexTree->GetHeadPage()->WriteGabage(_totalGarbagePages, _firstPageId,
                                            _usedPageNum, 0);
@@ -134,7 +134,7 @@ void GarbageOwner::SavePage() {
       (uint16_t)((_treeFreePage.size() * 6 + CachePage::CACHE_PAGE_SIZE - 1) /
                  CachePage::CACHE_PAGE_SIZE);
   _firstPageId = ApplyPage(_usedPageNum);
-  if (_firstPageId == HeadPage::PAGE_NULL_POINTER) {
+  if (_firstPageId == PAGE_NULL_POINTER) {
     _firstPageId =
         _indexTree->GetHeadPage()->GetAndIncTotalPageCount(_usedPageNum);
   }

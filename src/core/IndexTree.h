@@ -40,7 +40,7 @@ public:
   // first. If no suitable, it will apply new page id
   PageID ApplyPageId(uint16_t num) {
     PageID pid = _garbageOwner->ApplyPage(num);
-    if (pid == HeadPage::PAGE_NULL_POINTER) {
+    if (pid == PAGE_NULL_POINTER) {
       pid = _headPage->GetAndIncTotalPageCount(num);
     }
     return pid;
