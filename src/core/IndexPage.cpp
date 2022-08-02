@@ -62,7 +62,7 @@ bool IndexPage::PageDivide() {
 
   // System.out.println("pageDivide");
   // Calc this page's records
-  int maxLen = (int)(GetMaxDataLength() * LOAD_FACTOR);
+  int maxLen = GetMaxDataLength() * LOAD_FACTOR / 100;
   int pos = 0;
   int len = 0;
   int refCount = 0;

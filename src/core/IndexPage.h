@@ -45,7 +45,7 @@ public:
   // for begin page mark, the second bit is for end page mark.
   static const uint16_t PAGE_BEGIN_END_OFFSET;
   // Used in future. For large transaction, to save how much record in
-  // transaction status, only used in LeafPage .
+  // transaction status, only used in LeafPage.
   static const uint16_t PAGE_TRAN_COUNT;
   // Recors number in this page
   static const uint16_t NUM_RECORD_OFFSET;
