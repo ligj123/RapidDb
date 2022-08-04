@@ -207,7 +207,7 @@ void IndexTree::UpdateRootPage(IndexPage *root) {
   _rootPage->DecRef();
   _headPage->WriteRootPagePointer(root->GetPageId());
   _rootPage = root;
-  root->DecRef();
+  root->IncRef();
   StoragePool::WriteCachePage(_headPage);
 }
 
@@ -224,6 +224,7 @@ IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
     page = new LeafPage(this, newPageId, parentId);
   }
 
+  page->GetBysPage()[IndexPage::PAGE_BEGIN_END_OFFSET] = 0;
   page->SetPageLoaded();
   PageBufferPool::AddPage(page);
   IncPages();

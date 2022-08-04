@@ -142,7 +142,7 @@ protected:
   bool _bClosed = false;
   /** Head page */
   HeadPage *_headPage = nullptr;
-  GarbageOwner *_garbageOwner;
+  GarbageOwner *_garbageOwner = nullptr;
 
   /** To record how much pages of this index tree are in memory */
   atomic<int32_t> _pagesInMem = 0;

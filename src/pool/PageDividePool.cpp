@@ -17,8 +17,10 @@ void PageDividePool::RemoveTimerTask() {
   TimerThread::RemoveTask("PageDividePool");
 }
 
-void PageDividePool::AddCachePage(IndexPage *page) {
-  page->IncRef();
+void PageDividePool::AddCachePage(IndexPage *page, bool bInc) {
+  if (bInc) {
+    page->IncRef();
+  }
   _divPool->_fastQueue.Push(page);
 }
 

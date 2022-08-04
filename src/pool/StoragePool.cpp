@@ -17,11 +17,6 @@ void StoragePool::AddTimerTask() {
 }
 void StoragePool::RemoveTimerTask() { TimerThread::RemoveTask("StoragePool"); }
 
-void StoragePool::WriteCachePage(CachePage *page) {
-  page->IncRef();
-  _storagePool->_fastQueue.Push(page);
-}
-
 void StoragePool::PushTask() {
   StorageTask *task = new StorageTask();
   _storagePool->_threadPool->AddTask(task);

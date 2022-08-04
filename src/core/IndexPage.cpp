@@ -42,6 +42,8 @@ bool IndexPage::PageDivide() {
   if (_parentPageId == PAGE_NULL_POINTER) {
     parentPage = (BranchPage *)_indexTree->AllocateNewPage(PAGE_NULL_POINTER,
                                                            GetPageLevel() + 1);
+    parentPage->SetBeginPage(true);
+    parentPage->SetEndPage(true);
     parentPage->WriteLock();
     _parentPageId = parentPage->GetPageId();
     _indexTree->UpdateRootPage(parentPage);
@@ -208,6 +210,11 @@ bool IndexPage::PageDivide() {
     }
   }
 
+  if (IsEndPage()) {
+    SetEndPage(false);
+    vctPage[vctPage.size() - 1]->SetEndPage(true);
+  }
+  
   // Save new page'
   for (int i = 0; i < vctPage.size(); i++) {
     IndexPage *indexPage = vctPage[i];

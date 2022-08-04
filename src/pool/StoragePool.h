@@ -17,7 +17,12 @@ public:
 public:
   static void AddTimerTask();
   static void RemoveTimerTask();
-  static void WriteCachePage(CachePage *page);
+  static void WriteCachePage(CachePage *page, bool bInc) {
+    if (bInc) {
+      page->IncRef();
+    }
+    _storagePool->_fastQueue.Push(page);
+  }
   static size_t GetWaitingPageCount() { return _storagePool->_mapWrite.size(); }
   static void InitPool(ThreadPool *tp) {
     assert(_storagePool == nullptr);
