@@ -17,7 +17,19 @@ public:
 public:
   static void AddTimerTask();
   static void RemoveTimerTask();
-  static void AddCachePage(IndexPage *page);
+  static void AddCachePage(IndexPage *page, bool bInc) {
+    if (page->IsInDivid()) {
+      if (!bInc)
+        page->DecRef();
+      return;
+    } else {
+      if (bInc) {
+        page->IncRef();
+      }
+      page->SetInDivid(true);
+      _divPool->_fastQueue.Push(page);
+    }
+  }
   static void PoolManage();
   static void StopPool();
   static void PushTask();

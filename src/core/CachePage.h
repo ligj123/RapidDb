@@ -50,6 +50,8 @@ public:
   inline uint64_t HashCode() const { return CalcHashCode(_fileId, _pageId); }
   inline void UpdateWriteTime() { _dtPageLastWrite = MicroSecTime(); }
   inline uint64_t GetWriteTime() const { return _dtPageLastWrite; }
+  inline void UpdateDividTime() { _dtPageLastDivid = MicroSecTime(); }
+  inline uint64_t GetDividTime() const { return _dtPageLastDivid; }
   inline uint64_t GetFileId() const { return _fileId; }
   inline IndexTree *GetIndexTree() const { return _indexTree; }
   inline Byte *GetBysPage() const { return _bysPage; }
@@ -64,8 +66,11 @@ public:
   inline bool WriteTryLock() { return _rwLock.try_lock(); }
   inline void WriteUnlock() { _rwLock.unlock(); }
   inline int32_t GetRefCount() { return _refCount.load(memory_order_relaxed); }
-  inline bool IsOverTime(uint64_t microSecs) {
+  inline bool IsWriteOverTime(uint64_t microSecs) {
     return MicroSecTime() - _dtPageLastWrite > microSecs;
+  }
+  inline bool IsDividOverTime(uint64_t microSecs) {
+    return MicroSecTime() - _dtPageLastDivid > microSecs;
   }
   void IncRef(int num = 1) {
     assert(num > 0);
@@ -130,6 +135,12 @@ public:
   inline MVector<Task *>::Type &GetWaitTasks() { return _waitTasks; }
   inline bool IsPageLoaded() { return _bLoaded; }
   inline void SetPageLoaded() { _bLoaded = true; }
+  inline void SetInDivid(bool b) { _bInDivid.store(b, memory_order_relaxed); }
+  inline bool IsInDivid() { return _bInDivid.load(memory_order_relaxed); }
+  inline void SetInStorage(bool b) {
+    _bInStorage.store(b, memory_order_relaxed);
+  }
+  inline bool IsInStorage() { return _bInStorage; }
 
 protected:
   virtual ~CachePage();
@@ -142,6 +153,8 @@ protected:
   ReentrantSharedSpinMutex _rwLock;
   // Locked when read from or write to disk
   SpinMutex _pageLock;
+  // The last time to divid this page
+  DT_MicroSec _dtPageLastDivid = 0;
   // The last time to update _bysPage
   DT_MicroSec _dtPageLastWrite = 0;
   // The last time to visit this page, Now only used when get from
@@ -153,6 +166,8 @@ protected:
   PageID _pageId = 0;
   // How many times has this page been referenced
   atomic<int32_t> _refCount = {2};
+  // Copy from IndexTree
+  uint32_t _fileId;
   // If this page has been changed
   bool _bDirty = false;
   // used only in IndexPage, point out if there have records added or deleted
@@ -164,8 +179,10 @@ protected:
   bool _bLoaded = false;
   // Page Type
   PageType _pageType;
-  // Copy from IndexTree
-  uint32_t _fileId;
+  // If this page has been added PageDividPool queue.
+  atomic_bool _bInDivid = false;
+  // If this page has been added StoragePool queue.
+  atomic_bool _bInStorage = false;
 };
 
 class ReadPageTask : public Task {

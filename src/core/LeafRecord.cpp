@@ -147,7 +147,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
     crc32.reset();
     crc32.process_bytes(recStru._bysValStart, lenVal);
     recStru._arrCrc32[0] = crc32.checksum();
-    StoragePool::WriteCachePage(_overflowPage);
+    StoragePool::WriteCachePage(_overflowPage, true);
   }
 }
 
@@ -252,6 +252,7 @@ int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
     crc32.reset();
     crc32.process_bytes(recStru._bysValStart, lenVal + oldLenVal);
     recStru._arrCrc32[0] = crc32.checksum();
+    StoragePool::WriteCachePage(_overflowPage, true);
   }
 
   return *recStru._totalLen - *recStruOld._totalLen;

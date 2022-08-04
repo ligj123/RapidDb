@@ -35,7 +35,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
         BytesCopy(page->GetBysPage() + Configure::GetCachePageSize() - _strSize,
                   _pStrTest, _strSize);
         page->SetDirty(true);
-        StoragePool::WriteCachePage(page);
+        StoragePool::WriteCachePage(page, true);
       }
     }
 

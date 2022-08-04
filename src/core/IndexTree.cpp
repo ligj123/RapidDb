@@ -65,11 +65,11 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
       _headPage->WriteValueVariableFieldCount(count);
     }
 
-    StoragePool::WriteCachePage(_headPage);
+    StoragePool::WriteCachePage(_headPage, false);
     _rootPage = AllocateNewPage(PAGE_NULL_POINTER, 0);
     _rootPage->SetBeginPage(true);
     _rootPage->SetEndPage(true);
-    StoragePool::WriteCachePage(_rootPage);
+    StoragePool::WriteCachePage(_rootPage, true);
   } else {
     _headPage->ReadPage();
     FileVersion &&fv = _headPage->ReadFileVersion();
@@ -208,7 +208,7 @@ void IndexTree::UpdateRootPage(IndexPage *root) {
   _headPage->WriteRootPagePointer(root->GetPageId());
   _rootPage = root;
   root->IncRef();
-  StoragePool::WriteCachePage(_headPage);
+  StoragePool::WriteCachePage(_headPage, false);
 }
 
 IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {

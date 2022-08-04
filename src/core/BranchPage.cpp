@@ -80,7 +80,6 @@ bool BranchPage::SaveRecords() {
   _bRecordUpdate = false;
   _bDirty = true;
 
-  StoragePool::WriteCachePage(this);
   return true;
 }
 

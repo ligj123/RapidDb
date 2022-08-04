@@ -48,19 +48,32 @@ void StoragePool::PoolManage() {
   }
 
   bool bmax = (_storagePool->_mapWrite.size() > MAX_QUEUE_SIZE / 2);
+  IndexTree *tree = nullptr;
+  PageFile *pf = nullptr;
+
   for (auto iter = _storagePool->_mapWrite.begin();
        iter != _storagePool->_mapWrite.end();) {
     CachePage *page = iter->second;
     if (!page->GetIndexTree()->IsClosed() && bmax &&
-        (MicroSecTime() - page->GetWriteTime() < WRITE_DELAY_MS)) {
+        !page->IsWriteOverTime(WRITE_DELAY_MS)) {
       iter++;
       continue;
     }
 
+    page->SetInStorage(false);
     if (page->IsDirty()) {
-      page->WritePage();
+      if (tree == nullptr || tree != page->GetIndexTree()) {
+        if (pf != nullptr) {
+          tree->ReleasePageFile(pf);
+        }
+
+        tree = page->GetIndexTree();
+        pf = tree->ApplyPageFile();
+      }
+      page->WritePage(pf);
     }
 
+    tree->ReleasePageFile(pf);
     page->DecRef();
     iter = _storagePool->_mapWrite.erase(iter);
   }

@@ -205,8 +205,7 @@ bool IndexPage::PageDivide() {
       lastPage->SetPrevPageId(
           ((LeafPage *)vctPage[vctPage.size() - 1])->GetPageId());
       lastPage->SetDirty(true);
-      PageDividePool::AddCachePage(lastPage);
-      lastPage->DecRef();
+      PageDividePool::AddCachePage(lastPage, false);
     }
   }
 
@@ -214,14 +213,13 @@ bool IndexPage::PageDivide() {
     SetEndPage(false);
     vctPage[vctPage.size() - 1]->SetEndPage(true);
   }
-  
+
   // Save new page'
   for (int i = 0; i < vctPage.size(); i++) {
     IndexPage *indexPage = vctPage[i];
     indexPage->_bRecordUpdate = true;
-    PageDividePool::AddCachePage(indexPage);
+    PageDividePool::AddCachePage(indexPage, false);
     indexPage->WriteUnlock();
-    indexPage->DecRef();
   }
 
   if (brParentOld != nullptr) {
@@ -230,9 +228,9 @@ bool IndexPage::PageDivide() {
 
   _bRecordUpdate = true;
   // SaveRecords();
-  PageDividePool::AddCachePage(this);
-  PageDividePool::AddCachePage(parentPage);
-  StoragePool::WriteCachePage(_indexTree->GetHeadPage());
+  PageDividePool::AddCachePage(this, false);
+  PageDividePool::AddCachePage(parentPage, false);
+  StoragePool::WriteCachePage(_indexTree->GetHeadPage(), false);
 
   return true;
 }

@@ -1,5 +1,6 @@
 ﻿#include "PageDividePool.h"
 #include "../config/Configure.h"
+#include "StoragePool.h"
 
 namespace storage {
 const uint32_t PageDividePool::BUFFER_FLUSH_INTEVAL_MS = 10 * 1000;
@@ -15,13 +16,6 @@ void PageDividePool::AddTimerTask() {
 }
 void PageDividePool::RemoveTimerTask() {
   TimerThread::RemoveTask("PageDividePool");
-}
-
-void PageDividePool::AddCachePage(IndexPage *page, bool bInc) {
-  if (bInc) {
-    page->IncRef();
-  }
-  _divPool->_fastQueue.Push(page);
 }
 
 void PageDividePool::StopPool() {
@@ -47,7 +41,7 @@ void PageDividePool::PoolManage() {
     if (_divPool->_mapPage.find(page->HashCode()) != _divPool->_mapPage.end()) {
       page->DecRef();
     } else {
-      page->UpdateWriteTime();
+      page->UpdateDividTime();
       _divPool->_mapPage.insert({page->HashCode(), page});
     }
   }
@@ -57,7 +51,7 @@ void PageDividePool::PoolManage() {
        iter != _divPool->_mapPage.end();) {
     auto page = iter->second;
     if (page->GetTranCount() > 0UL ||
-        (unfull && !page->IsOverTime(BUFFER_FLUSH_INTEVAL_MS) &&
+        (unfull && !page->IsDividOverTime(BUFFER_FLUSH_INTEVAL_MS) &&
          !page->IsOverlength() && !page->GetIndexTree()->IsClosed())) {
       iter++;
       continue;
@@ -75,12 +69,17 @@ void PageDividePool::PoolManage() {
     if (page->GetTotalDataLength() > page->GetMaxDataLength()) {
       bPassed = page->PageDivide();
     } else {
+      page->SetInDivid(false);
       bPassed = page->SaveRecords();
+      if (bPassed) {
+        StoragePool::WriteCachePage(page, false);
+      } else {
+        page->SetInDivid(true);
+      }
     }
 
     page->WriteUnlock();
     if (bPassed) {
-      page->DecRef();
       iter = _divPool->_mapPage.erase(iter);
     } else {
       iter++;

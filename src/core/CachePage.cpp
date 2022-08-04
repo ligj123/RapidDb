@@ -33,6 +33,8 @@ CachePage::~CachePage() {
 }
 
 void CachePage::DecRef(int num) {
+  if (_pageType == PageType::HEAD_PAGE)
+    return;
   assert(num > 0);
   int32_t rc = _refCount.fetch_sub(num, memory_order_relaxed);
 

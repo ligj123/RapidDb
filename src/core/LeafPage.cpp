@@ -106,7 +106,6 @@ bool LeafPage::SaveRecords() {
   _bRecordUpdate = false;
   _bDirty = true;
 
-  StoragePool::WriteCachePage(this);
   return true;
 }
 
@@ -139,8 +138,6 @@ ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
   _bDirty = true;
   _bRecordUpdate = true;
   _indexTree->GetHeadPage()->GetAndIncTotalRecordCount();
-  PageDividePool::AddCachePage(this);
-
   return nullptr;
 }
 
