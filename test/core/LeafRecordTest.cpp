@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
   BOOST_TEST(dvBlob == *vctDv[1]);
 
   hp->AddNewRecordVersion(10, MicroSecTime());
-  vctVal.clear();
+  vctVal.RemoveAll();
   lr->UpdateRecord(vctVal, 10, nullptr, ActionType::DELETE, false);
 
   BOOST_TEST(lr->GetVersionNumber() == 2);

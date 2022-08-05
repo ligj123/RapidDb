@@ -102,7 +102,7 @@ void PageBufferPool::PoolManage() {
   }
 
   LOG_INFO << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.Size()
-           << "Removed page:" << delCount;
+           << "\tRemoved page:" << delCount;
 
   // LOG_INFO << "\tPageDividePool=" << PageDividePool::GetWaitingPageSize()
   //          << "\tWaitWriteQueue:" << StoragePool::GetWaitingWriteTaskCount()

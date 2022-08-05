@@ -25,7 +25,12 @@ std::string StackTrace() {
   static int count = 0;
   count++;
   boost::stacktrace::stacktrace st;
+#ifdef _MSVC_LANG
+  auto iter = st.begin() + 3;
+#else
   auto iter = st.begin() + 1;
+#endif
+
   std::stringstream ss;
 
   for (int i = 0; iter != st.end() && i < depth; iter++, i++) {

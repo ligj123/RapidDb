@@ -73,9 +73,12 @@ void StoragePool::PoolManage() {
       page->WritePage(pf);
     }
 
-    tree->ReleasePageFile(pf);
     page->DecRef();
     iter = _storagePool->_mapWrite.erase(iter);
+  }
+
+  if (tree != nullptr) {
+    tree->ReleasePageFile(pf);
   }
 }
 } // namespace storage
