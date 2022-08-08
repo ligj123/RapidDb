@@ -117,14 +117,14 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
 }
 
 BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
-  PageBufferPool::RemoveTimerTask();
-  PageDividePool::RemoveTimerTask();
-  StoragePool::RemoveTimerTask();
-
   const string FILE_NAME =
       "./dbTest/testLeafPageSaveLoad" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = LeafPage::MAX_DATA_LENGTH_LEAF / 100;
+
+  PageBufferPool::RemoveTimerTask();
+  PageDividePool::RemoveTimerTask();
+  StoragePool::RemoveTimerTask();
 
   DataValueLong *dvKey = new DataValueLong(100, true);
   DataValueLong *dvVal = new DataValueLong(200, false);
@@ -218,6 +218,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
 
   bool b = lp->PageDivide();
   BOOST_TEST(true == b);
+  lp->IncRef();
 
   LeafPage *lpNext = nullptr;
   VectorLeafRecord vlr;
@@ -269,6 +270,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
   b = lp->PageDivide();
   BOOST_TEST(true == b);
 
+  lp->IncRef();
   count = 0;
   while (lp != nullptr) {
     // LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" <<

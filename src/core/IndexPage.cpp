@@ -179,7 +179,6 @@ bool IndexPage::PageDivide() {
   }
 
   parentPage->WriteUnlock();
-  parentPage->DecRef();
 
   if (level == 0) {
     // if is leaf page, set left and right page

@@ -35,7 +35,6 @@ RawKey *BranchRecord::GetKey() const {
 }
 
 int BranchRecord::CompareTo(const RawRecord &rr) const {
-  assert(typeid(rr) == typeid(BranchRecord));
   if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
     return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
                         GetKeyLength() - _indexTree->GetKeyVarLen(),

@@ -149,7 +149,7 @@ void GarbageOwner::SavePage() {
   }
 
   ovfPage->WritePage(nullptr);
-  ovfPage->DecRef();
+  ovfPage->DecRef(2);
 }
 
 void GarbageOwner::InsertPage(PageID pageId, int16_t num) {
