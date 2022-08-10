@@ -7,7 +7,7 @@ class InsertStatement : public Statement {
 public:
   InsertStatement(ExprInsert *exprInsert, Transaction *tran);
   ~InsertStatement() {}
-  ActionType GetActionType() { return ActionType::INSERT; }
+  ActionType GetActionType() override { return ActionType::INSERT; }
   int ExecuteUpdate() override;
   future<int> ExecuteUpdateAsyn() override;
 

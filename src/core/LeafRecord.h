@@ -120,7 +120,7 @@ public:
   bool IsSole() const override {
     return _undoRec == nullptr ? _bSole : _undoRec->IsSole();
   }
-  bool IsTransaction() const { return _statement != nullptr; }
+  bool IsTransaction() const override { return _statement != nullptr; }
 
   inline LeafRecord *ReferenceRecord() {
     _refCount++;

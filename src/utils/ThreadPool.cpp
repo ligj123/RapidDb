@@ -1,4 +1,5 @@
 ﻿#include "ThreadPool.h"
+#include "Log.h"
 #include <stdexcept>
 
 namespace storage {
@@ -12,7 +13,7 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
                        int minThreads, int maxThreads)
     : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize),
       _stopThreads(false), _minThreads(minThreads), _maxThreads(maxThreads),
-      _aliveThreads(0), _freeThreads(0) {
+      _aliveThreads(0), _freeThreads(0), _tasksNum(0) {
   if (_minThreads < 1 || _minThreads > _maxThreads || _maxThreads < 1) {
     throw invalid_argument(
         "Please set min threads and max thread in right range!");
@@ -39,16 +40,18 @@ void ThreadPool::CreateThread(int id) {
   thread *t = new thread([this, id]() {
     _threadName = _threadPrefix + "_" + to_string(id);
     _threadID = id;
-    MVector<Task *>::Type vct;
+    vector<Task *> vct;
+    vct.reserve(10);
 
     while (true) {
+      vct.clear();
       std::unique_lock<SpinMutex> queue_lock(_task_mutex);
       _freeThreads++;
-      _taskCv.wait_for(queue_lock, 500ms, [&]() -> bool {
-        return GetTaskCount() > 0 || _stopThreads;
+      _taskCv.wait_for(queue_lock, 100ms, [this]() -> bool {
+        return _tasksNum > 0 || _stopThreads;
       });
 
-      if (GetTaskCount() == 0) {
+      if (_tasksNum == 0) {
         _freeThreads--;
         queue_lock.unlock();
         std::unique_lock<SpinMutex> thread_lock(_threadMutex);
@@ -59,7 +62,6 @@ void ThreadPool::CreateThread(int id) {
         }
       }
 
-      vct.clear();
       if (_urgentTasks.size() > 0) {
         vct.push_back(_urgentTasks.front());
         _urgentTasks.pop_front();
@@ -75,6 +77,7 @@ void ThreadPool::CreateThread(int id) {
       }
 
       _freeThreads--;
+      _tasksNum -= vct.size();
       queue_lock.unlock();
 
       for (Task *task : vct) {
@@ -139,12 +142,13 @@ void ThreadPool::AddTask(Task *task, bool urgent) {
     } else {
       _largeTasks.push_back(task);
     }
+    _tasksNum++;
+    _taskCv.notify_one();
   }
 
   if (_aliveThreads < _maxThreads && _freeThreads <= 0) {
     CreateThread();
   }
-  _taskCv.notify_one();
 }
 
 void ThreadPool::AddTasks(MVector<Task *>::Type &vct) {
@@ -161,11 +165,12 @@ void ThreadPool::AddTasks(MVector<Task *>::Type &vct) {
         _largeTasks.push_back(task);
       }
     }
+    _tasksNum += vct.size();
+    _taskCv.notify_all();
   }
 
   if (_aliveThreads < _maxThreads && _freeThreads <= 0) {
     CreateThread();
   }
-  _taskCv.notify_all();
 }
 } // namespace storage

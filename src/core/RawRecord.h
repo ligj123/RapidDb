@@ -39,7 +39,7 @@ public:
   inline IndexTree *GetTreeFile() const { return _indexTree; }
   virtual uint16_t GetValueLength() const = 0;
   virtual bool IsSole() const { return _bSole; }
-  virtual bool IsTransaction() { return false; }
+  virtual bool IsTransaction() const { return false; }
 
 public:
   static void *operator new(size_t size) {

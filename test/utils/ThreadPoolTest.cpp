@@ -1,4 +1,5 @@
 ﻿#include "../../src/utils/ThreadPool.h"
+#include "../../src/utils/Log.h"
 #include <boost/test/unit_test.hpp>
 #include <string>
 
@@ -11,29 +12,33 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
   class TestTask : public Task {
   public:
     TestTask() {}
-    bool IsSmallTask() { return false; }
+    bool IsSmallTask() override { return false; }
     void Run() override {
       _val = ThreadPool::_threadID;
-      this_thread::sleep_for(100ms);
+      LOG_INFO << "thread id: " << _val;
+      this_thread::sleep_for(500ms);
       _status = TaskStatus::PAUSE_WITHOUT_ADD;
     }
 
   public:
     int _val = 0;
   };
+
   ThreadPool tp("Test_ThreadPool", 10000, 8, 8);
   TestTask arr[8];
   for (int i = 0; i < 8; i++) {
     tp.AddTask(&arr[i]);
+    this_thread::sleep_for(1ms);
   }
 
-  this_thread::sleep_for(300ms);
+  this_thread::sleep_for(1000ms);
 
   int count = 0;
   for (int i = 0; i < 8; i++) {
     count += arr[i]._val;
   }
 
+  LOG_INFO << "count: " << count;
   BOOST_TEST(count == 28);
 }
 
@@ -41,7 +46,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   class TestTask : public Task {
   public:
     TestTask(bool *pStop) : _pStop(pStop) {}
-    bool IsSmallTask() { return false; }
+    bool IsSmallTask() override { return false; }
     void Run() override {
       while (!*_pStop) {
         this_thread::sleep_for(chrono::milliseconds(1));

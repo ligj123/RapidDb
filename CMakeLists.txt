@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
-# SET(CMAKE_C_COMPILER /usr/bin/clang)
-# SET(CMAKE_CXX_COMPILER /usr/bin/clang++)
+SET(CMAKE_C_COMPILER /usr/bin/clang)
+SET(CMAKE_CXX_COMPILER /usr/bin/clang++)
 set(CMAKE_EXPORT_COMPILECOMMANDS ON)
 project(RapidDB)
 
@@ -15,7 +15,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # set(CMAKE_C_FLAGS "-ldl -lbacktrace")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -rdynamic")
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
 
 # 打印信息

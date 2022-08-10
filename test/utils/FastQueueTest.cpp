@@ -17,7 +17,7 @@ BOOST_AUTO_TEST_CASE(FastQueue_test) {
   class TestTask : public Task {
   public:
     TestTask() {}
-    bool IsSmallTask() { return false; }
+    bool IsSmallTask() override { return false; }
     void Run() override {
       while (!bStop1) {
         fastQueue.Push(

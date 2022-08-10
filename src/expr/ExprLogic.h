@@ -77,6 +77,8 @@ public:
     bool b = _exprArray->Exist(pdv);
     if (!pdv->IsReuse())
       return false;
+
+    return true;
   }
 
 protected:

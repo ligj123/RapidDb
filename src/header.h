@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <stdint.h>
-using namespace std;
+
 #define _DEBUG_TEST
 #define _MAX_QUEUE_COUNT 8
 typedef unsigned char Byte;

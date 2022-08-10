@@ -63,7 +63,7 @@ public:
   IndexPage(IndexTree *indexTree, uint32_t pageId, uint8_t pageLevel,
             uint32_t parentPageId, PageType type);
   ~IndexPage();
-  virtual void Init();
+  void Init() override;
   inline uint16_t GetMaxDataLength() const {
     return GetPageType() == PageType::LEAF_PAGE ? MAX_DATA_LENGTH_LEAF
                                                 : MAX_DATA_LENGTH_BRANCH;

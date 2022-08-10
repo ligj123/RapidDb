@@ -1,6 +1,8 @@
 ﻿#include "Log.h"
 #include <filesystem>
 
+using namespace std;
+
 namespace storage {
 BOOST_LOG_ATTRIBUTE_KEYWORD(log_severity, "Severity", severity_level)
 BOOST_LOG_ATTRIBUTE_KEYWORD(log_timestamp, "TimeStamp",
@@ -26,7 +28,8 @@ src::severity_logger<severity_level> Logger::slg_;
 void Logger::init(std::string strPath, severity_level filterFile,
                   severity_level filterConsole) {
   logging::formatter formatter =
-      expr::stream << expr::format_date_time(log_timestamp, "%Y-%m-%d %H:%M:%S")
+      expr::stream << expr::format_date_time(log_timestamp,
+                                             "%Y-%m-%d %H:%M:%S.%f")
                    << " [" << log_severity << "] " << expr::message;
 
   auto console_sink =

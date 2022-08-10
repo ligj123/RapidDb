@@ -119,6 +119,7 @@ protected:
   int _maxThreads;
   int _aliveThreads;
   int _freeThreads;
+  int _tasksNum;
 
 protected:
   static ThreadPool *_instMain;

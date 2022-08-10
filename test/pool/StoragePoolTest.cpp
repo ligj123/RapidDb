@@ -22,7 +22,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
         : _indexTree(indexTree), _pStrTest(pStrTest), _strSize(sz) {}
 
     bool IsSmallTask() override { return false; }
-    void Run() {
+    void Run() override {
       while (true) {
         int ii = atm.fetch_add(1, memory_order_relaxed);
         if (ii >= NUM) {
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     PageCmpTask(CachePage *page, int id, const char *pStrTest, size_t sz)
         : _page(page), _id(id), _pStrTest(pStrTest), _strSize(sz) {}
     bool IsSmallTask() override { return false; }
-    void Run() {
+    void Run() override {
       BOOST_TEST(_id == _page->ReadInt(0));
       BOOST_TEST(memcmp(_pStrTest, _page->GetBysPage() + 4, _strSize) == 0);
       BOOST_TEST(
