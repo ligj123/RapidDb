@@ -50,6 +50,7 @@ protected:
   TaskStatus _status = TaskStatus::UNINIT;
 };
 
+template <class T> class FastQueue;
 class ThreadPool {
 public:
   static thread_local int _threadID;
@@ -70,7 +71,7 @@ public:
     return _instMain;
   }
 
-  void StopMain() {
+  static void StopMain() {
     _instMain->Stop();
     delete _instMain;
     _instMain = nullptr;
@@ -120,6 +121,7 @@ protected:
   int _aliveThreads;
   int _freeThreads;
   int _tasksNum;
+  FastQueue<Task> *_fastQueue;
 
 protected:
   static ThreadPool *_instMain;

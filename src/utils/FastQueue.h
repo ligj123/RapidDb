@@ -20,11 +20,11 @@ struct InnerQueue {
 // way it does not need to lock when add an element into thread local list.
 // Every instance will use _index in FastQueue to indentify the position in this
 // vector.
-static thread_local vector<InnerQueue *> _localInner(_MAX_QUEUE_COUNT, nullptr);
+extern thread_local vector<InnerQueue *> _localInner;
 // To record how many instances of FastQueue in this process. Every instance's
 // index will get value from it and then it will increase one. The index will
 // be used to indentify how to set and get InnerQueue from _localVct
-static atomic_int32_t _queueCount{0};
+extern atomic_int32_t _queueCount;
 
 // Here T must be class pointer
 // This queue is depend on ThreadPool. The thread id in pool must start from 0

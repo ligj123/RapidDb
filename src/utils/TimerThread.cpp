@@ -11,6 +11,7 @@ TimerThread::~TimerThread() {
   for (TimerTask *task : _vctTask) {
     delete task;
   }
+  _thread->join();
   delete _thread;
 }
 
@@ -104,6 +105,9 @@ void TimerThread::Start() {
 void TimerThread::Stop() {
   assert(_instance != nullptr && _instance->_bRunning);
   _instance->_bRunning = false;
+
+  delete _instance;
+  _instance = nullptr;
 }
 
 void TimerThread::TriggerMemTask() {

@@ -17,7 +17,7 @@ protected:
   SpinMutex _spinMutex;
   queue<Byte *> _queueLog;
   // Used to generate serial number for every log record. It will ensure the
-  // strict sequence when reback from machine crash or restore duplicates on
+  // strict sequence when recover from machine crash or restore duplicates on
   // other machines.
   uint64_t _genLogId;
 };

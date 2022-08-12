@@ -27,10 +27,12 @@ CachePage *PageBufferPool::GetPage(uint64_t hashId) {
   return page;
 }
 
-void PageBufferPool::ClearPool() {
+void PageBufferPool::StopPool() {
   for (int i = 0; i < _mapCache.GetGroupCount(); i++) {
     _mapCache.Clear(i);
   }
+
+  _threadPool = nullptr;
 }
 
 void PageBufferPool::PoolManage() {

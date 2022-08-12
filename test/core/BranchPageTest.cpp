@@ -245,7 +245,6 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
 
   bp->DecRef();
   indexTree->Close();
-  PageBufferPool::ClearPool();
   delete dvKey;
   delete dvVal;
 

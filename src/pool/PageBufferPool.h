@@ -21,7 +21,7 @@ public:
 
   static CachePage *GetPage(uint64_t hashId);
   /**Only used for test to remove results from previous test cases*/
-  static void ClearPool();
+  static void StopPool();
   static void PoolManage();
 
   static void AddTimerTask();

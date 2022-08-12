@@ -1,4 +1,5 @@
 ﻿#include "ThreadPool.h"
+#include "FastQueue.h"
 #include "Log.h"
 #include <stdexcept>
 
@@ -13,7 +14,8 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
                        int minThreads, int maxThreads)
     : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize),
       _stopThreads(false), _minThreads(minThreads), _maxThreads(maxThreads),
-      _aliveThreads(0), _freeThreads(0), _tasksNum(0) {
+      _aliveThreads(0), _freeThreads(0), _tasksNum(0),
+      _fastQueue(new FastQueue<Task>(maxThreads)) {
   if (_minThreads < 1 || _minThreads > _maxThreads || _maxThreads < 1) {
     throw invalid_argument(
         "Please set min threads and max thread in right range!");
@@ -65,19 +67,37 @@ void ThreadPool::CreateThread(int id) {
       if (_urgentTasks.size() > 0) {
         vct.push_back(_urgentTasks.front());
         _urgentTasks.pop_front();
-      } else if (_threadID % 2 && _largeTasks.size() > 0 ||
-                 _smallTasks.size() == 0) {
-        vct.push_back(_largeTasks.front());
-        _largeTasks.pop_front();
       } else {
-        while (vct.size() < 5 && _smallTasks.size() > 0) {
-          vct.push_back(_smallTasks.front());
-          _smallTasks.pop_front();
+        if (_largeTasks.size() == 0 && _smallTasks.size() == 0) {
+          queue<Task *> q;
+          _fastQueue->Swap(q);
+
+          while (q.size() > 0) {
+            Task *task = q.front();
+            q.pop();
+
+            if (task->IsSmallTask()) {
+              _smallTasks.push_back(task);
+            } else {
+              _largeTasks.push_back(task);
+            }
+          }
+        }
+
+        if (_threadID % 2 && _largeTasks.size() > 0 ||
+            _smallTasks.size() == 0) {
+          vct.push_back(_largeTasks.front());
+          _largeTasks.pop_front();
+        } else {
+          while (vct.size() < 5 && _smallTasks.size() > 0) {
+            vct.push_back(_smallTasks.front());
+            _smallTasks.pop_front();
+          }
         }
       }
 
       _freeThreads--;
-      _tasksNum -= vct.size();
+      _tasksNum -= (int)vct.size();
       queue_lock.unlock();
 
       for (Task *task : vct) {
@@ -129,22 +149,20 @@ ThreadPool::~ThreadPool() {
   }
 
   assert(GetTaskCount() == 0);
+  delete _fastQueue;
 }
 
 void ThreadPool::AddTask(Task *task, bool urgent) {
   assert(!_stopThreads);
-  {
+
+  if (urgent) {
     std::unique_lock<SpinMutex> queue_lock(_task_mutex);
-    if (urgent) {
-      _urgentTasks.push_back(task);
-    } else if (task->IsSmallTask()) {
-      _smallTasks.push_back(task);
-    } else {
-      _largeTasks.push_back(task);
-    }
-    _tasksNum++;
-    _taskCv.notify_one();
+    _urgentTasks.push_back(task);
+  } else {
+    _fastQueue->Push(task);
   }
+  _tasksNum++;
+  _taskCv.notify_one();
 
   if (_aliveThreads < _maxThreads && _freeThreads <= 0) {
     CreateThread();
@@ -156,18 +174,11 @@ void ThreadPool::AddTasks(MVector<Task *>::Type &vct) {
   if (vct.size() == 0)
     return;
 
-  {
-    std::unique_lock<SpinMutex> queue_lock(_task_mutex);
-    for (auto task : vct) {
-      if (task->IsSmallTask()) {
-        _smallTasks.push_back(task);
-      } else {
-        _largeTasks.push_back(task);
-      }
-    }
-    _tasksNum += vct.size();
-    _taskCv.notify_all();
+  for (auto task : vct) {
+    _fastQueue->Push(task);
   }
+  _tasksNum += (int)vct.size();
+  _taskCv.notify_all();
 
   if (_aliveThreads < _maxThreads && _freeThreads <= 0) {
     CreateThread();

@@ -10,10 +10,10 @@ using namespace std;
 namespace storage {
 struct SuiteFixture {
   SuiteFixture() {
-    LOG_INFO << "Suite core setup.";
-
-    TimerThread::Start();
+    LOG_INFO << "Suite core setup: "
+             << boost::unit_test::framework::current_test_case().p_name;
     _threadPool = ThreadPool::InitMain();
+    TimerThread::Start();
     StoragePool::InitPool(_threadPool);
     StoragePool::AddTimerTask();
     PageDividePool::InitPool(_threadPool);
@@ -26,12 +26,15 @@ struct SuiteFixture {
     PageDividePool::RemoveTimerTask();
     StoragePool::RemoveTimerTask();
 
+    ThreadPool::StopMain();
+    _threadPool = nullptr;
+
     PageDividePool::StopPool();
     StoragePool::StopPool();
-    PageBufferPool::ClearPool();
+    PageBufferPool::StopPool();
     TimerThread::Stop();
-    delete _threadPool;
 
+    _queueCount.store(0, memory_order_relaxed);
     LOG_INFO << "Suite core tear down.";
   }
 
