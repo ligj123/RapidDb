@@ -112,6 +112,9 @@
     <ClCompile Include="..\..\src\utils\StackTrace.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\utils\FastQueue.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />

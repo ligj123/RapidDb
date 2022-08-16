@@ -52,6 +52,7 @@
     <ClCompile Include="..\..\src\transaction\Transaction.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
     <ClCompile Include="..\..\src\utils\ErrorMsg.cpp" />
+    <ClCompile Include="..\..\src\utils\FastQueue.cpp" />
     <ClCompile Include="..\..\src\utils\Log.cpp" />
     <ClCompile Include="..\..\src\utils\ThreadPool.cpp" />
     <ClCompile Include="..\..\src\utils\TimerThread.cpp" />

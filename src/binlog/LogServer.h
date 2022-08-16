@@ -20,5 +20,13 @@ protected:
   // strict sequence when recover from machine crash or restore duplicates on
   // other machines.
   uint64_t _genLogId;
+
+protected:
+  // To generate log id
+  // The log id is 64 bits uint64_t. The highest 16 bits is reserved for
+  // distributed version. The following 8 bits is to save this node restart how
+  // many times, add one every time and recycle from 0 to 255. The last 40 bit
+  // is self increasing integer from 0 to 0x000000ffffffffff.
+  static atomic_uint64_t _atomicLogId;
 };
 } // namespace storage

@@ -89,11 +89,11 @@ protected:
   // Max waiting microseconds to finish for this transaction.
   uint32_t _maxMicroSec;
   // Transaction id
-  // One transaction is 64 bits uint64_t. Thee highest bit is automate(0) or
-  // manual(1) type. The following 15 bits is reserve for distributed version,
+  // One transaction is 64 bits uint64_t. The highest bit is automate(0) or
+  // manual(1) type. The following 15 bits is reserved for distributed version,
   // it tell which node(computer) rise this transaction. The following 8 bits
   // is to save this node restart how many times, add one every time and recycle
-  // from 0 to 255. The last 48 bit is self increasing integer from atomicTranId
+  // from 0 to 255. The last 40 bit is self increasing integer from atomicTranId
   // for automate type, one transaction only has one statement, so tran id will
   // increase one every time. For manual type, one tansaction can has many
   // statements, so here 48 bits will split 2 parts. The first 32 bits are
