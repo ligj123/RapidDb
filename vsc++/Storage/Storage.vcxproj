@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\binlog\LogRecord.cpp" />
     <ClCompile Include="..\..\src\binlog\LogServer.cpp" />
     <ClCompile Include="..\..\src\cache\CachePool.cpp" />
     <ClCompile Include="..\..\src\cache\BufferPool.cpp" />
@@ -59,6 +60,7 @@
     <ClCompile Include="..\..\src\utils\StackTrace.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\src\binlog\LogRecord.h" />
     <ClInclude Include="..\..\src\binlog\LogServer.h" />
     <ClInclude Include="..\..\src\binlog\LogType.h" />
     <ClInclude Include="..\..\src\cache\CachePool.h" />

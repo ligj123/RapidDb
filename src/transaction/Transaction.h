@@ -47,13 +47,13 @@ public:
 
     if (tType == TranType::AUTOMATE) {
       _tranId = _atomicAutoTranId.fetch_add(1, memory_order_relaxed);
-      if ((_tranId & 0xffffff) == 0xffff00) {
-        _atomicAutoTranId.store((SecondTime() & 0xffffff) << 24);
+      if ((_tranId & 0xffffffULL) == 0xffff00ULL) {
+        _atomicAutoTranId.store((SecondTime() & 0xffffffULL) << 24);
       }
     } else {
       _tranId = _atomicManualTranId.fetch_add(0xff, memory_order_relaxed);
-      if ((_tranId & 0xffffff) == 0xfff000) {
-        _atomicAutoTranId.store((SecondTime() & 0xffffff) << 24);
+      if ((_tranId & 0xffffffULL) == 0xfff000ULL) {
+        _atomicAutoTranId.store((SecondTime() & 0xffffffULL) << 24);
       }
     }
   }

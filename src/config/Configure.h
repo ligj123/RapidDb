@@ -39,7 +39,10 @@ public:
   static const uint64_t AUTOMATE_TASK_OVERTIME;
   // The default wait time for manual transaction type, unit is millisecond.
   static const uint64_t MANUAL_TASK_OVERTIME;
+  // If save the splited page's data into log file for database recovery.
+  static const bool LOG_SAVE_SPLIT_PAGE;
 
+  // static const bool
 public:
   Configure();
   static uint64_t GetDiskClusterSize() { return GetInstance()._szDiskCluster; }

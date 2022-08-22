@@ -14,12 +14,12 @@ public:
   void PushRecordDelete(uint64_t tranId, const LeafRecord &rec);
 
 protected:
-  SpinMutex _spinMutex;
-  queue<Byte *> _queueLog;
+  static SpinMutex _spinMutex;
+  static queue<Byte *> _queueLog;
   // Used to generate serial number for every log record. It will ensure the
   // strict sequence when recover from machine crash or restore duplicates on
   // other machines.
-  uint64_t _genLogId;
+  static uint64_t _genLogId;
 
 protected:
   // To generate log id

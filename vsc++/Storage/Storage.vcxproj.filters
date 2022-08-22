@@ -115,6 +115,9 @@
     <ClCompile Include="..\..\src\utils\FastQueue.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\binlog\LogRecord.cpp">
+      <Filter>binlog</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />
@@ -327,6 +330,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\utils\StackTrace.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\binlog\LogRecord.h">
+      <Filter>binlog</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
