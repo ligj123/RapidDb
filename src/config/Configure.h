@@ -2,6 +2,14 @@
 #include <mutex>
 
 namespace storage {
+/**According disk type, here will use different type to write to or read data
+ * from disk. SSD is more efficient with multi threads and HDD is more efficient
+ * with sequence read or write. So here will use different ways to read or write
+ * page blocks. For SSD, will use synchronous way to read. For HDD, will create
+ * a task for read and all tasks will be added into a queue and sort them with
+ * page id, then read page blocks ordered by page ids and will pause write task.
+ */
+enum class DiskType { UNKNOWN = 0, HDD, SSD };
 class Configure {
 public:
   /**The default size of disk cluster */
@@ -41,8 +49,9 @@ public:
   static const uint64_t MANUAL_TASK_OVERTIME;
   // If save the splited page's data into log file for database recovery.
   static const bool LOG_SAVE_SPLIT_PAGE;
+  // Disk Type
+  static const DiskType DISK_TYPE;
 
-  // static const bool
 public:
   Configure();
   static uint64_t GetDiskClusterSize() { return GetInstance()._szDiskCluster; }
@@ -98,5 +107,6 @@ protected:
   uint64_t _manualTaskOvertime;
 
   bool _bLogSaveSplitPage;
+  DiskType _diskType;
 };
 } // namespace storage

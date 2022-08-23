@@ -24,6 +24,7 @@ const uint64_t Configure::AUTOMATE_TASK_OVERTIME = 10 * 1000;
 const uint64_t Configure::MANUAL_TASK_OVERTIME = 10 * 60 * 1000;
 
 const bool Configure::LOG_SAVE_SPLIT_PAGE = false;
+const DiskType Configure::DISK_TYPE = DiskType::SSD;
 
 Configure::Configure() {
   _szDiskCluster = DEFULT_DISK_CLUSTER_SIZE;
@@ -42,5 +43,6 @@ Configure::Configure() {
   _manualTaskOvertime = MANUAL_TASK_OVERTIME;
 
   _bLogSaveSplitPage = LOG_SAVE_SPLIT_PAGE;
+  _diskType = DISK_TYPE;
 }
 } // namespace storage

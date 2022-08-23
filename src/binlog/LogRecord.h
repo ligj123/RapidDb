@@ -28,6 +28,8 @@ public:
     return _buf;
   }
 
+  bool IsSingle() { return _bSingle; }
+
 protected:
   uint64_t _logId;
   DT_MicroSec _createDt;
@@ -42,6 +44,9 @@ public:
   LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen, PageID parentID,
                MVector<RawRecord *>::Type &vctLastRec,
                MVector<PageID>::Type &vctPageID, IndexPage *page = nullptr);
-  LogPageDivid(Byte *buf, uint64_t len);
+  LogPageDivid(Byte *buf, uint64_t len) : LogBase(buf, len) {}
+  bool ReadData(uint64_t &logId, PageID &parentID,
+                MVector<RawRecord *>::Type &vctLastRec,
+                MVector<PageID>::Type &vctPageID, IndexPage *page = nullptr);
 };
 } // namespace storage
