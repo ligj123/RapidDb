@@ -1,11 +1,11 @@
 #include "LogRecord.h"
 
 namespace storage {
-LogPageDivid::LogPageDivid(uint64_t logId, PageID parentID,
-                           MVector<RawRecord *> vctLastRec,
-                           MVector<PageID> vctPageID)
-    : LogBase(logId) {}
-LogPageDivid::LogPageDivid(Byte *buf, uint64_t len) {}
-uint64_t LogPageDivid::SaveBuffer(Byte *buf, uint64_t bufSz) {}
-void LogPageDivid::ReadBuffer(Byte *buf, uint64_t len) {}
+LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
+                           PageID parentID,
+                           MVector<RawRecord *>::Type &vctLastRec,
+                           MVector<PageID>::Type &vctPageID, IndexPage *page)
+    : LogBase(logId, buf, bufLen) {}
+
+LogPageDivid::LogPageDivid(Byte *buf, uint64_t len) : LogBase(buf, len) {}
 } // namespace storage

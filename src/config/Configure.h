@@ -96,5 +96,7 @@ protected:
 
   uint64_t _autoTaskOvertime;
   uint64_t _manualTaskOvertime;
+
+  bool _bLogSaveSplitPage;
 };
 } // namespace storage
