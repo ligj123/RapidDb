@@ -1,4 +1,5 @@
 #include "LogRecord.h"
+#include <boost/crc.hpp>
 
 namespace storage {
 static thread_local boost::crc_32_type crc32;
@@ -12,6 +13,7 @@ LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
   /**
    * For divid page log, it will be below struct:
    * 4 bytes, data length for this log
+   * 4 Bytes,
    * 8 bytes, log id
    * 8 bytes, create date time for this log
    * 4 bytes, parent page id
@@ -59,6 +61,9 @@ bool LogPageDivid::ReadData(uint64_t &logId, PageID &parentID,
                             MVector<RawRecord *>::Type &vctLastRec,
                             MVector<PageID>::Type &vctPageID, IndexPage *page) {
   assert(_buf != nullptr && _bufLen > 0);
+  assert(vctLastRec.size() == 0);
+  assert(vctPageID.size() == 0);
+
   Byte *buf = _buf;
   uint32_t dLen = *(uint32_t *)buf;
   assert(dLen < _bufLen);
@@ -72,6 +77,18 @@ bool LogPageDivid::ReadData(uint64_t &logId, PageID &parentID,
   }
 
   logId = *(uint64_t *)buf;
-  
+  buf += sizeof(uint64_t);
+  // DateTime
+  buf += sizeof(uint64_t);
+  parentID = *(PageID *)buf;
+  buf += sizeof(PageID);
+
+  uint32_t num = *(uint32_t *)buf;
+  buf += sizeof(uint32_t);
+
+  for (uint32_t i = 0; i < num; i++) {
+    vctPageID.push_back(*(PageID *)buf);
+    buf += sizeof(PageID);
+  }
 }
 } // namespace storage
