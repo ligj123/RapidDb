@@ -79,6 +79,8 @@ public:
   static uint64_t GetManualTaskOvertime() {
     return GetInstance()._manualTaskOvertime;
   }
+  static bool IsLogSaveSplitPage() { return GetInstance()._bLogSaveSplitPage; }
+  static uint16_t GetNodeId() { return GetInstance()._nodeId; }
 
 protected:
   static Configure &GetInstance() {
@@ -108,5 +110,8 @@ protected:
 
   bool _bLogSaveSplitPage;
   DiskType _diskType;
+  // For distribute, every node will assign a unique id to indentify the nodes.
+  // In single environment, the node id=0
+  uint16_t _nodeId;
 };
 } // namespace storage

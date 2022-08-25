@@ -8,7 +8,8 @@ namespace storage {
 const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(PageID);
 
 BranchRecord::BranchRecord(BranchPage *parentPage, Byte *bys)
-    : RawRecord(parentPage->GetIndexTree(), parentPage, bys, false) {}
+    : RawRecord(parentPage == nullptr ? nullptr : parentPage->GetIndexTree(),
+                parentPage, bys, false) {}
 
 BranchRecord::BranchRecord(IndexTree *indexTree, RawRecord *rec,
                            uint32_t childPageId)

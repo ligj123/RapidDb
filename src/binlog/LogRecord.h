@@ -1,8 +1,7 @@
 #pragma once
 #include "../cache/Mallocator.h"
+#include "../core/BranchRecord.h"
 #include "../core/IndexPage.h"
-#include "../core/RawRecord.h"
-#include "../header.h"
 #include "../utils/Utilitys.h"
 
 namespace storage {
@@ -29,6 +28,13 @@ public:
   }
 
   bool IsSingle() { return _bSingle; }
+  void SetLogId(uint64_t logId) {
+    _logId = logId;
+    *(uint64_t *)&_buf[5] = logId;
+  }
+
+  void SetNext(LogBase *next) { _next = next; }
+  LogBase *GetNext() { return _next; }
 
 protected:
   uint64_t _logId;
@@ -36,17 +42,20 @@ protected:
   Byte *_buf;
   uint32_t _bufLen;
   bool _bSingle;
+  // The log records will generate a chain one by one, this pointer will point
+  // next log record.
+  LogBase *_next;
 };
 
 // The log for branch and leaf page split
 class LogPageDivid : public LogBase {
 public:
   LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen, PageID parentID,
-               MVector<RawRecord *>::Type &vctLastRec,
-               MVector<PageID>::Type &vctPageID, IndexPage *page = nullptr);
+               MVector<BranchRecord *>::Type &vctLastRec,
+               IndexPage *page = nullptr);
   LogPageDivid(Byte *buf, uint64_t len) : LogBase(buf, len) {}
   bool ReadData(uint64_t &logId, PageID &parentID,
-                MVector<RawRecord *>::Type &vctLastRec,
-                MVector<PageID>::Type &vctPageID, IndexPage *page = nullptr);
+                MVector<BranchRecord *>::Type &vctLastRec,
+                IndexPage *page = nullptr);
 };
 } // namespace storage
