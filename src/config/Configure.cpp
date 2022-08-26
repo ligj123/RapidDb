@@ -45,5 +45,6 @@ Configure::Configure() {
   _bLogSaveSplitPage = LOG_SAVE_SPLIT_PAGE;
   _diskType = DISK_TYPE;
   _nodeId = 0;
+  _strLogPath = "./binlog/";
 }
 } // namespace storage

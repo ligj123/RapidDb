@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <mutex>
+#include <string>
 
 namespace storage {
 /**According disk type, here will use different type to write to or read data
@@ -81,6 +82,7 @@ public:
   }
   static bool IsLogSaveSplitPage() { return GetInstance()._bLogSaveSplitPage; }
   static uint16_t GetNodeId() { return GetInstance()._nodeId; }
+  static const string &GetLogPath() { return GetInstance()._strLogPath; }
 
 protected:
   static Configure &GetInstance() {
@@ -113,5 +115,6 @@ protected:
   // For distribute, every node will assign a unique id to indentify the nodes.
   // In single environment, the node id=0
   uint16_t _nodeId;
+  string _strLogPath;
 };
 } // namespace storage

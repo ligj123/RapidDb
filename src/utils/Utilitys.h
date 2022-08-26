@@ -5,6 +5,7 @@
 #include "TimerThread.h"
 #include <chrono>
 #include <regex>
+#include <sstream>
 
 namespace storage {
 using namespace std;
@@ -67,5 +68,29 @@ static inline MString MStrMSTime() {
              .count();
   }
   return ToMString(dt);
+}
+
+static inline string StrSecTime() {
+  DT_Second dt = TimerThread::GetCurrTime() / 1000000;
+  if (dt == 0) {
+    dt = chrono::duration_cast<chrono::seconds>(
+             chrono::system_clock::now().time_since_epoch())
+             .count();
+  }
+  return to_string(dt);
+}
+
+static inline string FormatTime() {
+  int64_t dt = TimerThread::GetCurrTime();
+  if (dt == 0) {
+    dt = chrono::duration_cast<chrono::microseconds>(
+             chrono::system_clock::now().time_since_epoch())
+             .count();
+  }
+  time_t sec = dt / 1000000;
+  stringstream ss;
+  ss << put_time(gmtime(&sec), "%Y-%m-%d %H:%M:%S") << "."
+     << to_string(dt % 1000000);
+  return ss.str();
 }
 } // namespace storage

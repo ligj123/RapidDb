@@ -28,7 +28,7 @@ LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
     dLen += rec->GetTotalLength();
   }
 
-  if (Configure::isLogSaveSplitPage()) {
+  if (Configure::IsLogSaveSplitPage()) {
     dLen += Configure::GetCachePageSize();
   }
 
