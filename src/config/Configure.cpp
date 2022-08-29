@@ -25,7 +25,7 @@ const uint64_t Configure::MANUAL_TASK_OVERTIME = 10 * 60 * 1000;
 
 const bool Configure::LOG_SAVE_SPLIT_PAGE = false;
 const DiskType Configure::DISK_TYPE = DiskType::SSD;
-
+const uint32_t Configure::DEFAULT_BIN_LOG_FILE_SIZE;
 Configure::Configure() {
   _szDiskCluster = DEFULT_DISK_CLUSTER_SIZE;
   _szCachePage = DEFAULT_CACHE_PAGE_SIZE;

@@ -10,11 +10,12 @@ class LogBase {
 public:
   LogBase(uint64_t logId, Byte *buf, uint32_t bufLen)
       : _logId(logId), _createDt(MicroSecTime()), _buf(buf), _bufLen(bufLen),
-        _bSingle(buf != nullptr) {
+        _bSingle(buf != nullptr), _next(nullptr) {
     assert((buf == nullptr && bufLen == 0) || (buf != nullptr && bufLen > 0));
   }
   LogBase(Byte *buf, uint32_t bufLen)
-      : _logId(0), _createDt(0), _buf(buf), _bufLen(bufLen), _bSingle(false) {
+      : _logId(0), _createDt(0), _buf(buf), _bufLen(bufLen), _bSingle(false),
+        _next(nullptr) {
     assert(buf != nullptr && bufLen > 0);
   }
   ~LogBase() {
@@ -22,9 +23,14 @@ public:
       CachePool ::Release(_buf, _bufLen);
   }
 
-  Byte *GetBuf(uint32_t &bufLen) {
-    bufLen = _bufLen;
+  Byte *GetBuf() {
+    assert(_buf != nullptr);
     return _buf;
+  }
+
+  uint32_t GetLength() {
+    assert(_bufLen > 0);
+    return _bufLen;
   }
 
   bool IsSingle() { return _bSingle; }
@@ -32,9 +38,6 @@ public:
     _logId = logId;
     *(uint64_t *)&_buf[5] = logId;
   }
-
-  void SetNext(LogBase *next) { _next = next; }
-  LogBase *GetNext() { return _next; }
 
 protected:
   uint64_t _logId;
@@ -45,6 +48,8 @@ protected:
   // The log records will generate a chain one by one, this pointer will point
   // next log record.
   LogBase *_next;
+
+  friend class LogServer;
 };
 
 // The log for branch and leaf page split
@@ -53,7 +58,7 @@ public:
   LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen, PageID parentID,
                MVector<BranchRecord *>::Type &vctLastRec,
                IndexPage *page = nullptr);
-  LogPageDivid(Byte *buf, uint64_t len) : LogBase(buf, len) {}
+  LogPageDivid(Byte *buf, uint32_t len) : LogBase(buf, len) {}
   bool ReadData(uint64_t &logId, PageID &parentID,
                 MVector<BranchRecord *>::Type &vctLastRec,
                 IndexPage *page = nullptr);

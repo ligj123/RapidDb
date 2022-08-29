@@ -23,13 +23,13 @@ LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
    * Save split page's origin data, if ogSaveSplitPage = true
    * 4 bytes, crc32 code
    */
-  uint32_t dLen = 4 + 8 + 8 + 4 + 4 + vctLastRec.size() * 4;
+  uint32_t dLen = 4 + 8 + 8 + 4 + 4 + (uint32_t)vctLastRec.size() * 4;
   for (RawRecord *rec : vctLastRec) {
     dLen += rec->GetTotalLength();
   }
 
   if (Configure::IsLogSaveSplitPage()) {
-    dLen += Configure::GetCachePageSize();
+    dLen += (uint32_t)Configure::GetCachePageSize();
   }
 
   if (bufLen < dLen) {
@@ -57,7 +57,7 @@ LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
     buf += rec->GetTotalLength();
   }
 
-  if (Configure::isLogSaveSplitPage()) {
+  if (Configure::IsLogSaveSplitPage()) {
     BytesCopy(buf, page->GetBysPage(), Configure::GetCachePageSize());
     buf += Configure::GetCachePageSize();
   }
@@ -103,7 +103,7 @@ bool LogPageDivid::ReadData(uint64_t &logId, PageID &parentID,
     vctLastRec.push_back(br);
   }
 
-  if (Configure::isLogSaveSplitPage()) {
+  if (Configure::IsLogSaveSplitPage()) {
     assert(page != nullptr);
     BytesCopy(page->GetBysPage(), buf, Configure::GetCachePageSize());
   }

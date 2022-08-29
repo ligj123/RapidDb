@@ -2,6 +2,7 @@
 #include <mutex>
 #include <string>
 
+using namespace std;
 namespace storage {
 /**According disk type, here will use different type to write to or read data
  * from disk. SSD is more efficient with multi threads and HDD is more efficient
@@ -52,6 +53,8 @@ public:
   static const bool LOG_SAVE_SPLIT_PAGE;
   // Disk Type
   static const DiskType DISK_TYPE;
+  // default bin log file size
+  static const uint32_t DEFAULT_BIN_LOG_FILE_SIZE;
 
 public:
   Configure();
@@ -83,6 +86,7 @@ public:
   static bool IsLogSaveSplitPage() { return GetInstance()._bLogSaveSplitPage; }
   static uint16_t GetNodeId() { return GetInstance()._nodeId; }
   static const string &GetLogPath() { return GetInstance()._strLogPath; }
+  static uint32_t GetBinLogFileSize() { return GetInstance()._binLogFileSize; }
 
 protected:
   static Configure &GetInstance() {
@@ -112,6 +116,7 @@ protected:
 
   bool _bLogSaveSplitPage;
   DiskType _diskType;
+  uint32_t _binLogFileSize;
   // For distribute, every node will assign a unique id to indentify the nodes.
   // In single environment, the node id=0
   uint16_t _nodeId;
