@@ -1,4 +1,6 @@
 ﻿#include "IndexPage.h"
+#include "../binlog/LogRecord.h"
+#include "../binlog/LogServer.h"
 #include "../pool/PageDividePool.h"
 #include "../pool/StoragePool.h"
 #include "BranchPage.h"
@@ -177,6 +179,15 @@ bool IndexPage::PageDivide() {
       rr->SetParentPage(indexPage);
     }
   }
+
+  // Add bin log record for page divid
+  MVector<BranchRecord *>::Type vctLog;
+  for (int i = posInParent - 1; i < posInParent + vctPage.size(); i++) {
+    vctLog.push_back((BranchRecord *)parentPage->_vctRecord[i]);
+  }
+  LogPageDivid *ld =
+      new LogPageDivid(0, nullptr, 0, parentPage->GetPageId(), vctLog, this);
+  LogServer::PushRecord(ld);
 
   parentPage->WriteUnlock();
 

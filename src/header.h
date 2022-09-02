@@ -1,8 +1,7 @@
 ﻿#pragma once
 #include <stdint.h>
 
-#define _DEBUG_TEST
-#define _MAX_QUEUE_COUNT 8
+#define MAX_QUEUE_COUNT 8
 typedef unsigned char Byte;
 typedef uint32_t PageID;
 typedef uint64_t VersionStamp;

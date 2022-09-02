@@ -28,13 +28,13 @@ struct GlobalFixTure {
         std::filesystem::remove(dir_entry);
       }
     }
-#ifdef _DEBUG_TEST
+#ifdef DEBUG_TEST
     LOG_INFO << "MemoryUsed: " << CachePool::GetMemoryUsed() << std::endl;
     unordered_map<Byte *, string> &map = CachePool::_mapApply;
     for (auto iter = map.begin(); iter != map.end(); iter++) {
       LOG_INFO << (void *)iter->first << "    " << iter->second;
     }
-#endif // _DEBUG_TEST
+#endif // DEBUG_TEST
   }
 };
 // 定义全局夹具

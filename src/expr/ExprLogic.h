@@ -8,6 +8,7 @@
 #include "../dataType/IDataValue.h"
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
+#include "ExprData.h"
 #include <unordered_set>
 
 using namespace std;

@@ -25,7 +25,8 @@ const uint64_t Configure::MANUAL_TASK_OVERTIME = 10 * 60 * 1000;
 
 const bool Configure::LOG_SAVE_SPLIT_PAGE = false;
 const DiskType Configure::DISK_TYPE = DiskType::SSD;
-const uint32_t Configure::DEFAULT_BIN_LOG_FILE_SIZE;
+const uint32_t Configure::DEFAULT_BIN_LOG_FILE_SIZE = 100 * 1024 * 1024;
+
 Configure::Configure() {
   _szDiskCluster = DEFULT_DISK_CLUSTER_SIZE;
   _szCachePage = DEFAULT_CACHE_PAGE_SIZE;
@@ -44,6 +45,8 @@ Configure::Configure() {
 
   _bLogSaveSplitPage = LOG_SAVE_SPLIT_PAGE;
   _diskType = DISK_TYPE;
+  _binLogFileSize = DEFAULT_BIN_LOG_FILE_SIZE;
+
   _nodeId = 0;
   _strLogPath = "./binlog/";
 }

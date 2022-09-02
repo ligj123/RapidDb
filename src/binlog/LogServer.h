@@ -15,6 +15,10 @@ public:
   static void StartServer();
   static void StopServer();
   static void PushRecord(LogBase *log) {
+#ifdef DEBUG_WITHOUT_BIN_LOG
+    delete log;
+    return;
+#endif
     unique_lock<SpinMutex> lock(_inst->_mutexIn);
     log->SetLogId(_inst->_currLogId++);
     if (_inst->_tail == nullptr) {

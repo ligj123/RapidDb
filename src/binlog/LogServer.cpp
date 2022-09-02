@@ -30,7 +30,7 @@ void LogServer::LogWriteThread() {
   uint32_t fLen = UI64_LEN;
   // Write the oldest active transaction's create time. This date will be used
   // to split recover log files.
-  DT_MilliSec dt = UI64_LEN; // Get time
+  DT_MilliSec dt = 0; // Get time
   logFile.write((const char *)&dt, UI64_LEN);
 
   const uint32_t blfSz = Configure::GetBinLogFileSize();
@@ -45,7 +45,7 @@ void LogServer::LogWriteThread() {
                 _inst->_fileLog->GetLength());
   fLen += _inst->_fileLog->GetLength();
 
-  while (true) {
+  while (!_inst->_bStop && _inst->_fileLog->_next == nullptr) {
     std::unique_lock<SpinMutex> lock(_inst->_mutexOut);
     _inst->_cv.wait_for(lock, 1ms, []() -> bool {
       return _inst->_fileLog->_next != nullptr && _inst->_bStop;
@@ -72,6 +72,13 @@ void LogServer::LogWriteThread() {
       _inst->_head = _inst->_head->_next;
       delete tmp;
     }
+  }
+
+  logFile.close();
+  while (_inst->_head != nullptr) {
+    LogBase *tmp = _inst->_head;
+    _inst->_head = _inst->_head->_next;
+    delete tmp;
   }
 }
 } // namespace storage

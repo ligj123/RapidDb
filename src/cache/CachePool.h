@@ -25,7 +25,7 @@ protected:
 
 class CachePool {
 public:
-#ifdef _DEBUG_TEST
+#ifdef DEBUG_TEST
   static Byte *ApplyPage();
   static void ReleasePage(Byte *page);
   static Byte *Apply(uint32_t bufSize);
@@ -81,7 +81,7 @@ public:
     }
   }
 
-#endif // _DEBUG_TEST
+#endif // DEBUG_TEST
 
 public:
   CachePool();

@@ -5,6 +5,7 @@ SET(CMAKE_C_COMPILER /usr/bin/clang)
 SET(CMAKE_CXX_COMPILER /usr/bin/clang++)
 endif()
 
+add_definitions(-DDEBUG_TEST -DDEBUG_WITHOUT_BIN_LOG)
 set(CMAKE_EXPORT_COMPILECOMMANDS ON)
 project(RapidDB)
 

@@ -40,7 +40,7 @@ public:
     }
 
     _index = _queueCount.fetch_add(1, memory_order_relaxed);
-    assert(_index < _MAX_QUEUE_COUNT);
+    assert(_index < MAX_QUEUE_COUNT);
   }
 
   ~FastQueue() {
@@ -53,7 +53,7 @@ public:
 
   // Push an element
   void Push(T *ele) {
-#ifdef _DEBUG_TEST
+#ifdef DEBUG_TEST
     if (ThreadPool::_threadID == -1) {
       unique_lock<SpinMutex> lock(_spinMutex);
       _queue.push(ele);
@@ -61,7 +61,7 @@ public:
     }
 #else
     assert(ThreadPool::_threadID >= 0);
-#endif //_DEBUG_TEST
+#endif // DEBUG_TEST
 
     InnerQueue *q = _localInner[_index];
     if (q == nullptr) {
