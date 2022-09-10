@@ -129,6 +129,7 @@ void CachePool::RecycleBuffer(Buffer *buf) {
   std::unique_lock<SpinMutex> lock(pool->_spinMutex);
   if (pool->_queueFreeBuf.size() > Configure::GetMaxFreeBufferCount()) {
     delete buf;
+    pool->_szMemUsed -= Configure::GetCacheBlockSize();
   } else {
     pool->_queueFreeBuf.push(buf);
   }
@@ -160,6 +161,37 @@ size_t CachePool::GetMemoryUsed() {
   return sz;
 }
 
+Byte *CachePool::ApplyBlock() {
+  CachePool *pool = GetInstance();
+  unique_lock<SpinMutex> lock(pool->_blockMutex);
+  Byte *bys = nullptr;
+  if (pool->_queueFreeBlock.size() > 0) {
+    bys = pool->_queueFreeBlock.front();
+    pool->_queueFreeBlock.pop();
+  } else {
+    bys = new Byte[Configure::GetResultBlockSize()];
+    pool->_totalBlockNum++;
+  }
+
+  string str = StackTrace();
+  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+  _mapApply.emplace(bys, "ApplyBlock\n" + str);
+  return bys;
+}
+void CachePool::ReleaseBlock(Byte *bys) {
+  CachePool *pool = GetInstance();
+  unique_lock<SpinMutex> lock(pool->_blockMutex);
+  if (pool->_queueFreeBlock.size() > Configure::GetMaxNumberFreeResultBlock()) {
+    pool->_totalBlockNum--;
+    delete bys;
+  } else {
+    pool->_queueFreeBlock.push(bys);
+  }
+
+  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+  size_t rt = _mapApply.erase(bys);
+  assert(rt == 1);
+}
 /**Apply a menory block for an index page*/
 Byte *CachePool::ApplyPage() {
   CachePool *pool = GetInstance();

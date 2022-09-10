@@ -14,13 +14,15 @@ namespace storage {
 enum class DiskType { UNKNOWN = 0, HDD, SSD };
 class Configure {
 public:
+  /**The default memory block size used for result set*/
+  static const uint64_t DEFAULT_RESULT_BLOCK_SIZE;
   /**The default size of disk cluster */
   static const uint64_t DEFULT_DISK_CLUSTER_SIZE;
   /**The default size of a cache page for index tree*/
   static const uint64_t DEFAULT_CACHE_PAGE_SIZE;
   /**The default total allocated memory size for cache*/
   static const uint64_t DEFAULT_TOTAL_CACHE_SIZE;
-  /**A block size for memory cache, it will used to create DataValueInt etc.*/
+  /**The block size for memory cache, it will used IResultSet.*/
   static const uint64_t DEFAULT_CACHE_BLOCK_SIZE;
   /**The max memory size of blocks used to allocate buffer, For example
    * IDataValue or Record.*/
@@ -35,6 +37,8 @@ public:
   static const uint64_t DEFAULT_MAX_COLUMN_LENGTH;
   /**The free memory buffer in cache pool's queue*/
   static const uint64_t DEFAULT_MAX_FREE_BUFFER_COUNT;
+  /**The max number of free blocks for result set */
+  static const uint64_t DEFAULT_MAX_FREE_BLOCK_COUNT;
   /**The max instances to open a index tree for reading or writing*/
   static const uint64_t MAX_PAGE_FILE_COUNT;
   /**The max size for overflow file cache*/
@@ -58,6 +62,8 @@ public:
 
 public:
   Configure();
+
+  static uint64_t GetResultBlockSize() { return GetInstance()._szResultBlock; }
   static uint64_t GetDiskClusterSize() { return GetInstance()._szDiskCluster; }
   static uint64_t GetCachePageSize() { return GetInstance()._szCachePage; }
   static uint64_t GetTotalCacheSize() { return GetInstance()._szTotalCache; }
@@ -70,6 +76,9 @@ public:
   static uint64_t GetMaxColumnLength() { return GetInstance()._lenMaxColumn; }
   static uint64_t GetMaxFreeBufferCount() {
     return GetInstance()._countMaxFreeBuff;
+  }
+  static uint64_t GetMaxNumberFreeResultBlock() {
+    return GetInstance()._maxNumFreeBlock;
   }
   static uint64_t GetMaxPageFileCount() {
     return GetInstance()._countMaxPageFile;
@@ -99,6 +108,7 @@ protected:
 protected:
   static Configure *instance;
 
+  uint64_t _szResultBlock;
   uint64_t _szDiskCluster;
   uint64_t _szCachePage;
   uint64_t _szTotalCache;
@@ -108,6 +118,7 @@ protected:
   uint64_t _lenMaxKey;
   uint64_t _lenMaxColumn;
   uint64_t _countMaxFreeBuff;
+  uint64_t _maxNumFreeBlock;
   uint64_t _countMaxPageFile;
   uint64_t _maxOverflowCache;
 

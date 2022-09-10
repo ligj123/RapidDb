@@ -1,6 +1,7 @@
 ﻿#include "Configure.h"
 
 namespace storage {
+const uint64_t Configure::DEFAULT_RESULT_BLOCK_SIZE = 1024 * 1024;
 const uint64_t Configure::DEFULT_DISK_CLUSTER_SIZE = 4 * 1024;
 const uint64_t Configure::DEFAULT_CACHE_PAGE_SIZE = 1024 * 4 * 4;
 const uint64_t Configure::DEFAULT_TOTAL_CACHE_SIZE = 8 * 1024 * 1024 * 1024LL;
@@ -11,6 +12,7 @@ const uint64_t Configure::DEFAULT_MAX_RECORD_LENGTH =
 const uint64_t Configure::DEFAULT_MAX_KEY_LENGTH = 2000;
 const uint64_t Configure::DEFAULT_MAX_COLUMN_LENGTH = 1024 * 1024 * 1024;
 const uint64_t Configure::DEFAULT_MAX_FREE_BUFFER_COUNT = 1000;
+const uint64_t Configure::DEFAULT_MAX_FREE_BLOCK_COUNT = 100;
 const uint64_t Configure::MAX_PAGE_FILE_COUNT = 5;
 const uint64_t Configure::MAX_OVERFLOW_CACHE_SIZE = 1024 * 1024;
 Configure *Configure::instance = nullptr;
@@ -28,6 +30,7 @@ const DiskType Configure::DISK_TYPE = DiskType::SSD;
 const uint32_t Configure::DEFAULT_BIN_LOG_FILE_SIZE = 100 * 1024 * 1024;
 
 Configure::Configure() {
+  _szResultBlock = DEFAULT_RESULT_BLOCK_SIZE;
   _szDiskCluster = DEFULT_DISK_CLUSTER_SIZE;
   _szCachePage = DEFAULT_CACHE_PAGE_SIZE;
   _szTotalCache = DEFAULT_TOTAL_CACHE_SIZE;
@@ -36,6 +39,7 @@ Configure::Configure() {
   _lenMaxRecord = DEFAULT_MAX_RECORD_LENGTH;
   _lenMaxKey = DEFAULT_MAX_KEY_LENGTH;
   _lenMaxColumn = DEFAULT_MAX_COLUMN_LENGTH;
+  _maxNumFreeBlock = DEFAULT_MAX_FREE_BLOCK_COUNT;
   _countMaxFreeBuff = DEFAULT_MAX_FREE_BUFFER_COUNT;
   _countMaxPageFile = MAX_PAGE_FILE_COUNT;
   _maxOverflowCache = MAX_OVERFLOW_CACHE_SIZE;

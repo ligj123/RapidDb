@@ -26,6 +26,8 @@ protected:
 class CachePool {
 public:
 #ifdef DEBUG_TEST
+  static Byte *ApplyBlock();
+  static void ReleaseBlock(Byte *bys);
   static Byte *ApplyPage();
   static void ReleasePage(Byte *page);
   static Byte *Apply(uint32_t bufSize);
@@ -37,6 +39,34 @@ public:
   static SpinMutex _spinLocal;
   static unordered_map<Byte *, string> _mapApply;
 #else
+  /**Apply a memory block for result set*/
+  static Byte *ApplyBlock() {
+    CachePool *pool = GetInstance();
+    unique_lock<SpinMutex> lock(pool->_blockMutex);
+    Byte *bys = nullptr;
+    if (pool->_queueFreeBlock.size() > 0) {
+      bys = pool->_queueFreeBlock.front();
+      pool->_queueFreeBlock.pop();
+    } else {
+      bys = new Byte[Configure::GetResultBlockSize()];
+      pool->_totalBlockNum++;
+    }
+
+    return bys;
+  }
+  /**Release a memory block for result set*/
+  static void ReleaseBlock(Byte *bys) {
+    CachePool *pool = GetInstance();
+    unique_lock<SpinMutex> lock(pool->_blockMutex);
+    if (pool->_queueFreeBlock.size() >
+        Configure::GetMaxNumberFreeResultBlock()) {
+      pool->_totalBlockNum--;
+      delete bys;
+    } else {
+      pool->_queueFreeBlock.push(bys);
+    }
+  }
+
   /**Apply a menory block for an index page*/
   static Byte *ApplyPage() {
     CachePool *pool = GetInstance();
@@ -80,7 +110,6 @@ public:
       pool->_localMap.Push(pBuf, (uint16_t)sz);
     }
   }
-
 #endif // DEBUG_TEST
 
 public:
@@ -124,6 +153,13 @@ protected:
   /**Mutex for block memory,used to create IDataValue etc. One block can create
    * multi objects.*/
   SpinMutex _spinMutex;
+
+  /**memory cache block used in IResultSet*/
+  queue<Byte *> _queueFreeBlock;
+  /**Total number allocated result blocks, include free blocks in queue*/
+  uint64_t _totalBlockNum;
+  /**Mutex for block*/
+  SpinMutex _blockMutex;
 
   friend class BufferPool;
   friend class LocalMap;
