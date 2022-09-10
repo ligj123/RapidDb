@@ -2,9 +2,14 @@ cmake_minimum_required(VERSION 3.16)
 project(rapid_static)
 
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.74.0 REQUIRED COMPONENTS log locale stacktrace_backtrace)
+find_package(Boost 1.74.0 REQUIRED COMPONENTS log locale)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+find_package(Boost 1.74.0 REQUIRED stacktrace_backtrace)
+endif()
+include_directories(${Boost_INCLUDE_DIR})
+MESSAGE( STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}.")
+
 find_package(Threads)
-find_package(Backtrace)
 
 # 递归目录获取所有c文件
 file(GLOB_RECURSE c_files *.cpp)

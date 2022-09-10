@@ -1,6 +1,11 @@
 ﻿#pragma once
 #include <stdint.h>
 
+// #ifdef _MSVC_LANG
+// #define DEBUG_TEST
+// #define DEBUG_WITHOUT_BIN_LOG
+// #endif
+
 #define MAX_QUEUE_COUNT 8
 typedef unsigned char Byte;
 typedef uint32_t PageID;
