@@ -84,7 +84,8 @@ public:
 class ExprData : public BaseExpr {
 public:
   using BaseExpr::BaseExpr;
-  /**Returned DataValue need user to release self.*/
+  /**Returned DataValue maybe refer to one of value in vdPara or vdRow, or
+   * created newly. if created newly, need user to release it.*/
   virtual IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
 };
 
@@ -95,7 +96,7 @@ public:
   // bool value.
   virtual bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
 };
- 
+
 class ExprAggr : public BaseExpr {
 public:
   using BaseExpr::BaseExpr;
