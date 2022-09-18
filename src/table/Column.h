@@ -34,19 +34,19 @@ protected:
   DataType _dataType; // Which data type for this column
 };
 
-class PersistColumn : public BaseColumn {
+class PhysColumn : public BaseColumn {
 public:
-  PersistColumn()
+  PhysColumn()
       : BaseColumn(), _bNullable(false), _comments(), _maxLength(0),
         _initVal(0), _incStep(1), _charset(), _pDefaultVal(nullptr) {}
-  PersistColumn(const string &name, int32_t pos, DataType dataType,
-                const string &comments, bool bNullable, int32_t maxLen,
-                int64_t initVal, int64_t incStep, Charsets charset,
-                IDataValue *defaultVal)
+  PhysColumn(const string &name, int32_t pos, DataType dataType,
+             const string &comments, bool bNullable, int32_t maxLen,
+             int64_t initVal, int64_t incStep, Charsets charset,
+             IDataValue *defaultVal)
       : BaseColumn(name, pos, dataType), _bNullable(bNullable),
         _comments(comments), _maxLength(maxLen), _initVal(initVal),
         _incStep(incStep), _charset(charset), _pDefaultVal(defaultVal) {}
-  ~PersistColumn() { delete _pDefaultVal; }
+  ~PhysColumn() { delete _pDefaultVal; }
 
 public:
   uint32_t ReadData(Byte *pBuf);
@@ -60,24 +60,25 @@ public:
   const string &GetComments() { return _comments; }
 
 protected:
-  bool _bNullable;    // Can bu null or not for this column
+  bool _bNullable;    // Can be null or not for this column
   Charsets _charset;  // The charset for char data type
   int32_t _maxLength; // The max length for variable length data type
-  int64_t _initVal;   // The initalize value for auto-increment column, the
-                      // default is 0
-  int64_t _incStep;   // The step between two increment, the default is 1
-  string _comments;   // Comments for this column
+  // The initalize value for auto-increment column, the default is 0
+  int64_t _initVal;
+  int64_t _incStep; // The step between two neighbor value, the default is 1
+  string _comments; // Comments for this column
   IDataValue *_pDefaultVal; // The default value if has or null
 };
 
-class TempColumn : public BaseColumn {
+class ResultColumn : public BaseColumn {
 public:
-  TempColumn(const string &name, uint32_t pos, DataType dataType, string alias,
-             int dataBasicStart, int prevVarCols, int colNullPlace)
+  ResultColumn(const string &name, uint32_t pos, DataType dataType,
+               string alias, int dataBasicStart, int prevVarCols,
+               int colNullPlace)
       : BaseColumn(name, pos, dataType), _alias(alias),
         _dataBasicStart(dataBasicStart), _prevVarCols(prevVarCols),
         _colNullPlace(colNullPlace) {}
-  ~TempColumn() {}
+  ~ResultColumn() {}
 
   const string &GetAlias() const { return _alias; }
   const int GetDataBasicStart() const { return _dataBasicStart; }
@@ -116,12 +117,17 @@ public:
    * @return
    */
   int CompareTo(Byte *bys1, Byte *bys2);
+  /**To judge if a column'svalue in a row is null*/
+  bool IsNull(Byte *bys) {
+    return bys[_position / BYTE_SIZE] & (1 << (_position % BYTE_SIZE));
+  }
 
 protected:
   string _alias; // The ailas of this column
-  /**The data position in this record that start from row's values,
-   * all variable columns's length set to 0 in this variable.
-   * The variable columns' length saved to byte arrays*/
+  /** The data start position in this record value byte array.
+   * This value does not include the variable columns' length.
+   * Row data byte array com
+   */
   int _dataBasicStart;
   /**To save how many variable columns(String or blob) before this column*/
   int _prevVarCols;

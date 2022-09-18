@@ -67,7 +67,7 @@
     <ClCompile Include="..\..\src\table\Column.cpp">
       <Filter>table</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\table\BaseTable.cpp">
+    <ClCompile Include="..\..\src\table\Table.cpp">
       <Filter>table</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\transaction\Transaction.cpp">
@@ -229,7 +229,7 @@
     <ClInclude Include="..\..\src\table\Column.h">
       <Filter>table</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\table\BaseTable.h">
+    <ClInclude Include="..\..\src\table\Table.h">
       <Filter>table</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\transaction\TranStatus.h">

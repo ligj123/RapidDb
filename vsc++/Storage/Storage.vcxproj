@@ -49,7 +49,7 @@
     <ClCompile Include="..\..\src\statement\InsertStatement.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
     <ClCompile Include="..\..\src\table\PersistTable.cpp" />
-    <ClCompile Include="..\..\src\table\BaseTable.cpp" />
+    <ClCompile Include="..\..\src\table\Table.cpp" />
     <ClCompile Include="..\..\src\transaction\Transaction.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
     <ClCompile Include="..\..\src\utils\ErrorMsg.cpp" />
@@ -115,7 +115,7 @@
     <ClInclude Include="..\..\src\statement\Statement.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
     <ClInclude Include="..\..\src\table\PersistTable.h" />
-    <ClInclude Include="..\..\src\table\BaseTable.h" />
+    <ClInclude Include="..\..\src\table\Table.h" />
     <ClInclude Include="..\..\src\transaction\TranStatus.h" />
     <ClInclude Include="..\..\src\transaction\Transaction.h" />
     <ClInclude Include="..\..\src\transaction\TranType.h" />
