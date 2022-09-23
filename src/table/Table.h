@@ -80,35 +80,31 @@ struct IndexProp {
   IndexTree *_tree;
 };
 
-class PersistTable : public BaseTable {
+class PhysTable : public BaseTable {
 public:
-  PersistTable(string &rootPath, string &dbName, string &tableName,
-               string &tableAlias, string &description);
-  PersistTable(){};
-  ~PersistTable();
+  PhysTable(string &rootPath, string &dbName, string &tableName,
+            string &tableAlias, string &description);
+  PhysTable(){};
+  ~PhysTable();
 
-  const char *GetPrimaryKey() const { return PRIMARY_KEY; }
-  const IndexProp &GetPrimaryKeyColumns() const {
-    return _mapIndex.at(PRIMARY_KEY);
-  }
-  const MHashMap<string, IndexProp>::Type &GetMapIndex() const {
-    return _mapIndex;
-  }
+  const char *GetPrimaryName() const { return PRIMARY_KEY; }
+  const IndexProp *GetPrimaryKey() const { return _vctIndex[0]; }
+  const MVector<IndexProp *>::Type &GetVectorIndex() const { return _vctIndex; }
   IndexType GetIndexType(string &indexName) const {
-    auto iter = _mapIndex.find(indexName);
-    if (iter == _mapIndex.end())
+    auto iter = _mapIndexNamePos.find(indexName);
+    if (iter == _mapIndexNamePos.end())
       return IndexType::UNKNOWN;
-    return iter->second.type;
+    return _vctIndex[iter->second]->_type;
   }
 
-  const MVector<PersistTable *>::Type &GetColumnArray() const {
+  const MVector<PhysColumn *>::Type &GetColumnArray() const {
     return _vctColumn;
   }
 
   const PhysColumn *GetColumn(string &fieldName) const;
   const PhysColumn *GetColumn(int pos);
-  MHashMap<string, int>::Type GetMapColumnPos() { return _mapColumnPos; }
-  MHashMap<int, string>::Type GetIndexFirstFieldMap() {
+  const MHashMap<string, int>::Type GetMapColumnPos() { return _mapColumnPos; }
+  const unordered_multimap<int, int> &GetIndexFirstFieldMap() {
     return _mapIndexFirstField;
   }
 
@@ -123,15 +119,6 @@ public:
   // system table
   void ReadData();
   void WriteData();
-  IndexTree *GetPrimaryIndexTree() const { return _primaryTree; }
-  const MHashMap<string, IndexTree *>::Type &GetMapTree() const {
-    return _mapTree;
-  }
-  const IndexTree *GetIndexTree(const string &indexName) const {
-    auto iter = _mapTree.find(indexName);
-    assert(iter != _mapTree.end());
-    return iter->second;
-  }
 
   void OpenTable();
   void CloseTable();
@@ -149,11 +136,6 @@ protected:
   // The high 3 bytes used for table id, and the last byte used for index id.
   // Primary key id is 0 and other index ids order by index order.
   uint32_t _tid;
-  /**The primary index tree for this table*/
-  IndexTree *_primaryTree = nullptr;
-  /**The map for index tree, include the primary index tree. The keys is index
-   * name. */
-  MHashMap<string, IndexTree *>::Type _mapTree;
   /**The root path for the database.*/
   string _rootPath;
   /**The datebase name that this table belong to*/
@@ -163,12 +145,13 @@ protected:
   MVector<PhysColumn *>::Type _vctColumn;
   /** The map for column name and their position in column list */
   MHashMap<string, int>::Type _mapColumnPos;
-  /**The first parameter is the unique name for a index and the primary key's
-  name is fixed, must be PRIMARY_KEY. The second parameter is IndexProp.*/
-  MHashMap<string, IndexProp>::Type _mapIndex;
-  /**The first column position to constitute the index;
-  The second parameter,  the unique name for a index;*/
-  MHashMap<int, string>::Type _mapIndexFirstField;
+  /**All index, the primary key must be the first.*/
+  MVector<IndexProp *>::Type _vctIndex;
+  // The map for index with index name and position
+  MHashMap<string, int>::Type _mapIndexNamePos;
+  /**The map for index with first column's position in _vctColumn and index
+   * position in _vctIndex*/
+  unordered_multimap<int, int> _mapIndexFirstField;
 };
 
 class ResultTable : public BaseTable {};
