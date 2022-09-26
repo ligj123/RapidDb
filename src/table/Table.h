@@ -77,7 +77,7 @@ struct IndexProp {
   // The columns that composit this index
   MVector<IndexColumn>::Type _vctCol;
   // Index tree,
-  IndexTree *_tree;
+  IndexTree *_tree = nullptr;
 };
 
 class PhysTable : public BaseTable {
@@ -113,8 +113,8 @@ public:
                  any &valDefault);
   void SetPrimaryKey(MVector<string>::Type &priCols);
 
-  void AddSecondaryKey(string &indexName, IndexType indexType,
-                       MVector<string>::Type &colNames);
+  void AddIndex(IndexType indexType, string &indexName,
+                MVector<string>::Type &colNames);
   // Only used in developing time, in the future will save table schema to
   // system table
   void ReadData();

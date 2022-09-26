@@ -1,4 +1,5 @@
 ﻿#include "Table.h"
+#include "../dataType/DataValueFactory.h"
 #include <boost/crc.hpp>
 
 namespace storage {
@@ -108,9 +109,9 @@ const PhysColumn *PhysTable::GetColumn(int pos) {
   }
 }
 
-void PersistTable::AddColumn(string &columnName, DataType dataType,
-                             bool nullable, uint32_t maxLen, string &comment,
-                             Charsets charset, any &valDefault) {
+void PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
+                          uint32_t maxLen, string &comment, Charsets charset,
+                          any &valDefault) {
   transform(columnName.begin(), columnName.end(), columnName.begin(),
             ::toupper);
   IsValidName(columnName);
@@ -128,15 +129,15 @@ void PersistTable::AddColumn(string &columnName, DataType dataType,
     dvDefault = DataValueFactory(dataType, false, -1, valDefault);
   }
 
-  PersistColumn *cm = new PersistColumn(columnName, (uint32_t)_vctColumn.size(),
-                                        dataType, comment, nullable, maxLen, -1,
-                                        -1, Charsets::UTF8, dvDefault);
+  PhysColumn *cm =
+      new PhysColumn(columnName, (uint32_t)_vctColumn.size(), dataType, comment,
+                     nullable, maxLen, -1, -1, Charsets::UTF8, dvDefault);
 
   _vctColumn.push_back(cm);
   _mapColumnPos.insert(pair<string, int>(columnName, cm->GetPosition()));
 }
 
-void PersistTable::SetPrimaryKey(MVector<string>::Type &priCols) {
+void PhysTable::SetPrimaryKey(MVector<string>::Type &priCols) {
   if (priCols.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {PRIMARY_KEY});
   }
@@ -171,8 +172,8 @@ void PersistTable::SetPrimaryKey(MVector<string>::Type &priCols) {
   _mapIndexFirstField.insert({vct[0].colPos, PRIMARY_KEY});
 }
 
-void PersistTable::AddSecondaryKey(string &indexName, IndexType indexType,
-                                   MVector<string>::Type &colNames) {
+void PhysTable::AddSecondaryKey(string &indexName, IndexType indexType,
+                                MVector<string>::Type &colNames) {
   if (colNames.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName});
   }
