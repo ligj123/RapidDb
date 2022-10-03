@@ -51,27 +51,30 @@ protected:
 };
 
 struct IndexColumn {
+  IndexColumn() {}
+  IndexColumn(const string &name, uint32_t pos) : colName(name), colPos(pos) {}
+
   string colName;
-  uint16_t colPos = 0;
+  uint32_t colPos = 0;
 };
 
 struct IndexProp {
-  IndexProp() : _position(UINT16_MAX), _type(IndexType::UNKNOWN) {}
-  IndexProp(string &name, uint16_t pos, IndexType type,
+  IndexProp() : _position(UINT32_MAX), _type(IndexType::UNKNOWN) {}
+  IndexProp(string &name, uint32_t pos, IndexType type,
             MVector<IndexColumn>::Type &vctCol)
       : _name(name), _position(pos), _type(type) {
     _vctCol.swap(vctCol);
   }
 
-  void Write(Byte *bys, uint32_t &bysLen);
-  bool Read(Byte *bys);
+  uint32_t Write(Byte *bys, uint32_t bysLen);
+  uint32_t Read(Byte *bys);
   uint32_t CalcSize();
 
   // Index name
   string _name;
   // The position of this index, start from 0 and primary key must be 0. Table
   // id + this position will be the file id in IndxTree.
-  uint16_t _position;
+  uint32_t _position;
   // This index is primary key, unique key or nonunique key.
   IndexType _type;
   // The columns that composit this index
@@ -84,7 +87,7 @@ class PhysTable : public BaseTable {
 public:
   PhysTable(string &rootPath, string &dbName, string &tableName,
             string &tableAlias, string &description);
-  PhysTable(){};
+  PhysTable() : _tid(0){};
   ~PhysTable();
 
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
@@ -103,15 +106,16 @@ public:
 
   const PhysColumn *GetColumn(string &fieldName) const;
   const PhysColumn *GetColumn(int pos);
-  const MHashMap<string, int>::Type GetMapColumnPos() { return _mapColumnPos; }
-  const unordered_multimap<int, int> &GetIndexFirstFieldMap() {
+  const MHashMap<string, uint32_t>::Type GetMapColumnPos() {
+    return _mapColumnPos;
+  }
+  const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
     return _mapIndexFirstField;
   }
 
   void AddColumn(string &columnName, DataType dataType, bool nullable,
                  uint32_t maxLen, string &comment, Charsets charset,
                  any &valDefault);
-  void SetPrimaryKey(MVector<string>::Type &priCols);
 
   void AddIndex(IndexType indexType, string &indexName,
                 MVector<string>::Type &colNames);
@@ -144,14 +148,14 @@ protected:
    * the table.*/
   MVector<PhysColumn *>::Type _vctColumn;
   /** The map for column name and their position in column list */
-  MHashMap<string, int>::Type _mapColumnPos;
+  MHashMap<string, uint32_t>::Type _mapColumnPos;
   /**All index, the primary key must be the first.*/
   MVector<IndexProp *>::Type _vctIndex;
   // The map for index with index name and position
-  MHashMap<string, int>::Type _mapIndexNamePos;
+  MHashMap<string, uint32_t>::Type _mapIndexNamePos;
   /**The map for index with first column's position in _vctColumn and index
    * position in _vctIndex*/
-  unordered_multimap<int, int> _mapIndexFirstField;
+  unordered_multimap<uint32_t, uint32_t> _mapIndexFirstField;
 };
 
 class ResultTable : public BaseTable {};

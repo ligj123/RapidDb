@@ -16,10 +16,10 @@ int InsertStatement::ExecuteUpdate() {
     return -1;
   }
 
-  PersistTable *table = _exprInsert->GetTableDesc();
+  PhysTable *table = _exprInsert->GetTableDesc();
   ExprValueArrayIn *vAin = _exprInsert->GetExprValueArrayIn();
-  const MHashMap<string, IndexProp>::Type &mIndex = table->GetMapIndex();
-  IndexTree *priTree = table->GetPrimaryIndexTree();
+  // const MHashMap<string, IndexProp>::Type &mIndex = table->GetMapIndex();
+  // IndexTree *priTree = table->GetPrimaryIndexTree();
 
   for (VectorDataValue *row : _vctRow) {
     VectorDataValue rowPri;

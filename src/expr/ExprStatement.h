@@ -5,8 +5,7 @@
 #include "../dataType/DataValueFixChar.h"
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
-#include "../table/BaseTable.h"
-#include "../table/PersistTable.h"
+#include "../table/Table.h"
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
 #include "ExprData.h"
@@ -142,14 +141,14 @@ protected:
 
 class ExprInsert : public BaseExpr {
 public:
-  ExprInsert(PersistTable *tableDesc, ExprValueArrayIn *exprVAin,
+  ExprInsert(PhysTable *tableDesc, ExprValueArrayIn *exprVAin,
              ExprSelect *exprSelect, VectorDataValue &vctPara,
              bool bUpsert = false, bool statTime = false)
       : _tableDesc(tableDesc), _exprVAin(exprVAin), _exprSelect(exprSelect),
         _bUpsert(bUpsert), _bStatTime(statTime) {
     _vctPara.swap(vctPara);
   }
-  ExprInsert(PersistTable *tableDesc, ExprValueArrayIn *exprVAin,
+  ExprInsert(PhysTable *tableDesc, ExprValueArrayIn *exprVAin,
              VectorDataValue &vctPara, bool bUpsert = false,
              bool statTime = false)
       : _tableDesc(tableDesc), _exprVAin(exprVAin), _bUpsert(bUpsert),
@@ -162,7 +161,7 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_INSERT; }
-  PersistTable *GetTableDesc() { return _tableDesc; }
+  PhysTable *GetTableDesc() { return _tableDesc; }
   ExprValueArrayIn *GetExprValueArrayIn() { return _exprVAin; }
   ExprSelect *GetExprSelect() { return _exprSelect; }
   const VectorDataValue &GetParameters() { return _vctPara; }
@@ -171,7 +170,7 @@ public:
 
 protected:
   // The destion persistent table, managed by database, can not delete here.
-  PersistTable *_tableDesc;
+  PhysTable *_tableDesc;
   ExprValueArrayIn *_exprVAin;
   ExprSelect *_exprSelect;
   // Used to save parameters
@@ -184,7 +183,7 @@ protected:
 
 class ExprUpdate : public BaseExpr {
 public:
-  ExprUpdate(PersistTable *tableDesc, ExprValueArrayIn *exprVAin,
+  ExprUpdate(PhysTable *tableDesc, ExprValueArrayIn *exprVAin,
              ExprCondition *where, VectorDataValue &vctPara,
              bool statTime = false)
       : _tableDesc(tableDesc), _exprVAin(exprVAin), _where(where),
@@ -197,7 +196,7 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_UPDATE; }
-  PersistTable *GetTableDesc() { return _tableDesc; }
+  PhysTable *GetTableDesc() { return _tableDesc; }
   ExprValueArrayIn *GetExprValueArrayIn() { return _exprVAin; }
   ExprCondition *GetWhere() { return _where; }
   const VectorDataValue &GetParameters() { return _vctPara; }
@@ -205,7 +204,7 @@ public:
 
 protected:
   // The destion persistent table, managed by database, can not delete here.
-  PersistTable *_tableDesc;
+  PhysTable *_tableDesc;
   // The expression that how to get values
   ExprValueArrayIn *_exprVAin;
   // Where condition
@@ -218,7 +217,7 @@ protected:
 
 class ExprDelete : public BaseExpr {
 public:
-  ExprDelete(PersistTable *tableDesc, ExprCondition *where,
+  ExprDelete(PhysTable *tableDesc, ExprCondition *where,
              VectorDataValue &vctPara, bool statTime = false)
       : _tableDesc(tableDesc), _where(where), _bStatTime(statTime) {
     _vctPara.swap(vctPara);
@@ -226,14 +225,14 @@ public:
   ~ExprDelete() { delete _where; }
 
   ExprType GetType() { return ExprType::EXPR_DELETE; }
-  PersistTable *GetTableDesc() { return _tableDesc; }
+  PhysTable *GetTableDesc() { return _tableDesc; }
   ExprCondition *GetWhere() { return _where; }
   const VectorDataValue &GetParameters() { return _vctPara; }
   bool IsStatTime() { return _bStatTime; }
 
 protected:
   // The destion persistent table, managed by database, can not delete here.
-  PersistTable *_tableDesc;
+  PhysTable *_tableDesc;
   // Where condition
   ExprCondition *_where;
   // Used to save parameters

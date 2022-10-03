@@ -76,9 +76,6 @@
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp">
       <Filter>pool</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\database\Table.cpp">
-      <Filter>database</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\database\Database.cpp">
       <Filter>database</Filter>
     </ClCompile>
@@ -93,9 +90,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\statement\InsertStatement.cpp">
       <Filter>statement</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\table\PersistTable.cpp">
-      <Filter>table</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\binlog\LogServer.cpp">
       <Filter>binlog</Filter>
@@ -253,9 +247,6 @@
     <ClInclude Include="..\..\src\utils\ConcurrentHashMap.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\database\Table.h">
-      <Filter>database</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\database\Database.h">
       <Filter>database</Filter>
     </ClInclude>
@@ -300,9 +291,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\statement\InsertStatement.h">
       <Filter>statement</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\table\PersistTable.h">
-      <Filter>table</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\utils\BytesMicro.h">
       <Filter>utils</Filter>

@@ -3,18 +3,28 @@
 #include <boost/crc.hpp>
 
 namespace storage {
+// IndexProp buffer:
+// 4 bytes to save buffer length, include this 4 bytes
+// 2 bytes to save index name length + n bytes to save index name
+// 2 bytes to save index position in all index, primarykey is 0
+// 1 byte to save index type
+// 2 bytes to save this index include how many columns
+// Every column information will include 2 bytes column name length, n bytes
+// column name and 2 bytes to save column position
 uint32_t IndexProp::CalcSize() {
-  uint32_t sz = UI32_LEN * 2;
+  uint32_t sz = UI32_LEN;
   sz += UI16_LEN + _name.size();
   sz += UI16_LEN + 1 + UI16_LEN + UI16_LEN * 2 * _vctCol.size();
 
   for (IndexColumn col : _vctCol) {
     sz += col.colName.size();
   }
+
+  return sz;
 }
 
-void IndexProp::Write(Byte *bys, uint32_t &bysLen) {
-  Byte *tmp = bys + UI32_LEN * 2;
+uint32_t IndexProp::Write(Byte *bys, uint32_t bysLen) {
+  Byte *tmp = bys + UI32_LEN;
   *(uint16_t *)tmp = (uint16_t)_name.size();
   tmp += UI16_LEN;
   BytesCopy(tmp, _name.c_str(), _name.size());
@@ -36,23 +46,16 @@ void IndexProp::Write(Byte *bys, uint32_t &bysLen) {
     tmp += UI16_LEN;
   }
 
-  assert(*(uint32_t *)bys < bysLen);
-  *(uint32_t *)(bys + UI32_LEN) = (uint32_t)(tmp - bys);
-  boost::crc_32_type crc32;
-  crc32.process_bytes(bys + UI32_LEN, tmp - bys - UI32_LEN);
-  *(uint32_t *)bys = crc32.checksum();
+  assert((uint32_t)(tmp - bys) < bysLen);
+  *(uint32_t *)bys = (uint32_t)(tmp - bys);
 
-  bysLen = (uint32_t)(tmp - bys);
+  return (uint32_t)(tmp - bys);
 }
 
-bool IndexProp::Read(Byte *bys) {
-  uint32_t len = *(uint32_t *)(bys + UI32_LEN);
-  boost::crc_32_type crc32;
-  crc32.process_bytes(bys + UI32_LEN, len);
-  if (*(uint32_t *)bys != crc32.checksum())
-    return false;
+uint32_t IndexProp::Read(Byte *bys) {
+  uint32_t len = *(uint32_t *)bys;
 
-  bys += UI32_LEN * 2;
+  bys += UI32_LEN;
   uint16_t sz = *(uint16_t *)bys;
   bys += UI16_LEN;
   _name = string((char *)bys, sz);
@@ -76,7 +79,7 @@ bool IndexProp::Read(Byte *bys) {
     bys += UI16_LEN;
   }
 
-  return true;
+  return len;
 }
 
 PhysTable::PhysTable(string &rootPath, string &dbName, string &tableName,
@@ -137,229 +140,225 @@ void PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
   _mapColumnPos.insert(pair<string, int>(columnName, cm->GetPosition()));
 }
 
-void PhysTable::SetPrimaryKey(MVector<string>::Type &priCols) {
-  if (priCols.size() == 0) {
-    throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {PRIMARY_KEY});
-  }
-
-  if (_mapIndex.find(PRIMARY_KEY) != _mapIndex.end()) {
-    throw ErrorMsg(TB_REPEATED_INDEX, {PRIMARY_KEY});
-  }
-
-  MVector<IndexProp::Column>::Type vct;
-  for (string col : priCols) {
-    auto iter = _mapColumnPos.find(col);
-    if (iter == _mapColumnPos.end()) {
-      throw ErrorMsg(TB_UNEXIST_COLUMN, {col});
-    }
-
-    IndexProp::Column clm;
-
-    PersistColumn *tc = _vctColumn[iter->second];
-    if (!IDataValue::IsIndexType(tc->GetDataType())) {
-      throw ErrorMsg(TB_INDEX_UNSUPPORT_DATA_TYPE,
-                     {col, DateTypeToString(tc->GetDataType())});
-    }
-
-    clm.colName = tc->GetName();
-    clm.colPos = tc->GetPosition();
-
-    vct.push_back(clm);
-  }
-
-  IndexProp prop{IndexType::PRIMARY, vct};
-  _mapIndex.insert({PRIMARY_KEY, prop});
-  _mapIndexFirstField.insert({vct[0].colPos, PRIMARY_KEY});
-}
-
-void PhysTable::AddSecondaryKey(string &indexName, IndexType indexType,
-                                MVector<string>::Type &colNames) {
+void PhysTable::AddIndex(IndexType indexType, string &indexName,
+                         MVector<string>::Type &colNames) {
   if (colNames.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName});
   }
-  if (_mapIndex.find(indexName) != _mapIndex.end()) {
+  if (_mapIndexNamePos.find(indexName) != _mapIndexNamePos.end()) {
     throw ErrorMsg(TB_REPEATED_INDEX, {indexName});
   }
 
-  MVector<IndexProp::Column>::Type vct;
+  assert(indexType != IndexType::PRIMARY || _vctIndex.size() == 0);
+
+  MVector<IndexColumn>::Type vctCol;
+  for (string cname : colNames) {
+    auto iter = _mapColumnPos.find(cname);
+    if (iter == _mapColumnPos.end()) {
+      throw ErrorMsg(TB_UNEXIST_COLUMN, {cname});
+    }
+  }
+
+  MVector<IndexColumn>::Type vctIc;
   for (string col : colNames) {
     auto iter = _mapColumnPos.find(col);
     if (iter == _mapColumnPos.end()) {
       throw ErrorMsg(TB_UNEXIST_COLUMN, {col});
     }
-    IndexProp::Column clm;
 
-    PersistColumn *tc = _vctColumn[iter->second];
-    if (!IDataValue::IsIndexType(tc->GetDataType())) {
-      throw ErrorMsg(TB_INDEX_UNSUPPORT_DATA_TYPE,
-                     {col, DateTypeToString(tc->GetDataType())});
+    if (!IDataValue::IsIndexType(_vctColumn[iter->second]->GetDataType())) {
+      throw ErrorMsg(
+          TB_INDEX_UNSUPPORT_DATA_TYPE,
+          {col, DateTypeToString(_vctColumn[iter->second]->GetDataType())});
     }
 
-    clm.colName = tc->GetName();
-    clm.colPos = tc->GetPosition();
-
-    vct.push_back(clm);
+    vctIc.push_back(IndexColumn(iter->first, iter->second));
   }
-
-  IndexProp prop{indexType, vct};
-  _mapIndex.insert({indexName, prop});
-  _mapIndexFirstField.insert({vct[0].colPos, indexName});
+  string iname = (indexType == IndexType::PRIMARY ? PRIMARY_KEY : indexName);
+  IndexProp *prop = new IndexProp(iname, _vctIndex.size(), indexType, vctIc);
+  _vctIndex.push_back(prop);
+  _mapIndexNamePos.insert({prop->_name, prop->_position});
 }
 
-void PersistTable::WriteData() {
+void PhysTable::WriteData() {
+  Byte *buf = CachePool::ApplyBlock();
+  Byte *bufs = buf;
+
+  *(short *)buf = CURRENT_FILE_VERSION.GetMajorVersion();
+  buf += UI16_LEN;
+  *buf = CURRENT_FILE_VERSION.GetMinorVersion();
+  buf++;
+  *buf = CURRENT_FILE_VERSION.GetPatchVersion();
+  buf++;
+  buf += UI32_LEN * 2;
+
+  *(uint32_t *)buf = (uint32_t)_name.size();
+  buf += UI32_LEN;
+  BytesCopy(buf, _name.c_str(), _name.size());
+  buf += _name.size();
+  *(uint32_t *)buf = (uint32_t)_desc.size();
+  buf += UI32_LEN;
+  BytesCopy(buf, _desc.c_str(), _desc.size());
+  buf += _desc.size();
+
+  *(uint32_t *)buf = (uint32_t)_vctColumn.size();
+  buf + UI32_LEN;
+
+  for (size_t i = 0; i < _vctColumn.size(); i++) {
+    PhysColumn *col = _vctColumn[i];
+    uint32_t len = col->WriteData(buf);
+    buf += len;
+  }
+
+  *(uint32_t *)buf = (uint32_t)_vctIndex.size();
+  buf += UI32_LEN;
+  for (auto prop : _vctIndex) {
+    uint32_t len = prop->Write(buf, 102400);
+    buf += len;
+  }
+
+  assert(buf - bufs < Configure::GetResultBlockSize());
+
+  *(uint32_t *)(bufs + UI32_LEN * 2) = (uint32_t)(buf - bufs - UI32_LEN * 2);
+  boost::crc_32_type crc32;
+  crc32.process_bytes(bufs + UI32_LEN * 2, buf - bufs - UI32_LEN * 2);
+  *(uint32_t *)(bufs + UI32_LEN) = crc32.checksum();
+
   string path = _rootPath + "/" + _dbName + "/" + _name + "/metafile.dat";
   ofstream fs(path.c_str(), ios::out | ios::binary | ios::trunc);
-  fs << CURRENT_FILE_VERSION.GetMajorVersion()
-     << CURRENT_FILE_VERSION.GetMinorVersion()
-     << CURRENT_FILE_VERSION.GetPatchVersion();
-
-  fs << (int)_name.size();
-  fs.write(_name.c_str(), _name.size());
-  fs << (int)_desc.size();
-  fs.write(_desc.c_str(), _desc.size());
-
-  fs << (int)_vctColumn.size();
-  Byte buf[10240];
-  for (int i = 0; i < _vctColumn.size(); i++) {
-    PersistColumn *col = _vctColumn[i];
-    int len = col->WriteData(buf);
-    fs << len;
-    fs.write((char *)buf, len);
-  }
-
-  fs << (int)_mapIndex.size();
-  for (auto iter = _mapIndex.begin(); iter != _mapIndex.end(); iter++) {
-    fs << (int)iter->first.size();
-    fs.write(iter->first.c_str(), iter->first.size());
-    fs << (int)iter->second.type;
-
-    MVector<IndexProp::Column>::Type &vctCol = iter->second.vctCol;
-    fs << (int)vctCol.size();
-    for (int i = 0; i < vctCol.size(); i++) {
-      fs << vctCol[i].colPos;
-    }
-  }
-
+  fs.write((char *)bufs, buf - bufs);
   fs.close();
+  CachePool::ReleaseBlock(bufs);
 }
 
-void PersistTable::ReadData() {
+void PhysTable::ReadData() {
+  Byte *buf = CachePool::ApplyBlock();
+  Byte *bufs = buf;
+
   string path = _rootPath + "/" + _dbName + "/" + _name + "/metafile.dat";
   ifstream fs(path.c_str(), ios::in | ios::binary);
-  char buf[10240];
+  fs.read((char *)buf, Configure::GetResultBlockSize());
+  uint32_t sz = fs.gcount();
+  fs.close();
+  assert(sz < Configure::GetResultBlockSize());
 
-  fs.read(buf, 4);
   FileVersion fv(*(int16_t *)buf, *(uint8_t *)(buf + 2), *(uint8_t *)(buf + 3));
   if (!(fv == CURRENT_FILE_VERSION)) {
+    CachePool::ReleaseBlock(bufs);
     throw ErrorMsg(TB_ERROR_INDEX_VERSION, {path});
   }
 
-  int len;
-  fs >> len;
-  fs.read(buf, len);
-  buf[len] = 0;
-  _name = buf;
+  buf += UI32_LEN;
 
-  fs >> len;
-  fs.read(buf, len);
-  buf[len] = 0;
-  _desc = buf;
+  uint32_t len = *(uint32_t *)(buf + UI32_LEN);
+  if (len + UI32_LEN * 2 != sz) {
+    CachePool::ReleaseBlock(bufs);
+    throw ErrorMsg(FILE_OPEN_FAILED, {path});
+  }
 
-  fs >> len;
-  for (int i = 0; i < len; i++) {
-    int len2;
-    fs >> len2;
-    fs.read(buf, len2);
-    PersistColumn *col = new PersistColumn();
-    col->ReadData((Byte *)buf);
+  boost::crc_32_type crc32;
+  crc32.process_bytes(buf + UI32_LEN, len);
+  if (*(uint32_t *)buf != crc32.checksum()) {
+    CachePool::ReleaseBlock(buf);
+    throw ErrorMsg(FILE_OPEN_FAILED, {path});
+  }
+
+  buf += UI32_LEN * 2;
+
+  len = *(uint32_t *)buf;
+  buf += UI32_LEN;
+  _name = string((char *)buf, len);
+  buf += len;
+
+  len = *(uint32_t *)buf;
+  buf += UI32_LEN;
+  _desc = string((char *)buf, len);
+  buf += len;
+
+  len = *(uint32_t *)buf;
+  buf += UI32_LEN;
+  for (uint32_t i = 0; i < len; i++) {
+    PhysColumn *col = new PhysColumn();
+    uint32_t sz = col->ReadData(buf);
+    buf += sz;
+
     _vctColumn.push_back(col);
     _mapColumnPos.insert({col->GetName(), i});
   }
 
-  fs >> len;
+  len = *(uint32_t *)buf;
+  buf += UI32_LEN;
+
   for (int i = 0; i < len; i++) {
-    int len2;
-    fs >> len2;
-    fs.read(buf, len2);
-    buf[len2] = 0;
-    string str = buf;
-    IndexProp iprop;
-    int type;
-    fs >> type;
-    iprop.type = (IndexType)type;
+    IndexProp *prop = new IndexProp;
+    uint32_t sz = prop->Read(buf);
+    buf += sz;
 
-    fs >> len2;
-    for (int j = 0; j < len2; j++) {
-      IndexProp::Column clm;
-      fs >> clm.colPos;
-      clm.colName = _vctColumn[clm.colPos]->GetName();
-      iprop.vctCol.push_back(clm);
-    }
-
-    _mapIndex.insert({str, iprop});
-    _mapIndexFirstField.insert({iprop.vctCol[0].colPos, str});
+    _vctIndex.push_back(prop);
+    _mapIndexNamePos.insert({prop->_name, i});
+    _mapIndexFirstField.insert({i, prop->_vctCol[0].colPos});
   }
 }
 
-void PersistTable::OpenTable() {
-  Clear();
-  ReadData();
-  string path = _rootPath + "/" + _dbName + "/" + _name + "/";
-  for (auto iter = _mapIndex.begin(); iter != _mapIndex.end(); iter++) {
-    path += iter->first;
-    VectorDataValue key;
-    GenIndexDataValues(iter->second, key);
-    IndexTree *tree;
-    if (iter->first == PRIMARY_KEY) {
-      VectorDataValue val;
-      GenColumsDataValues(val);
-      tree = new IndexTree(_name, path, key, val);
-      _primaryTree = tree;
-    } else {
-      VectorDataValue val;
-      GenIndexDataValues(_mapIndex[PRIMARY_KEY], val);
-      tree = new IndexTree(_name, path, key, val);
-    }
-    _mapTree.insert({iter->first, tree});
-  }
-}
-
-void PersistTable::CloseTable() { Clear(); }
-
-void PersistTable::Clear() {
-  _primaryTree = nullptr;
-
-  for (auto iter = _mapTree.begin(); iter != _mapTree.end(); iter++) {
-    iter->second->Close();
-  }
-
-  _mapTree.clear();
-
-  for (auto iter : _vctColumn) {
-    delete iter;
-  }
-  _vctColumn.clear();
-}
-
-void PersistTable::GenIndexDataValues(IndexProp &prop,
-                                      VectorDataValue &vct) const {
-  vct.clear();
-  vct.reserve(prop.vctCol.size());
-  for (auto iter : prop.vctCol) {
-    PersistColumn *col = _vctColumn[iter.colPos];
-    IDataValue *dv =
-        DataValueFactory(col->GetDataType(), true, col->GetMaxLength());
-    vct.push_back(dv);
-  }
-}
-
-void PersistTable::GenColumsDataValues(VectorDataValue &vct) const {
-  vct.clear();
-  vct.reserve(_vctColumn.size());
-  for (PersistColumn *col : _vctColumn) {
-    IDataValue *dv =
-        DataValueFactory(col->GetDataType(), false, col->GetMaxLength());
-    vct.push_back(dv);
-  }
-}
+// void PersistTable::OpenTable() {
+//  Clear();
+//  ReadData();
+//  string path = _rootPath + "/" + _dbName + "/" + _name + "/";
+//  for (auto iter = _mapIndex.begin(); iter != _mapIndex.end(); iter++) {
+//    path += iter->first;
+//    VectorDataValue key;
+//    GenIndexDataValues(iter->second, key);
+//    IndexTree *tree;
+//    if (iter->first == PRIMARY_KEY) {
+//      VectorDataValue val;
+//      GenColumsDataValues(val);
+//      tree = new IndexTree(_name, path, key, val);
+//      _primaryTree = tree;
+//    } else {
+//      VectorDataValue val;
+//      GenIndexDataValues(_mapIndex[PRIMARY_KEY], val);
+//      tree = new IndexTree(_name, path, key, val);
+//    }
+//    _mapTree.insert({iter->first, tree});
+//  }
+//}
+//
+// void PersistTable::CloseTable() { Clear(); }
+//
+// void PersistTable::Clear() {
+//  _primaryTree = nullptr;
+//
+//  for (auto iter = _mapTree.begin(); iter != _mapTree.end(); iter++) {
+//    iter->second->Close();
+//  }
+//
+//  _mapTree.clear();
+//
+//  for (auto iter : _vctColumn) {
+//    delete iter;
+//  }
+//  _vctColumn.clear();
+//}
+//
+// void PersistTable::GenIndexDataValues(IndexProp &prop,
+//                                      VectorDataValue &vct) const {
+//  vct.clear();
+//  vct.reserve(prop.vctCol.size());
+//  for (auto iter : prop.vctCol) {
+//    PersistColumn *col = _vctColumn[iter.colPos];
+//    IDataValue *dv =
+//        DataValueFactory(col->GetDataType(), true, col->GetMaxLength());
+//    vct.push_back(dv);
+//  }
+//}
+//
+// void PersistTable::GenColumsDataValues(VectorDataValue &vct) const {
+//  vct.clear();
+//  vct.reserve(_vctColumn.size());
+//  for (PersistColumn *col : _vctColumn) {
+//    IDataValue *dv =
+//        DataValueFactory(col->GetDataType(), false, col->GetMaxLength());
+//    vct.push_back(dv);
+//  }
+//}
 } // namespace storage

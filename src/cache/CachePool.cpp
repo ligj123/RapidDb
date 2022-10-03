@@ -178,6 +178,7 @@ Byte *CachePool::ApplyBlock() {
   _mapApply.emplace(bys, "ApplyBlock\n" + str);
   return bys;
 }
+
 void CachePool::ReleaseBlock(Byte *bys) {
   CachePool *pool = GetInstance();
   unique_lock<SpinMutex> lock(pool->_blockMutex);

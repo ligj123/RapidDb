@@ -35,7 +35,6 @@
     <ClCompile Include="..\..\src\core\LeafRecord.cpp" />
     <ClCompile Include="..\..\src\core\OverflowPage.cpp" />
     <ClCompile Include="..\..\src\database\Database.cpp" />
-    <ClCompile Include="..\..\src\database\Table.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueFixChar.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueBlob.cpp" />
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp" />
@@ -48,7 +47,6 @@
     <ClCompile Include="..\..\src\resultset\TableResultSet.cpp" />
     <ClCompile Include="..\..\src\statement\InsertStatement.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
-    <ClCompile Include="..\..\src\table\PersistTable.cpp" />
     <ClCompile Include="..\..\src\table\Table.cpp" />
     <ClCompile Include="..\..\src\transaction\Transaction.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
@@ -86,7 +84,6 @@
     <ClInclude Include="..\..\src\core\RawKey.h" />
     <ClInclude Include="..\..\src\core\RawRecord.h" />
     <ClInclude Include="..\..\src\database\Database.h" />
-    <ClInclude Include="..\..\src\database\Table.h" />
     <ClInclude Include="..\..\src\dataType\DataType.h" />
     <ClInclude Include="..\..\src\dataType\DataValueDate.h" />
     <ClInclude Include="..\..\src\dataType\DataValueDigit.h" />
@@ -114,7 +111,6 @@
     <ClInclude Include="..\..\src\statement\InsertStatement.h" />
     <ClInclude Include="..\..\src\statement\Statement.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
-    <ClInclude Include="..\..\src\table\PersistTable.h" />
     <ClInclude Include="..\..\src\table\Table.h" />
     <ClInclude Include="..\..\src\transaction\TranStatus.h" />
     <ClInclude Include="..\..\src\transaction\Transaction.h" />
