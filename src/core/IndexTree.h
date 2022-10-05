@@ -27,7 +27,7 @@ struct PageLock {
 
 class IndexTree {
 public:
-  IndexTree(const string &tableName, const string &fileName,
+  IndexTree(const string &indexName, const string &fileName,
             VectorDataValue &vctKey, VectorDataValue &vctVal,
             IndexType iType = IndexType::UNKNOWN);
 
@@ -87,7 +87,7 @@ protected:
   ~IndexTree();
 
 protected:
-  string _tableName;
+  string _indexName;
   string _fileName;
   std::queue<PageFile *> _fileQueue;
   SpinMutex _fileMutex;

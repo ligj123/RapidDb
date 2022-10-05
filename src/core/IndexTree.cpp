@@ -13,10 +13,10 @@ unordered_set<uint32_t> IndexTree::_setFiledId;
 uint32_t IndexTree::_currFiledId = 1;
 SpinMutex IndexTree::_fileIdMutex;
 
-IndexTree::IndexTree(const string &tableName, const string &fileName,
+IndexTree::IndexTree(const string &indexName, const string &fileName,
                      VectorDataValue &vctKey, VectorDataValue &vctVal,
                      IndexType iType) {
-  _tableName = tableName;
+  _indexName = indexName;
   _fileName = fileName;
   for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {
     if (*iter == '\\')
@@ -111,7 +111,7 @@ IndexTree::IndexTree(const string &tableName, const string &fileName,
   }
 
   _garbageOwner = new GarbageOwner(this);
-  LOG_DEBUG << "Open index tree " << tableName;
+  LOG_DEBUG << "Open index tree " << indexName;
 }
 
 IndexTree::~IndexTree() {
@@ -156,7 +156,7 @@ IndexTree::~IndexTree() {
   if (_funcDestory != nullptr) {
     _funcDestory();
   }
-  LOG_DEBUG << "Close index tree " << _tableName;
+  LOG_DEBUG << "Close index tree " << _indexName;
 }
 
 void IndexTree ::Close(function<void()> funcDestory) {

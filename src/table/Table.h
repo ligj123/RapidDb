@@ -87,7 +87,7 @@ class PhysTable : public BaseTable {
 public:
   PhysTable(string &rootPath, string &dbName, string &tableName,
             string &tableAlias, string &description);
-  PhysTable() : _tid(0){};
+  PhysTable(uint32_t id) : _tid(id){};
   ~PhysTable();
 
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
@@ -124,10 +124,12 @@ public:
   void ReadData();
   void WriteData();
 
-  void OpenTable();
-  void CloseTable();
-  void GenIndexDataValues(IndexProp &prop, VectorDataValue &vct) const;
-  void GenColumsDataValues(VectorDataValue &vct) const;
+  bool OpenIndex(size_t idx, bool bCreate);
+  void CloseIndex(size_t idx) {
+    assert(idx > 0 && idx < _vctIndex.size());
+    IndexProp *prop = _vctIndex[idx];
+    prop->_tree->Close();
+  }
 
 protected:
   inline bool IsExistedColumn(string name) {
@@ -158,5 +160,9 @@ protected:
   unordered_multimap<uint32_t, uint32_t> _mapIndexFirstField;
 };
 
-class ResultTable : public BaseTable {};
+class ResultTable : public BaseTable {
+public:
+protected:
+  MVector<ResultColumn>::Type _vctColumn;
+};
 } // namespace storage

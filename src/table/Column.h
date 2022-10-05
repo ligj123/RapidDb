@@ -131,7 +131,7 @@ protected:
   int _dataBasicStart;
   /**To save how many variable columns(String or blob) before this column*/
   int _prevVarCols;
-  /**How many bytes to save which columna are null, 8 columns per byte*/
+  /**How many bytes to save which columns are null, 8 columns per byte*/
   int _colNullPlace;
 };
 } // namespace storage

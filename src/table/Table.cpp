@@ -1,6 +1,7 @@
 ﻿#include "Table.h"
 #include "../dataType/DataValueFactory.h"
 #include <boost/crc.hpp>
+#include <filesystem>
 
 namespace storage {
 // IndexProp buffer:
@@ -300,65 +301,44 @@ void PhysTable::ReadData() {
   }
 }
 
-// void PersistTable::OpenTable() {
-//  Clear();
-//  ReadData();
-//  string path = _rootPath + "/" + _dbName + "/" + _name + "/";
-//  for (auto iter = _mapIndex.begin(); iter != _mapIndex.end(); iter++) {
-//    path += iter->first;
-//    VectorDataValue key;
-//    GenIndexDataValues(iter->second, key);
-//    IndexTree *tree;
-//    if (iter->first == PRIMARY_KEY) {
-//      VectorDataValue val;
-//      GenColumsDataValues(val);
-//      tree = new IndexTree(_name, path, key, val);
-//      _primaryTree = tree;
-//    } else {
-//      VectorDataValue val;
-//      GenIndexDataValues(_mapIndex[PRIMARY_KEY], val);
-//      tree = new IndexTree(_name, path, key, val);
-//    }
-//    _mapTree.insert({iter->first, tree});
-//  }
-//}
-//
-// void PersistTable::CloseTable() { Clear(); }
-//
-// void PersistTable::Clear() {
-//  _primaryTree = nullptr;
-//
-//  for (auto iter = _mapTree.begin(); iter != _mapTree.end(); iter++) {
-//    iter->second->Close();
-//  }
-//
-//  _mapTree.clear();
-//
-//  for (auto iter : _vctColumn) {
-//    delete iter;
-//  }
-//  _vctColumn.clear();
-//}
-//
-// void PersistTable::GenIndexDataValues(IndexProp &prop,
-//                                      VectorDataValue &vct) const {
-//  vct.clear();
-//  vct.reserve(prop.vctCol.size());
-//  for (auto iter : prop.vctCol) {
-//    PersistColumn *col = _vctColumn[iter.colPos];
-//    IDataValue *dv =
-//        DataValueFactory(col->GetDataType(), true, col->GetMaxLength());
-//    vct.push_back(dv);
-//  }
-//}
-//
-// void PersistTable::GenColumsDataValues(VectorDataValue &vct) const {
-//  vct.clear();
-//  vct.reserve(_vctColumn.size());
-//  for (PersistColumn *col : _vctColumn) {
-//    IDataValue *dv =
-//        DataValueFactory(col->GetDataType(), false, col->GetMaxLength());
-//    vct.push_back(dv);
-//  }
-//}
+bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
+  assert(idx > 0 && idx < _vctIndex.size());
+  IndexProp *prop = _vctIndex[idx];
+  string path = _rootPath + "/" + _dbName + "/" + _name + "/" +
+                _vctIndex[idx]->_name + ".idx";
+
+  VectorDataValue dvKey;
+  dvKey.reserve(prop->_vctCol.size());
+  for (IndexColumn ic : prop->_vctCol) {
+    PhysColumn *pc = _vctColumn[ic.colPos];
+    dvKey.push_back(
+        DataValueFactory(pc->GetDataType(), true, pc->GetMaxLength()));
+  }
+
+  VectorDataValue dvVal;
+  if (idx == 0) {
+    dvVal.reserve(_vctColumn.size());
+    for (PhysColumn *pc : _vctColumn) {
+      dvVal.push_back(
+          DataValueFactory(pc->GetDataType(), false, pc->GetMaxLength()));
+    }
+  } else {
+    IndexProp *pPri = _vctIndex[0];
+    dvVal.reserve(pPri->_vctCol.size());
+    for (IndexColumn ic : pPri->_vctCol) {
+      PhysColumn *pc = _vctColumn[ic.colPos];
+      dvKey.push_back(
+          DataValueFactory(pc->GetDataType(), true, pc->GetMaxLength()));
+    }
+  }
+
+  if (bCreate == filesystem::exists(path)) {
+    LOG_FATAL << "The index file"
+              << (bCreate ? "has existed" : "should be existed")
+              << ". path= " << path;
+    abort();
+  }
+
+  prop->_tree = new IndexTree(prop->_name, path, dvKey, dvVal);
+}
 } // namespace storage

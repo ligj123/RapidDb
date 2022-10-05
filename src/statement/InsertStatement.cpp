@@ -23,7 +23,7 @@ int InsertStatement::ExecuteUpdate() {
 
   for (VectorDataValue *row : _vctRow) {
     VectorDataValue rowPri;
-    table->GenColumsDataValues(rowPri);
+    // table->GenColumsDataValues(rowPri);
     vAin->Calc(*row, rowPri);
 
     // LeafRecord *priRec = new LeafRecord(priTree, )
