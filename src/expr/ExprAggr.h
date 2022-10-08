@@ -12,6 +12,12 @@
 using namespace std;
 namespace storage {
 
+class ExprAggr : public BaseExpr {
+public:
+  using BaseExpr::BaseExpr;
+  virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
+};
+
 class ExprCount : public ExprAggr {
 public:
   ExprCount(int index, int colPos)

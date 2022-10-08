@@ -57,7 +57,10 @@ public:
       }
     }
   }
-  ~Transaction() {}
+  ~Transaction() {
+    if (_errorMsg != nullptr)
+      delete _errorMsg;
+  }
 
   TranType GetTransactionType() const { return _tranType; }
   TranStatus GetTransactionStatus() const { return _tranStatus; }
@@ -66,6 +69,7 @@ public:
   bool IsOvertime() { return MilliSecTime() - _createTime > _maxMicroSec; }
   uint64_t GetTranId() { return _tranId; }
   bool AbleAddTask() { return _tranStatus == TranStatus::CREATED; }
+  MVector<Statement *>::Type &GetStatements() { return _vctStatement; }
   void Rollback();
   void Failed();
   void TimeOut();
@@ -96,7 +100,7 @@ protected:
   // from 0 to 255. The last 40 bit is self increasing integer from atomicTranId
   // for automate type, one transaction only has one statement, so tran id will
   // increase one every time. For manual type, one tansaction can has many
-  // statements, so here 48 bits will split 2 parts. The first 32 bits are
+  // statements, so here 40 bits will split 2 parts. The first 24 bits are
   // trabsaction ids, the other 16 bits are statement ids in this transaction.
   // If a transaction has more than 65536 statements, it will allocate other
   // zone for this transaction.
@@ -110,8 +114,9 @@ protected:
   // The finished or abort time to execute for this statement
   DT_MicroSec _stopTime;
   // All statements in this transaction
-  MTreeSet<Statement *>::Type _setStatement;
-
+  // In this version, a transaction can have no more than 65536 statements.
+  // It will throw exception when add the 65537 statement.
+  MVector<Statement *>::Type _vctStatement;
   // To record the number of finished records
   uint64_t _recFinished = 0;
   // spin lock

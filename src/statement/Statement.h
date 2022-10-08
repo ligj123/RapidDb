@@ -14,6 +14,7 @@
 #include "../transaction/Transaction.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
+#include <atomic>
 #include <chrono>
 #include <future>
 
@@ -28,13 +29,14 @@ public:
    * @param vct Used to save the parameters types, maxlength etc.
    * @param statTime If save create, execute and stop time for statistics
    */
-  Statement(Transaction *tran, const VectorDataValue *vct, bool statTime)
+  Statement(Transaction *tran, const VectorDataValue *vct)
       : _tran(tran), _bAutoTran(tran == nullptr), _vctParaSour(vct) {
     if (_tran == nullptr) {
       _tran = new Transaction(TranType::AUTOMATE,
                               (uint32_t)Configure::GetAutoTaskOvertime());
     }
 
+    _id = _tran->GetTranId() + _tran->GetStatements().size();
     _vctPara.reserve(vct->size());
     for (auto dv : *vct) {
       _vctPara.push_back(dv->Clone());
@@ -47,6 +49,9 @@ public:
     if (_bAutoTran && _tran != nullptr) {
       delete _tran;
     }
+
+    if (_errorMsg != nullptr)
+      delete _errorMsg;
   }
   /**
    * Get which action will to do
@@ -431,7 +436,7 @@ public:
 
 protected:
   // If automate transaction, it equal transaction id. If manual transaction, it
-  // will start from transaction id to +0xffff
+  // will start from transaction id to tid+0xffff
   uint64_t _id;
   // The vactor of data value from sql expression
   const VectorDataValue *_vctParaSour;
@@ -447,13 +452,13 @@ protected:
   DT_MicroSec _stopTime;
   // The number of tiny taks. One statement maybe splite serveral tiny tasks to
   // run. Here used to save how much tiny tasks in total.
-  int _tinyTasks = 0;
+  atomic_uint32_t _tinyTasks = 0;
   // The number of finished tiny tasks.
-  int _finishedTask = 0;
+  atomic_uint32_t _finishedTask = 0;
   // The transaction to run this task, no nullable.
   Transaction *_tran;
   // If current statement meet error, save the reason here
-  ErrorMsg _errorMsg;
+  ErrorMsg *_errorMsg = nullptr;
   // False, it will input the transaction from outside when construct this
   // statement; True , no transaction incoming and need this statement to create
   // a new transaction.

@@ -8,6 +8,7 @@
 #include "../table/Table.h"
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
+#include "ExprAggr.h"
 #include "ExprData.h"
 #include "ExprLogic.h"
 #include "ExprValue.h"
@@ -34,10 +35,9 @@ public:
   ExprSelect(BaseTable *sourTable, BaseTable *destTable,
              ExprValueArrayOut *exprVAout, ExprCondition *where,
              MVector<OrderCol>::Type &vctOrder, bool bDistinct,
-             bool bCacheResult, VectorDataValue &vctPara, bool statTime = false)
+             bool bCacheResult, VectorDataValue &vctPara)
       : _sourTable(sourTable), _destTable(destTable), _exprVAout(exprVAout),
-        _where(where), _bDistinct(bDistinct), _bCacheResult(bCacheResult),
-        _bStatTime(statTime) {
+        _where(where), _bDistinct(bDistinct), _bCacheResult(bCacheResult) {
     _vctOrder.swap(vctOrder);
     _vctPara.swap(vctPara);
   }
@@ -57,7 +57,6 @@ public:
   bool IsDistinct() const { return _bDistinct; }
   bool IsCacheResult() const { return _bCacheResult; }
   const VectorDataValue &GetParameters() { return _vctPara; }
-  bool IsStatTime() { return _bStatTime; }
 
 protected:
   // The source table information.
@@ -76,8 +75,6 @@ protected:
   bool _bCacheResult;
   // Used to save parameters
   VectorDataValue _vctPara;
-  // if record time for statistics
-  bool _bStatTime;
 };
 
 class ExprJoin : public ExprSelect {
@@ -86,9 +83,9 @@ public:
            ExprValueArrayOut *exprVAout, ExprCondition *where,
            MVector<OrderCol>::Type &vctOrder, bool bDistinct, bool bCacheResult,
            BaseTable *rightTable, ExprOn *exprOn, JoinType jType,
-           VectorDataValue &vctPara, bool statTime = false)
+           VectorDataValue &vctPara)
       : ExprSelect(sourTable, destTable, exprVAout, where, vctOrder, bDistinct,
-                   bCacheResult, vctPara, statTime),
+                   bCacheResult, vctPara),
         _rightTable(rightTable), _exprOn(exprOn), _joinType(jType) {}
   ~ExprJoin() {
     delete _rightTable;
@@ -142,17 +139,17 @@ protected:
 class ExprInsert : public BaseExpr {
 public:
   ExprInsert(PhysTable *tableDesc, ExprValueArrayIn *exprVAin,
-             ExprSelect *exprSelect, VectorDataValue &vctPara,
-             bool bUpsert = false, bool statTime = false)
+             ExprSelect *exprSelect, VectorDataValue vctPara,
+             bool bUpsert = false)
       : _tableDesc(tableDesc), _exprVAin(exprVAin), _exprSelect(exprSelect),
-        _bUpsert(bUpsert), _bStatTime(statTime) {
+        _bUpsert(bUpsert) {
     _vctPara.swap(vctPara);
   }
+
   ExprInsert(PhysTable *tableDesc, ExprValueArrayIn *exprVAin,
-             VectorDataValue &vctPara, bool bUpsert = false,
-             bool statTime = false)
-      : _tableDesc(tableDesc), _exprVAin(exprVAin), _bUpsert(bUpsert),
-        _bStatTime(statTime), _exprSelect(nullptr) {
+             VectorDataValue vctPara, bool bUpsert = false)
+      : _tableDesc(tableDesc), _exprVAin(exprVAin), _exprSelect(nullptr),
+        _bUpsert(bUpsert) {
     _vctPara.swap(vctPara);
   }
   ~ExprInsert() {
@@ -164,21 +161,19 @@ public:
   PhysTable *GetTableDesc() { return _tableDesc; }
   ExprValueArrayIn *GetExprValueArrayIn() { return _exprVAin; }
   ExprSelect *GetExprSelect() { return _exprSelect; }
-  const VectorDataValue &GetParameters() { return _vctPara; }
-  bool IsStatTime() { return _bStatTime; }
   bool IsUpsert() { return _bUpsert; }
 
 protected:
   // The destion persistent table, managed by database, can not delete here.
   PhysTable *_tableDesc;
+  // The expression that how to calc values from input or select
   ExprValueArrayIn *_exprVAin;
+  // Used for insert into TABLE A select from TABLE B
   ExprSelect *_exprSelect;
-  // Used to save parameters
-  VectorDataValue _vctPara;
-  // if record time for statistics
-  bool _bStatTime;
   // True, update if the key has exist
   bool _bUpsert;
+  // Used to save parameters information and as prototype when input parameters
+  VectorDataValue _vctPara;
 };
 
 class ExprUpdate : public BaseExpr {

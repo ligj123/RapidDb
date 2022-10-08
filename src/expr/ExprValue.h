@@ -23,7 +23,10 @@ public:
   // child: For normal parameter, it will tell how to get parameter.
   ExprValueIn(int index, ExprData *child)
       : _index(index), valConst(false), _child(child), _dvConst(nullptr) {}
-  ~ExprValueIn() { delete _child; }
+  ~ExprValueIn() {
+    delete _child;
+    delete _dvConst;
+  }
 
   ExprType GetType() { return ExprType::EXPR_VALUE_IN; }
   void Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {

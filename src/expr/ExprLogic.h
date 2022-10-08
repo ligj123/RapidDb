@@ -15,6 +15,14 @@ using namespace std;
 namespace storage {
 enum class CompType { EQ, GT, GE, LT, LE, NE };
 
+class ExprLogic : public BaseExpr {
+public:
+  using BaseExpr::BaseExpr;
+  // The expression below EXPR_SPLIT to call this functionto calc and return
+  // bool value.
+  virtual bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
+};
+
 class ExprAnd : public ExprLogic {
 public:
   ExprAnd(MVector<ExprLogic *>::Type &vctChild) { _vctChild.swap(vctChild); }

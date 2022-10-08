@@ -78,31 +78,6 @@ public:
   }
 };
 
-/**
- * @brief Base class for all expression to calc and return data value.
- */
-class ExprData : public BaseExpr {
-public:
-  using BaseExpr::BaseExpr;
-  /**Returned DataValue maybe refer to one of value in vdPara or vdRow, or
-   * created newly. if created newly, need user to release it.*/
-  virtual IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
-};
-
-class ExprLogic : public BaseExpr {
-public:
-  using BaseExpr::BaseExpr;
-  // The expression below EXPR_SPLIT to call this functionto calc and return
-  // bool value.
-  virtual bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
-};
-
-class ExprAggr : public BaseExpr {
-public:
-  using BaseExpr::BaseExpr;
-  virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
-};
-
 // The base class for values of input or output
 class ExprValue : public BaseExpr {
 public:
@@ -122,7 +97,7 @@ protected:
 };
 
 /**
- * @brief To save array values, used to follow expression IN.
+ * @brief To save array values, to be used in SQL operator IN.
  */
 class ExprArray : public BaseExpr {
 public:

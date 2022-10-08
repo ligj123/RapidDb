@@ -11,6 +11,18 @@
 
 using namespace std;
 namespace storage {
+
+/**
+ * @brief Base class for all expression to calc and return data value.
+ */
+class ExprData : public BaseExpr {
+public:
+  using BaseExpr::BaseExpr;
+  /**Returned DataValue maybe refer to one of value in vdPara or vdRow, or
+   * created newly. if created newly, need user to release it.*/
+  virtual IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
+};
+
 /**
  * @brief Corresponding to a column in the table or temp table.
  */
