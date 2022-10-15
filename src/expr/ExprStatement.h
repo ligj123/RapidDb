@@ -30,6 +30,12 @@ struct OrderCol {
   bool bAsc;
 };
 
+class ExprStatement : public BaseExpr {
+public:
+protected:
+
+};
+
 class ExprSelect : public BaseExpr {
 public:
   ExprSelect(BaseTable *sourTable, BaseTable *destTable,
@@ -112,9 +118,9 @@ public:
               MVector<ExprAggr *>::Type &vctAggr, ExprCondition *where,
               MVector<OrderCol>::Type &vctOrder, bool bDistinct,
               bool bCacheResult, ExprCondition *having,
-              VectorDataValue &vctPara, bool statTime = false)
+              VectorDataValue &vctPara)
       : ExprSelect(sourTable, destTable, nullptr, where, vctOrder, bDistinct,
-                   bCacheResult, vctPara, statTime),
+                   bCacheResult, vctPara),
         _having(having) {
     _vctChild.swap(vctAggr);
   }

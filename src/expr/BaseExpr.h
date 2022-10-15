@@ -78,22 +78,29 @@ public:
   }
 };
 
-// The base class for values of input or output
-class ExprValue : public BaseExpr {
+/**
+ * @brief Base class for all expression to calc and return data value.
+ */
+class ExprData : public BaseExpr {
+public:
+  using BaseExpr::BaseExpr;
+  /**Returned DataValue maybe refer to one of value in vdPara or vdRow, or
+   * created newly. if created newly, need user to release it.*/
+  virtual IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
+};
+
+/**@brief Base class for all aggressive expression*/
+class ExprAggr : public BaseExpr {
 public:
   using BaseExpr::BaseExpr;
   virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
 };
 
-class ExprConst : public BaseExpr {
+// The base class for values of input or output
+class ExprField : public BaseExpr {
 public:
-  ExprConst(IDataValue *val) : _val(val) {}
-  ~ExprConst() { delete _val; }
-  ExprType GetType() { return ExprType::EXPR_CONST; }
-  IDataValue *GetVal() { return _val; }
-
-protected:
-  IDataValue *_val;
+  using BaseExpr::BaseExpr;
+  virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
 };
 
 /**

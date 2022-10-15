@@ -12,7 +12,7 @@
 using namespace std;
 namespace storage {
 /**
- * @brief The input value for insert or update.
+ * @brief The input fields for insert or update.
  */
 class ExprValueIn : public ExprValue {
 public:

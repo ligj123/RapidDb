@@ -11,16 +11,17 @@
 
 using namespace std;
 namespace storage {
-
-/**
- * @brief Base class for all expression to calc and return data value.
- */
-class ExprData : public BaseExpr {
+class ExprConst : public ExprData {
 public:
-  using BaseExpr::BaseExpr;
-  /**Returned DataValue maybe refer to one of value in vdPara or vdRow, or
-   * created newly. if created newly, need user to release it.*/
-  virtual IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
+  ExprConst(IDataValue *val) : _val(val) {}
+  ~ExprConst() { delete _val; }
+  ExprType GetType() { return ExprType::EXPR_CONST; }
+  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
+    return _val;
+  }
+
+protected:
+  IDataValue *_val;
 };
 
 /**
