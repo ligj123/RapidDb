@@ -4,7 +4,7 @@
 
 namespace storage {
 InsertStatement::InsertStatement(ExprInsert *exprInsert, Transaction *tran)
-    : Statement(tran, &exprInsert->GetParameters(), exprInsert->IsStatTime()),
+    : Statement(tran, &exprInsert->GetParameters()),
       _exprInsert(exprInsert) {}
 
 int InsertStatement::ExecuteUpdate() {

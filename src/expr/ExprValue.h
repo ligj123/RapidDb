@@ -43,7 +43,8 @@ public:
   int GetIndex() { return _index; }
 
 protected:
-  int _index; // The index in table's columns array
+  int _index; // The index in table's colu
+  mns array
   // true: the parameter is const value and saved in variable _dvConst.
   // false: The parameter's value come from outside input, get by _child
   bool valConst;

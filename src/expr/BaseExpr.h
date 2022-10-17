@@ -96,11 +96,15 @@ public:
   virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
 };
 
-// The base class for values of input or output
-class ExprField : public BaseExpr {
+// The base class for Columns of input or output
+class ExprColumn : public BaseExpr {
 public:
   using BaseExpr::BaseExpr;
   virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
+
+protected:
+  int _index; // The index in table's columns array
+  DataType _dataType;
 };
 
 /**
