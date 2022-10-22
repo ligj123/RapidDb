@@ -5,8 +5,10 @@
 #include "../dataType/DataValueFixChar.h"
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
+#include "../table/Table.h"
 #include "../utils/ErrorMsg.h"
 #include <unordered_set>
+#include <vector>
 
 using namespace std;
 namespace storage {
@@ -43,11 +45,9 @@ enum class ExprType {
   EXPR_CONDITION,
   EXPR_ON,
 
-  // Input or oupt value
-  EXPR_VALUE_ARRAY_IN,
-  EXPR_VALUE_IN,
-  EXPR_VALUE_ARRAY_OUT,
-  EXPR_VALUE_OUT,
+  // Input or oupt value and table
+  EXPR_COLUMN,
+  EXPR_TABLE,
 
   // Select
   EXPR_SELECT,
@@ -79,35 +79,6 @@ public:
 };
 
 /**
- * @brief Base class for all expression to calc and return data value.
- */
-class ExprData : public BaseExpr {
-public:
-  using BaseExpr::BaseExpr;
-  /**Returned DataValue maybe refer to one of value in vdPara or vdRow, or
-   * created newly. if created newly, need user to release it.*/
-  virtual IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
-};
-
-/**@brief Base class for all aggressive expression*/
-class ExprAggr : public BaseExpr {
-public:
-  using BaseExpr::BaseExpr;
-  virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
-};
-
-// The base class for Columns of input or output
-class ExprColumn : public BaseExpr {
-public:
-  using BaseExpr::BaseExpr;
-  virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
-
-protected:
-  int _index; // The index in table's columns array
-  DataType _dataType;
-};
-
-/**
  * @brief To save array values, to be used in SQL operator IN.
  */
 class ExprArray : public BaseExpr {
@@ -131,4 +102,91 @@ protected:
       _setVal;
 };
 
+/**
+ * @brief Base class for all expression to calc and return data value.
+ */
+class ExprData : public BaseExpr {
+public:
+  using BaseExpr::BaseExpr;
+  /**Returned DataValue maybe refer to one of value in vdPara or vdRow, or
+   * created newly. if created newly, need user to release it.*/
+  virtual IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
+};
+
+/**@brief Base class for all aggressive expression*/
+class ExprAggr : public BaseExpr {
+public:
+  using BaseExpr::BaseExpr;
+  virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
+};
+
+//
+class ExprLogic : public BaseExpr {
+public:
+  using BaseExpr::BaseExpr;
+  // The expression below EXPR_SPLIT to call this functionto calc and return
+  // bool value.
+  virtual bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
+};
+
+// The base class for Columns of input or output
+class ExprColumn : public BaseExpr {
+public:
+  ExprColumn(int index, string &&colName, DataType dt, ExprData *data,
+             string &&colAlias)
+      : _index(index), _colName(move(colName)), _colAlias(move(colAlias)),
+        _dataType(dt), _data(data) {
+    if (_colAlias.size() == 0)
+      _colAlias = _colName;
+  }
+  ~ExprColumn() { delete _data; }
+
+  void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) {
+    IDataValue *pDv = _data->Calc(vdSrc, vdDst);
+    vdDst[_index]->Copy(*pDv, !pDv->IsReuse());
+    if (!pDv->IsReuse())
+      delete pDv;
+  }
+  ExprType GetDataType() { return ExprType::EXPR_COLUMN; }
+  int GetIndex() { return _index; }
+  string &GetColumnName() { return _colName; }
+  string GetColumnAlias() { return _colAlias; }
+
+protected:
+  // The index in table's columns array
+  int _index;
+  // Column name
+  string _colName;
+  // Column alias
+  string _colAlias;
+  // The related data type for this column
+  DataType _dataType;
+  // For no const type, to tell how to get parameter from array.
+  ExprData *_data;
+};
+
+class ExprTable : public BaseExpr {
+public:
+  ExprTable(string &name, string &alias, vector<ExprColumn> vctCol)
+      : _tableName(name), _tableAlias(alias) {
+    _vctCol.swap(vctCol);
+    if (_tableAlias.size() == 0)
+      _tableAlias = _tableName;
+  }
+  ~ExprTable() {}
+
+  void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) {
+    for (auto &col : _vctCol) {
+      col.Calc(vdSrc, vdDst);
+    }
+  }
+
+  const string &GetTableName() { return _tableName; }
+  const string &GetTableAlias() { return _tableAlias; }
+
+protected:
+  string _tableName;
+  string _tableAlias;
+  vector<ExprColumn> _vctCol;
+};
 } // namespace storage

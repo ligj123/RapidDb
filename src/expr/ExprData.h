@@ -11,29 +11,33 @@
 
 using namespace std;
 namespace storage {
+/**
+ * @brief save const value for expression
+ */
 class ExprConst : public ExprData {
 public:
-  ExprConst(IDataValue *val) : _val(val) {}
+  ExprConst(IDataValue *val) : _val(val) { _val->SetReuse(true); }
   ~ExprConst() { delete _val; }
   ExprType GetType() { return ExprType::EXPR_CONST; }
-  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
+  IDataValue *Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
     return _val;
   }
+  IDataValue *GetValue() { return _val; }
 
 protected:
   IDataValue *_val;
 };
 
 /**
- * @brief Corresponding to a column in the table or temp table.
+ * @brief return a column value in the destion table for insert or update.
  */
 class ExprColumn : public ExprData {
 public:
   ExprColumn(int rowPos) : _rowPos(rowPos) {}
 
   ExprType GetType() { return ExprType::EXPR_COLUMN; }
-  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    return vdRow[_rowPos];
+  IDataValue *Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
+    return vdDst[_rowPos];
   }
 
 protected:

@@ -56,7 +56,8 @@ protected:
   IndexPage *_parentPage;
   /**index tree*/
   IndexTree *_indexTree;
-  /**How many times this record is referenced*/
+  /**How many times this record is referenced, only can be used when the page
+   * has been locked*/
   int32_t _refCount = 1;
   /**If this record' value is saved into solely buffer or into index page*/
   bool _bSole;

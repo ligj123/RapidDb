@@ -11,7 +11,6 @@
 #include "ExprAggr.h"
 #include "ExprData.h"
 #include "ExprLogic.h"
-#include "ExprValue.h"
 #include <unordered_set>
 
 using namespace std;
@@ -30,18 +29,12 @@ struct OrderCol {
   bool bAsc;
 };
 
-class ExprStatement : public BaseExpr {
-public:
-protected:
-
-};
-
 class ExprSelect : public BaseExpr {
 public:
-  ExprSelect(BaseTable *sourTable, BaseTable *destTable,
-             ExprValueArrayOut *exprVAout, ExprCondition *where,
+  ExprSelect(PhysTable *physTable, 
+             ExprTable *exprTable, ExprCondition *where,
              MVector<OrderCol>::Type &vctOrder, bool bDistinct,
-             bool bCacheResult, VectorDataValue &vctPara)
+             bool bCacheResult)
       : _sourTable(sourTable), _destTable(destTable), _exprVAout(exprVAout),
         _where(where), _bDistinct(bDistinct), _bCacheResult(bCacheResult) {
     _vctOrder.swap(vctOrder);
@@ -83,74 +76,12 @@ protected:
   VectorDataValue _vctPara;
 };
 
-class ExprJoin : public ExprSelect {
-public:
-  ExprJoin(BaseTable *sourTable, BaseTable *destTable,
-           ExprValueArrayOut *exprVAout, ExprCondition *where,
-           MVector<OrderCol>::Type &vctOrder, bool bDistinct, bool bCacheResult,
-           BaseTable *rightTable, ExprOn *exprOn, JoinType jType,
-           VectorDataValue &vctPara)
-      : ExprSelect(sourTable, destTable, exprVAout, where, vctOrder, bDistinct,
-                   bCacheResult, vctPara),
-        _rightTable(rightTable), _exprOn(exprOn), _joinType(jType) {}
-  ~ExprJoin() {
-    delete _rightTable;
-    delete _exprOn;
-  }
-
-  ExprType GetType() { return ExprType::EXPR_JOIN; }
-  const BaseTable *GetRightTable() const { return _rightTable; }
-  const ExprOn *GetExprOn() const { return _exprOn; }
-  JoinType GetJoinType() { return _joinType; }
-
-protected:
-  // The right source table information for join
-  BaseTable *_rightTable;
-  // On condition for join
-  ExprOn *_exprOn;
-  // Join type
-  JoinType _joinType;
-};
-
-class ExprGroupBy : public ExprSelect {
-public:
-  ExprGroupBy(BaseTable *sourTable, BaseTable *destTable,
-              MVector<ExprAggr *>::Type &vctAggr, ExprCondition *where,
-              MVector<OrderCol>::Type &vctOrder, bool bDistinct,
-              bool bCacheResult, ExprCondition *having,
-              VectorDataValue &vctPara)
-      : ExprSelect(sourTable, destTable, nullptr, where, vctOrder, bDistinct,
-                   bCacheResult, vctPara),
-        _having(having) {
-    _vctChild.swap(vctAggr);
-  }
-  ~ExprGroupBy() {
-    for (auto child : _vctChild)
-      delete child;
-
-    _vctChild.clear();
-    delete _having;
-  }
-
-  ExprType GetType() { return ExprType::EXPR_GROUP_BY; }
-  MVector<ExprAggr *>::Type GetVctChild() { return _vctChild; }
-  ExprCondition *GetHaving() { return _having; }
-
-protected:
-  // This variable will replace _exprVAout to calc the values.
-  MVector<ExprAggr *>::Type _vctChild;
-  ExprCondition *_having;
-};
-
 class ExprInsert : public BaseExpr {
 public:
-  ExprInsert(PhysTable *tableDesc, ExprValueArrayIn *exprVAin,
-             ExprSelect *exprSelect, VectorDataValue vctPara,
+  ExprInsert(PhysTable *tableDesc, ExprTable *exprTable, ExprSelect *exprSelect,
              bool bUpsert = false)
-      : _tableDesc(tableDesc), _exprVAin(exprVAin), _exprSelect(exprSelect),
-        _bUpsert(bUpsert) {
-    _vctPara.swap(vctPara);
-  }
+      : _tableDesc(tableDesc), _exprTable(exprTable), _exprSelect(exprSelect),
+        _bUpsert(bUpsert) {}
 
   ExprInsert(PhysTable *tableDesc, ExprValueArrayIn *exprVAin,
              VectorDataValue vctPara, bool bUpsert = false)
@@ -173,7 +104,7 @@ protected:
   // The destion persistent table, managed by database, can not delete here.
   PhysTable *_tableDesc;
   // The expression that how to calc values from input or select
-  ExprValueArrayIn *_exprVAin;
+  ExprTable *_exprTable;
   // Used for insert into TABLE A select from TABLE B
   ExprSelect *_exprSelect;
   // True, update if the key has exist
@@ -240,5 +171,64 @@ protected:
   VectorDataValue _vctPara;
   // if record time for statistics
   bool _bStatTime;
+};
+
+class ExprJoin : public ExprSelect {
+public:
+  ExprJoin(BaseTable *sourTable, BaseTable *destTable,
+           ExprValueArrayOut *exprVAout, ExprCondition *where,
+           MVector<OrderCol>::Type &vctOrder, bool bDistinct, bool bCacheResult,
+           BaseTable *rightTable, ExprOn *exprOn, JoinType jType,
+           VectorDataValue &vctPara)
+      : ExprSelect(sourTable, destTable, exprVAout, where, vctOrder, bDistinct,
+                   bCacheResult, vctPara),
+        _rightTable(rightTable), _exprOn(exprOn), _joinType(jType) {}
+  ~ExprJoin() {
+    delete _rightTable;
+    delete _exprOn;
+  }
+
+  ExprType GetType() { return ExprType::EXPR_JOIN; }
+  const BaseTable *GetRightTable() const { return _rightTable; }
+  const ExprOn *GetExprOn() const { return _exprOn; }
+  JoinType GetJoinType() { return _joinType; }
+
+protected:
+  // The right source table information for join
+  BaseTable *_rightTable;
+  // On condition for join
+  ExprOn *_exprOn;
+  // Join type
+  JoinType _joinType;
+};
+
+class ExprGroupBy : public ExprSelect {
+public:
+  ExprGroupBy(BaseTable *sourTable, BaseTable *destTable,
+              MVector<ExprAggr *>::Type &vctAggr, ExprCondition *where,
+              MVector<OrderCol>::Type &vctOrder, bool bDistinct,
+              bool bCacheResult, ExprCondition *having,
+              VectorDataValue &vctPara)
+      : ExprSelect(sourTable, destTable, nullptr, where, vctOrder, bDistinct,
+                   bCacheResult, vctPara),
+        _having(having) {
+    _vctChild.swap(vctAggr);
+  }
+  ~ExprGroupBy() {
+    for (auto child : _vctChild)
+      delete child;
+
+    _vctChild.clear();
+    delete _having;
+  }
+
+  ExprType GetType() { return ExprType::EXPR_GROUP_BY; }
+  MVector<ExprAggr *>::Type GetVctChild() { return _vctChild; }
+  ExprCondition *GetHaving() { return _having; }
+
+protected:
+  // This variable will replace _exprVAout to calc the values.
+  MVector<ExprAggr *>::Type _vctChild;
+  ExprCondition *_having;
 };
 } // namespace storage
