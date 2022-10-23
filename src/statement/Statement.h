@@ -29,8 +29,8 @@ public:
    * @param vct Used to save the parameters types, maxlength etc.
    * @param statTime If save create, execute and stop time for statistics
    */
-  Statement(Transaction *tran, const VectorDataValue *vct)
-      : _tran(tran), _bAutoTran(tran == nullptr), _vctParaSour(vct) {
+  Statement(Transaction *tran, const VectorDataValue *paraTmpl)
+      : _tran(tran), _bAutoTran(tran == nullptr), _vctParaTmpl(paraTmpl) {
     if (_tran == nullptr) {
       _tran = new Transaction(TranType::AUTOMATE,
                               (uint32_t)Configure::GetAutoTaskOvertime());
@@ -38,7 +38,7 @@ public:
 
     _id = _tran->GetTranId() + _tran->GetStatements().size();
     _vctPara.reserve(vct->size());
-    for (auto dv : *vct) {
+    for (auto &dv : *_vctParaTmpl) {
       _vctPara.push_back(dv->Clone());
     }
 
@@ -359,7 +359,7 @@ public:
     bys += sizeof(short);
     len -= sizeof(short);
 
-    if (fields != _vctParaSour->size()) {
+    if (fields != _vctParaTmpl->size()) {
       throw ErrorMsg(TRAN_ADD_TASK_FAILED, {});
     }
 
@@ -383,8 +383,8 @@ public:
     vct->swap(_vctPara);
     _vctRow.push_back(vct);
 
-    _vctPara.reserve(_vctParaSour->size());
-    for (auto dv : *_vctParaSour) {
+    _vctPara.reserve(_vctParaTmpl->size());
+    for (auto &dv : *_vctParaTmpl) {
       _vctPara.push_back(dv->Clone());
     }
   }
@@ -439,7 +439,7 @@ protected:
   // will start from transaction id to tid+0xffff
   uint64_t _id;
   // The vactor of data value from sql expression
-  const VectorDataValue *_vctParaSour;
+  const VectorDataValue *_vctParaTmpl;
   // To save one row of data values
   VectorDataValue _vctPara;
   // To save rows of data values

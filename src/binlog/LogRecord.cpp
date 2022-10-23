@@ -110,4 +110,9 @@ bool LogPageDivid::ReadData(uint64_t &logId, PageID &parentID,
 
   return true;
 }
+
+LogLeafRecord::LogLeafRecord(uint64_t logId, uint32_t indexId, uint32_t pageId,
+                             LeafRecord *lr) {}
+bool LogLeafRecord::ReadData(uint64_t &logId, uint32_t &indexId,
+                             uint32_t &pageId, LeafRecord *&lr) {}
 } // namespace storage

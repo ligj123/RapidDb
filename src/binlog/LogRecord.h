@@ -63,4 +63,14 @@ public:
                 MVector<BranchRecord *>::Type &vctLastRec,
                 IndexPage *page = nullptr);
 };
+
+// The log for lead record
+class LogLeafRecord : public LogBase {
+public:
+  LogLeafRecord(uint64_t logId, uint32_t indexId, uint32_t pageId,
+                LeafRecord *lr);
+  LogLeafRecord(Byte *buf, uint32_t len) : LogBase(buf, len) {}
+  bool ReadData(uint64_t &logId, uint32_t &indexId, uint32_t &pageId,
+                LeafRecord *&lr);
+};
 } // namespace storage

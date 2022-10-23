@@ -35,14 +35,17 @@ enum class ExprType {
   EXPR_AVG,
 
   // return bool
+  EXPR_COMP,
+  EXPR_IN OR_NOT,
+  EXPR_IS_NULL_NOT,
+  EXPR_BETWEEN,
+  EXPR_LIKE,
+  EXPR_EXIST,
+  EXPR_NOT_EXIST,
   EXPR_AND,
   EXPR_OR,
-  EXPR_COMP,
-  EXPR_IN,
-  EXPR_LIKE,
   EXPR_NOT,
-  EXPR_ISNULL,
-  EXPR_CONDITION,
+  EXPR_WHERE,
   EXPR_ON,
 
   // Input or oupt value and table
@@ -50,7 +53,7 @@ enum class ExprType {
   EXPR_TABLE,
 
   // Select
-  EXPR_SELECT,
+  EXPR_TABLE_SELECT,
   EXPR_JOIN,
   EXPR_GROUP_BY,
 

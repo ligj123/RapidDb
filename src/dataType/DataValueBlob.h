@@ -27,6 +27,7 @@ public:
       return new DataValueBlob(maxLength_, bKey_);
     }
   }
+
   uint32_t WriteData(Byte *buf) const override { return WriteData(buf, bKey_); }
   uint32_t WriteData(Byte *buf, bool key) const override;
   uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = false) override;

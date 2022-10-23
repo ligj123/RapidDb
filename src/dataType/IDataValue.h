@@ -67,7 +67,7 @@ public:
   IDataValue(const IDataValue &dv)
       : dataType_(dv.dataType_), valType_(dv.valType_), bKey_(dv.bKey_),
         bReuse_(false) {}
-  IDataValue(DataType dataType, ValueType valType, const bool bKey)
+  IDataValue(DataType dataType, ValueType valType, bool bKey)
       : dataType_(dataType), valType_(valType), bKey_(bKey), bReuse_(false) {}
   virtual ~IDataValue() {}
   /**
