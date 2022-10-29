@@ -341,4 +341,9 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
 
   prop->_tree = new IndexTree(prop->_name, path, dvKey, dvVal);
 }
+
+bool PhysTable::GenUpdateRecord(LeafRecord *srcRec, VectorDataValue *dstPr,
+                                ActionType type, VectorLeafRecord &vctRec) {
+                                  
+                                }
 } // namespace storage

@@ -3,6 +3,8 @@
 #include "../config/ErrorID.h"
 #include "../core/IndexTree.h"
 #include "../core/IndexType.h"
+#include "../core/LeafRecord.h"
+#include "../dataType/IDataValue.h"
 #include "../table/Column.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
@@ -130,6 +132,10 @@ public:
     IndexProp *prop = _vctIndex[idx];
     prop->_tree->Close();
   }
+
+  // To generate leaf records for primary key and secondary index
+  bool GenUpdateRecord(LeafRecord *srcRec, VectorDataValue *dstPr,
+                       ActionType type, VectorLeafRecord &vctRec);
 
 protected:
   inline bool IsExistedColumn(string name) {

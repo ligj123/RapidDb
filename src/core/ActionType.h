@@ -4,12 +4,13 @@
 namespace storage {
 enum class ActionType : uint8_t {
   UNKNOWN = 0,
-  INSERT,      // Insert the LeafRecord
-  UPDATE,      // Update the LeafRecord
-  DELETE,      // Delete the LeafRecord
-  QUERY,       // Only query and return the record without following action
-  QUERY_READ,  // Query and lock this record for read
-  QUERY_UPDATE // Query and return the record and add write lock for it
+  INSERT,       // Insert the LeafRecord
+  UPDATE,       // Update the LeafRecord
+  DELETE,       // Delete the LeafRecord
+  QUERY,        // Only query and return the record without following action
+  QUERY_READ,   // Query and lock this record for read
+  QUERY_UPDATE, // Query and return the record and add write lock for it
+  UPSERT        // Insert if not exist or update if exist
 };
 
 inline std::ostream &operator<<(std::ostream &os, const ActionType &type) {
@@ -31,6 +32,9 @@ inline std::ostream &operator<<(std::ostream &os, const ActionType &type) {
     break;
   case ActionType::QUERY_UPDATE:
     os << "QUERY_UPDATE(" << (int)ActionType::QUERY_UPDATE << ")";
+    break;
+  case ActionType::UPSERT:
+    os << "UPSERT(" << (int)ActionType::UPSERT << ")";
     break;
   case ActionType::UNKNOWN:
   default:

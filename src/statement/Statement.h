@@ -37,7 +37,7 @@ public:
     }
 
     _id = _tran->GetTranId() + _tran->GetStatements().size();
-    _vctPara.reserve(vct->size());
+    _vctPara.reserve(paraTmpl->size());
     for (auto &dv : *_vctParaTmpl) {
       _vctPara.push_back(dv->Clone());
     }

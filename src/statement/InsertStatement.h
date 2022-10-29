@@ -8,7 +8,7 @@ namespace storage {
 class InsertStatement : public Statement {
 public:
   InsertStatement(ExprInsert *exprInsert, Transaction *tran);
-  ~InsertStatement() { delete _exprInsert; }
+  ~InsertStatement() {}
   ActionType GetActionType() override { return ActionType::INSERT; }
   int ExecuteUpdate() override;
   future<int> ExecuteUpdateAsyn() override;
@@ -24,5 +24,5 @@ class InsertTask : public Task {
 public:
 protected:
   InsertStatement *_stm;
-}
+};
 } // namespace storage

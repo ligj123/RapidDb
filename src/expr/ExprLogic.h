@@ -62,9 +62,9 @@ protected:
 
 class ExprInNot : public ExprLogic {
 public:
-  ExprIn(ExprColumn *exprColumn, ExprArray *exprArray, bool bIn = true)
+  ExprInNot(ExprColumn *exprColumn, ExprArray *exprArray, bool bIn = true)
       : _exprColumn(exprColumn), _exprArray(exprArray) {}
-  ~ExprIn() {
+  ~ExprInNot() {
     delete _exprColumn;
     delete _exprArray;
   }
@@ -74,7 +74,7 @@ public:
     IDataValue *pdv = _exprColumn->Calc(vdPara, vdRow);
     bool b = _exprArray->Exist(pdv);
     if (!pdv->IsReuse())
-      delete *pdv;
+      delete pdv;
 
     return (_bIn ? b : !b);
   }
@@ -87,8 +87,8 @@ protected:
 
 class ExprIsNullNot : public ExprLogic {
 public:
-  ExprIsNull(ExprData *child, bool bNull) : _child(child), _bNull(bNull) {}
-  ~ExprIsNull() { delete _child; }
+  ExprIsNullNot(ExprData *child, bool bNull) : _child(child), _bNull(bNull) {}
+  ~ExprIsNullNot() { delete _child; }
 
   ExprType GetType() { return ExprType::EXPR_IS_NULL_NOT; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
@@ -117,7 +117,7 @@ public:
   ExprType GetType() { return ExprType::EXPR_BETWEEN; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
     IDataValue *pdv = _child->Calc(vdPara, vdRow);
-    boo b = (*pdv >= *_exprLeft->GetValue() && *pdv <= *_exprRight->GetValue());
+    bool b = (*pdv >= *_exprLeft->GetValue() && *pdv <= *_exprRight->GetValue());
 
     if (!pdv->IsReuse())
       delete pdv;
@@ -128,12 +128,12 @@ protected:
   ExprData *_child;
   ExprConst *_exprLeft;
   ExprConst *_exprRight;
-}
+};
 
 class ExprLike : public ExprLogic {
 public:
   ExprLike(ExprData *exprData, ExprConst *exprPatten)
-      : _exprColumn(exprColumn), _exprPatten(exprPatten) {
+      : _child(exprData), _exprPatten(exprPatten) {
     assert(exprPatten->GetValue()->IsStringType());
   }
   ~ExprLike() {

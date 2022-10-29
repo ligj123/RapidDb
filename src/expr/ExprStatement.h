@@ -38,14 +38,14 @@ struct SelIndex {
   ExprLogic *_indexExpr;
   // which index used, The position of index that start from 0(primary key)
   int _indexPos;
-}
+};
 
 // Base class for all select
 class ExprSelect : public BaseExpr {
 public:
   ExprSelect(ExprTable *destTable, ExprLogic *where,
              MVector<OrderCol>::Type *vctOrder, bool bDistinct, int offset,
-             int rowCount, bool bCacheResult, VectorDataValue *_paraTmpl)
+             int rowCount, bool bCacheResult, VectorDataValue *paraTmpl)
       : _destTable(destTable), _where(where), _vctOrder(vctOrder),
         _offset(offset), _rowCount(rowCount), _bDistinct(bDistinct),
         _bCacheResult(bCacheResult), _paraTmpl(paraTmpl) {}
@@ -63,7 +63,7 @@ public:
   int GetRowCount() { return _rowCount; }
   bool IsDistinct() { return _bDistinct; }
   bool IsCacheResult() { return _bCacheResult; }
-  const VectorDataValue GetParaTemplate() { return _paraTmpl; }
+  const VectorDataValue *GetParaTemplate() { return _paraTmpl; }
 
 protected:
   ExprTable *_destTable; // The columns of selected result
@@ -84,27 +84,24 @@ protected:
 
 class ExprTableSelect : public ExprSelect {
 public:
-  ExprSelect(PhysTable *physTable, ExprTable *destTable, ExprWhere *where,
-             SelIndex *selIndex, MVector<OrderCol>::Type *vctOrder,
-             bool bDistinct, int offset, int row_count, bool bCacheResult,
-             VectorDataValue *_paraTmpl)
+  ExprTableSelect(PhysTable *physTable, ExprTable *destTable, ExprLogic *where,
+                  SelIndex *selIndex, MVector<OrderCol>::Type *vctOrder,
+                  bool bDistinct, int offset, int rowCount, bool bCacheResult,
+                  VectorDataValue *_paraTmpl)
       : ExprSelect(destTable, where, vctOrder, bDistinct, offset, rowCount,
                    bCacheResult, _paraTmpl),
         _physTable(physTable), _selIndex(selIndex) {}
-  ~ExprSelect() {
-    delete _physTable;
-    delete _selIndex;
-  }
+  ~ExprTableSelect() { delete _selIndex; }
 
   ExprType GetType() { return ExprType::EXPR_TABLE_SELECT; }
-  const PhysTable *GetSourTable() const { return _physTable; }
+  PhysTable *GetSourTable() const { return _physTable; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 
 protected:
   // The source table information.
   PhysTable *_physTable;
   // Which index used to search. Null means traverse all table.
-  SelIndex *_selIndex,
+  SelIndex *_selIndex;
 };
 
 class ExprInsert : public BaseExpr {
@@ -118,14 +115,15 @@ public:
   ~ExprInsert() {
     delete _exprTable;
     delete _exprSelect;
+    delete _paraTmpl;
   }
 
   ExprType GetType() { return ExprType::EXPR_INSERT; }
   PhysTable *GetPhyTable() { return _phyTable; }
-  ExprTable *GetExprTable() { return _exprTable; }
-  ExprSelect *GetExprSelect() { return _exprSelect; }
+  const ExprTable *GetExprTable() { return _exprTable; }
+  const ExprSelect *GetExprSelect() { return _exprSelect; }
   bool IsUpsert() { return _bUpsert; }
-  const VectorDataValue GetParaTemplate() { return _paraTmpl; }
+  const VectorDataValue *GetParaTemplate() { return _paraTmpl; }
 
 protected:
   // The destion physical table, managed by database, do not delete this
@@ -143,22 +141,22 @@ protected:
 
 class ExprUpdate : public BaseExpr {
 public:
-  ExprUpdate(PhysTable *phyTable, ExprTable *_exprTable, ExprLogic *where,
+  ExprUpdate(PhysTable *phyTable, ExprTable *exprTable, ExprLogic *where,
              VectorDataValue *paraTmpl)
-      : _tableDesc(tableDesc), _exprVAin(exprVAin), _where(where),
-        _paraTmpl(paraTmpl) {
-    _vctPara.swap(vctPara);
-  }
+      : _phyTable(phyTable), _exprTable(exprTable), _where(where),
+        _paraTmpl(paraTmpl) {}
+
   ~ExprUpdate() {
     delete _exprTable;
     delete _where;
+    delete _paraTmpl;
   }
 
   ExprType GetType() { return ExprType::EXPR_UPDATE; }
   PhysTable *GetPhyTable() { return _phyTable; }
-  ExprTable *GetExprTable() { return _exprTable; }
-  ExprLogic *GetWhere() { return _where; }
-  const VectorDataValue GetParaTemplate() { return _paraTmpl; }
+  const ExprTable *GetExprTable() { return _exprTable; }
+  const ExprLogic *GetWhere() { return _where; }
+  const VectorDataValue *GetParaTemplate() { return _paraTmpl; }
 
 protected:
   // The destion physical table, managed by database, do not delete the instance
@@ -176,14 +174,15 @@ class ExprDelete : public BaseExpr {
 public:
   ExprDelete(PhysTable *phyTable, ExprLogic *where, VectorDataValue *paraTmpl)
       : _phyTable(phyTable), _where(where), _paraTmpl(paraTmpl) {}
-  ~ExprDelete() { delete _where; }
+  ~ExprDelete() {
+    delete _where;
+    delete _paraTmpl;
+  }
 
   ExprType GetType() { return ExprType::EXPR_DELETE; }
-  PhysTable *GetTableDesc() { return _tableDesc; }
-  ExprCondition *GetWhere() { return _where; }
-  const VectorDataValue &GetParameters() { return _vctPara; }
-  bool IsStatTime() { return _bStatTime; }
-  const VectorDataValue GetParaTemplate() { return _paraTmpl; }
+  PhysTable *GetPhyTable() { return _phyTable; }
+  const ExprLogic *GetWhere() { return _where; }
+  const VectorDataValue *GetParameters() { return _paraTmpl; }
 
 protected:
   // The destion persistent table, managed by database, can not delete here.

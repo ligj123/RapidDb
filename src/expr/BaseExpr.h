@@ -36,7 +36,7 @@ enum class ExprType {
 
   // return bool
   EXPR_COMP,
-  EXPR_IN OR_NOT,
+  EXPR_IN_OR_NOT,
   EXPR_IS_NULL_NOT,
   EXPR_BETWEEN,
   EXPR_LIKE,

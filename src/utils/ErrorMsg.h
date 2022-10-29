@@ -11,11 +11,26 @@ using namespace std;
 class ErrorMsg : public exception {
 public:
   ErrorMsg() {}
-  ErrorMsg(int id, MVector<string>::Type paras = {}) {
-    _errId = id;
-    auto iter = _mapErrorMsg.find(id);
+  ErrorMsg(int id, MVector<string>::Type &&paras = {}) {
+    SetMsg(id, move(paras));
+  }
+
+  ErrorMsg(ErrorMsg &&msg) {
+    _errId = msg._errId;
+    _errMsg = move(msg._errMsg);
+  }
+
+  ErrorMsg &operator=(ErrorMsg &&msg) {
+    _errId = msg._errId;
+    _errMsg = move(msg._errMsg);
+    return *this;
+  }
+
+  inline void SetMsg(int errId, MVector<string>::Type &&paras = {}) {
+    _errId = errId;
+    auto iter = _mapErrorMsg.find(errId);
     if (iter == _mapErrorMsg.end()) {
-      _errMsg = string("Failed to find the error id, id=" + to_string(id));
+      _errMsg = string("Failed to find the error id, id=" + to_string(errId));
     } else {
       _errMsg = iter->second;
       for (int i = 0; i < paras.size(); i++) {
@@ -25,17 +40,6 @@ public:
           _errMsg.replace(pos, 3, paras[i]);
       }
     }
-  }
-
-  ErrorMsg(const ErrorMsg &msg) {
-    _errId = msg._errId;
-    _errMsg = msg._errMsg;
-  }
-
-  ErrorMsg &operator=(const ErrorMsg &msg) {
-    _errId = msg._errId;
-    _errMsg = msg._errMsg;
-    return *this;
   }
 
   const char *what() const noexcept { return _errMsg.c_str(); }
