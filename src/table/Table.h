@@ -141,7 +141,9 @@ protected:
   inline bool IsExistedColumn(string name) {
     return _mapColumnPos.find(name) != _mapColumnPos.end();
   }
-  void Clear();
+
+  void GenIndexHash(int index, const VectorRow &vctRow,
+                    MHashMap<size_t, size_t>::Type &hrow);
 
 protected:
   // Auto increment id, every time add 256.
@@ -164,6 +166,8 @@ protected:
   /**The map for index with first column's position in _vctColumn and index
    * position in _vctIndex*/
   unordered_multimap<uint32_t, uint32_t> _mapIndexFirstField;
+  // The positions of all columns that constitute the all secondary index.
+  MVector<int>::Type _vctIndexPos;
 };
 
 class ResultTable : public BaseTable {

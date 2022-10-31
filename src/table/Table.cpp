@@ -116,6 +116,7 @@ const PhysColumn *PhysTable::GetColumn(int pos) {
 void PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
                           uint32_t maxLen, string &comment, Charsets charset,
                           any &valDefault) {
+  assert(_vctIndex.size() == 0);
   transform(columnName.begin(), columnName.end(), columnName.begin(),
             ::toupper);
   IsValidName(columnName);
@@ -179,6 +180,19 @@ void PhysTable::AddIndex(IndexType indexType, string &indexName,
   IndexProp *prop = new IndexProp(iname, _vctIndex.size(), indexType, vctIc);
   _vctIndex.push_back(prop);
   _mapIndexNamePos.insert({prop->_name, prop->_position});
+
+  for (IndexColumn &ic : vctIc) {
+    int pos = 0;
+    for (; pos < _vctIndexPos.size(); pos++) {
+      if (ic.colPos <= _vctIndexPos[pos]) {
+        break;
+      }
+    }
+
+    if (pos >= _vctIndexPos.size() || ic.colPos == _vctIndexPos[pos]) {
+      _vctIndexPos.insert(_vctIndexPos.begin() + pos, ic.colPos);
+    }
+  }
 }
 
 void PhysTable::WriteData() {
@@ -342,8 +356,24 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   prop->_tree = new IndexTree(prop->_name, path, dvKey, dvVal);
 }
 
+void PhysTable::GenIndexHash(int index, const VectorRow &vctRow,
+                             MHashMap<size_t, size_t>::Type &hrow) {
+  IndexProp *prop = _vctIndex[index];
+  hrow.reserve(vctRow.size());
+
+  for (size_t i = 0; i < vctRow.size(); i++) {
+    VectorDataValue &vdv = vctRow[i];
+    size_t hash = 0;
+    for (IndexColumn &col : prop->_vctCol) {
+      hash ^= vdv[col.colPos]->Hash();
+    }
+
+    hrow.insert(hash, i);
+  }
+}
+
 bool PhysTable::GenUpdateRecord(LeafRecord *srcRec, VectorDataValue *dstPr,
                                 ActionType type, VectorLeafRecord &vctRec) {
-                                  
-                                }
+  //
+}
 } // namespace storage
