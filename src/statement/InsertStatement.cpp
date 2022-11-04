@@ -7,6 +7,7 @@ InsertStatement::InsertStatement(ExprInsert *exprInsert, Transaction *tran)
     : Statement(tran, exprInsert->GetParaTemplate()), _exprInsert(exprInsert) {}
 
 int InsertStatement::ExecuteUpdate() {
+  _startTime = TimerThread::GetCurrTime();
   if (!_tran->AbleAddTask()) {
     _errorMsg->SetMsg(TRAN_ADD_TASK_FAILED, {to_string(_tran->GetTranId())});
     LOG_ERROR
@@ -28,10 +29,7 @@ int InsertStatement::ExecuteUpdate() {
     // LeafRecord *priRec = new LeafRecord(priTree, )
   }
 
+  _startTime = TimerThread::GetCurrTime();
   return 0;
-}
-
-future<int> InsertStatement::ExecuteUpdateAsyn() {
-  return std::promise<int>().get_future();
 }
 } // namespace storage

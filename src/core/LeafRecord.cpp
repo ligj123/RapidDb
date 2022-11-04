@@ -316,7 +316,7 @@ uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
  * @return -1: Failed to read values due to no right to visit it or be locked;
  *         -2: No version to fit and failed to read
  *         0: Passed to read values with all fields.
- *         1: The record
+ *         1: The record has been deleted
  */
 int LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
                              VectorDataValue &vctVal, uint64_t verStamp,
@@ -505,59 +505,6 @@ uint16_t LeafRecord::GetValueLength() const {
   } else {
     return *(uint16_t *)_bysVal - *(uint16_t *)(_bysVal + UI16_LEN) -
            UI16_2_LEN;
-  }
-}
-
-/**
- * @brief Read columns' values for creating secondary index.
- * @param vctPos the positions of columns to read
- * @param vctRow all versions of columns' values in this record. Only the
- * columns in vctPos will be read and have values, other columns are null.
- */
-void LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
-                              VectorRow &vctRow) {
-  assert(_indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY);
-  RecStruct recStru(lr->_bysVal, lr->_overflowPage);
-  int verNum = (*recStru._byVerNum) & VERSION_NUM;
-  ValueStruct valStru[verNum];
-  const VectorDataValue &vdSrc = _indexTree->GetVctValue();
-  SetValueStruct(recStru, valStru, (uint32_t)vdSrc.size(),
-                 _indexTree->GetValVarLen(), ver);
-
-  assert((*recStru._byVerNum & REC_OVERFLOW) == 0 || _overflowPage != nullptr);
-
-  for (int i = 0; i < verNum; i++) {
-    VectorDataValue row;
-    row.resize(vdSrc.size());
-    int varField = -1;
-    Byte *bys = valStru.bysValue;
-    int ipos = 0;
-
-    for (size_t i = 0; i < vdSrc.size(); i++) {
-      uint32_t flen = 0;
-      if (!vdSrc[i]->IsFixLength()) {
-        varField++;
-        flen = valStru.varFiledsLen[varField];
-      } else {
-        flen = vdSrc[i]->GetMaxLength();
-      }
-
-      if (valStru.bysNull[i / 8] & (1 << i % 8)) {
-        flen = 0;
-      }
-      if (vctPos[ipos] == i) {
-        IDataValue *dv = vdSrc[i]->Clone();
-        if (flen > 0) {
-          dv->ReadData(bys, flen, true);
-        }
-        row[vctPos[ipos]] = dv;
-        ipos++;
-      }
-
-      bys += flen;
-    }
-
-    vctRow.push_back(row);
   }
 }
 

@@ -251,7 +251,17 @@ uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
       return 0;
     }
 
-    if (bSole) {
+    if (len > maxLength_) {
+      throw ErrorMsg(DT_INPUT_OVER_LENGTH,
+                     {to_string(maxLength_), to_string(len)});
+    } else if (len != maxLength_) {
+      if (valType_ != ValueType::SOLE_VALUE)
+        bysValue_ = CachePool::Apply(maxLength_);
+      valType_ = ValueType::SOLE_VALUE;
+      BytesCopy(bysValue_, buf, len - 1);
+      memset(bysValue_ + len - 1, ' ', maxLength_ - len);
+      bysValue_[maxLength_ - 1] = 0;
+    } else if (bSole) {
       if (valType_ != ValueType::SOLE_VALUE)
         bysValue_ = CachePool::Apply(maxLength_);
       valType_ = ValueType::SOLE_VALUE;

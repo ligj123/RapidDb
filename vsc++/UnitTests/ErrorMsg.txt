@@ -44,3 +44,7 @@
 #Transaction
 7001  Try to add task to a transaction with invalid status. ID={1}
 7002  The byte array for statement's parameters is invalid.
+
+#Statement
+8001  Invalid statement's parameters number, expect {1}, actual {2}.
+8002  Invalid statement's parameters values length, expect {1}, actual {2}.

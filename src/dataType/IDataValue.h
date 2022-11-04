@@ -156,6 +156,11 @@ public:
   VectorDataValue(VectorDataValue &&src) noexcept { swap(src); }
 
   ~VectorDataValue() {
+    if (bRef) {
+      clear();
+      return;
+    }
+
     for (auto iter = begin(); iter != end(); iter++) {
       if (bDelAll_ || !(*iter)->IsReuse())
         delete *iter;
@@ -171,6 +176,11 @@ public:
   }
 
   void RemoveAll() {
+    if (bRef) {
+      clear();
+      return;
+    }
+
     for (auto iter = begin(); iter != end(); iter++) {
       if (bDelAll_ || !(*iter)->IsReuse())
         delete *iter;
@@ -180,9 +190,14 @@ public:
   }
   void SetDelAll(bool b) { bDelAll_ = b; }
   bool IsDelAll() const { return bDelAll_; }
+  void SetRef(bool b) { bRef = b; }
+  bool IsRef() { return bRef; }
 
 protected:
+  // If delete reused elements.
   bool bDelAll_ = false;
+  // If the elements are referenced from other vector and NOT delete elements.
+  bool bRef = false;
 };
 
 class VectorRow : public MVector<VectorDataValue *>::Type {

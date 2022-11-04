@@ -133,17 +133,14 @@ public:
     prop->_tree->Close();
   }
 
-  // To generate leaf records for primary key and secondary index
-  bool GenUpdateRecord(LeafRecord *srcRec, VectorDataValue *dstPr,
-                       ActionType type, VectorLeafRecord &vctRec);
+  void GenSecondaryRecords(const LeafRecord *lrSrc, const LeafRecord *lrDst,
+                           const VectorDataValue &dstVd, ActionType type,
+                           Statement *stmt, VectorLeafRecord &vctRec);
 
 protected:
   inline bool IsExistedColumn(string name) {
     return _mapColumnPos.find(name) != _mapColumnPos.end();
   }
-
-  void GenIndexHash(int index, const VectorRow &vctRow,
-                    MHashMap<size_t, size_t>::Type &hrow);
 
 protected:
   // Auto increment id, every time add 256.

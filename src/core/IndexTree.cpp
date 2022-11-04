@@ -224,6 +224,7 @@ IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
     page = new LeafPage(this, newPageId, parentId);
   }
 
+  page->SetPageStatus(PageStatus::VALID);
   page->GetBysPage()[IndexPage::PAGE_BEGIN_END_OFFSET] = 0;
   page->SetPageLoaded();
   PageBufferPool::AddPage(page);
@@ -252,8 +253,19 @@ IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
     PageBufferPool::AddPage(page);
     IncPages();
 
-    ReadPageTask *task = new ReadPageTask(page);
-    ThreadPool::InstMain().AddTask(task);
+    if (Configure::GetDiskType() == DiskType::SSD) {
+      page->ReadPage(nullptr);
+
+      if (page->GetPageStatus() == PageStatus::VALID) {
+        page->Init();
+      } else {
+        // In following time will add code to fix page;
+        abort();
+      }
+    } else {
+      ReadPageTask *task = new ReadPageTask(page);
+      ThreadPool::InstMain().AddTask(task);
+    }
   }
 
   _pageMutex.unlock();
@@ -304,9 +316,6 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
     IndexPage *childPage =
         (IndexPage *)GetPage(pageId, page->GetPageLevel() == 1);
     assert(childPage != nullptr);
-    if (!childPage->IsValidPage()) {
-      return false;
-    }
 
     if (bEdit && childPage->GetPageType() == PageType::LEAF_PAGE) {
       childPage->WriteLock();
@@ -317,6 +326,9 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
     page->ReadUnlock();
     page->DecRef();
     page = childPage;
+    if (page->GetPageStatus() != PageStatus::VALID) {
+      return false;
+    }
   }
 }
 
@@ -348,7 +360,7 @@ bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
   BranchRecord br(this, (RawRecord *)&lr, 0);
   while (true) {
     if (page->GetPageType() == PageType::LEAF_PAGE) {
-      return (LeafPage *)page;
+      return true;
     }
 
     BranchPage *bPage = (BranchPage *)page;
@@ -359,7 +371,7 @@ bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
     br->ReleaseRecord();
 
     IndexPage *childPage =
-        (IndexPage *)GetPage(pageId, page->GetPageLevel() == 0);
+        (IndexPage *)GetPage(pageId, page->GetPageLevel() == 1);
     assert(childPage != nullptr);
 
     if (bEdit && childPage->GetPageType() == PageType::LEAF_PAGE) {
@@ -371,6 +383,9 @@ bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
     page->ReadUnlock();
     page->DecRef();
     page = childPage;
+    if (page->GetPageStatus() != PageStatus::VALID) {
+      return false;
+    }
   }
 }
 } // namespace storage

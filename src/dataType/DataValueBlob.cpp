@@ -126,6 +126,9 @@ uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len, bool bSole) {
     return 1;
   }
 
+  if (len > maxLength_)
+    throw ErrorMsg(DT_INPUT_OVER_LENGTH,
+                   {to_string(maxLength_), to_string(len)});
   soleLength_ = len;
   if (bSole) {
     bysValue_ = CachePool::Apply(soleLength_);

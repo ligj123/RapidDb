@@ -37,11 +37,6 @@ public:
     }
 
     _id = _tran->GetTranId() + _tran->GetStatements().size();
-    _vctPara.reserve(paraTmpl->size());
-    for (auto &dv : *_vctParaTmpl) {
-      _vctPara.push_back(dv->Clone());
-    }
-
     _createTime = TimerThread::GetCurrTime();
   }
 
@@ -65,10 +60,10 @@ public:
    * @return data type
    */
   DataType GetDataType(int paraIndex) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    return _vctPara[paraIndex]->GetDataType();
+    if (paraIndex < 0 || paraIndex >= _vctParaTmpl->size())
+      return DataType::UNKNOWN;
+
+    return _vctParaTmpl->at(paraIndex)->GetDataType();
   };
 
   /**
@@ -77,342 +72,22 @@ public:
    * @return the max length
    */
   int GetMaxLength(int paraIndex) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    return _vctPara[paraIndex]->GetMaxLength();
+    if (paraIndex < 0 || paraIndex >= _vctParaTmpl->size())
+      return -1;
+    return _vctParaTmpl->at(paraIndex)->GetMaxLength();
   }
 
   /**
-   * set a long value
-   * @param paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetLong(int paraIndex, int64_t val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::LONG)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"LONG", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueLong *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a int value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetInt(int paraIndex, int32_t val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::INT)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"INT", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueInt *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a short value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetShort(int paraIndex, int16_t val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::SHORT)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"SHORT", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueShort *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a char value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetChar(int paraIndex, char val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::SHORT)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"SHORT", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueChar *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * set a ulong value
-   * @param paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetULong(int paraIndex, uint64_t val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::ULONG)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"ULONG", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueULong *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a uint value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetUInt(int paraIndex, uint32_t val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::UINT)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"UINT", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueUInt *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a ushort value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetUShort(int paraIndex, uint16_t val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::USHORT)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"USHORT", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueUShort *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a Byte value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetByte(int paraIndex, Byte val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::BYTE)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"BYTE", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueByte *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a boolean value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetBool(int paraIndex, bool val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::BOOL)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"BOOL", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueBool *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a string value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetString(int paraIndex, const MString &val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (!_vctPara[paraIndex]->IsStringType())
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"STRING", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    if (val.size() > _vctPara[paraIndex]->GetMaxLength())
-      throw ErrorMsg(ErrorID::EXPR_EXCEED_MAX_LENGTH,
-                     {to_string(val.size()),
-                      to_string(_vctPara[paraIndex]->GetMaxLength())});
-    if (_vctPara[paraIndex]->GetDataType() == DataType::FIXCHAR)
-      *(DataValueFixChar *)_vctPara[paraIndex] = val;
-    else
-      *(DataValueVarChar *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a byte array value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param len the length for blob
-   * @param val       the value to set
-   */
-  void SetBlob(int paraIndex, uint32_t len, char *val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::BLOB)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"BLOB", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    if (len > _vctPara[paraIndex]->GetMaxLength())
-      throw ErrorMsg(
-          ErrorID::EXPR_EXCEED_MAX_LENGTH,
-          {to_string(len), to_string(_vctPara[paraIndex]->GetMaxLength())});
-    ((DataValueBlob *)_vctPara[paraIndex])->Put(len, val);
-  }
-
-  /**
-   * Set a double value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetDouble(int paraIndex, double val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::DOUBLE)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"DOUBLE", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueDouble *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a float value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the value to set
-   */
-  void SetFloat(int paraIndex, float val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::FLOAT)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"FLOAT", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueFloat *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a Date value
-   * @param paraIndex paraIndex the field index, start from 0;
-   * @param val       the milliseconds from the start of the Clock's epoch.
-   */
-  void SetDate(int paraIndex, uint64_t val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-    if (_vctPara[paraIndex]->GetDataType() != DataType::DATETIME)
-      throw ErrorMsg(
-          ErrorID::EXPR_ERROR_DATATYPE,
-          {"DATETIME", StrOfDataType(_vctPara[paraIndex]->GetDataType())});
-    *(DataValueDate *)_vctPara[paraIndex] = val;
-  }
-
-  /**
-   * Set a value by index
-   * @param paraIndex fieldName the field name
-   * @param val       the value to set
-   */
-  void SetDataValue(int paraIndex, const IDataValue &val) {
-    if (paraIndex < 0 || paraIndex >= _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(paraIndex), to_string(_vctPara.size())});
-
-    _vctPara[paraIndex]->Copy(val);
-  }
-
-  /**
-   * One time set all fields values, order by fields order
-   * @param vals, the data values will be copied, not moved
-   */
-  void SetValues(const VectorDataValue &vals) {
-    if (vals.size() != _vctPara.size())
-      throw ErrorMsg(ErrorID::EXPR_INDEX_OUT_RANGE,
-                     {to_string(vals.size()), to_string(_vctPara.size())});
-    for (int i = 0; i < vals.size(); i++)
-      _vctPara[i]->Copy(*vals[i]);
-  }
-
-  /**
-   * load parameters from byte array, maybe 1~N rows.
-   * param bys: The byte array, the struct is below:
-   * 4 bytes how many rows in bytes array, 2 bytes how many fields in one row.
-   * following are the values for all parameters.
-   * param len: bys length, used to verify byte array.
-   */
-  void LoadParams(Byte *bys, int len) {
-    int rows = *(int *)bys;
-    bys += sizeof(int);
-    len -= sizeof(int);
-    int fields = *(short *)bys;
-    bys += sizeof(short);
-    len -= sizeof(short);
-
-    if (fields != _vctParaTmpl->size()) {
-      throw ErrorMsg(TRAN_ADD_TASK_FAILED, {});
-    }
-
-    for (int i = 0; i < rows; i++) {
-      for (IDataValue *dv : _vctPara) {
-        int rl = dv->ReadData(bys, 0);
-        bys += rl;
-        len -= rl;
-      }
-    }
-
-    if (len != 0) {
-      throw ErrorMsg(TRAN_ADD_TASK_FAILED, {});
-    }
-  }
-  /**
-   * Add current row to a batch array, all rows in a batch will submit one time
-   */
-  void AddBatch() {
-    VectorDataValue *vct = new VectorDataValue();
-    vct->swap(_vctPara);
-    _vctRow.push_back(vct);
-
-    _vctPara.reserve(_vctParaTmpl->size());
-    for (auto &dv : *_vctParaTmpl) {
-      _vctPara.push_back(dv->Clone());
-    }
-  }
-
-  /**
-   * Submit one row or a batch of rows to insert, update or delete
+   * @brief Insert, update or delete one or a batch of rows.
    * @return How much records have been affected.
    */
   virtual int ExecuteUpdate() { abort(); }
-
-  /**
-   * Execute the update task asychronous, get the result by future.
-   * @return future
-   */
-  virtual future<int> ExecuteUpdateAsyn() { abort(); }
 
   /**
    * Execute query statement and return the result
    * @return The query result
    */
   virtual IResultSet *ExecuteQuery() { abort(); }
-
-  /**
-   * Execute query task asychronous and get the result by future
-   *
-   * @return The query result
-   */
-  virtual future<IResultSet *> ExecuteQueryAsyn() { abort(); }
 
   /**
    * Close this instance, used to release resource in child class.
@@ -425,6 +100,46 @@ public:
   bool IsFinished() { return _tinyTasks == _finishedTask; }
   uint64_t GetTranId() { return _tran->GetTranId(); }
   TranStatus GetTransactionStatus() { return _tran->GetTransactionStatus(); }
+
+  /**
+   * load parameters from byte array, maybe 1~N rows.
+   * @param bys: The byte array, the struct is below:
+   * 4 bytes how many rows in bytes array, 2 bytes how many fields in one row.
+   * following are the values for all parameters. If variable columns, it will
+   * start with 4 bytes to save column length. For FIXCHAR type, the parameters
+   * will saved as VARCHAR.
+   * @param len: bys length, used to verify byte array.
+   * @param vctRow: To save the loaded rows of parameters.
+   */
+  void LoadParams(Byte *bys, int len) {
+    Byte *sbys = bys;
+    int rows = *(int *)bys;
+    bys += sizeof(int);
+    short fields = *((short *)bys);
+    bys += sizeof(short);
+
+    if (fields != _vctParaTmpl->size()) {
+      throw ErrorMsg(STAT_PARAM_NUM_INVALID,
+                     {to_string(_vctParaTmpl->size()), to_string(fields)});
+    }
+
+    for (int i = 0; i < rows; i++) {
+      VectorDataValue *vdv = new VectorDataValue;
+      for (size_t j = 0; j < _vctParaTmpl->size(); j++) {
+        IDataValue *dv = _vctParaTmpl->at(j)->Clone();
+        int rl = dv->ReadData(bys, 0);
+        vdv->push_back(dv);
+        bys += rl;
+      }
+
+      _vctParas.push_back(vdv);
+    }
+
+    if (len != (int)(bys - sbys)) {
+      throw ErrorMsg(STAT_PARAM_LEN_INVALID,
+                     {to_string(len), to_string((int)(bys - sbys))});
+    }
+  }
 
 public:
   static void *operator new(size_t size) {
@@ -440,10 +155,8 @@ protected:
   uint64_t _id;
   // The vactor of data value from sql expression
   const VectorDataValue *_vctParaTmpl;
-  // To save one row of data values
-  VectorDataValue _vctPara;
-  // To save rows of data values
-  VectorRow _vctRow;
+  // To save multi rows of parameters loaded from client byte array
+  VectorRow _vctParas;
   // The create time for this statement
   DT_MicroSec _createTime;
   // The start time to execute for this statement
@@ -463,7 +176,7 @@ protected:
   // statement; True , no transaction incoming and need this statement to create
   // a new transaction.
   bool _bAutoTran = false;
-  // All updated records in this statement
+  // All inserted, updated or locked records in this statement
   MTreeSet<LeafRecord *>::Type _setRecord;
 };
 } // namespace storage

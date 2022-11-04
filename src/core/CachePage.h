@@ -15,6 +15,15 @@
 namespace storage {
 class IndexTree;
 
+enum class PageStatus : uint8_t {
+  // Not load data from disk
+  EMPTY = 0,
+  // The page has been loaded and the data is valid
+  VALID,
+  // The page has been loaded and failed the crc32 verify, need to fix
+  INVALID
+};
+
 class CachePage {
 public:
   static const uint32_t CACHE_PAGE_SIZE;
@@ -117,13 +126,14 @@ public:
     Int64ToBytes(value, _bysPage + pos);
   }
 
-  inline bool IsValidPage() { return _bInvalidPage; }
+  inline PageStatus GetPageStatus() { return _pageStatus; }
+  inline void SetPageStatus(PageStatus ps) { _pageStatus = ps; }
   inline bool PushWaitTask(Task *task) {
-    if (_bLoaded)
+    if (_pageStatus != PageStatus::EMPTY)
       return false;
 
     WriteLock();
-    if (_bLoaded) {
+    if (_pageStatus != PageStatus::EMPTY) {
       WriteUnlock();
       return false;
     }
@@ -166,17 +176,14 @@ protected:
   PageID _pageId = 0;
   // How many times has this page been referenced
   atomic<int32_t> _refCount = {2};
-  // Copy from IndexTree
+  // Copy from IndexTree's same name variable
   uint32_t _fileId;
   // If this page has been changed
   bool _bDirty = false;
   // used only in IndexPage, point out if there have records added or deleted
   bool _bRecordUpdate = false;
-  // When read this page from disk and verify it by crc32, if return error, set
-  // it to true, means this page need to fix.
-  bool _bInvalidPage = false;
-  // If this page has been loaded into memory or new create page
-  bool _bLoaded = false;
+  // Page status, to mark if this page has been loaded and the data is valid.
+  PageStatus _pageStatus = PageStatus::EMPTY;
   // Page Type
   PageType _pageType;
   // If this page has been added PageDividPool queue.
@@ -193,7 +200,7 @@ public:
     _status = TaskStatus::RUNNING;
     _page->ReadPage(nullptr);
 
-    if (_page->IsValidPage()) {
+    if (_page->GetPageStatus() == PageStatus::VALID) {
       _page->Init();
     } else {
       // In following time will add code to fix page;

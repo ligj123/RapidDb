@@ -356,24 +356,66 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   prop->_tree = new IndexTree(prop->_name, path, dvKey, dvVal);
 }
 
-void PhysTable::GenIndexHash(int index, const VectorRow &vctRow,
-                             MHashMap<size_t, size_t>::Type &hrow) {
-  IndexProp *prop = _vctIndex[index];
-  hrow.reserve(vctRow.size());
+void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
+                                    const LeafRecord *lrDst,
+                                    const VectorDataValue &dstPr,
+                                    ActionType type, Statement *stmt,
+                                    VectorLeafRecord &vctRec) {
+  if (_vctIndex.size() == 1) {
+    return;
+  }
+  assert(lrSrc != nullptr || type == ActionType::INSERT);
+  VectorDataValue srcPr;
 
-  for (size_t i = 0; i < vctRow.size(); i++) {
-    VectorDataValue &vdv = vctRow[i];
-    size_t hash = 0;
-    for (IndexColumn &col : prop->_vctCol) {
-      hash ^= vdv[col.colPos]->Hash();
+  if (lrSrc != nullptr) {
+    int rt = lrSrc->GetListValue(_vctIndexPos, srcPr);
+    assert(rt >= 0);
+  }
+
+  for (size_t i = 1; i < _vctIndex.size(); i++) {
+    IndexProp *prop = _vctIndex[i];
+    VectorDataValue dstSk;
+
+    dstSk.SetRef(true);
+    dstSk.reserve(prop->_vctCol.size());
+
+    for (IndexColumn &ic : prop->_vctCol) {
+      dstSk.push_back(dstPr.at(ic.colPos));
+    }
+    if (lrSrc == nullptr) {
+      LeafRecord *lr =
+          new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+      vctRec.push_back(lr);
+      continue;
     }
 
-    hrow.insert(hash, i);
-  }
-}
+    VectorDataValue srcSk;
+    srcSk.SetRef(true);
+    srcSk.reserve(prop->_vctCol.size());
+    for (IndexColumn &ic : prop->_vctCol) {
+      srcSk.push_back(srcPr.at(ic.colPos));
+    }
 
-bool PhysTable::GenUpdateRecord(LeafRecord *srcRec, VectorDataValue *dstPr,
-                                ActionType type, VectorLeafRecord &vctRec) {
-  //
+    assert(srcSk.size() == dstSk.size());
+    bool equal = true;
+    for (size_t i = 0; i < srcSk.size(); i++) {
+      if (*srcSk[i] == *dstSk[i]) {
+        equal = false;
+        break;
+      }
+    }
+
+    if (!equal) {
+      LeafRecord *lrSrc =
+          new LeafRecord(prop->_tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
+                         lrDst->GetKeyLength(), ActionType::DELETE, stmt);
+      LeafRecord *lrDst =
+          new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+      vctRec.push_back(lrSrc);
+      vctRec.push_back(lrDst);
+    }
+  }
 }
 } // namespace storage

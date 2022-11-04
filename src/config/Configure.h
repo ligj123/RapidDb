@@ -96,6 +96,7 @@ public:
   static uint16_t GetNodeId() { return GetInstance()._nodeId; }
   static const string &GetLogPath() { return GetInstance()._strLogPath; }
   static uint32_t GetBinLogFileSize() { return GetInstance()._binLogFileSize; }
+  static DiskType GetDiskType() { return GetInstance()._diskType; }
 
 protected:
   static Configure &GetInstance() {

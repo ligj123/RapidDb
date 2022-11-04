@@ -142,9 +142,9 @@ protected:
 class ExprUpdate : public BaseExpr {
 public:
   ExprUpdate(PhysTable *phyTable, ExprTable *exprTable, ExprLogic *where,
-             VectorDataValue *paraTmpl)
+             SelIndex *selIndex, VectorDataValue *paraTmpl)
       : _phyTable(phyTable), _exprTable(exprTable), _where(where),
-        _paraTmpl(paraTmpl) {}
+        _paraTmpl(paraTmpl), _selIndex(selIndex) {}
 
   ~ExprUpdate() {
     delete _exprTable;
@@ -157,6 +157,7 @@ public:
   const ExprTable *GetExprTable() { return _exprTable; }
   const ExprLogic *GetWhere() { return _where; }
   const VectorDataValue *GetParaTemplate() { return _paraTmpl; }
+  const SelIndex *GetSelIndex() const { return _selIndex; }
 
 protected:
   // The destion physical table, managed by database, do not delete the instance
@@ -168,12 +169,16 @@ protected:
   ExprLogic *_where;
   // The template for paramters, only need by top statement
   VectorDataValue *_paraTmpl;
+  // Which index used to search. Null means traverse all table.
+  SelIndex *_selIndex;
 };
 
 class ExprDelete : public BaseExpr {
 public:
-  ExprDelete(PhysTable *phyTable, ExprLogic *where, VectorDataValue *paraTmpl)
-      : _phyTable(phyTable), _where(where), _paraTmpl(paraTmpl) {}
+  ExprDelete(PhysTable *phyTable, ExprLogic *where, SelIndex *selIndex,
+             VectorDataValue *paraTmpl)
+      : _phyTable(phyTable), _where(where), _paraTmpl(paraTmpl),
+        _selIndex(selIndex) {}
   ~ExprDelete() {
     delete _where;
     delete _paraTmpl;
@@ -183,6 +188,7 @@ public:
   PhysTable *GetPhyTable() { return _phyTable; }
   const ExprLogic *GetWhere() { return _where; }
   const VectorDataValue *GetParameters() { return _paraTmpl; }
+  const SelIndex *GetSelIndex() const { return _selIndex; }
 
 protected:
   // The destion persistent table, managed by database, can not delete here.
@@ -191,6 +197,8 @@ protected:
   ExprLogic *_where;
   // The template for paramters, only need by top statement
   VectorDataValue *_paraTmpl;
+  // Which index used to search. Null means traverse all table.
+  SelIndex *_selIndex;
 };
 
 // class ExprJoin : public ExprSelect {

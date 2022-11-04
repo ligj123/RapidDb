@@ -94,7 +94,6 @@ public:
   int GetListValue(const MVector<int>::Type &vctPos, VectorDataValue &vct,
                    uint64_t verStamp = UINT64_MAX, Statement *stmt = nullptr,
                    bool bQuery = true) const;
-  void GetListValue(const MVector<int>::Type &vctPos, VectorRow &vctRow);
   RawKey *GetKey() const;
   /**Only for secondary index, Get the value as primary key*/
   RawKey *GetPrimayKey() const;
