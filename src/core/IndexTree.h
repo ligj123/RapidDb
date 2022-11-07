@@ -51,8 +51,31 @@ public:
   }
 
   PageFile *ApplyPageFile();
-  bool SearchRecursively(const RawKey &key, bool bEdit, IndexPage *&page);
-  bool SearchRecursively(const LeafRecord &lr, bool bEdit, IndexPage *&page);
+  /** @brief Search B+ tree from root according record's key, util find the
+   * LeafPage.
+   * @param key The record's key for search
+   * @param bEdit if edit the LeafPage, true: WriteLock, false: ReadLock
+   * @param page The inputed and returned page. Null: start from root, or start
+   * from this page.
+   * @param bWait True: wait when load IndexPage from disk until find the
+   * LeafPage, False: return directly when the IndexPage is not in memory.
+   * @return True: found the LeafPage and in memory, False: Need to seach again.
+   */
+  bool SearchRecursively(const RawKey &key, bool bEdit, IndexPage *&page,
+                         bool bWait = false);
+  /** @brief Search B+ tree from root according record, util find the
+   * LeafPage. If primary or unique key, only compare key, or Nonunique key,
+   * compare key and value too.
+   * @param key The record's key for search
+   * @param bEdit if edit the LeafPage, true: WriteLock, false: ReadLock
+   * @param page The inputed and returned page. Null: start from root, or start
+   * from this page.
+   * @param bWait True: wait when load IndexPage from disk until find the
+   * LeafPage, False: return directly when the IndexPage is not in memory.
+   * @return True: found the LeafPage and in memory, False: Need to seach again.
+   */
+  bool SearchRecursively(const LeafRecord &lr, bool bEdit, IndexPage *&page,
+                         bool bWait = false);
 
   inline uint64_t GetRecordsCount() {
     return _headPage->ReadTotalRecordCount();

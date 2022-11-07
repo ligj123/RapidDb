@@ -276,29 +276,34 @@ IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
  * @brief
  */
 bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
-                                  IndexPage *&page) {
-  while (page == nullptr) {
-    {
-      std::shared_lock<SharedSpinMutex> lock(_rootSharedMutex);
-      bool b = false;
-      if (bEdit && _rootPage->GetPageType() == PageType::LEAF_PAGE) {
-        b = _rootPage->WriteTryLock();
-      } else {
-        b = _rootPage->ReadTryLock();
+                                  IndexPage *&page, bool bWait = false) {
+  if (page != nullptr) {
+    page->WriteLock();
+
+  } else {
+    while (true) {
+      {
+        std::shared_lock<SharedSpinMutex> lock(_rootSharedMutex);
+        bool b = false;
+        if (bEdit && _rootPage->GetPageType() == PageType::LEAF_PAGE) {
+          b = _rootPage->WriteTryLock();
+        } else {
+          b = _rootPage->ReadTryLock();
+        }
+
+        if (b) {
+          page = _rootPage;
+          page->IncRef();
+
+          if (page->GetPageType() == PageType::LEAF_PAGE)
+            return true;
+          else
+            break;
+        }
       }
 
-      if (b) {
-        page = _rootPage;
-        page->IncRef();
-
-        if (page->GetPageType() == PageType::LEAF_PAGE)
-          return true;
-        else
-          break;
-      }
+      std::this_thread::yield();
     }
-
-    std::this_thread::yield();
   }
 
   while (true) {
@@ -333,7 +338,7 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
 }
 
 bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
-                                  IndexPage *&page) {
+                                  IndexPage *&page, bool bWait = false) {
   while (page == nullptr) {
     {
       std::shared_lock<SharedSpinMutex> lock(_rootSharedMutex);

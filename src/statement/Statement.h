@@ -26,12 +26,15 @@ public:
    * Constuctor for statement
    * @param tran The transaction own this statement, maybe null and create it
    * automately
-   * @param vct Used to save the parameters types, maxlength etc.
-   * @param statTime If save create, execute and stop time for statistics
+   * @param paraTmpl Used to save the parameters types, maxlength etc. It will
+   * load parameters from byte array according this template
+   * @param bTran If need transaction. For normal select, it is not need
+   * transaction.
    */
-  Statement(Transaction *tran, const VectorDataValue *paraTmpl)
+  Statement(Transaction *tran, const VectorDataValue *paraTmpl,
+            bool bTran = true)
       : _tran(tran), _bAutoTran(tran == nullptr), _vctParaTmpl(paraTmpl) {
-    if (_tran == nullptr) {
+    if (bTran && _tran == nullptr) {
       _tran = new Transaction(TranType::AUTOMATE,
                               (uint32_t)Configure::GetAutoTaskOvertime());
     }
@@ -78,16 +81,12 @@ public:
   }
 
   /**
-   * @brief Insert, update or delete one or a batch of rows.
-   * @return How much records have been affected.
+   * @brief Insert, update, delete or select one or a batch of rows.
+   * @return 0: Unfinished, need to run task again, 1: Finished and can return
+   * result to client, -1 meet error and the statement failed, need to rollback
+   * this statement.
    */
-  virtual int ExecuteUpdate() { abort(); }
-
-  /**
-   * Execute query statement and return the result
-   * @return The query result
-   */
-  virtual IResultSet *ExecuteQuery() { abort(); }
+  virtual int Execute() { abort(); }
 
   /**
    * Close this instance, used to release resource in child class.

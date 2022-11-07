@@ -151,6 +151,13 @@ public:
     _bInStorage.store(b, memory_order_relaxed);
   }
   inline bool IsInStorage() { return _bInStorage; }
+  inline void RemoveTask(Task *task) {
+    for (auto iter = _waitTasks.begin(); iter != _waitTasks.end(); iter++) {
+      if (*iter == task) {
+        _waitTasks.erase(iter);
+      }
+    }
+  }
 
 protected:
   virtual ~CachePage();
@@ -211,7 +218,6 @@ public:
     _page->WriteLock();
     MVector<Task *>::Type &vct = _page->GetWaitTasks();
     ThreadPool::InstMain().AddTasks(vct);
-    vct.clear();
     _page->WriteUnlock();
     _page->DecRef();
   }

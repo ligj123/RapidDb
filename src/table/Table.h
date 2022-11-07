@@ -54,7 +54,7 @@ protected:
 
 struct IndexColumn {
   IndexColumn() {}
-  IndexColumn(const string &name, uint32_t pos) : colName(name), colPos(pos) {}
+  IndexColumn(const string &name, uint32_t pos) : colName(name), colP os(pos) {}
 
   string colName;
   uint32_t colPos = 0;
