@@ -66,7 +66,6 @@ public:
   inline Byte *GetBysPage() const { return _bysPage; }
   inline PageType GetPageType() const { return _pageType; }
   virtual bool Releaseable() { return _refCount == 1; }
-
   inline bool IsLocked() const { return _rwLock.is_locked(); }
   inline void ReadLock() { _rwLock.lock_shared(); }
   inline bool ReadTryLock() { return _rwLock.try_lock_shared(); }
@@ -132,19 +131,15 @@ public:
     if (_pageStatus != PageStatus::EMPTY)
       return false;
 
-    WriteLock();
+    unique_lock<SpinMutex> lock(_taskLock);
     if (_pageStatus != PageStatus::EMPTY) {
-      WriteUnlock();
       return false;
     }
     _waitTasks.push_back(task);
-    WriteUnlock();
 
     return true;
   }
   inline MVector<Task *>::Type &GetWaitTasks() { return _waitTasks; }
-  inline bool IsPageLoaded() { return _bLoaded; }
-  inline void SetPageLoaded() { _bLoaded = true; }
   inline void SetInDivid(bool b) { _bInDivid.store(b, memory_order_relaxed); }
   inline bool IsInDivid() { return _bInDivid.load(memory_order_relaxed); }
   inline void SetInStorage(bool b) {
@@ -163,7 +158,10 @@ protected:
   virtual ~CachePage();
 
 protected:
+  // To save waiting tasks when reading from disk
   MVector<Task *>::Type _waitTasks;
+  // Mutexes when task adding or removing
+  SpinMutex _taskLock;
   // The page block, it is equal pages in disk
   Byte *_bysPage = nullptr;
   // Read write lock.
@@ -215,10 +213,6 @@ public:
     }
 
     _status = TaskStatus::STOPED;
-    _page->WriteLock();
-    MVector<Task *>::Type &vct = _page->GetWaitTasks();
-    ThreadPool::InstMain().AddTasks(vct);
-    _page->WriteUnlock();
     _page->DecRef();
   }
 

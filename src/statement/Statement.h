@@ -159,9 +159,9 @@ protected:
   // The create time for this statement
   DT_MicroSec _createTime;
   // The start time to execute for this statement
-  DT_MicroSec _startTime;
+  DT_MicroSec _startTime = 0;
   // The finished or abort time to execute for this statement
-  DT_MicroSec _stopTime;
+  DT_MicroSec _stopTime = 0;
   // The number of tiny taks. One statement maybe splite serveral tiny tasks to
   // run. Here used to save how much tiny tasks in total.
   atomic_uint32_t _tinyTasks = 0;

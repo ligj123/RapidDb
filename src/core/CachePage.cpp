@@ -75,7 +75,11 @@ void CachePage::ReadPage(PageFile *pageFile) {
     _indexTree->ReleasePageFile(pFile);
   }
   _bDirty = false;
-  _bLoaded = true;
+
+  WriteLock();
+  MVector<Task *>::Type &vct = _page->GetWaitTasks();
+  ThreadPool::InstMain().AddTasks(vct);
+  _page->WriteUnlock();
 }
 
 void CachePage::WritePage(PageFile *pageFile) {

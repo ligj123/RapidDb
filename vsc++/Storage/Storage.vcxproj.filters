@@ -76,9 +76,6 @@
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp">
       <Filter>pool</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\database\Database.cpp">
-      <Filter>database</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\expr\ExprFunc.cpp">
       <Filter>expr</Filter>
     </ClCompile>
@@ -111,6 +108,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\binlog\LogRecord.cpp">
       <Filter>binlog</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\table\DbManage.cpp">
+      <Filter>table</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\table\Session.cpp">
+      <Filter>table</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -247,9 +250,6 @@
     <ClInclude Include="..\..\src\utils\ConcurrentHashMap.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\database\Database.h">
-      <Filter>database</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\cache\StrBuff.h">
       <Filter>cache</Filter>
     </ClInclude>
@@ -322,6 +322,12 @@
     <ClInclude Include="..\..\src\binlog\LogRecord.h">
       <Filter>binlog</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\table\DbManage.h">
+      <Filter>table</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\table\Session.h">
+      <Filter>table</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dataType">
@@ -359,9 +365,6 @@
     </Filter>
     <Filter Include="sysTable">
       <UniqueIdentifier>{58b394fb-b0ff-43f2-86c3-7d79105fd364}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="database">
-      <UniqueIdentifier>{301a3148-59cd-447c-a0fe-977503949427}</UniqueIdentifier>
     </Filter>
     <Filter Include="resultset">
       <UniqueIdentifier>{f8de8529-ea33-465a-a47a-b5ce5922f131}</UniqueIdentifier>

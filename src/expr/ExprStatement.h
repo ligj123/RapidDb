@@ -40,15 +40,30 @@ struct SelIndex {
   int _indexPos;
 };
 
+struct PhyTableInfo {
+  PhyTableInfo(uint32_t tid, string name, DT_MilliSec lastUpdate)
+      : _tid(tid), _tName(name), _dtLastUpdate(lastUpdate) {}
+  // Table id, from PhysTable::_tid
+  uint32_t _tid;
+  // Table name
+  string _tName;
+  // The last date time to update this table
+  DT_MilliSec _dtLastUpdate;
+};
+
+// Base class for all statement
+class ExprStatement : public BaseExpr {
+}
 // Base class for all select
-class ExprSelect : public BaseExpr {
+class ExprSelect : public ExprStatement {
 public:
   ExprSelect(ExprTable *destTable, ExprLogic *where,
              MVector<OrderCol>::Type *vctOrder, bool bDistinct, int offset,
-             int rowCount, bool bCacheResult, VectorDataValue *paraTmpl)
+             int rowCount, bool bCacheResult, VectorDataValue *paraTmpl,
+             ExprStatement *parent)
       : _destTable(destTable), _where(where), _vctOrder(vctOrder),
         _offset(offset), _rowCount(rowCount), _bDistinct(bDistinct),
-        _bCacheResult(bCacheResult), _paraTmpl(paraTmpl) {}
+        _bCacheResult(bCacheResult), _paraTmpl(paraTmpl), _parent(parent) {}
   ~ExprSelect() {
     delete _destTable;
     delete _where;
@@ -64,8 +79,11 @@ public:
   bool IsDistinct() { return _bDistinct; }
   bool IsCacheResult() { return _bCacheResult; }
   const VectorDataValue *GetParaTemplate() { return _paraTmpl; }
+  ExprStatement *GetParent() { return _parent; }
 
 protected:
+  // Parent statement for this select statement
+  ExprStatement *_parent;
   ExprTable *_destTable; // The columns of selected result
   ExprLogic *_where;     // The where conditions
   // The columns idx and order type for order by, NO order with nullptr
@@ -87,30 +105,34 @@ public:
   ExprTableSelect(PhysTable *physTable, ExprTable *destTable, ExprLogic *where,
                   SelIndex *selIndex, MVector<OrderCol>::Type *vctOrder,
                   bool bDistinct, int offset, int rowCount, bool bCacheResult,
-                  VectorDataValue *_paraTmpl)
+                  VectorDataValue *paraTmpl, ExprStatement *parent)
       : ExprSelect(destTable, where, vctOrder, bDistinct, offset, rowCount,
-                   bCacheResult, _paraTmpl),
-        _physTable(physTable), _selIndex(selIndex) {}
+                   bCacheResult, paraTmpl, parent),
+        _physTableInfo(physTable->TableID(), physTable->GetTableName(),
+                       physTable->GetLastUpdateTime()),
+        _selIndex(selIndex) {}
   ~ExprTableSelect() { delete _selIndex; }
 
   ExprType GetType() { return ExprType::EXPR_TABLE_SELECT; }
-  PhysTable *GetSourTable() const { return _physTable; }
+  PhyTableInfo &GetSourTableInfo() const { return _physTableInfo; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 
 protected:
   // The source table information.
-  PhysTable *_physTable;
+  PhyTableInfo _physTableInfo;
   // Which index used to search. Null means traverse all table.
   SelIndex *_selIndex;
 };
 
-class ExprInsert : public BaseExpr {
+class ExprInsert : public ExprStatement {
 public:
   ExprInsert(PhysTable *phyTable, ExprTable *exprTable,
              VectorDataValue *paraTmpl, ExprSelect *exprSelect = nullptr,
              bool bUpsert = false)
-      : _phyTable(phyTable), _exprTable(exprTable), _exprSelect(exprSelect),
-        _bUpsert(bUpsert), _paraTmpl(paraTmpl) {}
+      : _physTableInfo(physTable->TableID(), physTable->GetTableName(),
+                       physTable->GetLastUpdateTime()),
+        _exprTable(exprTable), _exprSelect(exprSelect), _bUpsert(bUpsert),
+        _paraTmpl(paraTmpl) {}
 
   ~ExprInsert() {
     delete _exprTable;
@@ -119,16 +141,15 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_INSERT; }
-  PhysTable *GetPhyTable() { return _phyTable; }
+  PhyTableInfo &GetSourTableInfo() const { return _physTableInfo; }
   const ExprTable *GetExprTable() { return _exprTable; }
   const ExprSelect *GetExprSelect() { return _exprSelect; }
   bool IsUpsert() { return _bUpsert; }
   const VectorDataValue *GetParaTemplate() { return _paraTmpl; }
 
 protected:
-  // The destion physical table, managed by database, do not delete this
-  // instance here.
-  PhysTable *_phyTable;
+  // The destion physical table information
+  PhyTableInfo _physTableInfo;
   // The expression that how to calc values from input or select
   ExprTable *_exprTable;
   // Used for insert into TABLE A select from TABLE B
@@ -139,12 +160,14 @@ protected:
   VectorDataValue *_paraTmpl;
 };
 
-class ExprUpdate : public BaseExpr {
+class ExprUpdate : public ExprStatement {
 public:
   ExprUpdate(PhysTable *phyTable, ExprTable *exprTable, ExprLogic *where,
              SelIndex *selIndex, VectorDataValue *paraTmpl)
-      : _phyTable(phyTable), _exprTable(exprTable), _where(where),
-        _paraTmpl(paraTmpl), _selIndex(selIndex) {}
+      : _physTableInfo(physTable->TableID(), physTable->GetTableName(),
+                       physTable->GetLastUpdateTime()),
+        _exprTable(exprTable), _where(where), _paraTmpl(paraTmpl),
+        _selIndex(selIndex) {}
 
   ~ExprUpdate() {
     delete _exprTable;
@@ -153,16 +176,15 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_UPDATE; }
-  PhysTable *GetPhyTable() { return _phyTable; }
+  PhyTableInfo &GetSourTableInfo() const { return _physTableInfo; }
   const ExprTable *GetExprTable() { return _exprTable; }
   const ExprLogic *GetWhere() { return _where; }
   const VectorDataValue *GetParaTemplate() { return _paraTmpl; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 
 protected:
-  // The destion physical table, managed by database, do not delete the instance
-  // here.
-  PhysTable *_phyTable;
+  // The destion physical table information
+  PhyTableInfo _physTableInfo;
   // The expression that how to calc values
   ExprTable *_exprTable;
   // Where condition
@@ -173,26 +195,27 @@ protected:
   SelIndex *_selIndex;
 };
 
-class ExprDelete : public BaseExpr {
+class ExprDelete : public ExprStatement {
 public:
   ExprDelete(PhysTable *phyTable, ExprLogic *where, SelIndex *selIndex,
              VectorDataValue *paraTmpl)
-      : _phyTable(phyTable), _where(where), _paraTmpl(paraTmpl),
-        _selIndex(selIndex) {}
+      : _physTableInfo(physTable->TableID(), physTable->GetTableName(),
+                       physTable->GetLastUpdateTime()),
+        _where(where), _paraTmpl(paraTmpl), _selIndex(selIndex) {}
   ~ExprDelete() {
     delete _where;
     delete _paraTmpl;
   }
 
   ExprType GetType() { return ExprType::EXPR_DELETE; }
-  PhysTable *GetPhyTable() { return _phyTable; }
+  PhyTableInfo &GetSourTableInfo() const { return _physTableInfo; }
   const ExprLogic *GetWhere() { return _where; }
   const VectorDataValue *GetParameters() { return _paraTmpl; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 
 protected:
-  // The destion persistent table, managed by database, can not delete here.
-  PhysTable *_phyTable;
+  // The destion persistent table information
+  PhyTableInfo _physTableInfo;
   // Where condition
   ExprLogic *_where;
   // The template for paramters, only need by top statement

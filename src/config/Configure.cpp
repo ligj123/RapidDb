@@ -28,6 +28,7 @@ const uint64_t Configure::MANUAL_TASK_OVERTIME = 10 * 60 * 1000;
 const bool Configure::LOG_SAVE_SPLIT_PAGE = false;
 const DiskType Configure::DISK_TYPE = DiskType::SSD;
 const uint32_t Configure::DEFAULT_BIN_LOG_FILE_SIZE = 100 * 1024 * 1024;
+const char *DEFAULT_DB_ROOT_PATH = "./";
 
 Configure::Configure() {
   _szResultBlock = DEFAULT_RESULT_BLOCK_SIZE;
@@ -53,5 +54,6 @@ Configure::Configure() {
 
   _nodeId = 0;
   _strLogPath = "./binlog/";
+  _strDbRootPath = "./";
 }
 } // namespace storage

@@ -6,7 +6,6 @@
 namespace storage {
 thread_local string ThreadPool::_threadName = "main";
 thread_local int ThreadPool::_threadID = -1;
-thread_local Task *ThreadPool::_currTask = nullptr;
 ThreadPool *ThreadPool::_instMain = nullptr;
 SpinMutex ThreadPool::_smMain;
 
@@ -101,10 +100,8 @@ void ThreadPool::CreateThread(int id) {
       queue_lock.unlock();
 
       for (Task *task : vct) {
-        _currTask = task;
         task->Run();
         assert(task->Status() > TaskStatus::RUNNING);
-        _currTask = nullptr;
 
         if (task->Status() == TaskStatus::PAUSE_WITH_ADD ||
             task->Status() == TaskStatus::INTERVAL) {

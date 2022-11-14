@@ -19,10 +19,12 @@ protected:
   // all inserted leaf records, inlude primary key and secondary key
   MVector<LeafRecord *> _vctRec;
   // The current record to insert
-  int32_t _currRow = -1;
+  int32_t _currRow = 0;
   // Which record is inserting IndexTree, the position in _vctRec
-  int32_t _currRec = -1;
-  //
+  int32_t _currRec = 0;
+  // If an IndexPage is not in memory, it will load this page from disk. In this
+  // moment, current task will pause and use below variable to save the page to
+  // restart this task.
   IndexPage *_indexPage;
   // In this version all records in this statement will be insert in one task,
   // but in fututre maybe use small tasks and enery small task will finish one

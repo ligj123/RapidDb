@@ -97,6 +97,7 @@ public:
   static const string &GetLogPath() { return GetInstance()._strLogPath; }
   static uint32_t GetBinLogFileSize() { return GetInstance()._binLogFileSize; }
   static DiskType GetDiskType() { return GetInstance()._diskType; }
+  static const string &GetDbRootPath() { return GetInstance()._strDbRootPath; }
 
 protected:
   static Configure &GetInstance() {
@@ -133,5 +134,7 @@ protected:
   // In single environment, the node id=0
   uint16_t _nodeId;
   string _strLogPath;
+  // The database root path, all db data will be saved into here
+  string _strDbRootPath;
 };
 } // namespace storage

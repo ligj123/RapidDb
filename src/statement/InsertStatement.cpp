@@ -7,16 +7,15 @@ InsertStatement::InsertStatement(ExprInsert *exprInsert, Transaction *tran)
     : Statement(tran, exprInsert->GetParaTemplate()), _exprInsert(exprInsert) {}
 
 int InsertStatement::Execute() {
-  _startTime = MilliSecTime();
-  if (!_tran->AbleAddTask()) {
-    _errorMsg->SetMsg(TRAN_ADD_TASK_FAILED, {to_string(_tran->GetTranId())});
-    LOG_ERROR
-        << "Try to insert a record into table with invalid transaction. ID="
-        << _tran->GetTranId();
-    return -1;
+  if (_startTime == 0) {
+    _startTime = MilliSecTime();
   }
 
-  // PhysTable *table = _exprInsert->GetTableDesc();
+  PhysTable *table = _exprInsert->GetTableDesc();
+  bool bUpsert = _exprInsert->IsUpsert;
+
+  for (; _currRow < _vctParas.size(); _currRow++) {
+    }
   // ExprValueArrayIn *vAin = _exprInsert->GetExprValueArrayIn();
   //  const MHashMap<string, IndexProp>::Type &mIndex = table->GetMapIndex();
   //  IndexTree *priTree = table->GetPrimaryIndexTree();

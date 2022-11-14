@@ -92,6 +92,7 @@ public:
   PhysTable(uint32_t id) : _tid(id){};
   ~PhysTable();
 
+  uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   const IndexProp *GetPrimaryKey() const { return _vctIndex[0]; }
   const MVector<IndexProp *>::Type &GetVectorIndex() const { return _vctIndex; }
@@ -133,6 +134,9 @@ public:
     prop->_tree->Close();
   }
 
+  DT_MilliSec GetCreateTime() { return _dtCreate; }
+  DT_MilliSec GetLastUpdateTime() { return _dtLastUpdate; }
+
   void GenSecondaryRecords(const LeafRecord *lrSrc, const LeafRecord *lrDst,
                            const VectorDataValue &dstVd, ActionType type,
                            Statement *stmt, VectorLeafRecord &vctRec);
@@ -147,6 +151,10 @@ protected:
   // The high 3 bytes used for table id, and the last byte used for index id.
   // Primary key id is 0 and other index ids order by index order.
   uint32_t _tid;
+  // The date time to create this table
+  DT_MilliSec _dtCreate;
+  // The last date time to update this table
+  DT_MilliSec _dtLastUpdate;
   /**The root path for the database.*/
   string _rootPath;
   /**The datebase name that this table belong to*/
