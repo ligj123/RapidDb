@@ -1,2 +1,10 @@
 #pragma once
-class Session {};
+
+namespace storage {
+class Session {
+  public:
+  protected:
+  
+};
+
+}

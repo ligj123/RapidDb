@@ -83,10 +83,9 @@ uint32_t IndexProp::Read(Byte *bys) {
   return len;
 }
 
-PhysTable::PhysTable(string &rootPath, string &dbName, string &tableName,
-                     string &tableAlias, string &description)
-    : BaseTable(tableName, tableAlias, description), _rootPath(rootPath),
-      _dbName(dbName) {
+PhysTable::PhysTable(Database *db, string &tableName, string &tableAlias,
+                     string &description)
+    : BaseTable(tableName, tableAlias, description), _db(db) {
   ReadData();
 };
 
@@ -239,7 +238,7 @@ void PhysTable::WriteData() {
   crc32.process_bytes(bufs + UI32_LEN * 2, buf - bufs - UI32_LEN * 2);
   *(uint32_t *)(bufs + UI32_LEN) = crc32.checksum();
 
-  string path = _rootPath + "/" + _dbName + "/" + _name + "/metafile.dat";
+  string path = _db->GetPath() + "/" + _name + "/metafile.dat";
   ofstream fs(path.c_str(), ios::out | ios::binary | ios::trunc);
   fs.write((char *)bufs, buf - bufs);
   fs.close();
@@ -250,7 +249,7 @@ void PhysTable::ReadData() {
   Byte *buf = CachePool::ApplyBlock();
   Byte *bufs = buf;
 
-  string path = _rootPath + "/" + _dbName + "/" + _name + "/metafile.dat";
+  string path = _db->GetPath() + "/" + _name + "/metafile.dat";
   ifstream fs(path.c_str(), ios::in | ios::binary);
   fs.read((char *)buf, Configure::GetResultBlockSize());
   uint32_t sz = fs.gcount();
@@ -318,8 +317,8 @@ void PhysTable::ReadData() {
 bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   assert(idx > 0 && idx < _vctIndex.size());
   IndexProp *prop = _vctIndex[idx];
-  string path = _rootPath + "/" + _dbName + "/" + _name + "/" +
-                _vctIndex[idx]->_name + ".idx";
+  string path =
+      _db->GetPath() + "/" + _name + "/" + _vctIndex[idx]->_name + ".idx";
 
   VectorDataValue dvKey;
   dvKey.reserve(prop->_vctCol.size());

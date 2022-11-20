@@ -5,6 +5,8 @@ namespace storage {
 using namespace std;
 struct Database {
   Database(string dbPath, string dbName) : _dbPath(dbPath), _dbName(dbName) {}
+
+  const string GetPath() { return _dbPath + "/" + _dbName; }
   // The path to save this database path.
   string _dbPath;
   // Database name

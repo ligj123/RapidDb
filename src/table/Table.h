@@ -9,6 +9,8 @@
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
 #include "Column.h"
+#include "Database.h"
+
 #include <any>
 
 namespace storage {
@@ -22,8 +24,8 @@ public:
   BaseTable(const string &name, const string &alias, const string &desc)
       : _name(name), _alias(alias), _desc(desc) {}
   virtual ~BaseTable() {}
-  inline const string &GetTableName() const { return _name; }
-  inline void SetTableName(string name) {
+  inline const string &GetName() const { return _name; }
+  inline void SetName(string name) {
     IsValidName(name);
     _name = name;
   }
@@ -87,9 +89,9 @@ struct IndexProp {
 
 class PhysTable : public BaseTable {
 public:
-  PhysTable(string &rootPath, string &dbName, string &tableName,
-            string &tableAlias, string &description);
-  PhysTable(uint32_t id) : _tid(id){};
+  PhysTable(Database *db, string &tableName, string &tableAlias,
+            string &description);
+  PhysTable(Database *db) : _db(db){};
   ~PhysTable();
 
   uint32_t TableID() { return _tid; }
@@ -140,6 +142,15 @@ public:
   void GenSecondaryRecords(const LeafRecord *lrSrc, const LeafRecord *lrDst,
                            const VectorDataValue &dstVd, ActionType type,
                            Statement *stmt, VectorLeafRecord &vctRec);
+  int32_t GetRefCount() { return _refCount.load(memory_order_relaxed); }
+  int32_t IncRef(int32_t i = 1) {
+    return _refCount.fetch_add(i, memory_order_relaxed);
+  }
+  int32_t DecRef(int32_t i = 1) {
+    return _refCount.fetch_sub(i, memory_order_relaxed);
+  }
+  const Database *GetDb() const { return _db; }
+  const string GetFullName() const { return _db->_dbName + "/" + _name; }
 
 protected:
   inline bool IsExistedColumn(string name) {
@@ -147,6 +158,8 @@ protected:
   }
 
 protected:
+  // How much time that this instance has been referenced.
+  atomic_int32_t _refCount;
   // Auto increment id, every time add 256.
   // The high 3 bytes used for table id, and the last byte used for index id.
   // Primary key id is 0 and other index ids order by index order.
@@ -155,10 +168,6 @@ protected:
   DT_MilliSec _dtCreate;
   // The last date time to update this table
   DT_MilliSec _dtLastUpdate;
-  /**The root path for the database.*/
-  string _rootPath;
-  /**The datebase name that this table belong to*/
-  string _dbName;
   /**Include all columns in this table, they will order by actual position in
    * the table.*/
   MVector<PhysColumn *>::Type _vctColumn;
@@ -173,6 +182,8 @@ protected:
   unordered_multimap<uint32_t, uint32_t> _mapIndexFirstField;
   // The positions of all columns that constitute the all secondary index.
   MVector<int>::Type _vctIndexPos;
+  // The database this table belong to
+  Database *_db;
 };
 
 class ResultTable : public BaseTable {

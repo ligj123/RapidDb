@@ -5,6 +5,11 @@
 #include "Statement.h"
 
 namespace storage {
+enum class InsertStatus : uint8_t {
+  PRIMARY_START = 0,
+  PRIMARY_PROCESS,
+  SECONDARY_PROCESS
+};
 // Normal insert, insert from select will implement in its brother class
 class InsertStatement : public Statement {
 public:
@@ -26,9 +31,7 @@ protected:
   // moment, current task will pause and use below variable to save the page to
   // restart this task.
   IndexPage *_indexPage;
-  // In this version all records in this statement will be insert in one task,
-  // but in fututre maybe use small tasks and enery small task will finish one
-  // LeafRecord insert.
-  // bool _bSmallTask;
+  // Status
+  InsertStatus _status = InsertStatus::PRIMARY_START;
 };
 } // namespace storage

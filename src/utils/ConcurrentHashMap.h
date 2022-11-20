@@ -12,7 +12,7 @@ public:
   using Iterator = typename std::unordered_map<Key, Val>::iterator;
 
   ConcurrentHashMap(int groupCount, uint64_t maxCount,
-                    function<void(Val)> funcFind)
+                    function<void(Val)> funcFind = nullptr)
       : _groupCount(groupCount), _funcFind(funcFind) {
     _vctMap.reserve(groupCount);
     _vctLock.reserve(groupCount);
@@ -45,7 +45,7 @@ public:
     return _vctMap[pos]->insert({key, val}).second;
   }
 
-  bool Find(Key key, Val &val) {
+  bool Find(const Key &key, Val &val) {
     int pos = std::hash<Key>{}(key) % _groupCount;
     unique_lock<SpinMutex> lock(*_vctLock[pos]);
     auto iter = _vctMap[pos]->find(key);
@@ -53,7 +53,9 @@ public:
       return false;
     } else {
       val = iter->second;
-      _funcFind(val);
+      if (_funcFind != nullptr) {
+        _funcFind(val);
+      }
       return true;
     }
   }
@@ -62,6 +64,11 @@ public:
   Iterator End(int pos) { return _vctMap[pos]->end(); }
   Iterator Erase(int pos, Iterator iter) { return _vctMap[pos]->erase(iter); }
   void Erase(int pos, const Key &key) { _vctMap[pos]->erase(key); }
+  void Erase(const Key &key) {
+    int pos = std::hash<Key>{}(key) % _groupCount;
+    unique_lock<SpinMutex> lock(*_vctLock[pos]);
+    _vctMap[pos]->erase(key);
+  }
   void Clear(int pos) {
     _vctLock[pos]->lock();
     ConHashMap *map = _vctMap[pos];

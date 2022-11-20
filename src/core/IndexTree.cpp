@@ -276,15 +276,14 @@ IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
  * @brief
  */
 bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
-                                  IndexPage *&page, Task *task,
-                                  bool bWait = false) {
+                                  IndexPage *&page, bool bWait = false) {
   if (page != nullptr) {
-    if (bEdit && childPage->GetPageType() == PageType::LEAF_PAGE) {
+    if (bEdit && page->GetPageType() == PageType::LEAF_PAGE) {
       page->WriteLock();
     } else {
       page->ReadLock();
     }
-    page->RemoveTask(task);
+    page->RemoveTask(ThreadPool::_currTask);
   } else {
     while (true) {
       {
@@ -328,7 +327,7 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
     assert(childPage != nullptr);
 
     if (childPage->GetPageStatus() != PageStatus::VALID && !bWait) {
-      if (childPage->PushWaitTask(task)) {
+      if (childPage->PushWaitTask(ThreadPool::_currTask)) {
         page->ReadUnlock();
         page->DecRef();
         page = childPage;
@@ -349,15 +348,14 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
 }
 
 bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
-                                  IndexPage *&page, Task *task,
-                                  bool bWait = false) {
+                                  IndexPage *&page, bool bWait = false) {
   if (page != nullptr) {
-    if (bEdit && childPage->GetPageType() == PageType::LEAF_PAGE) {
+    if (bEdit && page->GetPageType() == PageType::LEAF_PAGE) {
       page->WriteLock();
     } else {
       page->ReadLock();
     }
-    page->RemoveTask(task);
+    page->RemoveTask(ThreadPool::_currTask);
   } else {
     while (page == nullptr) {
       {
@@ -401,7 +399,7 @@ bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
     assert(childPage != nullptr);
 
     if (childPage->GetPageStatus() != PageStatus::VALID && !bWait) {
-      if (childPage->PushWaitTask(task)) {
+      if (childPage->PushWaitTask(ThreadPool::_currTask)) {
         page->ReadUnlock();
         page->DecRef();
         page = childPage;

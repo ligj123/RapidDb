@@ -55,6 +55,7 @@ class ThreadPool {
 public:
   static thread_local int _threadID;
   static thread_local string _threadName;
+  static thread_local Task *_currTask;
   static string GetThreadName() { return _threadName; }
   static ThreadPool &InstMain() {
     assert(_instMain != nullptr);
