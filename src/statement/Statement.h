@@ -86,7 +86,7 @@ public:
    * result to client, -1 meet error and the statement failed, need to rollback
    * this statement.
    */
-  virtual int Execute() { abort(); }
+  virtual TaskStatus Execute() { abort(); }
 
   /**
    * Close this instance, used to release resource in child class.
