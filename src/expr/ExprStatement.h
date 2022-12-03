@@ -112,7 +112,7 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_TABLE_SELECT; }
-  const PhysTable *GetSourTable() const { return _physTable; }
+  PhysTable *GetSourTable() const { return _physTable; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 
 protected:
@@ -139,7 +139,7 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_INSERT; }
-  const PhysTable *GetSourTable() const { return _physTable; }
+  PhysTable *GetSourTable() const { return _physTable; }
   const ExprTable *GetExprTable() { return _exprTable; }
   const ExprSelect *GetExprSelect() { return _exprSelect; }
   bool IsUpsert() { return _bUpsert; }
@@ -171,7 +171,7 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_UPDATE; }
-  const PhysTable *GetSourTable() const { return _physTable; }
+  PhysTable *GetSourTable() const { return _physTable; }
   const ExprTable *GetExprTable() { return _exprTable; }
   const ExprLogic *GetWhere() { return _where; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
@@ -202,7 +202,7 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_DELETE; }
-  const PhysTable *GetSourTable() const { return _physTable; }
+  PhysTable *GetSourTable() const { return _physTable; }
   const ExprLogic *GetWhere() { return _where; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 

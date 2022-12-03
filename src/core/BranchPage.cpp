@@ -14,7 +14,7 @@ BranchPage::~BranchPage() { CleanRecords(); }
 
 void BranchPage::CleanRecords() {
   for (RawRecord *rr : _vctRecord) {
-    ((BranchRecord *)rr)->ReleaseRecord();
+    delete rr;
   }
 
   _vctRecord.clear();

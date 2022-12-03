@@ -56,9 +56,6 @@ protected:
   IndexPage *_parentPage;
   /**index tree*/
   IndexTree *_indexTree;
-  /**How many times this record is referenced, only can be used when the page
-   * has been locked*/
-  int32_t _refCount = 1;
   /**If this record' value is saved into solely buffer or into index page*/
   bool _bSole;
   // Below is used in LeafRecord, put here to save space. Only vaild when
@@ -71,5 +68,8 @@ protected:
   // Gap lock to previous record. NOT NEXT RECORD is due to page will split by
   // last record, the new record will be insert into ahead of the found record.
   bool _gapLock = false;
+  /**How many times this record is referenced, only can be used when the page
+   * has been locked. Only valid for LeafPage*/
+  atomic_uint16_t _refCount = 1;
 };
 } // namespace storage

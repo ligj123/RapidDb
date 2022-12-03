@@ -25,16 +25,6 @@ public:
   int CompareKey(const RawRecord &other) const;
   bool EqualPageId(const BranchRecord &br) const;
 
-  inline void ReleaseRecord() {
-    assert(_refCount > 0);
-    _refCount--;
-    if (_refCount == 0)
-      delete this;
-  }
-  inline BranchRecord *ReferenceRecord() {
-    _refCount++;
-    return this;
-  }
   uint16_t GetValueLength() const override {
     if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE)
       return 0;

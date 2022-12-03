@@ -13,7 +13,9 @@ public:
       : CachePage(indexTree, startId, PageType::OVERFLOW_PAGE),
         _pageNum(pageNum) {
     _bysPage = CachePool::Apply(CACHE_PAGE_SIZE * pageNum);
-    _bLoaded = bNew;
+    if (bNew) {
+      _pageStatus == PageStatus::VALID;
+    }
   }
   void ReadPage(PageFile *pageFile) override;
   void WritePage(PageFile *pageFile) override;

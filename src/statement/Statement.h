@@ -176,6 +176,6 @@ protected:
   // a new transaction.
   bool _bAutoTran = false;
   // All inserted, updated or locked records in this statement
-  MTreeSet<LeafRecord *>::Type _setRecord;
+  VectorLeafRecord _vctRecord;
 };
 } // namespace storage

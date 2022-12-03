@@ -107,7 +107,7 @@ protected:
   uint32_t _totalDataLength = 0;
   // The record number in this page
   uint32_t _recordNum = 0;
-  // How many records are in transaction status
+  // How many records are in transaction status, only used in LeafPage
   uint32_t _tranCount = 0;
 };
 } // namespace storage

@@ -152,9 +152,10 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 }
 
 void LeafRecord::ReleaseRecord(bool bUndo) {
-  assert(_refCount > 0);
-  _refCount--;
-  if (_refCount == 0) {
+ uint16_t val= _refCount.fetch_sub(1);
+  assert(val > 1);
+
+  if (val == 1) {
     if (_undoRec != nullptr) {
       _undoRec->ReleaseRecord(bUndo);
     }

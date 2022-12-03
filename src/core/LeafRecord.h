@@ -106,6 +106,7 @@ public:
   // When insert or upsert, if there has old record in leaf page, replace old
   // record with this and call below method to set old record
   void SaveUndoRecord(LeafRecord *undoRec) { _undoRec = undoRec; }
+  LeafRecord *GetUndoRecord() { return _undoRec; }
 
   // Get the value's length. If there have more than one version, return the
   // first version's length.
@@ -123,7 +124,8 @@ public:
   bool IsTransaction() const override { return _statement != nullptr; }
 
   inline LeafRecord *ReferenceRecord() {
-    _refCount++;
+    uint16_t val = _refCount.fetch_add(1);
+    assert(val < UINT16_MAX - 1);
     return this;
   }
   inline void LockForUpdate(Statement *stam, bool gapLock) {
@@ -153,7 +155,7 @@ public:
     uint16_t pnum = *(uint16_t *)(bys + UI32_LEN);
 
     _overflowPage = OverflowPage::GetPage(_indexTree, pid, pnum, false);
-    return !_overflowPage->IsPageLoaded();
+    return (_overflowPage->GetPageStatus() == PageStatus::VALID);
   }
 
   Byte GetVersionNumber() const {
@@ -186,22 +188,19 @@ protected:
     return lenKey;
   }
   // To calc a version's value length
-  inline uint32_t CalcValueLength(const VectorDataValue &vctVal,
-                                  ActionType type);
+  uint32_t CalcValueLength(const VectorDataValue &vctVal, ActionType type);
 
   // Save key and infor into buffer
-  inline void FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
-                             uint32_t keyLen, Byte verNum, uint64_t stamp,
-                             uint32_t valLen);
+  void FillHeaderBuff(RecStruct &recStru, uint32_t totalLen, uint32_t keyLen,
+                      Byte verNum, uint64_t stamp, uint32_t valLen);
 
-  inline void FillKeyBuff(RecStruct &recStru, const VectorDataValue &vctKey);
+  void FillKeyBuff(RecStruct &recStru, const VectorDataValue &vctKey);
 
   // Save a version's value into buffer
-  inline void FillValueBuff(ValueStruct &valStru,
-                            const VectorDataValue &vctVal);
+  void FillValueBuff(ValueStruct &valStru, const VectorDataValue &vctVal);
 
-  inline uint32_t CalcValidValueLength(RecStruct &recStru, bool bUpdate,
-                                       MVector<Byte>::Type &vctSN);
+  uint32_t CalcValidValueLength(RecStruct &recStru, bool bUpdate,
+                                MVector<Byte>::Type &vctSN);
 
 protected:
   // If update this record, save old version for transaction rollback. If it

@@ -27,7 +27,7 @@ void OverflowPage::ReadPage(PageFile *pageFile) {
   if (pageFile == nullptr) {
     _indexTree->ReleasePageFile(pFile);
   }
-  _bLoaded = true;
+  _pageStatus = PageStatus::VALID;
 }
 
 void OverflowPage::WritePage(PageFile *pageFile) {

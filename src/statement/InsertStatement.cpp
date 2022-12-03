@@ -11,7 +11,7 @@ TaskStatus InsertStatement::Execute() {
     _startTime = MilliSecTime();
   }
 
-  const PhysTable *table = _exprInsert->GetSourTable();
+  PhysTable *table = _exprInsert->GetSourTable();
   bool bUpsert = _exprInsert->IsUpsert();
 
   if (_status == InsertStatus::PRIMARY_PAGE_LOAD)
@@ -33,25 +33,41 @@ INSERT_START : {
   LeafRecord *lr = new LeafRecord(
       priProp->_tree, pdv, *vdv,
       priProp->_tree->GetHeadPage()->GetAndIncRecordStamp(), this);
-  _vctRec.push_back(lr);
+  _vctRecord.push_back(lr);
   _currRec++;
 }
 // After load primary page and restart this task, goto here
 PRIMARY_PAGE_LOAD : {
-  LeafRecord *lr = _vctRec[_currRec];
+  LeafRecord *lr = _vctRecord[_currRec];
   IndexTree *tree = lr->GetTreeFile();
   bool b = tree->SearchRecursively(*lr, true, _indexPage, false);
   if (!b) {
     _status = InsertStatus::PRIMARY_PAGE_LOAD;
     return TaskStatus::PAUSE_WITHOUT_ADD;
   }
-  
+
+  assert(_indexPage->GetPageType() == PageType::LEAF_PAGE);
+  LeafPage *lp = (LeafPage *)_indexPage;
+  bool bFind;
+  int32_t pos = lp->SearchRecord(*lr, bFind);
+  VectorLeafRecord vctRec;
+
+  if (bFind) {
+    if (bUpsert) {
+      LeafRecord *lrSrc = lp->GetRecord(pos);
+      table->GenSecondaryRecords(lrSrc, lr, *_vctParas[_currRow],
+                                 ActionType::INSERT, this, vctRec);
+    } else {
+      LeafPage::RollbackLeafRecords(_vctRecord, _currRec);
+      _errorMsg = new ErrorMsg(CORE_REPEATED_RECORD, {});
+    }
+  }
 }
 // Loop to insert secondary lead records.
 SECONDARY_RECORD:
 // After load secondary page and restart this task, goto here
 SECONDARY_PAGE_LOAD:
 
-  return 0;
+  return TaskStatus::STOPED;
 }
 } // namespace storage

@@ -59,7 +59,7 @@ void LeafPage::CleanRecord() {
 }
 
 bool LeafPage::SaveRecords() {
-  if (_totalDataLength > MAX_DATA_LENGTH_LEAF)
+  if (_totalDataLength > MAX_DATA_LENGTH_LEAF || _tranCount > 0)
     return false;
 
   unique_lock<SpinMutex> lock(_pageLock, try_to_lock);
@@ -110,31 +110,21 @@ bool LeafPage::SaveRecords() {
 }
 
 ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
+  assert(pos >= 0);
   if (_recordNum > 0 && _vctRecord.size() == 0) {
     LoadRecords();
   }
 
   bool bUnique =
       (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
-  if (pos < 0) {
-    bool bFind;
-    if (bUnique) {
-      pos = SearchKey(*lr, bFind);
-    } else {
-      pos = SearchRecord(*lr, bFind);
-    }
-
-    if (bFind) {
-      return new ErrorMsg(CORE_REPEATED_RECORD, {});
-    }
-  } else if (pos > (int32_t)_recordNum) {
-    pos = _recordNum;
-  }
 
   _totalDataLength += lr->GetTotalLength() + UI16_LEN;
   lr->SetParentPage(this);
   _vctRecord.insert(_vctRecord.begin() + pos, lr);
   _recordNum++;
+  if (lr->IsTransaction()) {
+    _tranCount++;
+  }
   _bDirty = true;
   _bRecordUpdate = true;
   _indexTree->GetHeadPage()->GetAndIncTotalRecordCount();
@@ -156,71 +146,14 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
   lr->SetParentPage(this);
   _vctRecord.push_back(lr);
   _recordNum++;
+  if (lr->IsTransaction()) {
+    _tranCount++;
+  }
   _bDirty = true;
   _bRecordUpdate = true;
   _indexTree->GetHeadPage()->GetAndIncTotalPageCount();
 
   return true;
-}
-
-void LeafPage::UpdateRecord(int32_t szChange, bool bRemove) {
-  if (bRemove) {
-    _recordNum--;
-  }
-
-  _totalDataLength += szChange;
-}
-
-LeafRecord *LeafPage::GetRecord(const RawKey &key) {
-  if (_recordNum == 0) {
-    return nullptr;
-  }
-
-  bool bFind;
-  int32_t index = SearchKey(key, bFind);
-  if (!bFind) {
-    return nullptr;
-  }
-
-  if (_vctRecord.size() == 0) {
-    int pos = ReadShort(DATA_BEGIN_OFFSET + index * sizeof(uint16_t));
-    return new LeafRecord(this, _bysPage + pos);
-  } else {
-    return ((LeafRecord *)_vctRecord[index])->ReferenceRecord();
-  }
-}
-
-bool LeafPage::GetRecords(const RawKey &key, VectorLeafRecord &vct,
-                          bool bFromZero) {
-  if (vct.size() > 0)
-    vct.RemoveAll();
-  if (_recordNum == 0)
-    return true;
-
-  bool bFind;
-  uint32_t pos = 0;
-  if (!bFromZero) {
-    pos = SearchKey(key, bFind);
-    if (!bFind)
-      return false;
-  }
-
-  uint32_t end = SearchKey(key, bFind, false, pos);
-  vct.reserve(end - pos);
-
-  if (_vctRecord.size() == 0) {
-    for (uint16_t i = pos; i < end; i++) {
-      uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + i * UI16_LEN);
-      vct.push_back(new LeafRecord(this, _bysPage + offset));
-    }
-  } else {
-    for (uint32_t i = pos; i < end; i++) {
-      LeafRecord *rr = ((LeafRecord *)_vctRecord[i])->ReferenceRecord();
-      vct.push_back(rr);
-    }
-  }
-
-  return (end == _recordNum);
 }
 
 int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc,
@@ -361,56 +294,6 @@ int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, bool bInc,
   }
 }
 
-LeafRecord *LeafPage::GetLastRecord() {
-  if (_recordNum == 0)
-    return nullptr;
-  if (_vctRecord.size() > 0) {
-    return GetVctRecord(_recordNum - 1)->ReferenceRecord();
-  } else {
-    uint16_t offset =
-        ReadShort(DATA_BEGIN_OFFSET + (_recordNum - 1) * UI16_LEN);
-    return new LeafRecord(this, _bysPage + offset);
-  }
-}
-
-void LeafPage::GetAllRecords(VectorLeafRecord &vct) {
-  vct.RemoveAll();
-  vct.reserve(_recordNum);
-  if (_vctRecord.size() == 0) {
-    LoadRecords();
-  }
-
-  for (RawRecord *rr : _vctRecord) {
-    vct.push_back(((LeafRecord *)rr)->ReferenceRecord());
-  }
-}
-
-bool LeafPage::FetchRecords(const RawKey *startKey, const RawKey *endKey,
-                            const bool bIncLeft, const bool bIncRight,
-                            VectorLeafRecord &vct) {
-  assert(startKey == nullptr || endKey == nullptr || *startKey <= *endKey);
-  if (_vctRecord.size() == 0) {
-    LoadRecords();
-  }
-  int32_t start = 0, end = _recordNum;
-  bool bFind;
-  if (startKey != nullptr && CompareTo(0, *startKey) < 0) {
-    start = SearchKey(*startKey, bFind, bIncLeft);
-  }
-
-  if (endKey != nullptr && CompareTo(_recordNum - 1, *endKey) > 0) {
-    end = SearchKey(*endKey, bFind, !bIncRight, start);
-  }
-
-  vct.RemoveAll();
-  vct.reserve(end - start);
-  for (; start < end; start++) {
-    vct.push_back(((LeafRecord *)_vctRecord[start])->ReferenceRecord());
-  }
-
-  return end >= (int32_t)_recordNum;
-}
-
 int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
   return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
@@ -431,6 +314,51 @@ int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
                         ReadShort(start) - _indexTree->GetKeyOffset(),
                         rr.GetBysValue() + _indexTree->GetKeyOffset(),
                         rr.GetTotalLength() - _indexTree->GetKeyOffset());
+  }
+}
+
+/**
+ * @brief This method is static, it will be called When a statement rollback. It
+ * will rollback all inserted LeafRecords
+ * @param vctRec The vector to save leaf records
+ * @param endPos The end position to rollback records, include this position.
+ */
+void LeafPage::RollbackLeafRecords(const MVector<LeafRecord *>::Type &vctRec,
+                                   int64_t endPos) {
+  assert(vctRec.size() > endPos);
+  for (int64_t i = endPos; i > 0; i--) {
+    LeafRecord *lr = vctRec[i];
+    LeafPage *page = (LeafPage *)lr->GetParentPage();
+    if (page == nullptr)
+      continue;
+
+    while (true) {
+      page->WriteLock();
+      if (lr->GetParentPage() == page) {
+        break;
+      }
+      page->WriteUnlock();
+      page = (LeafPage *)lr->GetParentPage();
+    }
+
+    bool bFind;
+    int32_t pos = page->SearchRecord(*lr, bFind);
+    assert(bFind);
+    LeafRecord *undoRec = lr->GetUndoRecord();
+    if (undoRec != nullptr) {
+      page->_vctRecord[pos] == undoRec;
+      lr->SaveUndoRecord(nullptr);
+      page->_totalDataLength +=
+          undoRec->GetTotalLength() - lr->GetTotalLength();
+      if (!undoRec->IsTransaction())
+        page->_tranCount--;
+    } else {
+      page->_vctRecord.erase(page->_vctRecord.begin() + pos);
+      page->_recordNum--;
+      page->_tranCount--;
+    }
+
+    lr->SetParentPage(nullptr);
   }
 }
 } // namespace storage

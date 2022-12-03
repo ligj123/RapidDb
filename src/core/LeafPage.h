@@ -13,6 +13,8 @@ public:
   static const uint16_t PREV_PAGE_POINTER_OFFSET;
   static const uint16_t NEXT_PAGE_POINTER_OFFSET;
   static const uint16_t DATA_BEGIN_OFFSET;
+  static void RollbackLeafRecords(const MVector<LeafRecord *>::Type &vctRec,
+                                  int64_t endPos);
 
 public:
   void clear() {
@@ -34,26 +36,31 @@ public:
   void LoadRecords();
   void CleanRecord();
   bool SaveRecords() override;
-
-  /**Insert a leaf record to this page, if pos < 0, use SearchRecord to find the
-  position, if pos>=0, insert the position or add to end; If passed to insert
-  record to this page, return nullptr, else return error massage.*/
+  /**
+   * @brief Insert a leaf record into position pos in this page
+   *
+   * @param lr The leaf record will be inserted
+   * @param pos The position for insert.
+   * @return ErrorMsg* nullptr if success or error
+   */
   ErrorMsg *InsertRecord(LeafRecord *lr, int32_t pos = -1);
   bool AddRecord(LeafRecord *record);
-  void UpdateRecord(int32_t szChange, bool bRemove);
-  void GetAllRecords(VectorLeafRecord &vct);
   /**
-   * @brief Fetch the records from startKey to endKey
-   * @return If include the last record, return true, or return false
+   * @brief Get the Record in this LeafPage with position=pos   *
+   * @param pos The position of records in this page
+   * @param incRef True: increase the reference count; False: keep the ref count
+   * no change
+   * @return LeafRecord* The leaf record to get
    */
-  bool FetchRecords(const RawKey *startKey, const RawKey *endKey,
-                    const bool bIncLeft, const bool bIncRight,
-                    VectorLeafRecord &vct);
-  LeafRecord *GetLastRecord();
-  LeafRecord *GetRecord(const RawKey &key);
-  /**If include the last record, return true, or false*/
-  bool GetRecords(const RawKey &key, VectorLeafRecord &vct,
-                  bool bFromZero = false);
+  LeafRecord *GetRecord(int32_t pos, bool incRef = false) {
+    assert(pos >= 0 && pos < _recordNum);
+    if (_vctRecord.size() > 0) {
+      return incRef ? GetVctRecord(pos)->ReferenceRecord() : GetVctRecord(pos);
+    } else {
+      uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + pos * UI16_LEN);
+      return new LeafRecord(this, _bysPage + offset);
+    }
+  }
   int32_t SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc = true,
                        int32_t start = 0, int32_t end = INT32_MAX);
   int32_t SearchKey(const RawKey &key, bool &bFind, bool bInc = true,
