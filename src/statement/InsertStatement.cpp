@@ -21,6 +21,10 @@ TaskStatus InsertStatement::Execute() {
 
 // Start to insert a new row.
 INSERT_START : {
+  if (_currRow >= _vctParas.size()) {
+    return TaskStatus::STOPED;
+  }
+
   VectorDataValue *vdv = _vctParas[_currRow];
   const IndexProp *priProp = table->GetPrimaryKey();
   VectorDataValue pdv;
@@ -34,7 +38,8 @@ INSERT_START : {
       priProp->_tree, pdv, *vdv,
       priProp->_tree->GetHeadPage()->GetAndIncRecordStamp(), this);
   _vctRecord.push_back(lr);
-  _currRec++;
+  _currRow++;
+  _indexPage = nullptr;
 }
 // After load primary page and restart this task, goto here
 PRIMARY_PAGE_LOAD : {
@@ -57,16 +62,70 @@ PRIMARY_PAGE_LOAD : {
       LeafRecord *lrSrc = lp->GetRecord(pos);
       table->GenSecondaryRecords(lrSrc, lr, *_vctParas[_currRow],
                                  ActionType::INSERT, this, vctRec);
+      int32_t len = lrSrc->UpdateRecord(
+          *_vctParas[_currRow],
+          table->GetPrimaryKey()->_tree->GetHeadPage()->GetAndIncRecordStamp(),
+          this, ActionType::UPSERT, false);
+      lp->UpdateTotalLength(len);
+      lr->ReleaseRecord();
+      _vctRecord[_currRec] = lrSrc;
     } else {
       LeafPage::RollbackLeafRecords(_vctRecord, _currRec);
       _errorMsg = new ErrorMsg(CORE_REPEATED_RECORD, {});
+      return TaskStatus::STOPED;
+    }
+  } else {
+    table->GenSecondaryRecords(nullptr, lr, *_vctParas[_currRow],
+                               ActionType::INSERT, this, vctRec);
+    lp->InsertRecord(lr, pos, true);
+  }
+
+  for (LeafRecord *slr : vctRec) {
+    _vctRecord.push_back(slr);
+  }
+  vctRec.clear();
+  _currRec++;
+}
+
+// Loop to insert secondary lead records.
+SECONDARY_RECORD:
+  if (_currRow >= _vctRecord.size()) {
+    goto INSERT_START;
+  }
+  _indexPage = nullptr;
+
+// After load secondary page and restart this task, goto here
+SECONDARY_PAGE_LOAD : {
+  LeafRecord *lr = _vctRecord[_currRec];
+  IndexTree *tree = lr->GetTreeFile();
+  bool b = tree->SearchRecursively(*lr, true, _indexPage, false);
+  if (!b) {
+    _status = InsertStatus::PRIMARY_PAGE_LOAD;
+    return TaskStatus::PAUSE_WITHOUT_ADD;
+  }
+
+  assert(_indexPage->GetPageType() == PageType::LEAF_PAGE);
+  LeafPage *lp = (LeafPage *)_indexPage;
+  bool bFind;
+  int32_t pos = lp->SearchRecord(*lr, bFind);
+  if (bFind) {
+    if (lr->GetAction() == ActionType::DELETE) {
+      LeafRecord *lrSrc = lp->GetRecord(pos, true);
+      lr->ReleaseRecord();
+      _vctRecord[_currRec] = lrSrc;
+    } else {
+      // For ActionType::INSERT, Here should not find the record or has error
+      // code
+      abort();
+    }
+  } else {
+    if (lr->GetAction() == ActionType::INSERT) {
+      lp->InsertRecord(lr, pos, true);
+    } else {
+      abort();
     }
   }
 }
-// Loop to insert secondary lead records.
-SECONDARY_RECORD:
-// After load secondary page and restart this task, goto here
-SECONDARY_PAGE_LOAD:
 
   return TaskStatus::STOPED;
 }

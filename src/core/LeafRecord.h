@@ -173,6 +173,7 @@ public:
       vctStamp.push_back(arrStamp[ii]);
     }
   }
+  ActionType GetAction() { return _actionType; }
 
 protected:
   // To calc key length

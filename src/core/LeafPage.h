@@ -41,9 +41,8 @@ public:
    *
    * @param lr The leaf record will be inserted
    * @param pos The position for insert.
-   * @return ErrorMsg* nullptr if success or error
    */
-  ErrorMsg *InsertRecord(LeafRecord *lr, int32_t pos = -1);
+  void InsertRecord(LeafRecord *lr, int32_t pos, bool incRef = false);
   bool AddRecord(LeafRecord *record);
   /**
    * @brief Get the Record in this LeafPage with position=pos   *
@@ -67,6 +66,7 @@ public:
                     int32_t start = 0, int32_t end = INT32_MAX);
   int32_t SearchKey(const LeafRecord &rr, bool &bFind, bool bInc = true,
                     int32_t start = 0, int32_t end = INT32_MAX);
+  void UpdateTotalLength(int32_t len) { _totalDataLength += len; }
 
 protected:
   inline LeafRecord *GetVctRecord(int pos) const {

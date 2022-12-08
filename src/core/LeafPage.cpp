@@ -109,8 +109,11 @@ bool LeafPage::SaveRecords() {
   return true;
 }
 
-ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
+void LeafPage::InsertRecord(LeafRecord *lr, int32_t pos, bool incRef) {
   assert(pos >= 0);
+  if (incRef) {
+    lr->ReferenceRecord();
+  }
   if (_recordNum > 0 && _vctRecord.size() == 0) {
     LoadRecords();
   }
@@ -128,7 +131,6 @@ ErrorMsg *LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
   _bDirty = true;
   _bRecordUpdate = true;
   _indexTree->GetHeadPage()->GetAndIncTotalRecordCount();
-  return nullptr;
 }
 
 bool LeafPage::AddRecord(LeafRecord *lr) {
