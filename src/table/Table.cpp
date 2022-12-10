@@ -64,7 +64,7 @@ uint32_t IndexProp::Read(Byte *bys) {
 
   _position = *(uint16_t *)bys;
   bys += UI16_LEN;
-  _type = (IndexType)(int8_t)bys;
+  _type = (IndexType) * (int8_t *)bys;
   bys++;
 
   sz = *(uint16_t *)bys;
@@ -353,6 +353,7 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   }
 
   prop->_tree = new IndexTree(prop->_name, path, dvKey, dvVal);
+  return true;
 }
 
 void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,

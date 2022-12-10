@@ -61,7 +61,7 @@ void HeadPage::ReadPage(PageFile *pageFile) {
     }
   }
 
-  _bLoaded = true;
+  _pageStatus = PageStatus::VALID;
 }
 
 void HeadPage::WritePage(PageFile *pageFile) {

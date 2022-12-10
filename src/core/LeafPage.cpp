@@ -158,6 +158,16 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
   return true;
 }
 
+LeafRecord *LeafPage::GetRecord(int32_t pos, bool incRef) {
+  assert(pos >= 0 && pos < _recordNum);
+  if (_vctRecord.size() > 0) {
+    return incRef ? GetVctRecord(pos)->ReferenceRecord() : GetVctRecord(pos);
+  } else {
+    uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + pos * UI16_LEN);
+    return new LeafRecord(this, _bysPage + offset);
+  }
+}
+
 int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc,
                                int32_t start, int32_t end) {
   if (end >= (int32_t)_recordNum)

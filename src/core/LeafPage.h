@@ -51,15 +51,7 @@ public:
    * no change
    * @return LeafRecord* The leaf record to get
    */
-  LeafRecord *GetRecord(int32_t pos, bool incRef = false) {
-    assert(pos >= 0 && pos < _recordNum);
-    if (_vctRecord.size() > 0) {
-      return incRef ? GetVctRecord(pos)->ReferenceRecord() : GetVctRecord(pos);
-    } else {
-      uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + pos * UI16_LEN);
-      return new LeafRecord(this, _bysPage + offset);
-    }
-  }
+  LeafRecord *GetRecord(int32_t pos, bool incRef = false);
   int32_t SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc = true,
                        int32_t start = 0, int32_t end = INT32_MAX);
   int32_t SearchKey(const RawKey &key, bool &bFind, bool bInc = true,

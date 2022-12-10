@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
-#include "../utils/BytesMicro.h"
+// #include "../utils/BytesMicro.h"
 #include <exception>
 #include <mutex>
 #include <unordered_map>
@@ -50,7 +50,7 @@ public:
     buf += UI32_LEN;
     *(uint32_t *)buf = (uint32_t)_errMsg.size();
     buf += UI32_LEN;
-    BytesCopy(buf, _errMsg.data(), _errMsg.size());
+    // BytesCopy((void *)buf, (void *)_errMsg.data(), _errMsg.size());
   }
   void ReadMsg(Byte *buf) {
     _errId = *(uint32_t *)buf;

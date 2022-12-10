@@ -89,8 +89,8 @@ BranchRecord *BranchPage::DeleteRecord(uint16_t index) {
 
   BranchRecord *br = (BranchRecord *)_vctRecord[index];
   _vctRecord.erase(_vctRecord.begin() + index);
-  br->ReleaseRecord();
   _totalDataLength -= br->GetTotalLength() + UI16_LEN;
+  delete br;
   _recordNum--;
   _bRecordUpdate = true;
   _bDirty = true;
@@ -252,10 +252,9 @@ BranchRecord *BranchPage::GetRecordByPos(int32_t pos, bool bAutoLast) {
   }
 
   if (_vctRecord.size() == 0) {
-    uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + pos * UI16_LEN);
-    return new BranchRecord(this, _bysPage + offset);
-  } else {
-    return GetVctRecord(pos)->ReferenceRecord();
+    LoadRecords();
   }
+
+  return GetVctRecord(pos);
 }
 } // namespace storage

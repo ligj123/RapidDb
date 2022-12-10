@@ -233,7 +233,7 @@ bool IndexPage::PageDivide() {
   }
 
   if (brParentOld != nullptr) {
-    brParentOld->ReleaseRecord();
+    delete brParentOld;
   }
 
   _bRecordUpdate = true;

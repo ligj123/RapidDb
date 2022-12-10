@@ -174,7 +174,7 @@ Byte *CachePool::ApplyBlock() {
   }
 
   string str = StackTrace();
-  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+  unique_lock<SpinMutex> lock2(CachePool::_spinLocal);
   _mapApply.emplace(bys, "ApplyBlock\n" + str);
   return bys;
 }
@@ -189,7 +189,7 @@ void CachePool::ReleaseBlock(Byte *bys) {
     pool->_queueFreeBlock.push(bys);
   }
 
-  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
+  unique_lock<SpinMutex> lock2(CachePool::_spinLocal);
   size_t rt = _mapApply.erase(bys);
   assert(rt == 1);
 }

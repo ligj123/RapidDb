@@ -31,11 +31,11 @@ protected:
 /**
  * @brief return a column value in the destion table for insert or update.
  */
-class ExprColumn : public ExprData {
+class ExprField : public ExprData {
 public:
-  ExprColumn(int rowPos) : _rowPos(rowPos) {}
+  ExprField(int rowPos) : _rowPos(rowPos) {}
 
-  ExprType GetType() { return ExprType::EXPR_COLUMN; }
+  ExprType GetType() { return ExprType::EXPR_FIELD; }
   IDataValue *Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
     return vdDst[_rowPos];
   }

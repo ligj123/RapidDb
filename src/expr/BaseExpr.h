@@ -20,7 +20,7 @@ enum class ExprType {
 
   // return data value
   EXPR_PARAMETER,
-  EXPR_COLUMN,
+  EXPR_FIELD,
   EXPR_ADD,
   EXPR_SUB,
   EXPR_MUL,

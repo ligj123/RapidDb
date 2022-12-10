@@ -55,7 +55,7 @@ IndexTree::IndexTree(const string &indexName, const string &fileName,
           count++;
       }
       _headPage->WriteKeyVariableFieldCount(count);
-      _headPage->SetPageLoaded();
+      _headPage->SetPageStatus(PageStatus::VALID);
 
       count = 0;
       for (IDataValue *dv : vctVal) {
@@ -226,7 +226,6 @@ IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
 
   page->SetPageStatus(PageStatus::VALID);
   page->GetBysPage()[IndexPage::PAGE_BEGIN_END_OFFSET] = 0;
-  page->SetPageLoaded();
   PageBufferPool::AddPage(page);
   IncPages();
 
@@ -276,7 +275,7 @@ IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
  * @brief
  */
 bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
-                                  IndexPage *&page, bool bWait = false) {
+                                  IndexPage *&page, bool bWait) {
   if (page != nullptr) {
     if (bEdit && page->GetPageType() == PageType::LEAF_PAGE) {
       page->WriteLock();
@@ -320,7 +319,6 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
     uint32_t pos = bPage->SearchKey(key, bFind);
     BranchRecord *br = bPage->GetRecordByPos(pos, true);
     uint32_t pageId = ((BranchRecord *)br)->GetChildPageId();
-    br->ReleaseRecord();
 
     IndexPage *childPage =
         (IndexPage *)GetPage(pageId, page->GetPageLevel() == 1);
@@ -348,7 +346,7 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
 }
 
 bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
-                                  IndexPage *&page, bool bWait = false) {
+                                  IndexPage *&page, bool bWait) {
   if (page != nullptr) {
     if (bEdit && page->GetPageType() == PageType::LEAF_PAGE) {
       page->WriteLock();
@@ -392,7 +390,6 @@ bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
     uint32_t pos = bPage->SearchRecord(br, bFind);
     BranchRecord *br = bPage->GetRecordByPos(pos, true);
     uint32_t pageId = br->GetChildPageId();
-    br->ReleaseRecord();
 
     IndexPage *childPage =
         (IndexPage *)GetPage(pageId, page->GetPageLevel() == 1);

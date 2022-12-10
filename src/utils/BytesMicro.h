@@ -20,5 +20,6 @@
 #ifdef STD_MEM
 #define BytesCopy(dst, src, count) std::memcpy(dst, src, count)
 #else
+#include "BytesConvert.h"
 #define BytesCopy(dst, src, count) BytesCpy(dst, src, count)
 #endif // STD_MEM
