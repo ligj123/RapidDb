@@ -14,7 +14,7 @@ public:
         _pageNum(pageNum) {
     _bysPage = CachePool::Apply(CACHE_PAGE_SIZE * pageNum);
     if (bNew) {
-      _pageStatus == PageStatus::VALID;
+      _pageStatus = PageStatus::VALID;
     }
   }
   void ReadPage(PageFile *pageFile) override;

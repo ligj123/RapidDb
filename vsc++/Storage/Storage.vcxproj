@@ -23,6 +23,7 @@
     <ClCompile Include="..\..\src\binlog\LogServer.cpp" />
     <ClCompile Include="..\..\src\cache\CachePool.cpp" />
     <ClCompile Include="..\..\src\cache\BufferPool.cpp" />
+    <ClCompile Include="..\..\src\client\Connection.cpp" />
     <ClCompile Include="..\..\src\config\Configure.cpp" />
     <ClCompile Include="..\..\src\core\BranchPage.cpp" />
     <ClCompile Include="..\..\src\core\BranchRecord.cpp" />
@@ -66,6 +67,8 @@
     <ClInclude Include="..\..\src\cache\BufferPool.h" />
     <ClInclude Include="..\..\src\cache\Mallocator.h" />
     <ClInclude Include="..\..\src\cache\StrBuff.h" />
+    <ClInclude Include="..\..\src\client\Connection.h" />
+    <ClInclude Include="..\..\src\client\StatementClient.h" />
     <ClInclude Include="..\..\src\config\Configure.h" />
     <ClInclude Include="..\..\src\config\ErrorID.h" />
     <ClInclude Include="..\..\src\config\FileVersion.h" />

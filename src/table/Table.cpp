@@ -14,8 +14,8 @@ namespace storage {
 // column name and 2 bytes to save column position
 uint32_t IndexProp::CalcSize() {
   uint32_t sz = UI32_LEN;
-  sz += UI16_LEN + _name.size();
-  sz += UI16_LEN + 1 + UI16_LEN + UI16_LEN * 2 * _vctCol.size();
+  sz += UI16_LEN + (uint32_t)_name.size();
+  sz += UI16_LEN + 1 + UI16_LEN + UI16_LEN * 2 * (uint32_t)_vctCol.size();
 
   for (IndexColumn col : _vctCol) {
     sz += col.colName.size();
@@ -176,7 +176,8 @@ void PhysTable::AddIndex(IndexType indexType, string &indexName,
     vctIc.push_back(IndexColumn(iter->first, iter->second));
   }
   string iname = (indexType == IndexType::PRIMARY ? PRIMARY_KEY : indexName);
-  IndexProp *prop = new IndexProp(iname, _vctIndex.size(), indexType, vctIc);
+  IndexProp *prop =
+      new IndexProp(iname, (uint32_t)_vctIndex.size(), indexType, vctIc);
   _vctIndex.push_back(prop);
   _mapIndexNamePos.insert({prop->_name, prop->_position});
 
@@ -407,14 +408,14 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
     }
 
     if (!equal) {
-      LeafRecord *lrSrc =
+      LeafRecord *lrSrc2 =
           new LeafRecord(prop->_tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
                          lrDst->GetKeyLength(), ActionType::DELETE, stmt);
-      LeafRecord *lrDst =
+      LeafRecord *lrDst2 =
           new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
                          lrDst->GetKeyLength(), ActionType::INSERT, stmt);
-      vctRec.push_back(lrSrc);
-      vctRec.push_back(lrDst);
+      vctRec.push_back(lrSrc2);
+      vctRec.push_back(lrDst2);
     }
   }
 }

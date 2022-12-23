@@ -159,7 +159,7 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
 }
 
 LeafRecord *LeafPage::GetRecord(int32_t pos, bool incRef) {
-  assert(pos >= 0 && pos < _recordNum);
+  assert(pos >= 0 && pos < (int32_t)_recordNum);
   if (_vctRecord.size() > 0) {
     return incRef ? GetVctRecord(pos)->ReferenceRecord() : GetVctRecord(pos);
   } else {
@@ -337,7 +337,7 @@ int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
  */
 void LeafPage::RollbackLeafRecords(const MVector<LeafRecord *>::Type &vctRec,
                                    int64_t endPos) {
-  assert(vctRec.size() > endPos);
+  assert(vctRec.size() > (size_t)endPos);
   for (int64_t i = endPos; i > 0; i--) {
     LeafRecord *lr = vctRec[i];
     LeafPage *page = (LeafPage *)lr->GetParentPage();
@@ -358,7 +358,7 @@ void LeafPage::RollbackLeafRecords(const MVector<LeafRecord *>::Type &vctRec,
     assert(bFind);
     LeafRecord *undoRec = lr->GetUndoRecord();
     if (undoRec != nullptr) {
-      page->_vctRecord[pos] == undoRec;
+      page->_vctRecord[pos] = undoRec;
       lr->SaveUndoRecord(nullptr);
       page->_totalDataLength +=
           undoRec->GetTotalLength() - lr->GetTotalLength();

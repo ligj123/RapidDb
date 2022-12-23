@@ -1,4 +1,5 @@
 ﻿#include "ErrorMsg.h"
+#include "BytesConvert.h"
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -26,5 +27,13 @@ unordered_map<int, string> ErrorMsg::LoadErrorMsg() {
   }
 
   return map;
+}
+
+void ErrorMsg::SaveMsg(Byte *buf) {
+  *(uint32_t *)buf = _errId;
+  buf += UI32_LEN;
+  *(uint32_t *)buf = (uint32_t)_errMsg.size();
+  buf += UI32_LEN;
+  BytesCpy((void *)buf, (void *)_errMsg.data(), _errMsg.size());
 }
 } // namespace storage

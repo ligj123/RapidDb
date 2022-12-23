@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
-// #include "../utils/BytesMicro.h"
 #include <exception>
 #include <mutex>
 #include <unordered_map>
@@ -15,12 +14,12 @@ public:
     SetMsg(id, move(paras));
   }
 
-  ErrorMsg(ErrorMsg &&msg) {
+  ErrorMsg(ErrorMsg &&msg) noexcept {
     _errId = msg._errId;
     _errMsg = move(msg._errMsg);
   }
 
-  ErrorMsg &operator=(ErrorMsg &&msg) {
+  ErrorMsg &operator=(ErrorMsg &&msg) noexcept {
     _errId = msg._errId;
     _errMsg = move(msg._errMsg);
     return *this;
@@ -44,14 +43,8 @@ public:
 
   const char *what() const noexcept { return _errMsg.c_str(); }
   int getErrId() { return _errId; }
-  int GetSize() { return UI32_LEN * 2 + _errMsg.size(); }
-  void SaveMsg(Byte *buf) {
-    *(uint32_t *)buf = _errId;
-    buf += UI32_LEN;
-    *(uint32_t *)buf = (uint32_t)_errMsg.size();
-    buf += UI32_LEN;
-    // BytesCopy((void *)buf, (void *)_errMsg.data(), _errMsg.size());
-  }
+  int GetSize() { return UI32_LEN * 2 + (int)_errMsg.size(); }
+  void SaveMsg(Byte *buf);
   void ReadMsg(Byte *buf) {
     _errId = *(uint32_t *)buf;
     buf += UI32_LEN;

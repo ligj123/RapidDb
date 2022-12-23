@@ -115,6 +115,9 @@
     <ClCompile Include="..\..\src\table\Session.cpp">
       <Filter>table</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\client\Connection.cpp">
+      <Filter>client</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />
@@ -328,6 +331,12 @@
     <ClInclude Include="..\..\src\table\Session.h">
       <Filter>table</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\client\StatementClient.h">
+      <Filter>client</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\client\Connection.h">
+      <Filter>client</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dataType">
@@ -371,6 +380,9 @@
     </Filter>
     <Filter Include="binlog">
       <UniqueIdentifier>{19c2c33f-2456-40f7-89b7-0606b5c552cb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="client">
+      <UniqueIdentifier>{5206ffbd-4f14-4214-8946-c119bed3b0e7}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
