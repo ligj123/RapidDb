@@ -136,9 +136,9 @@ public:
    * @param paraIndex paraIndex the field index, start from 0;
    * @param val       the value to set
    */
-  void SetString(int paraIndex, const MString &val) {
-    auto pair =
-        _mapDataValue.insert({paraIndex, new DataValueVarChar(val, false)});
+  void SetString(int paraIndex, const string &val) {
+    auto pair = _mapDataValue.insert(
+        {paraIndex, new DataValueVarChar(val.c_str(), val.size())});
     assert(pair.second);
   }
 
@@ -254,6 +254,8 @@ public:
   }
 
 protected:
+  // The prepare id for prepare statement
+  uint64_t _parpareId;
   // To save one row's data value with type map<index, dv>
   map<int, IDataValue *> _mapDataValue;
   // To save rows of data values when batch type
@@ -262,6 +264,8 @@ protected:
   uint32_t _costTime = 0;
   // The connection that own this statement
   Connection *_conn;
+  // The sql string to execute
+  string _strSql;
   // a new transaction.
   bool _bAutoTran = false;
 };
