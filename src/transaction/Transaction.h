@@ -110,9 +110,9 @@ protected:
   // Create time
   DT_MicroSec _createTime;
   // The start time to execute for this statement
-  DT_MicroSec _startTime;
+  DT_MicroSec _startTime = 0;
   // The finished or abort time to execute for this statement
-  DT_MicroSec _stopTime;
+  DT_MicroSec _stopTime = 0;
   // All statements in this transaction
   // In this version, a transaction can have no more than 65536 statements.
   // It will throw exception when add the 65537 statement.

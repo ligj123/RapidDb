@@ -1,15 +1,15 @@
 #pragma once
 #include "../expr/ExprStatement.h"
+#include "../table/Database.h"
+#include "../table/Table.h"
 #include "../utils/ConcurrentHashMap.h"
-#include "Database.h"
 #include "Session.h"
-#include "Table.h"
 
 using namespace std;
 // Mutex need very much
 namespace storage {
 // This is a static class, to manage all database resources, include tables etc.
-class DbManage {
+class ResourceManage {
 public:
   static PhysTable *GetTable(uint32_t id) {
     PhysTable *t;
@@ -61,7 +61,7 @@ public:
   static void RemoveSession(uint64_t id) { _inst->_mapSession.Erase(id); }
 
 protected:
-  DbManage()
+  ResourceManage()
       : _mapIdTable(10, 10000), _mapNameTable(10, 10000), _mapDatabase(1, 100),
         _mapExprStat(10, 10000), _mapSession(10, 10000) {}
 
@@ -79,6 +79,6 @@ protected:
   // Every connection fron the client will create a session and assign a unique
   // id
   ConcurrentHashMap<uint64_t, Session *> _mapSession;
-  static DbManage *_inst;
+  static ResourceManage *_inst;
 };
 } // namespace storage

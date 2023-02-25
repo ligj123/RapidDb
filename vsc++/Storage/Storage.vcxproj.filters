@@ -109,14 +109,14 @@
     <ClCompile Include="..\..\src\binlog\LogRecord.cpp">
       <Filter>binlog</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\table\DbManage.cpp">
-      <Filter>table</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\table\Session.cpp">
-      <Filter>table</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\client\Connection.cpp">
       <Filter>client</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\manager\ResourceManage.cpp">
+      <Filter>manager</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\manager\Session.cpp">
+      <Filter>manager</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -325,17 +325,20 @@
     <ClInclude Include="..\..\src\binlog\LogRecord.h">
       <Filter>binlog</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\table\DbManage.h">
-      <Filter>table</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\table\Session.h">
-      <Filter>table</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\client\StatementClient.h">
       <Filter>client</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\client\Connection.h">
       <Filter>client</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\table\Database.h">
+      <Filter>table</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\manager\ResourceManage.h">
+      <Filter>manager</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\manager\Session.h">
+      <Filter>manager</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -383,6 +386,9 @@
     </Filter>
     <Filter Include="client">
       <UniqueIdentifier>{5206ffbd-4f14-4214-8946-c119bed3b0e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="manager">
+      <UniqueIdentifier>{0a15a480-610c-4907-8135-11fed5d70a51}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

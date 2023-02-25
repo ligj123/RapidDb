@@ -40,6 +40,8 @@
     <ClCompile Include="..\..\src\dataType\DataValueVarChar.cpp" />
     <ClCompile Include="..\..\src\expr\ExprFunc.cpp" />
     <ClCompile Include="..\..\src\file\PageFile.cpp" />
+    <ClCompile Include="..\..\src\manager\ResourceManage.cpp" />
+    <ClCompile Include="..\..\src\manager\Session.cpp" />
     <ClCompile Include="..\..\src\pool\PageBufferPool.cpp" />
     <ClCompile Include="..\..\src\pool\PageDividePool.cpp" />
     <ClCompile Include="..\..\src\pool\StoragePool.cpp" />
@@ -47,8 +49,6 @@
     <ClCompile Include="..\..\src\resultset\TableResultSet.cpp" />
     <ClCompile Include="..\..\src\statement\InsertStatement.cpp" />
     <ClCompile Include="..\..\src\table\Column.cpp" />
-    <ClCompile Include="..\..\src\table\DbManage.cpp" />
-    <ClCompile Include="..\..\src\table\Session.cpp" />
     <ClCompile Include="..\..\src\table\Table.cpp" />
     <ClCompile Include="..\..\src\transaction\Transaction.cpp" />
     <ClCompile Include="..\..\src\utils\CharsetConvert.cpp" />
@@ -105,6 +105,8 @@
     <ClInclude Include="..\..\src\expr\ExprValue.h" />
     <ClInclude Include="..\..\src\file\PageFile.h" />
     <ClInclude Include="..\..\src\header.h" />
+    <ClInclude Include="..\..\src\manager\ResourceManage.h" />
+    <ClInclude Include="..\..\src\manager\Session.h" />
     <ClInclude Include="..\..\src\pool\PageBufferPool.h" />
     <ClInclude Include="..\..\src\pool\PageDividePool.h" />
     <ClInclude Include="..\..\src\pool\StoragePool.h" />
@@ -114,8 +116,7 @@
     <ClInclude Include="..\..\src\statement\InsertStatement.h" />
     <ClInclude Include="..\..\src\statement\Statement.h" />
     <ClInclude Include="..\..\src\table\Column.h" />
-    <ClInclude Include="..\..\src\table\DbManage.h" />
-    <ClInclude Include="..\..\src\table\Session.h" />
+    <ClInclude Include="..\..\src\table\Database.h" />
     <ClInclude Include="..\..\src\table\Table.h" />
     <ClInclude Include="..\..\src\transaction\TranStatus.h" />
     <ClInclude Include="..\..\src\transaction\Transaction.h" />
