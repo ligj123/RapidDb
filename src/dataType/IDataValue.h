@@ -11,6 +11,13 @@
 #include <fstream>
 
 namespace storage {
+// DataValue in record's position
+enum class SavePosition : Byte {
+  ALL = 0, // Data used in both key and value
+  KEY,     // Data used in key
+  VALUE    // Data used in value
+};
+
 class IDataValue {
 public:
   static bool IsIndexType(const DataType dt) {
@@ -65,18 +72,17 @@ public:
   }
 
   IDataValue(const IDataValue &dv)
-      : dataType_(dv.dataType_), valType_(dv.valType_), bKey_(dv.bKey_),
+      : dataType_(dv.dataType_), valType_(dv.valType_), savePos_(dv.savePos_),
         bReuse_(false) {}
-  IDataValue(DataType dataType, ValueType valType, bool bKey)
-      : dataType_(dataType), valType_(valType), bKey_(bKey), bReuse_(false) {}
+  IDataValue(DataType dataType, ValueType valType, SavePosition savePos)
+      : dataType_(dataType), valType_(valType), savePos_(savePos),
+        bReuse_(false) {}
   virtual ~IDataValue() {}
-  /**
-   * return the data type for this data value
-   */
+  // return the data type for this data value
   inline DataType GetDataType() const { return dataType_; }
   inline ValueType GetValueType() const { return valType_; }
   inline bool IsNull() const { return valType_ == ValueType::NULL_VALUE; }
-  inline bool IsKey() const { return bKey_; }
+  inline SavePosition GetSavePosition() const { return savePos_; }
   inline bool IsReuse() const { return bReuse_; }
   inline void SetReuse(bool b) { bReuse_ = b; }
   // Only copy value from the dv, not include maxlength, bKey. If bMove=true,
@@ -86,17 +92,21 @@ public:
   virtual void Copy(const IDataValue &dv, bool bMove = false) = 0;
   virtual IDataValue *Clone(bool incVal = false) = 0;
   virtual std::any GetValue() const = 0;
-  virtual uint32_t WriteData(Byte *buf) const = 0;
-  virtual uint32_t ReadData(Byte *buf, uint32_t len, bool bSole = true) = 0;
-  virtual uint32_t WriteData(Byte *buf, bool key) const = 0;
-  // Only support to save over length fileds to overflow file. So bKey_ can not
-  // be true.
+  // If ValueType==BYTES_VALUE and SavePos==KEY, here need to consider the
+  // conversion between KEY and VALUE for some DataType.
+  virtual uint32_t WriteData(Byte *buf, SavePosition svPos) const = 0;
+  // if bSole == true, the value will copy to new buffer for Array data type.
+  // else, it will read as BYTES_VALUE value type for array data type.
+  virtual uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
+                            bool bSole = true) = 0;
+  // Only support to save over length fileds to overflow page. So savePos_
+  // can only be VALUE.
   virtual uint32_t WriteData(fstream &fs) const {
     assert(false);
     return 0;
   }
-  // Only support to load over length fileds from overflow file. So bKey_ can
-  // not be true.
+  // Only support to load over length fileds from overflow page. So savePos_ can
+  // only be VALUE.
   virtual uint32_t ReadData(fstream &fs) {
     assert(false);
     return 0;
@@ -106,8 +116,7 @@ public:
   /**The max memory size that can bu used to save this data*/
   virtual uint32_t GetMaxLength() const = 0;
   /**How much bytes to save this data to disk*/
-  virtual uint32_t GetPersistenceLength() const = 0;
-  virtual uint32_t GetPersistenceLength(bool key) const = 0;
+  virtual uint32_t GetPersistenceLength(SavePosition dtPos) const = 0;
   virtual void SetMinValue() = 0;
   virtual void SetMaxValue() = 0;
   virtual void SetDefaultValue() = 0;
@@ -143,7 +152,7 @@ public:
 protected:
   DataType dataType_;
   ValueType valType_;
-  bool bKey_;
+  SavePosition savePos_;
   // If true, the instance will be used in multi place, use it to ensure this dv
   // will be deleted once.
   bool bReuse_;

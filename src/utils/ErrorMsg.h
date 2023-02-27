@@ -6,6 +6,8 @@
 
 namespace storage {
 using namespace std;
+class ErrorMsg;
+static thread_local ErrorMsg *_threadErrorMsg = nullptr;
 
 class ErrorMsg : public exception {
 public:

@@ -8,49 +8,20 @@
 namespace storage {
 template <class T, DataType DT> class DataValueDigit : public IDataValue {
 public:
-  DataValueDigit(bool key = false)
-      : IDataValue(DT, ValueType::NULL_VALUE, key), _value(0) {}
-  DataValueDigit(T val, bool key = false)
-      : IDataValue(DT, ValueType::SOLE_VALUE, key), _value(val) {}
-  DataValueDigit(std::any val, bool bKey)
-      : IDataValue(DT, ValueType::SOLE_VALUE, bKey) {
-    if (val.type() == typeid(int64_t))
-      _value = (T)std::any_cast<int64_t>(val);
-    else if (val.type() == typeid(int32_t))
-      _value = (T)std::any_cast<int32_t>(val);
-    else if (val.type() == typeid(int16_t))
-      _value = (T)std::any_cast<int16_t>(val);
-    else if (val.type() == typeid(uint64_t))
-      _value = (T)std::any_cast<uint64_t>(val);
-    else if (val.type() == typeid(uint32_t))
-      _value = (T)std::any_cast<uint32_t>(val);
-    else if (val.type() == typeid(uint16_t))
-      _value = (T)std::any_cast<uint16_t>(val);
-    else if (val.type() == typeid(int8_t))
-      _value = std::any_cast<int8_t>(val);
-    else if (val.type() == typeid(uint8_t))
-      _value = std::any_cast<uint8_t>(val);
-    else if (val.type() == typeid(MString)) {
-      if (IDataValue::IsAutoPrimaryKey(DT))
-        _value = (T)stoi(std::any_cast<MString>(val).c_str());
-      else
-        _value = (T)stod(std::any_cast<MString>(val).c_str());
-    } else if (val.type() == typeid(string)) {
-      if (IDataValue::IsAutoPrimaryKey(DT))
-        _value = (T)stoi(std::any_cast<string>(val));
-      else
-        _value = (T)stod(std::any_cast<string>(val));
-    } else
-      throw ErrorMsg(DT_UNSUPPORT_CONVERT,
-                     {val.type().name(), StrOfDataType(DT)});
-  }
-
+  DataValueDigit()
+      : IDataValue(DT, ValueType::NULL_VALUE, SavePosition::ALL), _value(0) {}
+  DataValueDigit(T val)
+      : IDataValue(DT, ValueType::SOLE_VALUE, SavePosition::ALL), _value(val) {}
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
     _value = src._value;
   }
   ~DataValueDigit() {}
 
-  void Copy(const IDataValue &dv, bool bMove = false) override {
+  void PutValue(T val)) {
+    _value = val;
+  }
+
+  bool Copy(const IDataValue &dv, bool bMove = false) override {
     if (dv.IsNull()) {
       valType_ = ValueType::NULL_VALUE;
       return;
@@ -63,8 +34,9 @@ public:
       else
         _value = (T)std::atof(any_cast<MString>(dv.GetValue()).c_str());
     } else if (!dv.IsDigital()) {
-      throw ErrorMsg(
+      _threadErrorMsg = new ErrorMsg(
           2001, {StrOfDataType(dv.GetDataType()), StrOfDataType(dataType_)});
+      return false;
     } else if (IsAutoPrimaryKey()) {
       _value = (T)dv.GetLong();
     } else {
@@ -72,21 +44,19 @@ public:
     }
 
     valType_ = ValueType::SOLE_VALUE;
+    return true;
   }
 
   DataValueDigit *Clone(bool incVal = false) override {
     return new DataValueDigit(*this);
   }
-  uint32_t GetPersistenceLength() const override {
-    return GetPersistenceLength(bKey_);
-  }
-  uint32_t GetPersistenceLength(bool key) const override {
-    return key ? sizeof(T)
+  uint32_t GetPersistenceLength(SavePosition dtPos) const override {
+    return dtPos == SavePosition::KEY
+               ? sizeof(T)
                : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(T));
   };
   uint32_t GetDataLength() const override {
-    return bKey_ ? sizeof(T)
-                 : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(T));
+    return valType_ == ValueType::NULL_VALUE ? 0 : sizeof(T);
   }
   uint32_t GetMaxLength() const override { return sizeof(T); }
   std::any GetValue() const override {
@@ -122,9 +92,9 @@ public:
     }
   }
 
-  uint32_t WriteData(Byte *buf) const override { return WriteData(buf, bKey_); }
-  uint32_t WriteData(Byte *buf, bool key) const override {
-    if (key) {
+  uint32_t WriteData(Byte *buf, SavePosition svPos) const override {
+    assert(svPos != SavePosition::ALL);
+    if (svPos == SavePosition::KEY) {
       if (valType_ == ValueType::NULL_VALUE) {
         DigitalToBytes<T, DT>(0, buf, true);
       } else {
@@ -251,7 +221,28 @@ public:
     return _value == dv._value;
   }
   bool operator!=(const DataValueDigit &dv) const { return !(*this == dv); }
-  void Add(IDataValue &dv) override { Case_Add<DT>::Add(_value, dv); }
+  bool Add(IDataValue &dv) override { Case_Add<DT>::Add(_value, dv); }
+
+  DataValueDigit *operator+(const IDataValue &dv) {
+    if (dv.IsDigital()) {
+      Case_Add<DT>::Add(_value, dv);
+      return this;
+    }
+
+    _threadErrorMsg =
+        new ErrorMsg(DT_UNSUPPORT_CONVERT,
+                     {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)});
+    return nullptr;
+  }
+
+  DataValueDigit *operator+(const IDataValue &dv) {
+    if (dv.IsDigital()) {
+      Case_Add<DT>::Add(_value, dv);
+      return this;
+    }
+
+    return nullptr;
+  }
 
 protected:
   T _value;
