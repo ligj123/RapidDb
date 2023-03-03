@@ -4,27 +4,67 @@
 #include "../utils/ErrorMsg.h"
 #include "IDataValue.h"
 #include "Metadata.h"
+#include <memory>
 
 namespace storage {
 template <class T, DataType DT> class DataValueDigit : public IDataValue {
 public:
   DataValueDigit()
       : IDataValue(DT, ValueType::NULL_VALUE, SavePosition::ALL), _value(0) {}
-  DataValueDigit(T val)
-      : IDataValue(DT, ValueType::SOLE_VALUE, SavePosition::ALL), _value(val) {}
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
     _value = src._value;
   }
   ~DataValueDigit() {}
 
-  void PutValue(T val)) {
+  bool SetValue(T val) {
     _value = val;
+    valType_ = ValueType::SOLE_VALUE;
+    return true;
+  }
+
+  void SetNull() override { valType_ = ValueType::NULL_VALUE; }
+
+  bool PutValue(std::any val) override {
+    if (val.type() == typeid(int64_t))
+      _value = (T)std::any_cast<int64_t>(val);
+    else if (val.type() == typeid(int32_t))
+      _value = (T)std::any_cast<int32_t>(val);
+    else if (val.type() == typeid(int16_t))
+      _value = (T)std::any_cast<int16_t>(val);
+    else if (val.type() == typeid(uint64_t))
+      _value = (T)std::any_cast<uint64_t>(val);
+    else if (val.type() == typeid(uint32_t))
+      _value = (T)std::any_cast<uint32_t>(val);
+    else if (val.type() == typeid(uint16_t))
+      _value = (T)std::any_cast<uint16_t>(val);
+    else if (val.type() == typeid(int8_t))
+      _value = std::any_cast<int8_t>(val);
+    else if (val.type() == typeid(uint8_t))
+      _value = std::any_cast<uint8_t>(val);
+    else if (val.type() == typeid(MString)) {
+      if (IDataValue::IsAutoPrimaryKey(DT))
+        _value = (T)stoi(std::any_cast<MString>(val).c_str());
+      else
+        _value = (T)stod(std::any_cast<MString>(val).c_str());
+    } else if (val.type() == typeid(string)) {
+      if (IDataValue::IsAutoPrimaryKey(DT))
+        _value = (T)stoi(std::any_cast<string>(val));
+      else
+        _value = (T)stod(std::any_cast<string>(val));
+    } else {
+      _threadErrorMsg = make_unique<ErrorMsg>(
+          DT_UNSUPPORT_CONVERT, {val.type().name(), StrOfDataType(DT)});
+      return false;
+    }
+
+    valType_ = ValueType::SOLE_VALUE;
+    return true;
   }
 
   bool Copy(const IDataValue &dv, bool bMove = false) override {
     if (dv.IsNull()) {
       valType_ = ValueType::NULL_VALUE;
-      return;
+      return true;
     }
     if (dataType_ == dv.GetDataType()) {
       _value = ((DataValueDigit &)dv)._value;
@@ -34,7 +74,7 @@ public:
       else
         _value = (T)std::atof(any_cast<MString>(dv.GetValue()).c_str());
     } else if (!dv.IsDigital()) {
-      _threadErrorMsg = new ErrorMsg(
+      _threadErrorMsg = make_unique<ErrorMsg>(
           2001, {StrOfDataType(dv.GetDataType()), StrOfDataType(dataType_)});
       return false;
     } else if (IsAutoPrimaryKey()) {
@@ -87,8 +127,9 @@ public:
     } else if (dv.IsDigital()) {
       return (GetDouble() == dv.GetDouble());
     } else {
-      throw ErrorMsg(DT_UNSUPPORT_CONVERT,
-                     {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)});
+      _threadErrorMsg = make_unique<ErrorMsg>(
+          DT_UNSUPPORT_CONVERT,
+          {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)});
     }
   }
 
@@ -110,17 +151,19 @@ public:
       }
     }
   }
-  uint32_t ReadData(Byte *buf, uint32_t len, bool bSole = true) override {
-    if (bKey_) {
+  uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
+                    bool bSole = true) override {
+    assert(svPos != SavePosition::ALL);
+    if (svPos == SavePosition::KEY) {
       valType_ = ValueType::SOLE_VALUE;
-      _value = DigitalFromBytes<T, DT>(buf, bKey_);
+      _value = DigitalFromBytes<T, DT>(buf, true);
       return sizeof(T);
     } else {
       valType_ = (len != 0 ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
       if (valType_ == ValueType::NULL_VALUE)
         return 0;
 
-      _value = DigitalFromBytes<T, DT>(buf, bKey_);
+      _value = DigitalFromBytes<T, DT>(buf, false);
       return sizeof(T);
     }
   }
@@ -221,27 +264,44 @@ public:
     return _value == dv._value;
   }
   bool operator!=(const DataValueDigit &dv) const { return !(*this == dv); }
-  bool Add(IDataValue &dv) override { Case_Add<DT>::Add(_value, dv); }
-
-  DataValueDigit *operator+(const IDataValue &dv) {
+  bool Add(IDataValue &dv) override {
     if (dv.IsDigital()) {
       Case_Add<DT>::Add(_value, dv);
-      return this;
+    } else if (dv.IsStringType()) {
+      _value += (T)strtoll((char *)dv.GetBuff(), 10);
+    } else {
+      _threadErrorMsg = make_unique<ErrorMsg>(
+          DT_UNSUPPORT_CONVERT,
+          {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)});
+      return false;
     }
-
-    _threadErrorMsg =
-        new ErrorMsg(DT_UNSUPPORT_CONVERT,
-                     {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)});
-    return nullptr;
   }
 
-  DataValueDigit *operator+(const IDataValue &dv) {
-    if (dv.IsDigital()) {
-      Case_Add<DT>::Add(_value, dv);
-      return this;
+  template <class V, DataType DTV>
+  DataValueDigit *operator+(const DataValueDigit<V, DTV> &dv) {
+    _value += (T)dv._value;
+    return this;
+  }
+  template <class V, DataType DTV>
+  DataValueDigit *operator-(const DataValueDigit<V, DTV> &dv) {
+    _value -= (T)dv._value;
+    return this;
+  }
+  template <class V, DataType DTV>
+  DataValueDigit *operator*(const DataValueDigit<V, DTV> &dv) {
+    _value *= (T)dv._value;
+    return this;
+  }
+  template <class V, DataType DTV>
+  DataValueDigit *operator/(const DataValueDigit<V, DTV> &dv) {
+    if (dv._value == 0) {
+      _threadErrorMsg =
+          make_unique<ErrorMsg>(DT_UNSUPPORT_OPER, {"N/0", "ALL"});
+      return nullptr;
     }
 
-    return nullptr;
+    _value /= dv._value;
+    return this;
   }
 
 protected:

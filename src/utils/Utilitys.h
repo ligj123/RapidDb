@@ -4,6 +4,7 @@
 #include "../utils/ErrorMsg.h"
 #include "TimerThread.h"
 #include <chrono>
+#include <iomanip>
 #include <regex>
 #include <sstream>
 
@@ -92,5 +93,40 @@ static inline string FormatTime() {
   ss << put_time(gmtime(&sec), "%Y-%m-%d %H:%M:%S") << "."
      << to_string(dt % 1000000);
   return ss.str();
+}
+
+static thread_local char buffer[32];
+
+static inline const char *toChars(int value) {
+  std::sprintf(buffer, "%d", value);
+  return buffer;
+}
+static inline const char *toChars(long value) {
+  std::sprintf(buffer, "%ld", value);
+  return buffer;
+}
+static inline const char *toChars(long long value) {
+  std::sprintf(buffer, "%lld", value);
+  return buffer;
+}
+static inline const char *toChars(unsigned value) {
+  std::sprintf(buffer, "%u", value);
+  return buffer;
+}
+static inline const char *toChars(unsigned long value) {
+  std::sprintf(buffer, "%lu", value);
+  return buffer;
+}
+static inline const char *toChars(unsigned long long value) {
+  std::sprintf(buffer, "%llu", value);
+  return buffer;
+}
+static inline const char *toChars(float value) {
+  std::sprintf(buffer, "%f", value);
+  return buffer;
+}
+static inline const char *toChars(double value) {
+  std::sprintf(buffer, "%f", value);
+  return buffer;
 }
 } // namespace storage

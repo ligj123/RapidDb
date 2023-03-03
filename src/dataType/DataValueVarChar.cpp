@@ -3,113 +3,169 @@
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include <cstring>
+#include <memory>
 #include <stdexcept>
 
 namespace storage {
-DataValueVarChar::DataValueVarChar(uint32_t maxLength, bool bKey, std::any val)
-    : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey),
-      maxLength_(maxLength) {
-  MString str;
-  if (val.type() == typeid(string))
-    str = std::any_cast<string>(val).c_str();
-  else if (val.type() == typeid(MString))
-    str = std::any_cast<MString>(val);
-  else if (val.type() == typeid(const char *))
-    str = any_cast<const char *>(val);
-  else if (val.type() == typeid(char *))
-    str = any_cast<char *>(val);
-  else if (val.type() == typeid(int64_t))
-    str = move(ToMString(std::any_cast<int64_t>(val)));
-  else if (val.type() == typeid(int64_t))
-    str = move(ToMString(std::any_cast<int64_t>(val)));
-  else if (val.type() == typeid(int32_t))
-    str = move(ToMString(std::any_cast<int32_t>(val)));
-  else if (val.type() == typeid(int16_t))
-    str = move(ToMString(std::any_cast<int16_t>(val)));
-  else if (val.type() == typeid(uint64_t))
-    str = move(ToMString(std::any_cast<uint64_t>(val)));
-  else if (val.type() == typeid(uint32_t))
-    str = move(ToMString(std::any_cast<uint32_t>(val)));
-  else if (val.type() == typeid(uint16_t))
-    str = move(ToMString(std::any_cast<uint16_t>(val)));
-  else if (val.type() == typeid(int8_t))
-    str = move(ToMString(std::any_cast<int8_t>(val)));
-  else if (val.type() == typeid(uint8_t))
-    str = move(ToMString(std::any_cast<uint8_t>(val)));
-  else
-    throw ErrorMsg(DT_UNSUPPORT_CONVERT,
-                   {val.type().name(), "DataValueVarChar"});
 
-  soleLength_ = (uint32_t)str.size() + 1;
-  if (soleLength_ >= maxLength_)
-    throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+bool DataValueVarChar::SetValue(const char *val, int len) {
+  if (len + 1 >= maxLength_) {
+    _threadErrorMsg = make_unique<ErrorMsg>(
+        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)});
+    return false;
+  }
 
+  if (valType_ == ValueType::BYTES_VALUE) {
+    CachePool::Release(bysValue_, soleLength_);
+  }
+
+  valType_ = ValueType::BYTES_VALUE;
+  soleLength_ = len + 1;
   bysValue_ = CachePool::Apply(soleLength_);
-  BytesCopy(bysValue_, str.c_str(), soleLength_);
+  BytesCopy(bysValue_, val, len);
+  bysValue_[len - 1] = 0;
+  return true;
 }
 
-void DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
+bool DataValueVarChar::PutValue(std::any val) {
+  const char *buf;
+  size_t len = 0;
+  if (val.type() == typeid(string)) {
+    buf = any_cast<string>(val).c_str();
+    len = any_cast<string>(val).size();
+  } else if (val.type() == typeid(MString)) {
+    buf = any_cast<MString>(val).c_str();
+    len = any_cast<MString>(val).size();
+  } else if (val.type() == typeid(const char *))
+    buf = any_cast<const char *>(val);
+  else if (val.type() == typeid(char *))
+    buf = any_cast<char *>(val);
+  else if (val.type() == typeid(int64_t))
+    buf = toChars(any_cast<int64_t>(val));
+  else if (val.type() == typeid(int32_t))
+    buf = toChars(any_cast<int32_t>(val));
+  else if (val.type() == typeid(int16_t))
+    buf = toChars(any_cast<int16_t>(val));
+  else if (val.type() == typeid(uint64_t))
+    buf = toChars(any_cast<uint64_t>(val));
+  else if (val.type() == typeid(uint32_t))
+    buf = toChars(any_cast<uint32_t>(val));
+  else if (val.type() == typeid(uint16_t))
+    buf = toChars(any_cast<uint16_t>(val));
+  else if (val.type() == typeid(int8_t))
+    buf = toChars(any_cast<int8_t>(val));
+  else if (val.type() == typeid(uint8_t))
+    buf = toChars(any_cast<uint8_t>(val));
+  else {
+    _threadErrorMsg = make_unique<ErrorMsg>(
+        DT_UNSUPPORT_CONVERT, {val.type().name(), "DataValueFixChar"});
+    return false;
+  }
+
+  if (len == 0)
+    len = strlen(buf);
+
+  if (len + 1 >= maxLength_) {
+    _threadErrorMsg = make_unique<ErrorMsg>(
+        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)});
+    return false;
+  }
+
+  valType_ = ValueType::BYTES_VALUE;
+  soleLength_ = len + 1;
+  bysValue_ = CachePool::Apply(soleLength_);
+  BytesCopy(bysValue_, buf, soleLength_);
+}
+
+bool DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
   if (dv.IsNull()) {
     if (valType_ == ValueType::SOLE_VALUE) {
       CachePool::Release(bysValue_, soleLength_);
     }
+
     valType_ = ValueType::NULL_VALUE;
+    bysValue_ = nullptr;
+    return true;
   }
 
-  if (dataType_ != dv.GetDataType()) {
+  if (!dv.IsStringType()) {
     StrBuff sb(0);
     dv.ToString(sb);
     if (maxLength_ < sb.GetStrLen() + 1) {
-      throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {to_string(maxLength_), to_string(dv.GetDataLength())});
+      _threadErrorMsg = make_unique<ErrorMsg>(
+          DT_INPUT_OVER_LENGTH,
+          {to_string(maxLength_), to_string(sb.GetStrLen() + 1)});
+      return false;
     }
 
-    if (valType_ == ValueType::SOLE_VALUE) {
+    if (valType == ValueType::SOLE_VALUE) {
       CachePool::Release(bysValue_, soleLength_);
     }
 
-    soleLength_ = sb.GetStrLen() + 1;
-    bysValue_ = CachePool::Apply(soleLength_);
+    bysValue_ = CachePool::Apply(maxLength_);
+
+    int len = sb.GetStrLen();
+    soleLength_ = len + 1;
     valType_ = ValueType::SOLE_VALUE;
-    BytesCopy(bysValue_, sb.GetBuff(), soleLength_);
-    return;
+    BytesCopy(bysValue_, sb.GetBuff(), len);
+    bysValue_[len] = 0;
+    return true;
   }
 
   if (dv.GetDataLength() > maxLength_) {
-    throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(dv.GetDataLength())});
+    _threadErrorMsg = make_unique<ErrorMsg>(
+        DT_INPUT_OVER_LENGTH,
+        {to_string(maxLength_), to_string(dv.GetDataLength())});
+    return false;
   }
 
-  if (valType_ == ValueType::SOLE_VALUE) {
+  if (valType == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, soleLength_);
   }
 
-  if (dv.GetValueType() == ValueType::BYTES_VALUE) {
+  if (bMove && dv.GetDataType() == DataType::VARCHAR) {
     bysValue_ = ((DataValueVarChar &)dv).bysValue_;
-    valType_ = ValueType::BYTES_VALUE;
-    soleLength_ = dv.GetDataLength();
-  } else if (bMove) {
-    bysValue_ = ((DataValueVarChar &)dv).bysValue_;
-    valType_ = ValueType::SOLE_VALUE;
-    soleLength_ = dv.GetDataLength();
+    valType_ = dv.GetValueType();
     ((DataValueVarChar &)dv).bysValue_ = nullptr;
     ((DataValueVarChar &)dv).valType_ = ValueType::NULL_VALUE;
-  } else if (dv.GetValueType() != ValueType::NULL_VALUE) {
-    soleLength_ = dv.GetDataLength();
-    bysValue_ = CachePool::Apply(soleLength_);
+  } else if (dv.GetDataType() == ValueType::NULL_VALUE) {
+    bysValue_ = ((DataValueVarChar &)dv).bysValue_;
+    valType_ = ValueType::BYTES_VALUE;
+  } else {
     valType_ = ValueType::SOLE_VALUE;
-    BytesCopy(bysValue_, ((DataValueVarChar &)dv).bysValue_, soleLength_);
+    if (dv.GetDataType() == DataType::FIXCHAR) {
+      uint32_t len = dv.GetDataLength();
+      Byte *bys = dv.GetBuff();
+      while () {
+        len--;
+        if (bys[len] == ' ')
+          break;
+        if (len == 0)
+          break;
+      }
+
+      soleLength_ = len + 1;
+      bysValue_ = CachePool::Apply(soleLength_);
+      BytesCopy(bysValue_, ((DataValueVarChar &)dv).bysValue_, len);
+      bysValue[len] = 0;
+    } else {
+      soleLength_ = dv.GetDataLength();
+      bysValue_ = CachePool::Apply(soleLength_);
+      BytesCopy(bysValue_, ((DataValueVarChar &)dv).bysValue_, soleLength_);
+    }
   }
+
+  return true;
 }
 
-uint32_t DataValueVarChar::WriteData(Byte *buf, bool key) const {
-  if (bKey_) {
+uint32_t DataValueVarChar::WriteData(Byte *buf, SavePosition svPos) const {
+  if (svPos == SavePosition::KEY) {
     // Write default value if is null for key
     if (valType_ == ValueType::NULL_VALUE) {
       *buf = 0;
       return 1;
     }
+
     BytesCopy(buf, bysValue_, soleLength_);
     return soleLength_;
   } else {
@@ -119,6 +175,46 @@ uint32_t DataValueVarChar::WriteData(Byte *buf, bool key) const {
       BytesCopy(buf, bysValue_, soleLength_);
       return soleLength_;
     }
+  }
+}
+
+uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
+                                    bool bSole) {
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::Release(bysValue_, soleLength_);
+  }
+
+  if (svPos == SavePosition::KEY) {
+    assert(len > 0);
+    soleLength_ = len;
+    if (bSole) {
+      valType_ = ValueType::SOLE_VALUE;
+      bysValue_ = CachePool::Apply(soleLength_);
+      BytesCopy(bysValue_, buf, len);
+    } else {
+      valType_ = ValueType::BYTES_VALUE;
+      bysValue_ = buf;
+    }
+
+    return len;
+  } else {
+    if (len == 0) {
+      valType_ = ValueType::NULL_VALUE;
+      bysValue_ = nullptr;
+      return 0;
+    }
+
+    assert(len > maxLength_);
+    soleLength_ = len;
+    if (bSole) {
+      bysValue_ = CachePool::Apply(soleLength_);
+      BytesCopy(bysValue_, buf, soleLength_);
+      valType_ = ValueType::SOLE_VALUE;
+    } else {
+      bysValue_ = buf;
+      valType_ = ValueType::BYTES_VALUE;
+    }
+    return soleLength_;
   }
 }
 
@@ -149,46 +245,6 @@ uint32_t DataValueVarChar::ReadData(fstream &fs) {
   bysValue_ = CachePool::Apply(soleLength_);
   fs.read((char *)bysValue_, soleLength_);
   return soleLength_ + sizeof(uint32_t) + 1;
-}
-
-uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, bool bSole) {
-  if (valType_ == ValueType::SOLE_VALUE) {
-    CachePool::Release(bysValue_, soleLength_);
-  }
-
-  if (bKey_) {
-    assert(len > 0);
-    soleLength_ = len;
-    if (bSole) {
-      valType_ = ValueType::SOLE_VALUE;
-      bysValue_ = CachePool::Apply(soleLength_);
-      BytesCopy(bysValue_, buf, len);
-    } else {
-      valType_ = ValueType::BYTES_VALUE;
-      bysValue_ = buf;
-    }
-
-    return len;
-  } else {
-    if (len == 0) {
-      valType_ = ValueType::NULL_VALUE;
-      return 0;
-    }
-
-    if (len > maxLength_)
-      throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {to_string(maxLength_), to_string(len)});
-    soleLength_ = len;
-    if (bSole) {
-      bysValue_ = CachePool::Apply(soleLength_);
-      BytesCopy(bysValue_, buf, soleLength_);
-      valType_ = ValueType::SOLE_VALUE;
-    } else {
-      bysValue_ = buf;
-      valType_ = ValueType::BYTES_VALUE;
-    }
-    return soleLength_;
-  }
 }
 
 void DataValueVarChar::SetMinValue() {

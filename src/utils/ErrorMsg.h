@@ -3,11 +3,12 @@
 #include <exception>
 #include <mutex>
 #include <unordered_map>
+#include <memory>
 
 namespace storage {
 using namespace std;
 class ErrorMsg;
-static thread_local ErrorMsg *_threadErrorMsg = nullptr;
+static thread_local unique_ptr<ErrorMsg> _threadErrorMsg = nullptr;
 
 class ErrorMsg : public exception {
 public:

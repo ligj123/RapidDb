@@ -89,9 +89,13 @@ public:
   // array type will move byte pointer to this and source dv will set to null.
   // They are maybe not same data type. All digital type will convert each other
   // and all types can be converted to string.
-  virtual void Copy(const IDataValue &dv, bool bMove = false) = 0;
+  virtual bool Copy(const IDataValue &dv, bool bMove = false) = 0;
   virtual IDataValue *Clone(bool incVal = false) = 0;
   virtual std::any GetValue() const = 0;
+  // Put value to this DV, if ok, return true, else set error message into
+  // thread_local variable _threadErrorMsg in ErrorMsg.h
+  virtual bool PutValue(std::any) = 0;
+  virtual void SetNull() = 0;
   // If ValueType==BYTES_VALUE and SavePos==KEY, here need to consider the
   // conversion between KEY and VALUE for some DataType.
   virtual uint32_t WriteData(Byte *buf, SavePosition svPos) const = 0;
@@ -131,7 +135,7 @@ public:
   }
   // Only used for array data type
   virtual Byte *GetBuff() const { abort(); }
-  virtual void Add(IDataValue &dv) {}
+  virtual void Add(IDataValue &dv) { abort(); }
 
   friend std::ostream &operator<<(std::ostream &os, const IDataValue &dv);
   friend bool operator==(const IDataValue &dv1, const IDataValue &dv2);

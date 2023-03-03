@@ -7,23 +7,18 @@ using namespace std;
 
 class DataValueVarChar : public IDataValue {
 public:
-  DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false)
-      : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE, bKey),
+  DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
+      : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE, SavePosition::ALL),
         maxLength_(maxLength), soleLength_(0), bysValue_(nullptr) {}
-  DataValueVarChar(const char *val, uint32_t strLen,
-                   uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false)
-      : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, bKey),
-        maxLength_(maxLength), soleLength_(strLen + 1) {
-    if (soleLength_ >= maxLength_) {
-      throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {to_string(maxLength_), to_string(soleLength_)});
-    }
-
+  DataValueVarChar(Byte *byArray, uint32_t strLen, uint32_t maxLength,
+                   SavePosition svPos)
+      : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, svPos),
+        maxLength_(maxLength), soleLength_(strLen) {
+    assert(soleLength_ >= maxLength_);
     bysValue_ = CachePool::Apply(soleLength_);
-    BytesCopy(bysValue_, val, soleLength_);
+    BytesCopy(bysValue_, byArray, soleLength_);
   }
 
-  DataValueVarChar(uint32_t maxLength, bool bKey, std::any val);
   DataValueVarChar(const DataValueVarChar &src) : IDataValue(src) {
     maxLength_ = src.maxLength_;
     soleLength_ = src.soleLength_;
@@ -42,6 +37,7 @@ public:
       break;
     }
   }
+
   ~DataValueVarChar() {
     if (valType_ == ValueType::SOLE_VALUE) {
       CachePool::Release((Byte *)bysValue_, soleLength_);
@@ -50,19 +46,27 @@ public:
   }
 
 public:
-  void Copy(const IDataValue &dv, bool bMove = true) override;
   DataValueVarChar *Clone(bool incVal = false) override {
     if (incVal) {
       return new DataValueVarChar(*this);
     } else {
-      return new DataValueVarChar(maxLength_, bKey_);
+      return new DataValueVarChar(maxLength_);
     }
   }
-  uint32_t GetPersistenceLength() const override {
-    return GetPersistenceLength(bKey_);
+
+  std::any GetValue() const override {
+    switch (valType_) {
+    case ValueType::SOLE_VALUE:
+    case ValueType::BYTES_VALUE:
+      return MString((char *)bysValue_, maxLength_ - 1);
+    case ValueType::NULL_VALUE:
+    default:
+      return std::any();
+    }
   }
-  uint32_t GetPersistenceLength(bool key) const override {
-    if (key) {
+
+  uint32_t GetPersistenceLength(SavePosition dtPos) const override {
+    if (dtPos == SavePosition::KEY) {
       if (valType_ == ValueType::NULL_VALUE) {
         return 1;
       }
@@ -70,7 +74,8 @@ public:
     } else {
       switch (valType_) {
       case ValueType::SOLE_VALUE:
-        return soleLength_ + 1 + sizeof(uint32_t);
+      case ValueType::BYTES_VALUE:
+        return soleLength_;
       case ValueType::NULL_VALUE:
       default:
         return 0;
@@ -101,29 +106,12 @@ public:
       return std::any();
     }
   }
-
-  uint32_t WriteData(Byte *buf) const override { return WriteData(buf, bKey_); }
-  uint32_t WriteData(Byte *buf, bool key) const override;
-  uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = true) override;
-  uint32_t WriteData(fstream &fs) const override;
-  uint32_t ReadData(fstream &fs) override;
   uint32_t GetDataLength() const override {
-    if (bKey_) {
-      if (valType_ == ValueType::NULL_VALUE)
-        return 1;
-      else
-        return soleLength_;
-    } else {
-      if (valType_ == ValueType::NULL_VALUE)
-        return 0;
-      else
-        return soleLength_;
-    }
+    if (valType_ == ValueType::NULL_VALUE)
+      return 0;
+    else
+      return soleLength_;
   }
-  uint32_t GetMaxLength() const override { return maxLength_; }
-  void SetMinValue() override;
-  void SetMaxValue() override;
-  void SetDefaultValue() override;
   void ToString(StrBuff &sb) const override {
     if (valType_ == ValueType::NULL_VALUE) {
       return;
@@ -131,30 +119,49 @@ public:
 
     sb.Cat((char *)bysValue_, soleLength_ - 1);
   }
-
   operator MString() const {
     switch (valType_) {
     case ValueType::NULL_VALUE:
-      return "";
+      default return MString("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
       return MString((char *)bysValue_);
     }
-
-    return "";
   }
 
   operator string() const {
     switch (valType_) {
     case ValueType::NULL_VALUE:
-      return "";
+    default:
+      return string("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
       return string((char *)bysValue_);
     }
-
-    return "";
   }
+  uint32_t GetMaxLength() const override { return maxLength_; }
+  void SetNull() override {
+    if (valType_ == ValueType::BYTES_VALUE)
+      CachePool::Release(bysValue_, soleLength_);
+
+    valType_ = ValueType::NULL_VALUE;
+    bysValue_ = nullptr;
+  }
+
+  bool SetValue(string val) { return SetValue(val.c_str(), val.size()); }
+  bool SetValue(const char *val, int len);
+  bool PutValue(std::any val);
+  bool Copy(const IDataValue &dv, bool bMove = true) override;
+
+  uint32_t WriteData(Byte *buf, SavePosition svPos) const override;
+  uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
+                    bool bSole = true) override;
+  uint32_t WriteData(fstream &fs) const override;
+  uint32_t ReadData(fstream &fs) override;
+
+  void SetMinValue() override;
+  void SetMaxValue() override;
+  void SetDefaultValue() override;
 
   DataValueVarChar &operator=(const char *val);
   DataValueVarChar &operator=(const MString val);
@@ -169,7 +176,8 @@ public:
       return true;
     }
 
-    return strcmp((char *)bysValue_, (char *)dv.bysValue_);
+    return BytesCompare(bysValue_, soleLength_, dv.bysValue_, dv.soleLength_) >
+           0;
   }
   bool operator<(const DataValueVarChar &dv) const { return !(*this >= dv); }
   bool operator>=(const DataValueVarChar &dv) const {
@@ -180,7 +188,8 @@ public:
       return true;
     }
 
-    return strcmp((char *)bysValue_, (char *)dv.bysValue_);
+    return BytesCompare(bysValue_, soleLength_, dv.bysValue_, dv.soleLength_) >=
+           0;
   }
   bool operator<=(const DataValueVarChar &dv) const { return !(*this > dv); }
   bool operator==(const DataValueVarChar &dv) const {
@@ -194,7 +203,8 @@ public:
     if (GetDataLength() != dv.GetDataLength())
       return false;
 
-    return strcmp((char *)bysValue_, (char *)dv.bysValue_) == 0;
+    return BytesCompare(bysValue_, soleLength_, dv.bysValue_, dv.soleLength_) ==
+           0;
   }
   bool operator!=(const DataValueVarChar &dv) const { return !(*this == dv); }
   Byte *GetBuff() const override { return bysValue_; }

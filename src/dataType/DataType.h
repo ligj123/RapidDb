@@ -30,12 +30,15 @@ enum class DataType : uint32_t {
   FLOAT = DIGITAL_TYPE + INDEX_TYPE + FIX_LEN + 12,
   DOUBLE = DIGITAL_TYPE + INDEX_TYPE + FIX_LEN + 13,
   BLOB = ARRAY_TYPE + 14,
-  BOOL = FIX_LEN + 15
+  BOOL = FIX_LEN + 15,
+
+  LAST = 127 // Now only can support 127 max data types
 };
 
 enum class ValueType : uint8_t { NULL_VALUE = 0, SOLE_VALUE, BYTES_VALUE };
 
-static const int DEFAULT_MAX_LEN = 1000;
+static const int DEFAULT_MAX_FIX_LEN = 1000;
+static const int DEFAULT_MAX_VAR_LEN = (1 << 30);
 
 inline std::ostream &operator<<(std::ostream &os, const DataType &dt) {
   switch (dt) {
