@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../cache/CachePool.h"
+#include "../utils/BytesConvert.h"
 #include "IDataValue.h"
 
 namespace storage {
@@ -7,60 +8,47 @@ using namespace std;
 
 class DataValueBlob : public IDataValue {
 public:
-  DataValueBlob(uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
-  DataValueBlob(const char *val, uint32_t len,
-                uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
-  DataValueBlob(Byte *byArray, uint32_t len,
-                uint32_t maxLength = DEFAULT_MAX_LEN, bool bKey = false);
-  DataValueBlob(MVector<Byte>::Type &vct, uint32_t maxLength = DEFAULT_MAX_LEN,
-                bool bKey = false);
-  DataValueBlob(const DataValueBlob &src);
-  ~DataValueBlob();
+  DataValueBlob(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
+      : IDataValue(DataType::BLOB, ValueType::NULL_VALUE, SavePosition::VALUE),
+        maxLength_(maxLength), bysValue_(nullptr), soleLength_(0) {}
+  DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength,
+                SavePosition svPos = SavePosition::VALUE)
+      : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, svPos),
+        bysValue_(byArray), maxLength_(maxLength), soleLength_(len) {
+    assert(soleLength_ >= maxLength_);
+  }
+  DataValueBlob(const DataValueBlob &src) : IDataValue(src) {
+    maxLength_ = src.maxLength_;
+    soleLength_ = src.soleLength_;
+
+    switch (valType_) {
+    case ValueType::SOLE_VALUE:
+      bysValue_ = CachePool::Apply(soleLength_);
+      BytesCopy(bysValue_, src.bysValue_, soleLength_);
+      break;
+    case ValueType::BYTES_VALUE:
+      bysValue_ = src.bysValue_;
+      break;
+    case ValueType::NULL_VALUE:
+    default:
+      bysValue_ = nullptr;
+      break;
+    }
+  }
+  ~DataValueBlob() {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::Release(bysValue_, soleLength_);
+      valType_ = ValueType::NULL_VALUE;
+    }
+  }
 
 public:
-  void Copy(const IDataValue &dv, bool bMove = true) override;
-
   DataValueBlob *Clone(bool incVal = false) override {
     if (incVal) {
       return new DataValueBlob(*this);
     } else {
-      return new DataValueBlob(maxLength_, bKey_);
+      return new DataValueBlob(maxLength_);
     }
-  }
-
-  uint32_t WriteData(Byte *buf) const override { return WriteData(buf, bKey_); }
-  uint32_t WriteData(Byte *buf, bool key) const override;
-  uint32_t ReadData(Byte *buf, uint32_t len = 0, bool bSole = false) override;
-  uint32_t WriteData(fstream &fs) const override;
-  uint32_t ReadData(fstream &fs) override;
-  uint32_t GetPersistenceLength() const override {
-    return GetPersistenceLength(bKey_);
-  }
-  uint32_t GetPersistenceLength(bool key) const override {
-    assert(!bKey_);
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
-    case ValueType::BYTES_VALUE:
-      return soleLength_;
-    case ValueType::NULL_VALUE:
-    default:
-      return 0;
-    }
-  }
-  size_t Hash() const override {
-    if (valType_ == ValueType::NULL_VALUE)
-      return 0;
-    size_t h = 0;
-    for (uint32_t i = 0; i < soleLength_; i++) {
-      h = (h << 1) ^ bysValue_[i];
-    }
-    return h;
-  }
-  bool Equal(const IDataValue &dv) const override {
-    if (dataType_ != dv.GetDataType())
-      return false;
-
-    return *this == (DataValueBlob &)dv;
   }
 
   std::any GetValue() const override {
@@ -74,17 +62,63 @@ public:
     }
   }
 
+  uint32_t GetPersistenceLength(
+      SavePosition dtPos = SavePosition::VALUE) const override {
+    assert(dtPos == SavePosition::VALUE);
+    switch (valType_) {
+    case ValueType::SOLE_VALUE:
+    case ValueType::BYTES_VALUE:
+      return soleLength_;
+    case ValueType::NULL_VALUE:
+    default:
+      return 0;
+    }
+  }
+
+  size_t Hash() const override {
+    if (valType_ == ValueType::NULL_VALUE)
+      return 0;
+    size_t h = 0;
+    for (uint32_t i = 0; i < soleLength_; i++) {
+      h = (h << 1) ^ bysValue_[i];
+    }
+    return h;
+  }
+
+  bool Equal(const IDataValue &dv) const override {
+    if (dataType_ != dv.GetDataType())
+      return false;
+
+    return *this == (DataValueBlob &)dv;
+  }
+
   uint32_t GetDataLength() const override {
-    assert(!bKey_);
     return (valType_ == ValueType::NULL_VALUE ? 0 : soleLength_);
   }
+
   uint32_t GetMaxLength() const override { return maxLength_; }
+  void SetNull() override {
+    if (valType_ == ValueType::SOLE_VALUE)
+      CachePool::Release(bysValue_, soleLength_);
+
+    valType_ = ValueType::NULL_VALUE;
+    bysValue_ = nullptr;
+  }
+
+  bool SetValue(string val) { return SetValue(val.c_str(), val.size()); }
+  bool SetValue(const char *val, int len);
+  bool PutValue(std::any val);
+  bool Copy(const IDataValue &dv, bool bMove = true) override;
+  uint32_t WriteData(Byte *buf, SavePosition dtPos) const override;
+  uint32_t ReadData(Byte *buf, uint32_t len, SavePosition dtPos,
+                    bool bSole = false) override;
+  uint32_t WriteData(fstream &fs) const override;
+  uint32_t ReadData(fstream &fs) override;
 
   void SetMinValue() override;
   void SetMaxValue() override;
   void SetDefaultValue() override;
   operator const char *() const;
-  void Put(uint32_t len, const char *val);
   char *Get(uint32_t &len) {
     len = soleLength_;
     return (char *)bysValue_;

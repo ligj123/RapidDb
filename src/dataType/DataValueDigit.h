@@ -52,8 +52,8 @@ public:
       else
         _value = (T)stod(std::any_cast<string>(val));
     } else {
-      _threadErrorMsg = make_unique<ErrorMsg>(
-          DT_UNSUPPORT_CONVERT, {val.type().name(), StrOfDataType(DT)});
+      _threadErrorMsg.reset(new ErrorMsg(
+          DT_UNSUPPORT_CONVERT, {val.type().name(), StrOfDataType(DT)}));
       return false;
     }
 
@@ -74,8 +74,8 @@ public:
       else
         _value = (T)std::atof(any_cast<MString>(dv.GetValue()).c_str());
     } else if (!dv.IsDigital()) {
-      _threadErrorMsg = make_unique<ErrorMsg>(
-          2001, {StrOfDataType(dv.GetDataType()), StrOfDataType(dataType_)});
+      _threadErrorMsg.reset(new ErrorMsg(
+          2001, {StrOfDataType(dv.GetDataType()), StrOfDataType(dataType_)}));
       return false;
     } else if (IsAutoPrimaryKey()) {
       _value = (T)dv.GetLong();
@@ -127,9 +127,9 @@ public:
     } else if (dv.IsDigital()) {
       return (GetDouble() == dv.GetDouble());
     } else {
-      _threadErrorMsg = make_unique<ErrorMsg>(
-          DT_UNSUPPORT_CONVERT,
-          {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)});
+      _threadErrorMsg.reset(
+          new ErrorMsg(DT_UNSUPPORT_CONVERT,
+                       {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)}));
     }
   }
 
@@ -214,7 +214,7 @@ public:
   }
   DataValueDigit &operator=(const DataValueDigit &src) {
     valType_ = src.valType_;
-    bKey_ = src.bKey_;
+    savePos_ = src.savePos_;
     _value = src._value;
 
     return *this;
@@ -268,13 +268,14 @@ public:
     if (dv.IsDigital()) {
       Case_Add<DT>::Add(_value, dv);
     } else if (dv.IsStringType()) {
-      _value += (T)strtoll((char *)dv.GetBuff(), 10);
+      _value += (T)atoll((char *)dv.GetBuff());
     } else {
-      _threadErrorMsg = make_unique<ErrorMsg>(
-          DT_UNSUPPORT_CONVERT,
-          {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)});
+      _threadErrorMsg.reset(
+          new ErrorMsg(DT_UNSUPPORT_CONVERT,
+                       {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)}));
       return false;
     }
+    return true;
   }
 
   template <class V, DataType DTV>
@@ -295,8 +296,7 @@ public:
   template <class V, DataType DTV>
   DataValueDigit *operator/(const DataValueDigit<V, DTV> &dv) {
     if (dv._value == 0) {
-      _threadErrorMsg =
-          make_unique<ErrorMsg>(DT_UNSUPPORT_OPER, {"N/0", "ALL"});
+      _threadErrorMsg.reset(new ErrorMsg(DT_UNSUPPORT_OPER, {"N/0", "ALL"}));
       return nullptr;
     }
 

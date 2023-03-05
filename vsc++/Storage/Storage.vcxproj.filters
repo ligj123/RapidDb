@@ -109,9 +109,6 @@
     <ClCompile Include="..\..\src\binlog\LogRecord.cpp">
       <Filter>binlog</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\client\Connection.cpp">
-      <Filter>client</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\manager\ResourceManage.cpp">
       <Filter>manager</Filter>
     </ClCompile>
@@ -325,12 +322,6 @@
     <ClInclude Include="..\..\src\binlog\LogRecord.h">
       <Filter>binlog</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\client\StatementClient.h">
-      <Filter>client</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\client\Connection.h">
-      <Filter>client</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\table\Database.h">
       <Filter>table</Filter>
     </ClInclude>
@@ -383,9 +374,6 @@
     </Filter>
     <Filter Include="binlog">
       <UniqueIdentifier>{19c2c33f-2456-40f7-89b7-0606b5c552cb}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="client">
-      <UniqueIdentifier>{5206ffbd-4f14-4214-8946-c119bed3b0e7}</UniqueIdentifier>
     </Filter>
     <Filter Include="manager">
       <UniqueIdentifier>{0a15a480-610c-4907-8135-11fed5d70a51}</UniqueIdentifier>

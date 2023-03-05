@@ -180,7 +180,7 @@ protected:
   inline uint32_t CalcKeyLength(const VectorDataValue &vctKey) {
     uint32_t lenKey = 0;
     for (int i = 0; i < vctKey.size(); i++) {
-      lenKey += vctKey[i]->GetPersistenceLength(true);
+      lenKey += vctKey[i]->GetPersistenceLength(SavePosition::KEY);
     }
 
     if (lenKey > Configure::GetMaxKeyLength()) {

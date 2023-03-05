@@ -102,7 +102,7 @@ public:
     }
   }
   void SetNull() override {
-    if (valType_ == ValueType::BYTES_VALUE)
+    if (valType_ == ValueType::SOLE_VALUE)
       CachePool::Release(bysValue_, maxLength_);
 
     valType_ = ValueType::NULL_VALUE;
@@ -110,7 +110,7 @@ public:
   }
   uint32_t GetMaxLength() const override { return maxLength_; }
 
-  bool SetValue(string val) { return SetValue(val.c_str(), val.size()); }
+  bool SetValue(string val) { return SetValue(val.c_str(), (int)val.size()); }
   bool SetValue(const char *val, int len);
   bool PutValue(std::any val) override;
   bool Copy(const IDataValue &dv, bool bMove = true) override;

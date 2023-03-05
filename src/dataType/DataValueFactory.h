@@ -11,72 +11,64 @@
 namespace storage {
 using namespace std;
 
-inline IDataValue *DataValueFactory(DataType type, bool bKey = false,
-                                    uint32_t maxLen = -1, any dfVal = any()) {
+inline IDataValue *DataValueFactory(DataType type,
+                                    uint32_t maxLen = DEFAULT_MAX_VAR_LEN,
+                                    any dfVal = any()) {
   IDataValue *pDv = nullptr;
   switch (type) {
   case DataType::CHAR:
-    pDv = dfVal.has_value() ? new DataValueChar(dfVal, bKey)
-                            : new DataValueChar(bKey);
+    pDv = new DataValueChar();
     break;
   case DataType::SHORT:
-    pDv = dfVal.has_value() ? new DataValueShort(dfVal, bKey)
-                            : new DataValueShort(bKey);
+    pDv = new DataValueShort();
     break;
   case DataType::INT:
-    pDv = dfVal.has_value() ? new DataValueInt(dfVal, bKey)
-                            : new DataValueInt(bKey);
+    pDv = new DataValueInt();
     break;
   case DataType::LONG:
-    pDv = dfVal.has_value() ? new DataValueLong(dfVal, bKey)
-                            : new DataValueLong(bKey);
+    pDv = new DataValueLong();
     break;
   case DataType::BYTE:
-    pDv = dfVal.has_value() ? new DataValueByte(dfVal, bKey)
-                            : new DataValueByte(bKey);
+    pDv = new DataValueByte();
     break;
   case DataType::USHORT:
-    pDv = dfVal.has_value() ? new DataValueUShort(dfVal, bKey)
-                            : new DataValueUShort(bKey);
+    pDv = new DataValueUShort();
     break;
   case DataType::UINT:
-    pDv = dfVal.has_value() ? new DataValueUInt(dfVal, bKey)
-                            : new DataValueUInt(bKey);
+    pDv = new DataValueUInt();
     break;
   case DataType::ULONG:
-    pDv = dfVal.has_value() ? new DataValueULong(dfVal, bKey)
-                            : new DataValueULong(bKey);
+    pDv = new DataValueULong();
     break;
   case DataType::FLOAT:
-    pDv = dfVal.has_value() ? new DataValueFloat(dfVal, bKey)
-                            : new DataValueFloat(bKey);
+    pDv = new DataValueFloat();
     break;
   case DataType::DOUBLE:
-    pDv = dfVal.has_value() ? new DataValueDouble(dfVal, bKey)
-                            : new DataValueDouble(bKey);
+    pDv = new DataValueDouble();
     break;
   case DataType::DATETIME:
-    pDv = dfVal.has_value() ? new DataValueDate(dfVal, bKey)
-                            : new DataValueDate(bKey);
+    pDv = new DataValueDate();
     break;
   case DataType::BOOL:
-    pDv = dfVal.has_value() ? new DataValueBool(dfVal, bKey)
-                            : new DataValueBool(false, bKey);
+    pDv = new DataValueBool();
     break;
   case DataType::FIXCHAR:
-    pDv = dfVal.has_value() ? new DataValueFixChar(maxLen, bKey, dfVal)
-                            : new DataValueFixChar(maxLen, bKey);
+    pDv = new DataValueFixChar(maxLen);
     break;
   case DataType::VARCHAR:
-    pDv = dfVal.has_value() ? new DataValueVarChar(maxLen, bKey, dfVal)
-                            : new DataValueVarChar(maxLen, bKey);
+    pDv = new DataValueVarChar(maxLen);
     break;
   case DataType::BLOB:
-    pDv = new DataValueBlob(maxLen, bKey);
+    pDv = new DataValueBlob(maxLen);
     break;
   default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)type)});
+    _threadErrorMsg.reset(
+        new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)type)}));
+    return false;
   }
+
+  if (dfVal.has_value())
+    pDv->PutValue(dfVal);
 
   return pDv;
 }

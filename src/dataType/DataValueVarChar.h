@@ -12,11 +12,9 @@ public:
         maxLength_(maxLength), soleLength_(0), bysValue_(nullptr) {}
   DataValueVarChar(Byte *byArray, uint32_t strLen, uint32_t maxLength,
                    SavePosition svPos)
-      : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, svPos),
-        maxLength_(maxLength), soleLength_(strLen) {
+      : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE, svPos),
+        maxLength_(maxLength), soleLength_(strLen), bysValue_(byArray) {
     assert(soleLength_ >= maxLength_);
-    bysValue_ = CachePool::Apply(soleLength_);
-    BytesCopy(bysValue_, byArray, soleLength_);
   }
 
   DataValueVarChar(const DataValueVarChar &src) : IDataValue(src) {
@@ -96,16 +94,6 @@ public:
       return false;
     return *this == (DataValueVarChar &)dv;
   }
-  std::any GetValue() const override {
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
-    case ValueType::BYTES_VALUE:
-      return MString((char *)bysValue_);
-    case ValueType::NULL_VALUE:
-    default:
-      return std::any();
-    }
-  }
   uint32_t GetDataLength() const override {
     if (valType_ == ValueType::NULL_VALUE)
       return 0;
@@ -122,7 +110,8 @@ public:
   operator MString() const {
     switch (valType_) {
     case ValueType::NULL_VALUE:
-      default return MString("");
+    default:
+      return MString("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
       return MString((char *)bysValue_);
@@ -141,14 +130,14 @@ public:
   }
   uint32_t GetMaxLength() const override { return maxLength_; }
   void SetNull() override {
-    if (valType_ == ValueType::BYTES_VALUE)
+    if (valType_ == ValueType::SOLE_VALUE)
       CachePool::Release(bysValue_, soleLength_);
 
     valType_ = ValueType::NULL_VALUE;
     bysValue_ = nullptr;
   }
 
-  bool SetValue(string val) { return SetValue(val.c_str(), val.size()); }
+  bool SetValue(string val) { return SetValue(val.c_str(), (int)val.size()); }
   bool SetValue(const char *val, int len);
   bool PutValue(std::any val);
   bool Copy(const IDataValue &dv, bool bMove = true) override;

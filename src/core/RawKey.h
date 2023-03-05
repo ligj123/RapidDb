@@ -12,14 +12,14 @@ public:
   RawKey(VectorDataValue &vctKey) : _bSole(true) {
     _length = 0;
     for (size_t i = 0; i < vctKey.size(); i++) {
-      _length += vctKey[i]->GetPersistenceLength(true);
+      _length += vctKey[i]->GetPersistenceLength(SavePosition::KEY);
     }
 
     _bysVal = CachePool::Apply(_length);
 
     int pos = 0;
     for (int i = 0; i < vctKey.size(); i++) {
-      pos += vctKey[i]->WriteData(_bysVal + pos, true);
+      pos += vctKey[i]->WriteData(_bysVal + pos, SavePosition::KEY);
     }
   }
   RawKey(Byte *bys, uint32_t len, bool sole = false)

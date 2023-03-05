@@ -95,7 +95,7 @@ public:
   // Put value to this DV, if ok, return true, else set error message into
   // thread_local variable _threadErrorMsg in ErrorMsg.h
   virtual bool PutValue(std::any) = 0;
-  virtual void SetNull() = 0;
+  virtual void SetNull() { abort(); };
   // If ValueType==BYTES_VALUE and SavePos==KEY, here need to consider the
   // conversion between KEY and VALUE for some DataType.
   virtual uint32_t WriteData(Byte *buf, SavePosition svPos) const = 0;
