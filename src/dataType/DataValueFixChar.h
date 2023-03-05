@@ -118,8 +118,8 @@ public:
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override;
   uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
                     bool bSole = true) override;
-  uint32_t WriteData(fstream &fs) const override;
-  uint32_t ReadData(fstream &fs) override;
+  uint32_t WriteData(Byte *buf) const override;
+  uint32_t ReadData(Byte *buf) override;
 
   void SetMinValue() override;
   void SetMaxValue() override;

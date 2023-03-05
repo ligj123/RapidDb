@@ -105,16 +105,10 @@ public:
                             bool bSole = true) = 0;
   // Only support to save over length fileds to overflow page. So savePos_
   // can only be VALUE.
-  virtual uint32_t WriteData(fstream &fs) const {
-    assert(false);
-    return 0;
-  }
+  virtual uint32_t WriteData(Byte *buf) const = 0;
   // Only support to load over length fileds from overflow page. So savePos_ can
   // only be VALUE.
-  virtual uint32_t ReadData(fstream &fs) {
-    assert(false);
-    return 0;
-  }
+  virtual uint32_t ReadData(Byte *buf) = 0;
   /**The memory size to save data*/
   virtual uint32_t GetDataLength() const = 0;
   /**The max memory size that can bu used to save this data*/
@@ -135,7 +129,7 @@ public:
   }
   // Only used for array data type
   virtual Byte *GetBuff() const { abort(); }
-  virtual void Add(IDataValue &dv) { abort(); }
+  virtual bool Add(IDataValue &dv) { abort(); }
 
   friend std::ostream &operator<<(std::ostream &os, const IDataValue &dv);
   friend bool operator==(const IDataValue &dv1, const IDataValue &dv2);

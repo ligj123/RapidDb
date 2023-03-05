@@ -167,25 +167,23 @@ public:
       return sizeof(T);
     }
   }
-  uint32_t WriteData(fstream &fs) const override {
+  uint32_t WriteData(Byte *buf) const override {
     if (valType_ == ValueType::NULL_VALUE) {
-      fs.put((Byte)dataType_ & DATE_TYPE);
+      buf[0] = (Byte)dataType_ & DATE_TYPE;
       return 1;
     } else {
-      fs.put(VALUE_TYPE | ((Byte)dataType_ & DATE_TYPE));
-      fs.write((char *)&_value, sizeof(T));
+      buf[0] = VALUE_TYPE | ((Byte)dataType_ & DATE_TYPE);
+      DigitalToBytes<T, DT>(_value, buf + 1, false);
       return sizeof(T) + 1;
     }
   }
-  uint32_t ReadData(fstream &fs) override {
-    Byte by;
-    fs.read((char *)&by, 1);
+  uint32_t ReadData(Byte *buf) override {
     valType_ =
-        ((by & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+        ((buf[0] & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
     if (valType_ == ValueType::NULL_VALUE)
       return 1;
 
-    fs.read((char *)&_value, sizeof(uint64_t));
+    _value = DigitalFromBytes<T, DT>(buf, false);
     return sizeof(T) + 1;
   }
   void SetMinValue() override {

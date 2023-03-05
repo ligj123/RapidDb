@@ -64,7 +64,7 @@ inline IDataValue *DataValueFactory(DataType type,
   default:
     _threadErrorMsg.reset(
         new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)type)}));
-    return false;
+    return nullptr;
   }
 
   if (dfVal.has_value())

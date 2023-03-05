@@ -237,33 +237,35 @@ uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
   }
 }
 
-uint32_t DataValueFixChar::WriteData(fstream &fs) const {
+uint32_t DataValueFixChar::WriteData(Byte *buf) const {
   if (valType_ == ValueType::NULL_VALUE) {
-    fs.put((Byte)DataType::FIXCHAR & DATE_TYPE);
+    buf[0] = (Byte)DataType::FIXCHAR & DATE_TYPE;
     return 1;
   } else {
-    fs.put((char)(VALUE_TYPE | ((Byte)DataType::FIXCHAR & DATE_TYPE)));
-    fs.write((char *)bysValue_, maxLength_);
+    buf[0] = (Byte)(VALUE_TYPE | ((Byte)DataType::FIXCHAR & DATE_TYPE));
+    BytesCopy(buf + 1, (Byte *)&maxLength_, sizeof(uint32_t));
+    BytesCopy(buf + 1 + sizeof(uint32_t), bysValue_, maxLength_);
     return maxLength_ + 1;
   }
 }
 
-uint32_t DataValueFixChar::ReadData(fstream &fs) {
+uint32_t DataValueFixChar::ReadData(Byte *buf) {
   if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, maxLength_);
   }
 
-  char c;
-  fs.get(c);
-  valType_ = (c & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+  valType_ =
+      (buf[0] & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
   if (valType_ == ValueType::NULL_VALUE) {
     valType_ = ValueType::NULL_VALUE;
     bysValue_ = nullptr;
     return 1;
   }
+
   valType_ = ValueType::SOLE_VALUE;
+  BytesCopy((Byte *)&maxLength_, buf + 1, sizeof(uint32_t));
   bysValue_ = CachePool::Apply(maxLength_);
-  fs.read((char *)bysValue_, maxLength_);
+  BytesCopy(bysValue_, buf + 1 + sizeof(uint32_t), maxLength_);
   return maxLength_ + 1;
 }
 
