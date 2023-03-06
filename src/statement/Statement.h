@@ -126,7 +126,7 @@ public:
       VectorDataValue *vdv = new VectorDataValue;
       for (size_t j = 0; j < _vctParaTmpl->size(); j++) {
         IDataValue *dv = _vctParaTmpl->at(j)->Clone();
-        int rl = dv->ReadData(bys, 0);
+        int rl = dv->ReadData(bys);
         vdv->push_back(dv);
         bys += rl;
       }

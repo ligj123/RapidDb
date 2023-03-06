@@ -101,7 +101,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 
   uint16_t pos = UI16_2_LEN;
   for (i = 0; i < vctKey.size(); i++) {
-    uint16_t len = vctKey[i]->WriteData(_bysVal + pos, true);
+    uint16_t len = vctKey[i]->WriteData(_bysVal + pos, SavePosition::KEY);
     pos += len;
   }
 
@@ -152,7 +152,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 }
 
 void LeafRecord::ReleaseRecord(bool bUndo) {
- uint16_t val= _refCount.fetch_sub(1);
+  uint16_t val = _refCount.fetch_sub(1);
   assert(val > 1);
 
   if (val == 1) {
@@ -401,7 +401,7 @@ int LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
     if (vctPos.size() == 0 || vctPos[ipos] == i) {
       IDataValue *dv = vdSrc[i]->Clone();
       if (flen > 0)
-        dv->ReadData(bys, flen, true);
+        dv->ReadData(bys, flen, SavePosition::KEY);
 
       vctVal.push_back(dv);
       ipos++;
@@ -462,7 +462,7 @@ void LeafRecord::FillKeyBuff(RecStruct &recStru,
   Byte *bys = recStru._bysKey;
 
   for (size_t i = 0; i < vctKey.size(); i++) {
-    uint16_t vl = vctKey[i]->WriteData(bys, true);
+    uint16_t vl = vctKey[i]->WriteData(bys, SavePosition::KEY);
     bys += vl;
   }
 }
@@ -476,7 +476,7 @@ void LeafRecord::FillValueBuff(ValueStruct &valStru,
     if (vctVal[i]->IsNull()) {
       valStru.bysNull[i / 8] |= 1 << (i % 8);
     }
-    uint32_t vl = vctVal[i]->WriteData(bys, false);
+    uint32_t vl = vctVal[i]->WriteData(bys, SavePosition::VALUE);
     bys += vl;
     if (!vctVal[i]->IsFixLength()) {
       *vlen = vl;
@@ -493,7 +493,7 @@ uint32_t LeafRecord::CalcValueLength(const VectorDataValue &vctVal,
   uint32_t lenVal =
       (uint32_t)(vctVal.size() + 7) / 8 + _indexTree->GetValVarLen();
   for (size_t i = 0; i < vctVal.size(); i++) {
-    lenVal += vctVal[i]->GetPersistenceLength(false);
+    lenVal += vctVal[i]->GetPersistenceLength(SavePosition::VALUE);
   }
   return lenVal;
 }

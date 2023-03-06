@@ -11,6 +11,8 @@ template <class T, DataType DT> class DataValueDigit : public IDataValue {
 public:
   DataValueDigit()
       : IDataValue(DT, ValueType::NULL_VALUE, SavePosition::ALL), _value(0) {}
+  DataValueDigit(T val)
+      : IDataValue(DT, ValueType::SOLE_VALUE, SavePosition::ALL), _value(val) {}
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
     _value = src._value;
   }

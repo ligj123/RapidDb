@@ -81,12 +81,14 @@ bool DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
     _threadErrorMsg.reset(
         new ErrorMsg(DT_UNSUPPORT_CONVERT, {StrOfDataType(dv.GetDataType()),
                                             StrOfDataType(dataType_)}));
+    return false;
   }
 
   if (dv.GetDataLength() > maxLength_) {
     _threadErrorMsg.reset(
         new ErrorMsg(DT_INPUT_OVER_LENGTH,
                      {to_string(maxLength_), to_string(dv.GetDataLength())}));
+    return false;
   }
 
   if (valType_ == ValueType::SOLE_VALUE) {
@@ -113,6 +115,8 @@ bool DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
     soleLength_ = 0;
     bysValue_ = nullptr;
   }
+
+  return true;
 }
 
 uint32_t DataValueBlob::WriteData(Byte *buf, SavePosition dtPos) const {

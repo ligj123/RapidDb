@@ -40,11 +40,11 @@ bool DataValueFixChar::SetValue(const char *val, int len) {
     return false;
   }
 
-  if (valType_ != ValueType::BYTES_VALUE) {
+  if (valType_ != ValueType::SOLE_VALUE) {
     bysValue_ = CachePool::Apply(maxLength_);
   }
 
-  valType_ = ValueType::BYTES_VALUE;
+  valType_ = ValueType::SOLE_VALUE;
   BytesCopy(bysValue_, val, len);
   memset(bysValue_ + len, ' ', maxLength_ - len - 1);
   bysValue_[maxLength_ - 1] = 0;

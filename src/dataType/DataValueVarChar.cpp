@@ -72,7 +72,7 @@ bool DataValueVarChar::PutValue(std::any val) {
     return false;
   }
 
-  valType_ = ValueType::BYTES_VALUE;
+  valType_ = ValueType::SOLE_VALUE;
   soleLength_ = len + 1;
   bysValue_ = CachePool::Apply(soleLength_);
   BytesCopy(bysValue_, buf, soleLength_);

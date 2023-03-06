@@ -20,7 +20,8 @@ public:
 
   ExprType GetType() { return ExprType::EXPR_COUNT; }
   void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
-    DataValueLong dv(1L, false);
+    DataValueLong dv;
+    dv.SetValue(1L);
     if (_bAsterisk) {
       vdDst[_index]->Add(dv);
     } else if (!vdSrc[_colPos]->IsNull()) {
@@ -98,7 +99,8 @@ public:
   void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
     if (!vdSrc[_colPos]->IsNull()) {
       vdDst[_index]->Add(*vdSrc[_colPos]);
-      DataValueLong dv(1L, false);
+      DataValueLong dv;
+      dv.SetValue(1L);
       vdDst[vdDst.size() - 1]->Add(dv);
     }
   }

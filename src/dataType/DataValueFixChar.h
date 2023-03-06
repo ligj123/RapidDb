@@ -10,6 +10,13 @@ public:
   DataValueFixChar(uint32_t maxLength = DEFAULT_MAX_FIX_LEN)
       : IDataValue(DataType::FIXCHAR, ValueType::NULL_VALUE, SavePosition::ALL),
         maxLength_(maxLength), bysValue_(nullptr) {}
+  DataValueFixChar(const char *val, int len)
+      : IDataValue(DataType::FIXCHAR, ValueType::SOLE_VALUE, SavePosition::ALL),
+        maxLength_(len + 1), bysValue_(nullptr) {
+    bysValue_ = CachePool::Apply(maxLength_);
+    BytesCopy(bysValue_, val, len);
+    bysValue_[maxLength_ - 1] = 0;
+  }
 
   DataValueFixChar(Byte *byArray, uint32_t maxLength, SavePosition svPos)
       : IDataValue(DataType::FIXCHAR, ValueType::BYTES_VALUE, svPos),

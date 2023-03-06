@@ -11,6 +11,13 @@ public:
   DataValueBlob(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
       : IDataValue(DataType::BLOB, ValueType::NULL_VALUE, SavePosition::VALUE),
         maxLength_(maxLength), bysValue_(nullptr), soleLength_(0) {}
+  DataValueBlob(const char *val, int len)
+      : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, SavePosition::VALUE),
+        maxLength_(len), soleLength_(len) {
+    bysValue_ = CachePool::Apply(soleLength_);
+    BytesCopy(bysValue_, val, len);
+    bysValue_[len - 1] = 0;
+  }
   DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength,
                 SavePosition svPos = SavePosition::VALUE)
       : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, svPos),

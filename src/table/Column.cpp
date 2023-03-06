@@ -87,7 +87,7 @@ uint32_t PhysColumn::ReadData(Byte *pBuf) {
   p++;
   if (bDefault) {
     _pDefaultVal = DataValueFactory(_dataType);
-    p += _pDefaultVal->ReadData(p, -1);
+    p += _pDefaultVal->ReadData(p);
   }
 
   return (uint32_t)(p - pBuf);

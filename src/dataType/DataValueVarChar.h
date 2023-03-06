@@ -10,6 +10,13 @@ public:
   DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
       : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE, SavePosition::ALL),
         maxLength_(maxLength), soleLength_(0), bysValue_(nullptr) {}
+  DataValueVarChar(const char *val, int len)
+      : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, SavePosition::ALL),
+        maxLength_(len + 1), soleLength_(len + 1) {
+    bysValue_ = CachePool::Apply(soleLength_);
+    BytesCopy(bysValue_, val, len);
+    bysValue_[len - 1] = 0;
+  }
   DataValueVarChar(Byte *byArray, uint32_t strLen, uint32_t maxLength,
                    SavePosition svPos)
       : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE, svPos),
