@@ -76,6 +76,7 @@ bool DataValueVarChar::PutValue(std::any val) {
   soleLength_ = len + 1;
   bysValue_ = CachePool::Apply(soleLength_);
   BytesCopy(bysValue_, buf, soleLength_);
+  return true;
 }
 
 bool DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {

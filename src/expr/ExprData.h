@@ -79,8 +79,7 @@ public:
       StrBuff sb(left->GetDataLength() * 2 + right->GetDataLength() * 2);
       left->ToString(sb);
       right->ToString(sb);
-      rt = new DataValueVarChar(sb.GetBuff(), sb.GetBufLen() + 1,
-                                sb.GetBufLen() + 1);
+      rt = new DataValueVarChar(sb.GetBuff(), sb.GetBufLen() + 1);
     } else if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
       rt = new DataValueLong(left->GetLong() + right->GetLong());
     } else if (left->IsDigital() && right->IsDigital()) {

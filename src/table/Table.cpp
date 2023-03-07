@@ -130,7 +130,7 @@ void PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
 
   IDataValue *dvDefault = nullptr;
   if (valDefault.has_value()) {
-    dvDefault = DataValueFactory(dataType, false, -1, valDefault);
+    dvDefault = DataValueFactory(dataType, maxLen, valDefault);
   }
 
   PhysColumn *cm =

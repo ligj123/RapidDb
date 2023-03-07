@@ -129,10 +129,9 @@ public:
     } else if (dv.IsDigital()) {
       return (GetDouble() == dv.GetDouble());
     } else {
-      _threadErrorMsg.reset(
-          new ErrorMsg(DT_UNSUPPORT_CONVERT,
-                       {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)}));
+      abort();
     }
+    return false;
   }
 
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override {
