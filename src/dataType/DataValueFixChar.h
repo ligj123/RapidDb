@@ -68,11 +68,6 @@ public:
     }
     return h;
   }
-  bool Equal(const IDataValue &dv) const override {
-    if (dataType_ != dv.GetDataType())
-      return false;
-    return *this == (DataValueFixChar &)dv;
-  }
   uint32_t GetDataLength() const override {
     if (valType_ == ValueType::NULL_VALUE)
       return 0;
@@ -136,6 +131,19 @@ public:
   DataValueFixChar *operator=(const MString val);
   DataValueFixChar *operator=(const string val);
   DataValueFixChar *operator=(const DataValueFixChar &src);
+
+  bool EQ(const IDataValue &dv) const override {
+    assert(dataType_ == dv.GetDataType());
+    return *this == (DataValueFixChar &)dv;
+  }
+  bool GT(const IDataValue &dv) const override {
+    assert(dataType_ != dv.GetDataType());
+    return *this > (DataValueFixChar &)dv;
+  }
+  bool LT(const IDataValue &dv) const override {
+    assert(dataType_ == dv.GetDataType());
+    return *this < (DataValueFixChar &)dv;
+  }
 
   bool operator>(const DataValueFixChar &dv) const {
     if (valType_ == ValueType::NULL_VALUE) {

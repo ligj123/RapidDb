@@ -121,13 +121,16 @@ inline std::ostream &operator<<(std::ostream &os, const IDataValue &dv) {
     os << (const DataValueBlob &)dv;
     break;
   default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv.dataType_)});
+    abort();
   }
 
   return os;
 }
 
 inline bool operator==(const IDataValue &dv1, const IDataValue &dv2) {
+  if (dv1.GetDataType() == dv2.GetDataType()) {
+    return dv1.EQ(dv2);
+  }
   if (dv1.IsAutoPrimaryKey() && dv2.IsAutoPrimaryKey()) {
     int64_t l1 = dv1.GetLong();
     int64_t l2 = dv2.GetLong();
@@ -143,23 +146,14 @@ inline bool operator==(const IDataValue &dv1, const IDataValue &dv2) {
     return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) == 0);
   }
 
-  assert(dv1.GetDataType() == dv2.GetDataType());
-  switch (dv1.dataType_) {
-  case DataType::DATETIME:
-    return (const DataValueDate &)dv1 == (const DataValueDate &)dv2;
-    break;
-  case DataType::BOOL:
-    return (const DataValueBool &)dv1 == (const DataValueBool &)dv2;
-    break;
-  case DataType::BLOB:
-    return (const DataValueBlob &)dv1 == (const DataValueBlob &)dv2;
-    break;
-  default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
-  }
+  abort();
 }
 
 inline bool operator>(const IDataValue &dv1, const IDataValue &dv2) {
+  if (dv1.GetDataType() == dv2.GetDataType()) {
+    return dv1.GT(dv2);
+  }
+
   if (dv1.IsAutoPrimaryKey() && dv2.IsAutoPrimaryKey()) {
     int64_t l1 = dv1.GetLong();
     int64_t l2 = dv2.GetLong();
@@ -175,24 +169,14 @@ inline bool operator>(const IDataValue &dv1, const IDataValue &dv2) {
     return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) > 0);
   }
 
-  assert(dv1.GetDataType() == dv2.GetDataType());
-  switch (dv1.dataType_) {
-  case DataType::DATETIME:
-    return (const DataValueDate &)dv1 > (const DataValueDate &)dv2;
-    break;
-  case DataType::BOOL:
-    return (const DataValueBool &)dv1 > (const DataValueBool &)dv2;
-    break;
-  case DataType::BLOB:
-    return false;
-    // return (const DataValueBlob &)dv1 > (const DataValueBlob &)dv2;
-    break;
-  default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
-  }
+  abort();
 }
 
 inline bool operator>=(const IDataValue &dv1, const IDataValue &dv2) {
+  if (dv1.GetDataType() == dv2.GetDataType()) {
+    return !dv1.LT(dv2);
+  }
+
   if (dv1.IsAutoPrimaryKey() && dv2.IsAutoPrimaryKey()) {
     int64_t l1 = dv1.GetLong();
     int64_t l2 = dv2.GetLong();
@@ -208,21 +192,7 @@ inline bool operator>=(const IDataValue &dv1, const IDataValue &dv2) {
     return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) >= 0);
   }
 
-  assert(dv1.GetDataType() == dv2.GetDataType());
-  switch (dv1.dataType_) {
-  case DataType::DATETIME:
-    return (const DataValueDate &)dv1 >= (const DataValueDate &)dv2;
-    break;
-  case DataType::BOOL:
-    return (const DataValueBool &)dv1 >= (const DataValueBool &)dv2;
-    break;
-  case DataType::BLOB:
-    return false;
-    // return (const DataValueBlob &)dv1 >= (const DataValueBlob&)dv2;
-    break;
-  default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)dv1.dataType_)});
-  }
+  abort();
 }
 
 inline bool operator!=(const IDataValue &dv1, const IDataValue &dv2) {

@@ -92,13 +92,6 @@ public:
     return h;
   }
 
-  bool Equal(const IDataValue &dv) const override {
-    if (dataType_ != dv.GetDataType())
-      return false;
-
-    return *this == (DataValueBlob &)dv;
-  }
-
   uint32_t GetDataLength() const override {
     return (valType_ == ValueType::NULL_VALUE ? 0 : soleLength_);
   }
@@ -134,6 +127,15 @@ public:
   bool operator==(const DataValueBlob &dv) const;
   Byte *GetBuff() const override { return bysValue_; }
   void ToString(StrBuff &sb) const override;
+
+  bool EQ(const IDataValue &dv) const override {
+    assert(dataType_ == dv.GetDataType());
+    return *this == (DataValueBlob &)dv;
+  }
+
+  bool GT(const IDataValue &dv) const override { abort(); }
+  bool LT(const IDataValue &dv) const override { abort(); }
+
   friend std::ostream &operator<<(std::ostream &os, const DataValueBlob &dv);
 
 protected:

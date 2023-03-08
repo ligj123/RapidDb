@@ -120,19 +120,6 @@ public:
       return (double)_value;
   }
   size_t Hash() const override { return std::hash<T>{}(_value); }
-  bool Equal(const IDataValue &dv) const override {
-    if (dataType_ == dv.GetDataType()) {
-      return _value == (T &)dv;
-    }
-    if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
-      return (GetLong() == dv.GetLong());
-    } else if (dv.IsDigital()) {
-      return (GetDouble() == dv.GetDouble());
-    } else {
-      abort();
-    }
-    return false;
-  }
 
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override {
     assert(svPos != SavePosition::ALL);
@@ -230,6 +217,48 @@ public:
     char *dest = sb.GetFreeBuff();
     int n = Sprintf<T, DT>(dest, _value);
     sb.SetStrLen(sb.GetStrLen() + n);
+  }
+
+  bool EQ(const IDataValue &dv) const override {
+    if (dataType_ == dv.GetDataType()) {
+      return _value == (T &)dv;
+    }
+    if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
+      return (GetLong() == dv.GetLong());
+    } else if (dv.IsDigital()) {
+      return (GetDouble() == dv.GetDouble());
+    } else {
+      abort();
+    }
+    return false;
+  }
+
+  bool GT(const IDataValue &dv) const override {
+    if (dataType_ == dv.GetDataType()) {
+      return _value > (T &)dv;
+    }
+    if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
+      return (GetLong() > dv.GetLong());
+    } else if (dv.IsDigital()) {
+      return (GetDouble() > dv.GetDouble());
+    } else {
+      abort();
+    }
+    return false;
+  }
+
+  bool LT(const IDataValue &dv) const override {
+    if (dataType_ == dv.GetDataType()) {
+      return _value < (T &)dv;
+    }
+    if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
+      return (GetLong() < dv.GetLong());
+    } else if (dv.IsDigital()) {
+      return (GetDouble() < dv.GetDouble());
+    } else {
+      abort();
+    }
+    return false;
   }
 
   bool operator>(const DataValueDigit &dv) const {

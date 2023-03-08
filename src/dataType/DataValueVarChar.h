@@ -96,11 +96,6 @@ public:
     }
     return h;
   }
-  bool Equal(const IDataValue &dv) const override {
-    if (dataType_ != dv.GetDataType())
-      return false;
-    return *this == (DataValueVarChar &)dv;
-  }
   uint32_t GetDataLength() const override {
     if (valType_ == ValueType::NULL_VALUE)
       return 0;
@@ -163,6 +158,19 @@ public:
   DataValueVarChar &operator=(const MString val);
   DataValueVarChar &operator=(const string val);
   DataValueVarChar &operator=(const DataValueVarChar &src);
+
+  bool EQ(const IDataValue &dv) const override {
+    assert(dataType_ == dv.GetDataType());
+    return *this == (DataValueVarChar &)dv;
+  }
+  bool GT(const IDataValue &dv) const override {
+    assert(dataType_ == dv.GetDataType());
+    return *this > (DataValueVarChar &)dv;
+  }
+  bool LT(const IDataValue &dv) const override {
+    assert(dataType_ == dv.GetDataType());
+    return *this < (DataValueVarChar &)dv;
+  }
 
   bool operator>(const DataValueVarChar &dv) const {
     if (valType_ == ValueType::NULL_VALUE) {

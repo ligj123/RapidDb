@@ -170,7 +170,7 @@ protected:
   // The transaction to run this task, no nullable.
   Transaction *_tran;
   // If current statement meet error, save the reason here
-  ErrorMsg *_errorMsg = nullptr;
+  unique_ptr<ErrorMsg> _errorMsg = nullptr;
   // False, it will input the transaction from outside when construct this
   // statement; True , no transaction incoming and need this statement to create
   // a new transaction.

@@ -94,7 +94,7 @@ public:
   virtual std::any GetValue() const = 0;
   // Put value to this DV, if ok, return true, else set error message into
   // thread_local variable _threadErrorMsg in ErrorMsg.h
-  virtual bool PutValue(std::any) = 0;
+  virtual bool PutValue(std::any val) = 0;
   virtual void SetNull() { abort(); };
   // If ValueType==BYTES_VALUE and SavePos==KEY, here need to consider the
   // conversion between KEY and VALUE for some DataType.
@@ -120,7 +120,6 @@ public:
   virtual void SetDefaultValue() = 0;
   virtual void ToString(StrBuff &sb) const = 0;
   virtual size_t Hash() const = 0;
-  virtual bool Equal(const IDataValue &dv) const = 0;
   virtual int64_t GetLong() const { // Only used for digital type
     abort();
   }
@@ -130,6 +129,10 @@ public:
   // Only used for array data type
   virtual Byte *GetBuff() const { abort(); }
   virtual bool Add(IDataValue &dv) { abort(); }
+
+  virtual bool EQ(const IDataValue &dv) const = 0;
+  virtual bool GT(const IDataValue &dv) const = 0;
+  virtual bool LT(const IDataValue &dv) const = 0;
 
   friend std::ostream &operator<<(std::ostream &os, const IDataValue &dv);
   friend bool operator==(const IDataValue &dv1, const IDataValue &dv2);
