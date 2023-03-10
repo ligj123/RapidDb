@@ -27,9 +27,13 @@ struct PageLock {
 
 class IndexTree {
 public:
-  IndexTree(const string &indexName, const string &fileName,
-            VectorDataValue &vctKey, VectorDataValue &vctVal,
-            IndexType iType = IndexType::UNKNOWN);
+  IndexTree() {}
+  bool CreateIndex(const string &indexName, const string &fileName,
+                   VectorDataValue &vctKey, VectorDataValue &vctVal,
+                   uint32_t indexId, IndexType iType);
+  bool InitIndex(const string &indexName, const string &fileName,
+                 VectorDataValue &vctKey, VectorDataValue &vctVal,
+                 uint32_t indexId);
 
   void UpdateRootPage(IndexPage *root);
   IndexPage *AllocateNewPage(PageID parentId, Byte pageLevel);

@@ -13,9 +13,110 @@ unordered_set<uint32_t> IndexTree::_setFiledId;
 uint32_t IndexTree::_currFiledId = 1;
 SpinMutex IndexTree::_fileIdMutex;
 
-IndexTree::IndexTree(const string &indexName, const string &fileName,
-                     VectorDataValue &vctKey, VectorDataValue &vctVal,
-                     IndexType iType) {
+bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
+                            VectorDataValue &vctKey, VectorDataValue &vctVal,
+                            uint32_t indexId, IndexType iType) {
+  _indexName = indexName;
+  _fileName = fileName;
+  for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {
+    if (*iter == '\\')
+      *iter = '/';
+  }
+
+  {
+    lock_guard<SpinMutex> lock(_fileIdMutex);
+    while (true) {
+      if (_setFiledId.find(_currFiledId) == _setFiledId.end()) {
+        _setFiledId.insert(_currFiledId);
+        _fileId = _currFiledId;
+        break;
+      }
+      _currFiledId++;
+    }
+  }
+
+  _headPage = new HeadPage(this);
+  if (iType != IndexType::UNKNOWN) {
+    {
+      unique_lock<ReentrantSharedSpinMutex> lock(_headPage->GetLock());
+      memset(_headPage->GetBysPage(), 0, Configure::GetDiskClusterSize());
+      _headPage->WriteFileVersion();
+      _headPage->WriteRootPagePointer(0);
+      _headPage->WriteTotalPageCount(0);
+      _headPage->WriteTotalRecordCount(0);
+      _headPage->WriteAutoIncrementKey(0);
+      _headPage->WriteAutoIncrementKey2(0);
+      _headPage->WriteAutoIncrementKey3(0);
+      _headPage->WriteIndexType(iType);
+
+      uint16_t count = 0;
+      for (IDataValue *dv : vctKey) {
+        if (!dv->IsFixLength())
+          count++;
+      }
+      _headPage->WriteKeyVariableFieldCount(count);
+      _headPage->SetPageStatus(PageStatus::VALID);
+
+      count = 0;
+      for (IDataValue *dv : vctVal) {
+        if (!dv->IsFixLength())
+          count++;
+      }
+      _headPage->WriteValueVariableFieldCount(count);
+    }
+
+    StoragePool::WriteCachePage(_headPage, false);
+    _rootPage = AllocateNewPage(PAGE_NULL_POINTER, 0);
+    _rootPage->SetBeginPage(true);
+    _rootPage->SetEndPage(true);
+    StoragePool::WriteCachePage(_rootPage, true);
+  } else {
+    _headPage->ReadPage();
+    FileVersion &&fv = _headPage->ReadFileVersion();
+    if (!(fv == CURRENT_FILE_VERSION)) {
+      throw ErrorMsg(TB_ERROR_INDEX_VERSION, {_fileName});
+    }
+
+    uint32_t rootId = _headPage->ReadRootPagePointer();
+    _rootPage = GetPage(rootId, rootId == 0);
+
+#ifdef _DEBUG
+    uint16_t count = 0;
+    for (IDataValue *dv : vctKey) {
+      if (!dv->IsFixLength())
+        count++;
+    }
+    assert(count == _headPage->ReadKeyVariableFieldCount());
+
+    count = 0;
+    for (IDataValue *dv : vctVal) {
+      if (!dv->IsFixLength())
+        count++;
+    }
+    assert(count == _headPage->ReadValueVariableFieldCount());
+#endif
+  }
+
+  _vctKey.swap(vctKey);
+  _vctValue.swap(vctVal);
+
+  //_keyVarLen = _headPage->ReadKeyVariableFieldCount() * UI16_LEN;
+  //_keyOffset = _keyVarLen + UI16_2_LEN;
+  if (_headPage->ReadIndexType() == IndexType::PRIMARY) {
+    _valVarLen = _headPage->ReadValueVariableFieldCount() * UI32_LEN;
+    _valOffset = _valVarLen + (uint16_t)((_vctValue.size() + 7) >> 3);
+  } else {
+    _valVarLen = 0;
+    _valOffset = 0;
+  }
+
+  _garbageOwner = new GarbageOwner(this);
+  LOG_DEBUG << "Open index tree " << indexName;
+}
+
+bool IndexTree::InitIndex(const string &indexName, const string &fileName,
+                          VectorDataValue &vctKey, VectorDataValue &vctVal,
+                          uint32_t indexId) {
   _indexName = indexName;
   _fileName = fileName;
   for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {
