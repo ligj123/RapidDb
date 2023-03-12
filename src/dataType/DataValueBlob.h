@@ -105,7 +105,7 @@ public:
     bysValue_ = nullptr;
   }
 
-  bool SetValue(string val) { return SetValue(val.c_str(), val.size()); }
+  bool SetValue(string val) { return SetValue(val.c_str(), (int)val.size()); }
   bool SetValue(const char *val, int len);
   bool PutValue(std::any val);
   bool Copy(const IDataValue &dv, bool bMove = true) override;

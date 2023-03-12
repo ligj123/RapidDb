@@ -32,10 +32,10 @@ bool DataValueVarChar::PutValue(std::any val) {
   const char *buf;
   size_t len = 0;
   if (val.type() == typeid(string)) {
-    buf = any_cast<string>(val).c_str();
+    buf = any_cast<string>(&val)->c_str();
     len = any_cast<string>(val).size();
   } else if (val.type() == typeid(MString)) {
-    buf = any_cast<MString>(val).c_str();
+    buf = any_cast<MString>(&val)->c_str();
     len = any_cast<MString>(val).size();
   } else if (val.type() == typeid(const char *))
     buf = any_cast<const char *>(val);

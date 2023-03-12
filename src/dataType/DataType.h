@@ -35,6 +35,13 @@ enum class DataType : uint32_t {
   LAST = 127 // Now only can support 127 max data types
 };
 
+// DataValue in record's position
+enum class SavePosition : uint8_t {
+  ALL = 0, // Data used in both key and value
+  KEY,     // Data used in key
+  VALUE    // Data used in value
+};
+
 enum class ValueType : uint8_t { NULL_VALUE = 0, SOLE_VALUE, BYTES_VALUE };
 
 static const int DEFAULT_MAX_FIX_LEN = 1000;
@@ -106,6 +113,22 @@ inline std::ostream &operator<<(std::ostream &os, const ValueType &vt) {
     break;
   case ValueType::SOLE_VALUE:
     os << "SOLE_VALUE(" << (int)ValueType::SOLE_VALUE << ")";
+    break;
+  }
+
+  return os;
+}
+
+inline std::ostream &operator<<(std::ostream &os, const SavePosition &sp) {
+  switch (sp) {
+  case SavePosition::ALL:
+    os << "ALL(" << (int)SavePosition::ALL << ")";
+    break;
+  case SavePosition::KEY:
+    os << "KEY(" << (int)SavePosition::KEY << ")";
+    break;
+  case SavePosition::VALUE:
+    os << "VALUE(" << (int)SavePosition::VALUE << ")";
     break;
   }
 

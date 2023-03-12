@@ -15,7 +15,7 @@ public:
         maxLength_(len + 1), soleLength_(len + 1) {
     bysValue_ = CachePool::Apply(soleLength_);
     BytesCopy(bysValue_, val, len);
-    bysValue_[len - 1] = 0;
+    bysValue_[len] = 0;
   }
   DataValueVarChar(Byte *byArray, uint32_t strLen, uint32_t maxLength,
                    SavePosition svPos)

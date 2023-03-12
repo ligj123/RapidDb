@@ -171,7 +171,7 @@ public:
     if (valType_ == ValueType::NULL_VALUE)
       return 1;
 
-    _value = DigitalFromBytes<T, DT>(buf, false);
+    _value = DigitalFromBytes<T, DT>(buf + 1, false);
     return sizeof(T) + 1;
   }
   void SetMinValue() override {
@@ -220,44 +220,59 @@ public:
   }
 
   bool EQ(const IDataValue &dv) const override {
+    assert(dv.IsDigital());
     if (dataType_ == dv.GetDataType()) {
-      return _value == (T &)dv;
+      return *this == (DataValueDigit &)dv;
     }
-    if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
+
+    if (IsNull()) {
+      return dv.IsNull();
+    } else if (dv.IsNull()) {
+      return false;
+    } else if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
       return (GetLong() == dv.GetLong());
     } else if (dv.IsDigital()) {
       return (GetDouble() == dv.GetDouble());
-    } else {
-      abort();
     }
+
     return false;
   }
 
   bool GT(const IDataValue &dv) const override {
+    assert(dv.IsDigital());
     if (dataType_ == dv.GetDataType()) {
-      return _value > (T &)dv;
+      return *this > (DataValueDigit &)dv;
     }
-    if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
+
+    if (IsNull()) {
+      return false;
+    } else if (dv.IsNull()) {
+      return true;
+    } else if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
       return (GetLong() > dv.GetLong());
     } else if (dv.IsDigital()) {
       return (GetDouble() > dv.GetDouble());
-    } else {
-      abort();
     }
+
     return false;
   }
 
   bool LT(const IDataValue &dv) const override {
+    assert(dv.IsDigital());
     if (dataType_ == dv.GetDataType()) {
-      return _value < (T &)dv;
+      return *this < (DataValueDigit &)dv;
     }
-    if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
+
+    if (dv.IsNull()) {
+      return false;
+    } else if (IsNull()) {
+      return true;
+    } else if (IsAutoPrimaryKey() && dv.IsAutoPrimaryKey()) {
       return (GetLong() < dv.GetLong());
     } else if (dv.IsDigital()) {
       return (GetDouble() < dv.GetDouble());
-    } else {
-      abort();
     }
+
     return false;
   }
 
@@ -308,27 +323,27 @@ public:
 
   template <class V, DataType DTV>
   DataValueDigit *operator+(const DataValueDigit<V, DTV> &dv) {
-    _value += (T)dv._value;
+    _value += (T)(V)dv;
     return this;
   }
   template <class V, DataType DTV>
   DataValueDigit *operator-(const DataValueDigit<V, DTV> &dv) {
-    _value -= (T)dv._value;
+    _value -= (T)(V)dv;
     return this;
   }
   template <class V, DataType DTV>
   DataValueDigit *operator*(const DataValueDigit<V, DTV> &dv) {
-    _value *= (T)dv._value;
+    _value *= (T)(V)dv;
     return this;
   }
   template <class V, DataType DTV>
   DataValueDigit *operator/(const DataValueDigit<V, DTV> &dv) {
-    if (dv._value == 0) {
+    if ((V)dv == 0) {
       _threadErrorMsg.reset(new ErrorMsg(DT_UNSUPPORT_OPER, {"N/0", "ALL"}));
       return nullptr;
     }
 
-    _value /= dv._value;
+    _value /= (T)(V)dv;
     return this;
   }
 

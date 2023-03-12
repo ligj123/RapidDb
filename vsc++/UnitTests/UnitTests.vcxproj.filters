@@ -8,37 +8,10 @@
     <ClCompile Include="..\..\test\dataType\DataValueBlobTest.cpp">
       <Filter>dataType</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueBoolTest.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueByteTest.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueCharTest.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueDateTest.cpp">
+    <ClCompile Include="..\..\test\dataType\DataValueDigitalTest.cpp">
       <Filter>dataType</Filter>
     </ClCompile>
     <ClCompile Include="..\..\test\dataType\DataValueFixCharTest.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueIntTest.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueLongTest.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueShortTest.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueUIntTest.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueULongTest.cpp">
-      <Filter>dataType</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\dataType\DataValueUShortTest .cpp">
       <Filter>dataType</Filter>
     </ClCompile>
     <ClCompile Include="..\..\test\dataType\DataValueVarCharTest.cpp">

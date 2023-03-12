@@ -71,7 +71,7 @@ PRIMARY_PAGE_LOAD : {
       _vctRecord[_currRec] = lrSrc;
     } else {
       LeafPage::RollbackLeafRecords(_vctRecord, _currRec);
-      _errorMsg = new ErrorMsg(CORE_REPEATED_RECORD, {});
+      _errorMsg.reset(new ErrorMsg(CORE_REPEATED_RECORD, {}));
       return TaskStatus::STOPED;
     }
   } else {

@@ -47,9 +47,6 @@ public:
     if (_bAutoTran && _tran != nullptr) {
       delete _tran;
     }
-
-    if (_errorMsg != nullptr)
-      delete _errorMsg;
   }
   /**
    * Get which action will to do

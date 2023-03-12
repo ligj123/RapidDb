@@ -10,9 +10,12 @@ public:
   DataValueFixChar(uint32_t maxLength = DEFAULT_MAX_FIX_LEN)
       : IDataValue(DataType::FIXCHAR, ValueType::NULL_VALUE, SavePosition::ALL),
         maxLength_(maxLength), bysValue_(nullptr) {}
-  DataValueFixChar(const char *val, int len)
+  DataValueFixChar(const char *val, uint32_t len,
+                   uint32_t maxLength = UINT32_MAX)
       : IDataValue(DataType::FIXCHAR, ValueType::SOLE_VALUE, SavePosition::ALL),
-        maxLength_(len + 1), bysValue_(nullptr) {
+        maxLength_(maxLength == UINT32_MAX ? len + 1 : maxLength),
+        bysValue_(nullptr) {
+    assert(len + 1 <= maxLength_);
     bysValue_ = CachePool::Apply(maxLength_);
     BytesCopy(bysValue_, val, len);
     bysValue_[maxLength_ - 1] = 0;
@@ -133,7 +136,7 @@ public:
   DataValueFixChar *operator=(const DataValueFixChar &src);
 
   bool EQ(const IDataValue &dv) const override {
-    assert(dataType_ == dv.GetDataType());
+    assert(dataType_ != dv.GetDataType());
     return *this == (DataValueFixChar &)dv;
   }
   bool GT(const IDataValue &dv) const override {
@@ -166,7 +169,6 @@ public:
 
     return BytesCompare(bysValue_, maxLength_, dv.bysValue_, dv.maxLength_) >=
            0;
-    ;
   }
   bool operator<=(const DataValueFixChar &dv) const { return !(*this > dv); }
   bool operator==(const DataValueFixChar &dv) const {

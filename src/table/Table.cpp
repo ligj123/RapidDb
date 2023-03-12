@@ -353,7 +353,8 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
     abort();
   }
 
-  prop->_tree = new IndexTree(prop->_name, path, dvKey, dvVal);
+  prop->_tree = new IndexTree();
+  prop->_tree->InitIndex(prop->_name, path, dvKey, dvVal, 0);
   return true;
 }
 

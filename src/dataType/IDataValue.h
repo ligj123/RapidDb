@@ -11,13 +11,6 @@
 #include <fstream>
 
 namespace storage {
-// DataValue in record's position
-enum class SavePosition : Byte {
-  ALL = 0, // Data used in both key and value
-  KEY,     // Data used in key
-  VALUE    // Data used in value
-};
-
 class IDataValue {
 public:
   static bool IsIndexType(const DataType dt) {

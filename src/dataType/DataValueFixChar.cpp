@@ -55,10 +55,10 @@ bool DataValueFixChar::PutValue(std::any val) {
   const char *buf;
   size_t len = 0;
   if (val.type() == typeid(string)) {
-    buf = any_cast<string>(val).c_str();
+    buf = any_cast<string>(&val)->c_str();
     len = any_cast<string>(val).size();
   } else if (val.type() == typeid(MString)) {
-    buf = any_cast<MString>(val).c_str();
+    buf = any_cast<MString>(&val)->c_str();
     len = any_cast<MString>(val).size();
   } else if (val.type() == typeid(const char *))
     buf = any_cast<const char *>(val);
@@ -270,30 +270,29 @@ uint32_t DataValueFixChar::ReadData(Byte *buf) {
 }
 
 void DataValueFixChar::SetMinValue() {
-  if (valType_ == ValueType::SOLE_VALUE)
-    CachePool::Release(bysValue_, maxLength_);
-
+  if (valType_ != ValueType::SOLE_VALUE) {
+    bysValue_ = CachePool::Apply(maxLength_);
+  }
   valType_ = ValueType::SOLE_VALUE;
-  bysValue_ = CachePool::Apply(maxLength_);
   memset(bysValue_, 0, maxLength_);
 }
 
 void DataValueFixChar::SetMaxValue() {
-  if (valType_ == ValueType::SOLE_VALUE)
-    CachePool::Release(bysValue_, maxLength_);
+  if (valType_ != ValueType::SOLE_VALUE) {
+    bysValue_ = CachePool::Apply(maxLength_);
+  }
 
   valType_ = ValueType::SOLE_VALUE;
-  bysValue_ = CachePool::Apply(maxLength_);
   bysValue_[0] = bysValue_[1] = bysValue_[2] = -1;
   bysValue_[3] = 0;
 }
 
 void DataValueFixChar::SetDefaultValue() {
-  if (valType_ == ValueType::SOLE_VALUE)
-    CachePool::Release(bysValue_, maxLength_);
+  if (valType_ != ValueType::SOLE_VALUE) {
+    bysValue_ = CachePool::Apply(maxLength_);
+  }
 
   valType_ = ValueType::SOLE_VALUE;
-  bysValue_ = CachePool::Apply(maxLength_);
   memset(bysValue_, ' ', maxLength_ - 1);
   bysValue_[maxLength_ - 1] = 0;
 }
