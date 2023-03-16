@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
 
   dv3.SetValue("abcdefg");
   BOOST_TEST((string)dv3 == "abcdefg  ");
-  BOOST_TEST(dv3.GetValue() == "abcdefg  ");
+  BOOST_TEST(any_cast<MString>(dv3.GetValue()) == "abcdefg  ");
   dv3.SetNull();
   BOOST_TEST(dv3.IsNull());
 
@@ -104,7 +104,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   BOOST_TEST((string)dv2 == "");
   dv3.SetMaxValue();
   Byte *p = dv3.GetBuff();
-  BOOST_TEST(p[0] == p[1] == p[2] == 0);
+  BOOST_TEST((p[0] == 0xff && p[1] == 0xff && p[2] == 0xff));
   dv3.SetDefaultValue();
   BOOST_TEST((string)dv2 == "         ");
 
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixCharCopy_test) {
     using DataValueFixChar::maxLength_;
   };
 
-  DataValueInt dvi(100, true);
+  DataValueInt dvi(100);
   DataValueFixCharEx dvc(10);
 
   dvc.Copy(dvi);
@@ -144,23 +144,21 @@ BOOST_AUTO_TEST_CASE(DataValueFixCharCopy_test) {
   const char *pStr = "abcdefghijklmn";
   DataValueFixCharEx dvc2(pStr, 14);
 
-  try {
-    dvc.Copy(dvc2);
-  } catch (ErrorMsg &err) {
-    BOOST_TEST(err.getErrId() == DT_INPUT_OVER_LENGTH);
-  }
+  bool b = dvc.Copy(dvc2);
+  BOOST_TEST(b);
+  BOOST_TEST(_threadErrorMsg->getErrId() == DT_INPUT_OVER_LENGTH);
 
   char buf[100];
   strcpy(buf, "abcdefg  ");
 
   dvc2 = DataValueFixCharEx(10);
-  dvc2.ReadData((Byte *)buf, 10, false);
+  dvc2.ReadData((Byte *)buf, 10, SavePosition::VALUE, false);
   dvc.Copy(dvc2);
   BOOST_TEST(dvc.bysValue_ == dvc2.bysValue_);
   BOOST_TEST(dvc.maxLength_ == dvc2.maxLength_);
   BOOST_TEST(dvc == dvc2);
 
-  dvc2.ReadData((Byte *)buf, 10, true);
+  dvc2.ReadData((Byte *)buf, 10, SavePosition::VALUE, true);
   dvc.Copy(dvc2, false);
   BOOST_TEST(dvc.bysValue_ != dvc2.bysValue_);
   BOOST_TEST(dvc == dvc2);
