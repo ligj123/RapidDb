@@ -136,11 +136,11 @@ public:
   DataValueFixChar *operator=(const DataValueFixChar &src);
 
   bool EQ(const IDataValue &dv) const override {
-    assert(dataType_ != dv.GetDataType());
+    assert(dataType_ == dv.GetDataType());
     return *this == (DataValueFixChar &)dv;
   }
   bool GT(const IDataValue &dv) const override {
-    assert(dataType_ != dv.GetDataType());
+    assert(dataType_ == dv.GetDataType());
     return *this > (DataValueFixChar &)dv;
   }
   bool LT(const IDataValue &dv) const override {

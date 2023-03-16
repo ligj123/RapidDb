@@ -88,16 +88,16 @@ bool DataValueFixChar::PutValue(std::any val) {
 
   if (len == 0)
     len = strlen(buf);
-  if (len + 1 >= maxLength_) {
+  if (len + 1 > maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
     return false;
   }
 
-  if (valType_ != ValueType::BYTES_VALUE)
+  if (valType_ != ValueType::SOLE_VALUE)
     bysValue_ = CachePool::Apply(maxLength_);
 
-  valType_ = ValueType::BYTES_VALUE;
+  valType_ = ValueType::SOLE_VALUE;
   BytesCopy(bysValue_, buf, len);
   memset(bysValue_ + len, ' ', maxLength_ - len - 1);
   bysValue_[maxLength_ - 1] = 0;
@@ -140,6 +140,7 @@ bool DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
     _threadErrorMsg.reset(
         new ErrorMsg(DT_INPUT_OVER_LENGTH,
                      {to_string(maxLength_), to_string(dv.GetDataLength())}));
+    return false;
   }
 
   if (bMove && dv.GetDataType() == DataType::FIXCHAR &&
@@ -164,7 +165,7 @@ bool DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
       bysValue_ = CachePool::Apply(maxLength_);
     }
     valType_ = ValueType::SOLE_VALUE;
-    BytesCopy(bysValue_, ((DataValueFixChar &)dv).bysValue_, dv.GetMaxLength());
+    BytesCopy(bysValue_, ((DataValueFixChar &)dv).bysValue_, dv.GetMaxLength()-1);
     if (maxLength_ > dv.GetMaxLength()) {
       memset(bysValue_ + dv.GetMaxLength() - 1, ' ',
              maxLength_ - dv.GetMaxLength());
