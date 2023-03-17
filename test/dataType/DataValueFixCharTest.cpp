@@ -42,8 +42,8 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
   BOOST_TEST(dv3.GetPersistenceLength(SavePosition::KEY) == 10);
   BOOST_TEST(dv3.GetPersistenceLength(SavePosition::VALUE) == 10);
   BOOST_TEST(std::any_cast<MString>(dv3.GetValue()) == "abcd     ");
-  BOOST_TEST((MString)dv3 == "abcd");
-  BOOST_TEST((string)dv3 == "abcd");
+  BOOST_TEST((MString)dv3 == "abcd     ");
+  BOOST_TEST((string)dv3 == "abcd     ");
 
   DataValueFixChar *dv4 = dv1.Clone(true);
   BOOST_TEST(dv4->IsNull());

@@ -34,7 +34,7 @@ DataValueFixChar::~DataValueFixChar() {
 }
 
 bool DataValueFixChar::SetValue(const char *val, int len) {
-  if (len + 1 >= maxLength_) {
+  if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
     return false;
@@ -165,7 +165,8 @@ bool DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
       bysValue_ = CachePool::Apply(maxLength_);
     }
     valType_ = ValueType::SOLE_VALUE;
-    BytesCopy(bysValue_, ((DataValueFixChar &)dv).bysValue_, dv.GetMaxLength()-1);
+    BytesCopy(bysValue_, ((DataValueFixChar &)dv).bysValue_,
+              dv.GetMaxLength() - 1);
     if (maxLength_ > dv.GetMaxLength()) {
       memset(bysValue_ + dv.GetMaxLength() - 1, ' ',
              maxLength_ - dv.GetMaxLength());
@@ -317,7 +318,7 @@ DataValueFixChar *DataValueFixChar::operator=(const char *val) {
 
 DataValueFixChar *DataValueFixChar::operator=(const MString val) {
   uint32_t len = (uint32_t)val.size();
-  if (len + 1 >= maxLength_) {
+  if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
     return nullptr;
@@ -334,7 +335,7 @@ DataValueFixChar *DataValueFixChar::operator=(const MString val) {
 
 DataValueFixChar *DataValueFixChar::operator=(const string val) {
   uint32_t len = (uint32_t)val.size();
-  if (len + 1 >= maxLength_) {
+  if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
     return nullptr;

@@ -18,6 +18,7 @@ public:
     assert(len + 1 <= maxLength_);
     bysValue_ = CachePool::Apply(maxLength_);
     BytesCopy(bysValue_, val, len);
+    memset(bysValue_ + len, ' ', maxLength_ - len - 1);
     bysValue_[maxLength_ - 1] = 0;
   }
 
