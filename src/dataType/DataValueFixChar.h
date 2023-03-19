@@ -116,8 +116,10 @@ public:
   }
   uint32_t GetMaxLength() const override { return maxLength_; }
 
-  bool SetValue(string val) { return SetValue(val.c_str(), (int)val.size()); }
-  bool SetValue(const char *val, int len);
+  bool SetValue(string val) {
+    return SetValue(val.c_str(), (uint32_t)val.size());
+  }
+  bool SetValue(const char *val, uint32_t len);
   bool PutValue(std::any val) override;
   bool Copy(const IDataValue &dv, bool bMove = true) override;
 

@@ -10,7 +10,7 @@ static inline uint32_t get_thread_id() {
   ss << std::this_thread::get_id();
   return atoi(ss.str().c_str());
 }
-static thread_local uint32_t g_threadId = get_thread_id();
+extern thread_local uint32_t g_threadId;
 
 class SpinMutex {
 public:

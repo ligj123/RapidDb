@@ -11,18 +11,18 @@ public:
   DataValueBlob(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
       : IDataValue(DataType::BLOB, ValueType::NULL_VALUE, SavePosition::VALUE),
         maxLength_(maxLength), bysValue_(nullptr), soleLength_(0) {}
-  DataValueBlob(const char *val, int len)
+  DataValueBlob(const char *val, int len, uint32_t maxLength = UINT32_MAX)
       : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, SavePosition::VALUE),
-        maxLength_(len), soleLength_(len) {
+        maxLength_(maxLength == UINT32_MAX ? len : maxLength),
+        soleLength_(len) {
     bysValue_ = CachePool::Apply(soleLength_);
     BytesCopy(bysValue_, val, len);
-    bysValue_[len - 1] = 0;
   }
   DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength,
                 SavePosition svPos = SavePosition::VALUE)
       : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, svPos),
         bysValue_(byArray), maxLength_(maxLength), soleLength_(len) {
-    assert(soleLength_ >= maxLength_);
+    assert(soleLength_ <= maxLength_);
   }
   DataValueBlob(const DataValueBlob &src) : IDataValue(src) {
     maxLength_ = src.maxLength_;
@@ -58,16 +58,7 @@ public:
     }
   }
 
-  std::any GetValue() const override {
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
-    case ValueType::BYTES_VALUE:
-      return (char *)bysValue_;
-    case ValueType::NULL_VALUE:
-    default:
-      return std::any();
-    }
-  }
+  std::any GetValue() const override { return std::any(); }
 
   uint32_t GetPersistenceLength(
       SavePosition dtPos = SavePosition::VALUE) const override {
@@ -105,9 +96,11 @@ public:
     bysValue_ = nullptr;
   }
 
-  bool SetValue(string val) { return SetValue(val.c_str(), (int)val.size()); }
-  bool SetValue(const char *val, int len);
-  bool PutValue(std::any val);
+  bool SetValue(vector<char> val) {
+    return SetValue(val.data(), (uint32_t)val.size());
+  }
+  bool SetValue(const char *val, uint32_t len);
+  bool PutValue(std::any val) override;
   bool Copy(const IDataValue &dv, bool bMove = true) override;
   uint32_t WriteData(Byte *buf, SavePosition dtPos) const override;
   uint32_t ReadData(Byte *buf, uint32_t len, SavePosition dtPos,

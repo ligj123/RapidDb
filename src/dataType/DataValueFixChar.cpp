@@ -33,7 +33,7 @@ DataValueFixChar::~DataValueFixChar() {
   }
 }
 
-bool DataValueFixChar::SetValue(const char *val, int len) {
+bool DataValueFixChar::SetValue(const char *val, uint32_t len) {
   if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
@@ -170,8 +170,9 @@ bool DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
     if (maxLength_ > dv.GetMaxLength()) {
       memset(bysValue_ + dv.GetMaxLength() - 1, ' ',
              maxLength_ - dv.GetMaxLength());
-      bysValue_[maxLength_ - 1] = 0;
     }
+
+    bysValue_[maxLength_ - 1] = 0;
   }
   return true;
 }

@@ -9,10 +9,10 @@
 
 namespace storage {
 
-bool DataValueVarChar::SetValue(const char *val, int len) {
-  if (len + 1 >= maxLength_) {
+bool DataValueVarChar::SetValue(const char *val, uint32_t len) {
+  if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len + 1)}));
     return false;
   }
 
@@ -24,7 +24,7 @@ bool DataValueVarChar::SetValue(const char *val, int len) {
   soleLength_ = len + 1;
   bysValue_ = CachePool::Apply(soleLength_);
   BytesCopy(bysValue_, val, len);
-  bysValue_[len - 1] = 0;
+  bysValue_[len] = 0;
   return true;
 }
 
@@ -66,14 +66,14 @@ bool DataValueVarChar::PutValue(std::any val) {
   if (len == 0)
     len = strlen(buf);
 
-  if (len + 1 >= maxLength_) {
+  if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
     return false;
   }
 
   valType_ = ValueType::SOLE_VALUE;
-  soleLength_ = len + 1;
+  soleLength_ = (uint32_t)len + 1;
   bysValue_ = CachePool::Apply(soleLength_);
   BytesCopy(bysValue_, buf, soleLength_);
   return true;
@@ -128,11 +128,14 @@ bool DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
   if (bMove && dv.GetDataType() == DataType::VARCHAR) {
     bysValue_ = ((DataValueVarChar &)dv).bysValue_;
     valType_ = dv.GetValueType();
+    soleLength_ = dv.GetDataLength();
     ((DataValueVarChar &)dv).bysValue_ = nullptr;
     ((DataValueVarChar &)dv).valType_ = ValueType::NULL_VALUE;
-  } else if (dv.GetValueType() == ValueType::BYTES_VALUE) {
+  } else if (dv.GetDataType() == DataType::VARCHAR &&
+             dv.GetValueType() == ValueType::BYTES_VALUE) {
     bysValue_ = ((DataValueVarChar &)dv).bysValue_;
     valType_ = ValueType::BYTES_VALUE;
+    soleLength_ = dv.GetDataLength();
   } else {
     valType_ = ValueType::SOLE_VALUE;
     if (dv.GetDataType() == DataType::FIXCHAR) {
@@ -206,7 +209,7 @@ uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
       return 0;
     }
 
-    assert(len < maxLength_);
+    assert(len <= maxLength_);
     soleLength_ = len;
     if (bSole) {
       bysValue_ = CachePool::Apply(soleLength_);

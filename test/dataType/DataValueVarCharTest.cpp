@@ -4,137 +4,171 @@
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(DataTypeTest)
-//
-// BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
-//  DataValueVarChar dv1;
-//  BOOST_TEST(dv1.GetDataType() == DataType::VARCHAR);
-//  BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
-//  BOOST_TEST(!dv1.IsFixLength());
-//  BOOST_TEST(dv1.IsNull());
-//  BOOST_TEST(dv1.GetMaxLength() == DEFAULT_MAX_LEN);
-//  BOOST_TEST(dv1.GetDataLength() == 0);
-//  BOOST_TEST(dv1.GetPersistenceLength() == 0);
-//  BOOST_TEST(!dv1.GetValue().has_value());
-//
-//  DataValueVarChar dv2(100, true);
-//  BOOST_TEST(dv2.GetMaxLength() == 100);
-//  BOOST_TEST(dv2.GetDataLength() == 1);
-//  BOOST_TEST(dv2.GetPersistenceLength() == 1);
-//  BOOST_TEST(dv1 == dv2);
-//
-//  const char *pStr = "abcd";
-//  DataValueVarChar dv4(pStr, (uint32_t)strlen(pStr));
-//  BOOST_TEST(dv4.GetDataType() == DataType::VARCHAR);
-//  BOOST_TEST(dv4.GetValueType() == ValueType::SOLE_VALUE);
-//  BOOST_TEST(!dv4.IsNull());
-//  BOOST_TEST(dv4.GetDataLength() == 5);
-//  BOOST_TEST(dv4.GetMaxLength() == DEFAULT_MAX_LEN);
-//  BOOST_TEST(dv4.GetPersistenceLength() == 10);
-//  BOOST_TEST(dv1 < dv4);
-//  BOOST_TEST(dv1 <= dv4);
-//  BOOST_TEST(dv1 != dv4);
-//  BOOST_TEST(std::any_cast<MString>(dv4.GetValue()) == "abcd");
-//
-//  dv2 = dv4;
-//  BOOST_TEST(dv4 == dv2);
-//
-//  DataValueVarChar dv5(pStr, 4, 100, true);
-//  BOOST_TEST(dv5.GetDataLength() == 5);
-//  BOOST_TEST(dv5.GetMaxLength() == 100);
-//  BOOST_TEST(dv5.GetPersistenceLength() == 5);
-//
-//  Byte buf[100] = "abcd";
-//  DataValueVarChar dv6((char *)buf, 4, 100, true);
-//  BOOST_TEST(std::any_cast<MString>(dv6.GetValue()) == "abcd");
-//  BOOST_TEST(dv6.GetValueType() == ValueType::SOLE_VALUE);
-//
-//  BOOST_TEST(dv6 > dv1);
-//  BOOST_TEST(dv6 >= dv1);
-//  BOOST_TEST(dv6 != dv1);
-//
-//  dv1.SetDefaultValue();
-//  BOOST_TEST((MString)dv1 == "");
-//
-//  dv1.SetMaxValue();
-//  // BOOST_TEST((string)dv1 == "\\uff\\uff\\uff");
-//
-//  dv1.SetMinValue();
-//  BOOST_TEST((MString)dv1 == "");
-//
-//  DataValueVarChar dv7;
-//  dv7.WriteData(buf);
-//  dv1.ReadData(buf, 0);
-//  BOOST_TEST(dv1 == dv7);
-//
-//  DataValueVarChar dv8(100, true);
-//  dv8.WriteData(buf + 10);
-//  dv2.ReadData(buf + 10, 1);
-//  BOOST_TEST(dv2.GetDataLength() == 1);
-//  BOOST_TEST(dv2.GetValueType() == ValueType::SOLE_VALUE);
-//
-//  DataValueVarChar dv9(pStr, (uint32_t)strlen(pStr));
-//  dv9.WriteData(buf + 20);
-//  dv1.ReadData(buf + 20, 5);
-//  BOOST_TEST(dv1 == dv9);
-//
-//  DataValueVarChar dv10(pStr, 4, 100, true);
-//  dv10.WriteData(buf + 30);
-//  dv5.ReadData(buf + 30, dv10.GetDataLength());
-//  BOOST_TEST(dv5 == dv10);
-//
-//  StrBuff sb(10);
-//  dv1 = "abcdefghijklmn1234567890";
-//  dv1.ToString(sb);
-//  BOOST_TEST(strcmp(sb.GetBuff(), "abcdefghijklmn1234567890") == 0);
-//  BOOST_TEST(sb.GetBufLen() > 24U);
-//  BOOST_TEST(sb.GetStrLen() == 24U);
-//}
-//
-// BOOST_AUTO_TEST_CASE(DataValueVarCharCopy_test) {
-//  class DataValueVarCharEx : public DataValueVarChar {
-//  public:
-//    using DataValueVarChar::bysValue_;
-//    using DataValueVarChar::DataValueVarChar;
-//    using DataValueVarChar::maxLength_;
-//    using DataValueVarChar::soleLength_;
-//  };
-//
-//  DataValueInt dvi(100, true);
-//  DataValueVarCharEx dvc(10);
-//
-//  dvc.Copy(dvi);
-//  BOOST_TEST(strcmp((char *)dvc.bysValue_, "100") == 0);
-//  BOOST_TEST(dvc.soleLength_ == 4);
-//  BOOST_TEST(dvc.GetValueType() == ValueType::SOLE_VALUE);
-//
-//  const char *pStr = "abcdefghijklmn";
-//  DataValueVarCharEx dvc2(pStr, 14);
-//
-//  try {
-//    dvc.Copy(dvc2);
-//  } catch (ErrorMsg &err) {
-//    BOOST_TEST(err.getErrId() == DT_INPUT_OVER_LENGTH);
-//  }
-//
-//  char buf[100];
-//  strcpy(buf, "abcdefg");
-//
-//  dvc2.ReadData((Byte *)buf, 8, false);
-//  dvc.Copy(dvc2);
-//  BOOST_TEST(dvc.bysValue_ == dvc2.bysValue_);
-//  BOOST_TEST(dvc.maxLength_ != dvc2.maxLength_);
-//  BOOST_TEST(dvc.soleLength_ == dvc2.soleLength_);
-//  BOOST_TEST(dvc == dvc2);
-//
-//  dvc2.ReadData((Byte *)buf, 8, true);
-//  dvc.Copy(dvc2, false);
-//  BOOST_TEST(dvc.bysValue_ != dvc2.bysValue_);
-//  BOOST_TEST(dvc.maxLength_ != dvc2.maxLength_);
-//  BOOST_TEST(dvc.soleLength_ == dvc2.soleLength_);
-//  BOOST_TEST(dvc == dvc2);
-//
-//  dvc.Copy(dvc2, true);
-//  BOOST_TEST(dvc2.GetValueType() == ValueType::NULL_VALUE);
-//}
+
+BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
+  DataValueVarChar dv1;
+  BOOST_TEST(dv1.GetDataType() == DataType::VARCHAR);
+  BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
+  BOOST_TEST(!dv1.IsFixLength());
+  BOOST_TEST(dv1.IsNull());
+  BOOST_TEST(dv1.GetMaxLength() == DEFAULT_MAX_VAR_LEN);
+  BOOST_TEST(dv1.GetDataLength() == 0);
+  BOOST_TEST(dv1.GetPersistenceLength(SavePosition::KEY) == 1);
+  BOOST_TEST(dv1.GetPersistenceLength(SavePosition::VALUE) == 0);
+  BOOST_TEST(!dv1.GetValue().has_value());
+
+  const char *pStr = "abcd";
+  DataValueVarChar dv2(pStr, (uint32_t)strlen(pStr));
+  BOOST_TEST(dv2.GetDataType() == DataType::VARCHAR);
+  BOOST_TEST(dv2.GetValueType() == ValueType::SOLE_VALUE);
+  BOOST_TEST(!dv2.IsNull());
+  BOOST_TEST(dv2.GetDataLength() == 5);
+  BOOST_TEST(dv2.GetMaxLength() == 5);
+  BOOST_TEST(dv2.GetPersistenceLength(SavePosition::KEY) == 5);
+  BOOST_TEST(dv2.GetPersistenceLength(SavePosition::VALUE) == 5);
+  BOOST_TEST(dv1 < dv2);
+  BOOST_TEST(dv1 <= dv2);
+  BOOST_TEST(dv1 != dv2);
+  BOOST_TEST(std::any_cast<MString>(dv2.GetValue()) == "abcd");
+
+  DataValueVarChar dv3(pStr, 4, 10);
+  BOOST_TEST(dv3.GetDataType() == DataType::VARCHAR);
+  BOOST_TEST(dv3.GetValueType() == ValueType::SOLE_VALUE);
+  BOOST_TEST(!dv3.IsNull());
+  BOOST_TEST(dv3.GetDataLength() == 5);
+  BOOST_TEST(dv3.GetMaxLength() == 10);
+  BOOST_TEST(dv3.GetPersistenceLength(SavePosition::KEY) == 5);
+  BOOST_TEST(dv3.GetPersistenceLength(SavePosition::VALUE) == 5);
+  BOOST_TEST(std::any_cast<MString>(dv3.GetValue()) == "abcd");
+  BOOST_TEST((MString)dv3 == "abcd");
+  BOOST_TEST((string)dv3 == "abcd");
+
+  DataValueVarChar *dv4 = dv1.Clone(true);
+  BOOST_TEST(dv4->IsNull());
+  BOOST_TEST(dv4->GetDataLength() == 0);
+  BOOST_TEST(dv4->GetMaxLength() == DEFAULT_MAX_VAR_LEN);
+
+  Byte buf[1024];
+  uint32_t len = dv1.WriteData(buf, SavePosition::KEY);
+  BOOST_TEST(len == 1);
+  dv4->ReadData(buf, 1, SavePosition::KEY);
+  BOOST_TEST(dv4->GetDataLength() == 1);
+  len = dv1.WriteData(buf, SavePosition::VALUE);
+  BOOST_TEST(len == 0);
+  dv4->ReadData(buf, 0, SavePosition::VALUE);
+  BOOST_TEST(dv4->IsNull());
+  delete dv4;
+
+  dv4 = dv2.Clone(false);
+  BOOST_TEST(dv4->IsNull());
+  BOOST_TEST(dv4->GetDataLength() == 0);
+  BOOST_TEST(dv4->GetMaxLength() == 5);
+  delete dv4;
+
+  dv4 = dv2.Clone(true);
+  BOOST_TEST(!dv4->IsNull());
+  BOOST_TEST(dv4->GetDataLength() == 5);
+  BOOST_TEST(dv4->GetMaxLength() == 5);
+  BOOST_TEST((string)*dv4 == "abcd");
+
+  len = dv2.WriteData(buf, SavePosition::KEY);
+  BOOST_TEST(len == 5);
+  dv4->ReadData(buf, 5, SavePosition::KEY);
+  BOOST_TEST((string)*dv4 == "abcd");
+  len = dv2.WriteData(buf, SavePosition::VALUE);
+  BOOST_TEST(len == 5);
+  dv4->ReadData(buf, 5, SavePosition::VALUE);
+  BOOST_TEST((string)*dv4 == "abcd");
+
+  BOOST_TEST(*dv4 == dv2);
+  BOOST_TEST(dv4->EQ(dv2));
+  delete dv4;
+
+  dv3.SetValue("abcdefg");
+  BOOST_TEST((string)dv3 == "abcdefg");
+  BOOST_TEST(any_cast<MString>(dv3.GetValue()) == "abcdefg");
+  dv3.SetNull();
+  BOOST_TEST(dv3.IsNull());
+
+  dv3.PutValue(123);
+  BOOST_TEST((string)dv3 == "123");
+  dv3.PutValue(string("abcd12345"));
+  BOOST_TEST((string)dv3 == "abcd12345");
+
+  dv3.Copy(dv2);
+  BOOST_TEST((string)dv3 == "abcd");
+
+  dv3.SetMinValue();
+  BOOST_TEST((string)dv3 == "");
+  dv3.SetMaxValue();
+  Byte *p = dv3.GetBuff();
+  BOOST_TEST((p[0] == 0xff && p[1] == 0xff && p[2] == 0xff));
+  dv3.SetDefaultValue();
+  BOOST_TEST((string)dv3 == "");
+
+  dv3 = "abcd";
+  BOOST_TEST((string)dv3 == "abcd");
+  dv3 = MString("abcde");
+  BOOST_TEST((string)dv3 == "abcde");
+  dv3 = string("abcdef");
+  BOOST_TEST((string)dv3 == "abcdef");
+
+  BOOST_TEST(dv3.GT(dv2));
+  BOOST_TEST(dv2.LT(dv3));
+
+  StrBuff sb(0);
+  dv1 = "abcdefghijklmn1234567890";
+  dv1.ToString(sb);
+  BOOST_TEST(strncmp(sb.GetBuff(), "abcdefghijklmn1234567890", 24) == 0);
+  BOOST_TEST(sb.GetBufLen() > 24U);
+  BOOST_TEST(sb.GetStrLen() == 24U);
+}
+
+BOOST_AUTO_TEST_CASE(DataValueVarCharCopy_test) {
+  class DataValueVarCharEx : public DataValueVarChar {
+  public:
+    using DataValueVarChar::bysValue_;
+    using DataValueVarChar::DataValueVarChar;
+    using DataValueVarChar::maxLength_;
+    using DataValueVarChar::soleLength_;
+  };
+
+  DataValueInt dvi(100);
+  DataValueVarCharEx dvc(10);
+
+  dvc.Copy(dvi);
+  BOOST_TEST(strcmp((char *)dvc.bysValue_, "100") == 0);
+  BOOST_TEST(dvc.soleLength_ == 4);
+  BOOST_TEST(dvc.GetValueType() == ValueType::SOLE_VALUE);
+
+  const char *pStr = "abcdefghijklmn";
+  DataValueVarCharEx dvc2(pStr, 14);
+
+  bool b = dvc.Copy(dvc2);
+  BOOST_TEST(!b);
+  BOOST_TEST(_threadErrorMsg->getErrId() == DT_INPUT_OVER_LENGTH);
+
+  char buf[100];
+  strcpy(buf, "abcdefg");
+
+  dvc2.ReadData((Byte *)buf, 8, SavePosition::VALUE, false);
+  dvc.Copy(dvc2, true);
+  BOOST_TEST(dvc.bysValue_ == (Byte *)buf);
+  BOOST_TEST(dvc2.bysValue_ == nullptr);
+  BOOST_TEST(dvc2.GetValueType() == ValueType::NULL_VALUE);
+  BOOST_TEST(dvc != dvc2);
+
+  dvc2.ReadData((Byte *)buf, 8, SavePosition::VALUE, false);
+  dvc.Copy(dvc2, false);
+  BOOST_TEST(dvc.bysValue_ == dvc2.bysValue_);
+  BOOST_TEST(dvc.soleLength_ == dvc2.soleLength_);
+  BOOST_TEST(dvc == dvc2);
+
+  dvc2.ReadData((Byte *)buf, 8, SavePosition::VALUE, true);
+  dvc.Copy(dvc2, false);
+  BOOST_TEST(dvc.bysValue_ != dvc2.bysValue_);
+  BOOST_TEST(dvc.soleLength_ == dvc2.soleLength_);
+  BOOST_TEST(dvc == dvc2);
+}
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

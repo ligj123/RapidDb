@@ -1,14 +1,14 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
 #include <exception>
+#include <memory>
 #include <mutex>
 #include <unordered_map>
-#include <memory>
 
 namespace storage {
 using namespace std;
 class ErrorMsg;
-static thread_local unique_ptr<ErrorMsg> _threadErrorMsg = nullptr;
+extern thread_local unique_ptr<ErrorMsg> _threadErrorMsg;
 
 class ErrorMsg : public exception {
 public:

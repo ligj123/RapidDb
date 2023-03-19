@@ -5,7 +5,7 @@
 #include <regex>
 
 namespace storage {
-
+thread_local unique_ptr<ErrorMsg> _threadErrorMsg = nullptr;
 unordered_map<int, string> ErrorMsg::_mapErrorMsg = ErrorMsg::LoadErrorMsg();
 
 unordered_map<int, string> ErrorMsg::LoadErrorMsg() {

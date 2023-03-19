@@ -7,8 +7,8 @@
 #include <stdexcept>
 
 namespace storage {
-bool DataValueBlob::SetValue(const char *val, int len) {
-  if (len + 1 >= maxLength_) {
+bool DataValueBlob::SetValue(const char *val, uint32_t len) {
+  if (len > maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
     return false;
@@ -19,10 +19,9 @@ bool DataValueBlob::SetValue(const char *val, int len) {
   }
 
   valType_ = ValueType::SOLE_VALUE;
-  soleLength_ = len + 1;
+  soleLength_ = len;
   bysValue_ = CachePool::Apply(soleLength_);
   BytesCopy(bysValue_, val, len);
-  bysValue_[len - 1] = 0;
   return true;
 }
 
@@ -64,14 +63,14 @@ bool DataValueBlob::PutValue(std::any val) {
   if (len == 0)
     len = strlen(buf);
 
-  if (len + 1 >= maxLength_) {
+  if (len > maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
     return false;
   }
 
   valType_ = ValueType::BYTES_VALUE;
-  soleLength_ = len + 1;
+  soleLength_ = (uint32_t)len;
   bysValue_ = CachePool::Apply(soleLength_);
   BytesCopy(bysValue_, buf, soleLength_);
   return true;
@@ -96,16 +95,16 @@ bool DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
     CachePool::Release(bysValue_, soleLength_);
   }
 
-  if (dv.GetValueType() == ValueType::BYTES_VALUE) {
-    bysValue_ = ((DataValueBlob &)dv).bysValue_;
-    valType_ = ValueType::BYTES_VALUE;
-    soleLength_ = dv.GetDataLength();
-  } else if (bMove) {
+  if (bMove) {
     bysValue_ = ((DataValueBlob &)dv).bysValue_;
     valType_ = dv.GetValueType();
     soleLength_ = dv.GetDataLength();
     ((DataValueBlob &)dv).bysValue_ = nullptr;
     ((DataValueBlob &)dv).valType_ = ValueType::NULL_VALUE;
+  } else if (dv.GetValueType() == ValueType::BYTES_VALUE) {
+    bysValue_ = ((DataValueBlob &)dv).bysValue_;
+    valType_ = ValueType::BYTES_VALUE;
+    soleLength_ = dv.GetDataLength();
   } else if (dv.GetValueType() != ValueType::NULL_VALUE) {
     soleLength_ = dv.GetDataLength();
     bysValue_ = CachePool::Apply(soleLength_);

@@ -484,4 +484,14 @@ public:
   }
 };
 
+template <typename T, bool Enabled = std::is_same<T, bool>::value>
+class Bool_Add;
+
+template <typename T> struct Bool_Add<T, false> {
+  static inline void Add(T val, const char *pBuf) { val += (T)atoll(pBuf); }
+};
+
+template <typename T> struct Bool_Add<T, true> {
+  static inline void Add(bool &val, const char *pBuf) { abort(); }
+};
 } // namespace storage

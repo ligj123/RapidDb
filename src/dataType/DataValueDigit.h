@@ -311,7 +311,7 @@ public:
     if (dv.IsDigital()) {
       Case_Add<DT>::Add(_value, dv);
     } else if (dv.IsStringType()) {
-      _value += (T)atoll((char *)dv.GetBuff());
+      Bool_Add<T>::Add(_value, (char *)dv.GetBuff());
     } else {
       _threadErrorMsg.reset(
           new ErrorMsg(DT_UNSUPPORT_CONVERT,

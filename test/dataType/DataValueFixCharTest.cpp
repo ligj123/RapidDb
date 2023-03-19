@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(DataValueFixCharCopy_test) {
   DataValueFixCharEx dvc2(pStr, 14);
 
   bool b = dvc.Copy(dvc2);
-  BOOST_TEST(b);
+  BOOST_TEST(!b);
   BOOST_TEST(_threadErrorMsg->getErrId() == DT_INPUT_OVER_LENGTH);
 
   char buf[100];
@@ -153,7 +153,14 @@ BOOST_AUTO_TEST_CASE(DataValueFixCharCopy_test) {
 
   dvc2 = DataValueFixCharEx(10);
   dvc2.ReadData((Byte *)buf, 10, SavePosition::VALUE, false);
-  dvc.Copy(dvc2);
+  dvc.Copy(dvc2, true);
+  BOOST_TEST(dvc.bysValue_ == (Byte *)buf);
+  BOOST_TEST(dvc2.bysValue_ == nullptr);
+  BOOST_TEST(dvc2.GetValueType() == ValueType::NULL_VALUE);
+  BOOST_TEST(dvc != dvc2);
+
+  dvc2.ReadData((Byte *)buf, 10, SavePosition::VALUE, false);
+  dvc.Copy(dvc2, false);
   BOOST_TEST(dvc.bysValue_ == dvc2.bysValue_);
   BOOST_TEST(dvc.maxLength_ == dvc2.maxLength_);
   BOOST_TEST(dvc == dvc2);
@@ -161,10 +168,8 @@ BOOST_AUTO_TEST_CASE(DataValueFixCharCopy_test) {
   dvc2.ReadData((Byte *)buf, 10, SavePosition::VALUE, true);
   dvc.Copy(dvc2, false);
   BOOST_TEST(dvc.bysValue_ != dvc2.bysValue_);
+  BOOST_TEST(dvc.maxLength_ == dvc2.maxLength_);
   BOOST_TEST(dvc == dvc2);
-
-  dvc.Copy(dvc2, true);
-  BOOST_TEST(dvc2.GetValueType() == ValueType::NULL_VALUE);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

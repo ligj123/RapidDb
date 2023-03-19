@@ -115,6 +115,9 @@
     <ClCompile Include="..\..\src\manager\Session.cpp">
       <Filter>manager</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\utils\SpinMutex.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\header.h" />

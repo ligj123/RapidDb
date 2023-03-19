@@ -10,9 +10,11 @@ public:
   DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
       : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE, SavePosition::ALL),
         maxLength_(maxLength), soleLength_(0), bysValue_(nullptr) {}
-  DataValueVarChar(const char *val, int len)
+  DataValueVarChar(const char *val, uint32_t len,
+                   uint32_t maxLength = UINT32_MAX)
       : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, SavePosition::ALL),
-        maxLength_(len + 1), soleLength_(len + 1) {
+        maxLength_(maxLength == UINT32_MAX ? len + 1 : maxLength),
+        soleLength_(len + 1) {
     bysValue_ = CachePool::Apply(soleLength_);
     BytesCopy(bysValue_, val, len);
     bysValue_[len] = 0;
@@ -21,7 +23,7 @@ public:
                    SavePosition svPos)
       : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE, svPos),
         maxLength_(maxLength), soleLength_(strLen), bysValue_(byArray) {
-    assert(soleLength_ >= maxLength_);
+    assert(soleLength_ <= maxLength_);
   }
 
   DataValueVarChar(const DataValueVarChar &src) : IDataValue(src) {
@@ -63,7 +65,7 @@ public:
     switch (valType_) {
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return MString((char *)bysValue_, maxLength_ - 1);
+      return MString((char *)bysValue_, soleLength_ - 1);
     case ValueType::NULL_VALUE:
     default:
       return std::any();
@@ -116,7 +118,7 @@ public:
       return MString("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return MString((char *)bysValue_);
+      return MString((char *)bysValue_, soleLength_ - 1);
     }
   }
 
@@ -127,7 +129,7 @@ public:
       return string("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return string((char *)bysValue_);
+      return string((char *)bysValue_, soleLength_ - 1);
     }
   }
   uint32_t GetMaxLength() const override { return maxLength_; }
@@ -139,9 +141,11 @@ public:
     bysValue_ = nullptr;
   }
 
-  bool SetValue(string val) { return SetValue(val.c_str(), (int)val.size()); }
-  bool SetValue(const char *val, int len);
-  bool PutValue(std::any val);
+  bool SetValue(string val) {
+    return SetValue(val.c_str(), (uint32_t)val.size());
+  }
+  bool SetValue(const char *val, uint32_t len);
+  bool PutValue(std::any val) override;
   bool Copy(const IDataValue &dv, bool bMove = true) override;
 
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override;
