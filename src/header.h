@@ -20,5 +20,7 @@ const uint64_t NANO_SEC = 1000000000;
 /**Invalid page id = UINT32_MAX*/
 const PageID PAGE_NULL_POINTER = UINT32_MAX;
 
-//
+// To record memory allocate and free stack trace
 #define DEBUG_TEST
+// Do not save bin log
+#define DEBUG_WITHOUT_BIN_LOG
