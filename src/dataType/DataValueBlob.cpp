@@ -69,7 +69,10 @@ bool DataValueBlob::PutValue(std::any val) {
     return false;
   }
 
-  valType_ = ValueType::BYTES_VALUE;
+  if (valType_ == ValueType::SOLE_VALUE) {
+    CachePool::Release(bysValue_, soleLength_);
+  }
+  valType_ = ValueType::SOLE_VALUE;
   soleLength_ = (uint32_t)len;
   bysValue_ = CachePool::Apply(soleLength_);
   BytesCopy(bysValue_, buf, soleLength_);

@@ -72,6 +72,10 @@ bool DataValueVarChar::PutValue(std::any val) {
     return false;
   }
 
+  if(valType_ == ValueType::SOLE_VALUE){
+    CachePool::Release(bysValue_, soleLength_);
+  }
+
   valType_ = ValueType::SOLE_VALUE;
   soleLength_ = (uint32_t)len + 1;
   bysValue_ = CachePool::Apply(soleLength_);

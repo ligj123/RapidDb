@@ -19,3 +19,6 @@ const int BYTE_SIZE = 8;
 const uint64_t NANO_SEC = 1000000000;
 /**Invalid page id = UINT32_MAX*/
 const PageID PAGE_NULL_POINTER = UINT32_MAX;
+
+//
+#define DEBUG_TEST

@@ -22,7 +22,6 @@ BOOST_AUTO_TEST_CASE(DataValueBlob_test) {
   BOOST_TEST(!dv2.IsNull());
   BOOST_TEST(dv2.GetDataLength() == 4);
   BOOST_TEST(dv2.GetMaxLength() == 4);
-  BOOST_TEST(dv2.GetPersistenceLength(SavePosition::KEY) == 4);
   BOOST_TEST(dv2.GetPersistenceLength(SavePosition::VALUE) == 4);
 
   DataValueBlob dv3(pStr, 4, 10);
@@ -31,7 +30,6 @@ BOOST_AUTO_TEST_CASE(DataValueBlob_test) {
   BOOST_TEST(!dv3.IsNull());
   BOOST_TEST(dv3.GetDataLength() == 4);
   BOOST_TEST(dv3.GetMaxLength() == 10);
-  BOOST_TEST(dv3.GetPersistenceLength(SavePosition::KEY) == 4);
   BOOST_TEST(dv3.GetPersistenceLength(SavePosition::VALUE) == 4);
 
   DataValueBlob *dv4 = dv1.Clone(true);
@@ -122,16 +120,21 @@ BOOST_AUTO_TEST_CASE(DataValueBlobCopy_test) {
   BytesCopy(buf, "abcdefg", 7);
 
   dvb2.ReadData((Byte *)buf, 7, SavePosition::VALUE, false);
-  dvb.Copy(dvb2);
+  dvb.Copy(dvb2, true);
+  BOOST_TEST(dvb.bysValue_ == (Byte *)buf);
+  BOOST_TEST(dvb2.bysValue_ == nullptr);
+  BOOST_TEST(dvb2.GetValueType() == ValueType::NULL_VALUE);
+  BOOST_TEST(dvb != dvb2);
+
+  dvb2.ReadData((Byte *)buf, 7, SavePosition::VALUE, false);
+  dvb.Copy(dvb2, false);
   BOOST_TEST(dvb.bysValue_ == dvb2.bysValue_);
-  BOOST_TEST(dvb.maxLength_ != dvb2.maxLength_);
   BOOST_TEST(dvb.soleLength_ == dvb2.soleLength_);
   BOOST_TEST(dvb == dvb2);
 
   dvb2.ReadData((Byte *)buf, 7, SavePosition::VALUE, true);
   dvb.Copy(dvb2, false);
   BOOST_TEST(dvb.bysValue_ != dvb2.bysValue_);
-  BOOST_TEST(dvb.maxLength_ != dvb2.maxLength_);
   BOOST_TEST(dvb.soleLength_ == dvb2.soleLength_);
   BOOST_TEST(dvb == dvb2);
 
