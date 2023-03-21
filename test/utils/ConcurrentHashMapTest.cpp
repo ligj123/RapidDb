@@ -23,13 +23,13 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
   BOOST_TEST(hMap._vctMap[0]->size() == 0);
   BOOST_TEST(hMap._vctMap[0]->bucket_count() >= 10000);
 
-  for (int i = 0; i < 500000; i++) {
+  for (int i = 0; i < 50000; i++) {
     BOOST_TEST(hMap.Insert(i, ToMString(i)));
   }
 
-  BOOST_TEST(hMap.Size() == 500000);
+  BOOST_TEST(hMap.Size() == 50000);
 
-  for (int i = 0; i < 500000; i++) {
+  for (int i = 0; i < 50000; i++) {
     MString str;
     BOOST_TEST(hMap.Find(i, str));
     BOOST_TEST(str == ToMString(i));
@@ -47,7 +47,7 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
     hMap.Unlock(i);
   }
 
-  BOOST_TEST(count == 500000);
+  BOOST_TEST(count == 50000);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

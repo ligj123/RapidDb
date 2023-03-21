@@ -12,6 +12,7 @@ namespace storage {
 bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
                             VectorDataValue &vctKey, VectorDataValue &vctVal,
                             uint32_t indexId, IndexType iType) {
+  assert(_headPage == nullptr);
   _indexName = indexName;
   _fileName = fileName;
   for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {
@@ -75,6 +76,7 @@ bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
 bool IndexTree::InitIndex(const string &indexName, const string &fileName,
                           VectorDataValue &vctKey, VectorDataValue &vctVal,
                           uint32_t indexId) {
+  assert(_headPage == nullptr);
   _indexName = indexName;
   _fileName = fileName;
   for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {
