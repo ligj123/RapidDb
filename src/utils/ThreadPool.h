@@ -46,7 +46,7 @@ public:
 
 protected:
   /**Waiting tasks for this task*/
-  MVector<Task *>::Type _vctWaitTasks;
+  MVector<Task *> _vctWaitTasks;
   TaskStatus _status = TaskStatus::UNINIT;
 };
 
@@ -87,7 +87,7 @@ public:
   ThreadPool &operator=(const ThreadPool &) = delete;
 
   void AddTask(Task *task, bool urgent = false);
-  void AddTasks(MVector<Task *>::Type &vct);
+  void AddTasks(MVector<Task *> &vct);
   void Stop() { _stopThreads = true; }
   uint32_t GetTaskCount() {
     return (uint32_t)(_smallTasks.size() + _largeTasks.size() +

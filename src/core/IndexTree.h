@@ -133,7 +133,7 @@ protected:
   VectorDataValue _vctKey;
   VectorDataValue _vctValue;
   SpinMutex _pageMutex;
-  MHashMap<uint64_t, PageLock *>::Type _mapMutex;
+  MHashMap<uint64_t, PageLock *> _mapMutex;
   queue<PageLock *> _queueMutex;
   /**To lock for root page*/
   SharedSpinMutex _rootSharedMutex;

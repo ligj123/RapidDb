@@ -12,18 +12,19 @@ namespace fs = std::filesystem;
 BOOST_AUTO_TEST_SUITE(CoreTest)
 
 BOOST_AUTO_TEST_CASE(HeadPage_test) {
-  const MString FILE_NAME = "./dbTest/testHeadPage" + MStrMSTime() + ".dat";
-  const MString TABLE_NAME = "testTable";
+  const string FILE_NAME = "./dbTest/testHeadPage" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
   VectorDataValue vctKey;
   VectorDataValue vctVal;
-  IndexTree *indexTree =
-      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 1,
+                         IndexType::PRIMARY);
 
   HeadPage *headPage = indexTree->GetHeadPage();
   headPage->WriteFileVersion();
   headPage->WriteIndexType(IndexType::PRIMARY);
-  headPage->AddNewRecordVersion(100);
-  headPage->AddNewRecordVersion(200);
+  // headPage->AddNewRecordVersion(100);
+  // headPage->AddNewRecordVersion(200);
   headPage->WriteKeyVariableFieldCount(100);
   headPage->WriteValueVariableFieldCount(100);
 
@@ -73,9 +74,9 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
   BOOST_TEST(103 == headPage->ReadAutoIncrementKey3());
 
   delete headPage;
-  indexTree->Close(true);
-  PageBufferPool::ClearPool();
-  fs::remove(fs::path(FILE_NAME));
+  indexTree->Close(nullptr);
+  // PageBufferPool::ClearPool();
+  // fs::remove(fs::path(FILE_NAME));
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

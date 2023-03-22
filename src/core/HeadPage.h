@@ -73,23 +73,23 @@ protected:
   /**Index type, primary, unique or non-unique*/
   IndexType _indexType = IndexType::PRIMARY;
   /**the count of total pages in this index*/
-  atomic<uint32_t> _totalPageCount = 0;
+  atomic<uint32_t> _totalPageCount {0};
   /**The root page id for this index*/
-  atomic<PageID> _rootPageId = 0;
+  atomic<PageID> _rootPageId {0};
   /**The begin leaf page for this index*/
-  atomic<PageID> _beginLeafPageId = 0;
+  atomic<PageID> _beginLeafPageId {0};
   /**The end leaf page for this index*/
-  atomic<PageID> _endLeafPageId = 0;
+  atomic<PageID> _endLeafPageId {0};
   /**The count of total records in this index*/
-  atomic_uint64_t _totalRecordCount = 0;
+  atomic_uint64_t _totalRecordCount {0};
   /**In this table, any changes for a record will need a new record version
   stamp, it start from 0, and will add one every time. This stamp will be used
   for log transport, data snapshot etc.*/
-  atomic_uint64_t _currRecordStamp = 0;
+  atomic_uint64_t _currRecordStamp {0};
   /**To generate the auto increment ids, the value is current id*/
-  atomic_uint64_t _autoIncrementKey1 = 0;
-  atomic_uint64_t _autoIncrementKey2 = 0;
-  atomic_uint64_t _autoIncrementKey3 = 0;
+  atomic_uint64_t _autoIncrementKey1{ 0};
+  atomic_uint64_t _autoIncrementKey2{0} ;
+  atomic_uint64_t _autoIncrementKey3 {0};
   /**The map contains the pair of timestamp and record stamps in this table,
    * only valid for primary index in a table. It saved in head page after
    * RECORD_VERSION_STAMP_OFFSET and save the pairs from small to big one by one
@@ -110,7 +110,7 @@ public:
   FileVersion ReadFileVersion();
 
   inline Byte ReadRecordVersionCount() { return (Byte)_mapVerStamp.size(); }
-  // Only locked the entire table, here can update record version, so here do
+  // Only after the entire table was locked, here can update record version. so here do
   // not need lock
   inline void AddNewRecordVersion(VersionStamp ver, DT_MicroSec timeStamp) {
     assert(_mapVerStamp.size() < MAX_RECORD_VERSION_COUNT);

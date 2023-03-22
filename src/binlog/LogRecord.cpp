@@ -7,7 +7,7 @@ static thread_local boost::crc_32_type crc32;
 
 LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
                            PageID parentID,
-                           MVector<BranchRecord *>::Type &vctLastRec,
+                           MVector<BranchRecord *> &vctLastRec,
                            IndexPage *page)
     : LogBase(logId, buf, bufLen) {
   assert(vctLastRec.size() > 0);
@@ -68,7 +68,7 @@ LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
 }
 
 bool LogPageDivid::ReadData(uint64_t &logId, PageID &parentID,
-                            MVector<BranchRecord *>::Type &vctLastRec,
+                            MVector<BranchRecord *> &vctLastRec,
                             IndexPage *page) {
   assert(_buf != nullptr && _bufLen > 0);
   assert(vctLastRec.size() == 0);

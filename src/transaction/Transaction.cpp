@@ -7,7 +7,7 @@ atomic_uint64_t Transaction::_atomicAutoTranId = (SecondTime() & 0xffffff)
 atomic_uint64_t Transaction::_atomicManualTranId = (SecondTime() & 0xffffff)
                                                    << 24;
 SpinMutex Transaction::_mutexTran;
-MHashMap<uint64_t, Transaction *>::Type Transaction::_mapTransaction;
+MHashMap<uint64_t, Transaction *> Transaction::_mapTransaction;
 thread_local ErrorMsg *Transaction::_localErrorMsg = nullptr;
 
 void Transaction::SetTransactionstatus(TranStatus status) {

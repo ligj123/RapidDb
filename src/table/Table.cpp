@@ -142,7 +142,7 @@ void PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
 }
 
 void PhysTable::AddIndex(IndexType indexType, string &indexName,
-                         MVector<string>::Type &colNames) {
+                         MVector<string> &colNames) {
   if (colNames.size() == 0) {
     throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName});
   }
@@ -152,7 +152,7 @@ void PhysTable::AddIndex(IndexType indexType, string &indexName,
 
   assert(indexType != IndexType::PRIMARY || _vctIndex.size() == 0);
 
-  MVector<IndexColumn>::Type vctCol;
+  MVector<IndexColumn> vctCol;
   for (string cname : colNames) {
     auto iter = _mapColumnPos.find(cname);
     if (iter == _mapColumnPos.end()) {
@@ -160,7 +160,7 @@ void PhysTable::AddIndex(IndexType indexType, string &indexName,
     }
   }
 
-  MVector<IndexColumn>::Type vctIc;
+  MVector<IndexColumn> vctIc;
   for (string col : colNames) {
     auto iter = _mapColumnPos.find(col);
     if (iter == _mapColumnPos.end()) {

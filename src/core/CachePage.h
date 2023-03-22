@@ -139,7 +139,7 @@ public:
 
     return true;
   }
-  inline MVector<Task *>::Type &GetWaitTasks() { return _waitTasks; }
+  inline MVector<Task *> &GetWaitTasks() { return _waitTasks; }
   inline void SetInDivid(bool b) { _bInDivid.store(b, memory_order_relaxed); }
   inline bool IsInDivid() { return _bInDivid.load(memory_order_relaxed); }
   inline void SetInStorage(bool b) {
@@ -159,7 +159,7 @@ protected:
 
 protected:
   // To save waiting tasks when reading from disk
-  MVector<Task *>::Type _waitTasks;
+  MVector<Task *> _waitTasks;
   // Mutexes when task adding or removing
   SpinMutex _taskLock;
   // The page block, it is equal pages in disk

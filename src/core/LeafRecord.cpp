@@ -192,7 +192,7 @@ int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
                                  ActionType type, bool gapLock) {
   assert(_refCount == 1);
   RecStruct recStruOld(_bysVal, _overflowPage);
-  MVector<Byte>::Type vctSn;
+  MVector<Byte> vctSn;
   uint32_t oldLenVal = CalcValidValueLength(recStruOld, true, vctSn);
   _actionType = type;
   _statement = stmt;
@@ -268,7 +268,7 @@ int32_t LeafRecord::UpdateRecord(const VectorDataValue &vctVal,
  * @return The total length of versions will been moved new record
  */
 uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
-                                          MVector<Byte>::Type &vctSN) {
+                                          MVector<Byte> &vctSN) {
   const set<VersionStamp, KeyCmp> &setVer =
       _indexTree->GetHeadPage()->GetSetVerStamp();
   if (setVer.size() == 0)
@@ -319,7 +319,7 @@ uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
  *         0: Passed to read values with all fields.
  *         1: The record has been deleted
  */
-int LeafRecord::GetListValue(const MVector<int>::Type &vctPos,
+int LeafRecord::GetListValue(const MVector<int> &vctPos,
                              VectorDataValue &vctVal, uint64_t verStamp,
                              Statement *stmt, bool bQuery) const {
   assert(_indexTree->GetHeadPage()->ReadIndexType() == IndexType::PRIMARY);

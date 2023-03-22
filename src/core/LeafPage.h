@@ -13,7 +13,7 @@ public:
   static const uint16_t PREV_PAGE_POINTER_OFFSET;
   static const uint16_t NEXT_PAGE_POINTER_OFFSET;
   static const uint16_t DATA_BEGIN_OFFSET;
-  static void RollbackLeafRecords(const MVector<LeafRecord *>::Type &vctRec,
+  static void RollbackLeafRecords(const MVector<LeafRecord *> &vctRec,
                                   int64_t endPos);
 
 public:

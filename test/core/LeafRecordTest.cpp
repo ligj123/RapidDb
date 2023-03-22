@@ -177,7 +177,7 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //  lr->UpdateRecord(vctVal, 2, nullptr, ActionType::UPDATE, false);
 //
 //  BOOST_TEST(lr->GetVersionNumber() == 1);
-//  MVector<uint64_t>::Type vct;
+//  MVector<uint64_t> vct;
 //  lr->GetVerStamps(vct);
 //  BOOST_TEST(vct.size() == 1);
 //  BOOST_TEST(vct[0] == 2);

@@ -168,7 +168,7 @@ protected:
 
 class ExprAnd : public ExprLogic {
 public:
-  ExprAnd(MVector<ExprLogic *>::Type &vctChild) { _vctChild.swap(vctChild); }
+  ExprAnd(MVector<ExprLogic *> &vctChild) { _vctChild.swap(vctChild); }
   ~ExprAnd() {
     for (auto ele : _vctChild) {
       delete ele;
@@ -186,12 +186,12 @@ public:
   }
 
 protected:
-  MVector<ExprLogic *>::Type _vctChild;
+  MVector<ExprLogic *> _vctChild;
 };
 
 class ExprOr : public ExprLogic {
 public:
-  ExprOr(MVector<ExprLogic *>::Type vctChild) { _vctChild.swap(vctChild); }
+  ExprOr(MVector<ExprLogic *> vctChild) { _vctChild.swap(vctChild); }
   ~ExprOr() {
     for (auto ele : _vctChild) {
       delete ele;
@@ -208,7 +208,7 @@ public:
   }
 
 protected:
-  MVector<ExprLogic *>::Type _vctChild;
+  MVector<ExprLogic *> _vctChild;
 };
 
 // class ExprWhere : public ExprLogic {
@@ -232,7 +232,7 @@ protected:
 
 // class ExprOn : public ExprLogic {
 // public:
-//   ExprOn(MVector<ExprComp *>::Type vctChild) { _vctChild.swap(vctChild); }
+//   ExprOn(MVector<ExprComp *> vctChild) { _vctChild.swap(vctChild); }
 //   ~ExprOn() {
 //     for (auto c : _vctChild)
 //       delete c;
@@ -247,6 +247,6 @@ protected:
 //   }
 
 // protected:
-//   MVector<ExprComp *>::Type _vctChild;
+//   MVector<ExprComp *> _vctChild;
 // };
 } // namespace storage

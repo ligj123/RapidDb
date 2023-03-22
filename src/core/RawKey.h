@@ -92,7 +92,7 @@ inline std::ostream &operator<<(std::ostream &os, const RawKey &key) {
   return os;
 }
 
-class VectorRawKey : public MVector<RawKey *>::Type {
+class VectorRawKey : public MVector<RawKey *> {
 public:
   using vector::vector;
   VectorRawKey(VectorRawKey &&src) noexcept { swap(src); }

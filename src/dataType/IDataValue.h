@@ -152,7 +152,7 @@ protected:
   bool bReuse_;
 };
 
-class VectorDataValue : public MVector<IDataValue *>::Type {
+class VectorDataValue : public MVector<IDataValue *> {
 public:
   using vector::vector;
 
@@ -203,7 +203,7 @@ protected:
   bool bRef = false;
 };
 
-class VectorRow : public MVector<VectorDataValue *>::Type {
+class VectorRow : public MVector<VectorDataValue *> {
 public:
   using vector::vector;
   ~VectorRow() {

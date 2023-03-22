@@ -5,7 +5,7 @@ using namespace std;
 namespace storage {
 struct FuncStru {
   MString _funcName;
-  MVector<DataType>::Type _parasType;
+  MVector<DataType> _parasType;
   DataType _rtType;
 };
 /*
@@ -25,6 +25,6 @@ protected:
   // The function name, must convert to upper case
   MString _funcName;
   // The parameters for this function
-  MVector<BaseExpr *>::Type _vctPara;
+  MVector<BaseExpr *> _vctPara;
 };
 } // namespace storage

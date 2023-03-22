@@ -335,7 +335,7 @@ int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
  * @param vctRec The vector to save leaf records
  * @param endPos The end position to rollback records, include this position.
  */
-void LeafPage::RollbackLeafRecords(const MVector<LeafRecord *>::Type &vctRec,
+void LeafPage::RollbackLeafRecords(const MVector<LeafRecord *> &vctRec,
                                    int64_t endPos) {
   assert(vctRec.size() > (size_t)endPos);
   for (int64_t i = endPos; i > 0; i--) {

@@ -100,7 +100,7 @@ protected:
   // pages has been saved, the old _bysPage can be released.
   AbsoleteBuffer *_absoBuf = nullptr;
   // The vector to save records in this page
-  MVector<RawRecord *>::Type _vctRecord;
+  MVector<RawRecord *> _vctRecord;
   // Parent page ID
   uint32_t _parentPageId = 0;
   // Total data length in this page

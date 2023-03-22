@@ -65,7 +65,7 @@ struct IndexColumn {
 struct IndexProp {
   IndexProp() : _position(UINT32_MAX), _type(IndexType::UNKNOWN) {}
   IndexProp(string &name, uint32_t pos, IndexType type,
-            MVector<IndexColumn>::Type &vctCol)
+            MVector<IndexColumn> &vctCol)
       : _name(name), _position(pos), _type(type) {
     _vctCol.swap(vctCol);
   }
@@ -82,7 +82,7 @@ struct IndexProp {
   // This index is primary key, unique key or nonunique key.
   IndexType _type;
   // The columns that composit this index
-  MVector<IndexColumn>::Type _vctCol;
+  MVector<IndexColumn> _vctCol;
   // Index tree,
   IndexTree *_tree = nullptr;
 };
@@ -97,7 +97,7 @@ public:
   uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   const IndexProp *GetPrimaryKey() const { return _vctIndex[0]; }
-  const MVector<IndexProp *>::Type &GetVectorIndex() const { return _vctIndex; }
+  const MVector<IndexProp *> &GetVectorIndex() const { return _vctIndex; }
   IndexType GetIndexType(string &indexName) const {
     auto iter = _mapIndexNamePos.find(indexName);
     if (iter == _mapIndexNamePos.end())
@@ -105,13 +105,13 @@ public:
     return _vctIndex[iter->second]->_type;
   }
 
-  const MVector<PhysColumn *>::Type &GetColumnArray() const {
+  const MVector<PhysColumn *> &GetColumnArray() const {
     return _vctColumn;
   }
 
   const PhysColumn *GetColumn(string &fieldName) const;
   const PhysColumn *GetColumn(int pos);
-  const MHashMap<string, uint32_t>::Type GetMapColumnPos() {
+  const MHashMap<string, uint32_t> GetMapColumnPos() {
     return _mapColumnPos;
   }
   const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
@@ -123,7 +123,7 @@ public:
                  any &valDefault);
 
   void AddIndex(IndexType indexType, string &indexName,
-                MVector<string>::Type &colNames);
+                MVector<string> &colNames);
   // Only used in developing time, in the future will save table schema to
   // system table
   void ReadData();
@@ -170,18 +170,18 @@ protected:
   DT_MilliSec _dtLastUpdate;
   /**Include all columns in this table, they will order by actual position in
    * the table.*/
-  MVector<PhysColumn *>::Type _vctColumn;
+  MVector<PhysColumn *> _vctColumn;
   /** The map for column name and their position in column list */
-  MHashMap<string, uint32_t>::Type _mapColumnPos;
+  MHashMap<string, uint32_t> _mapColumnPos;
   /**All index, the primary key must be the first.*/
-  MVector<IndexProp *>::Type _vctIndex;
+  MVector<IndexProp *> _vctIndex;
   // The map for index with index name and position
-  MHashMap<string, uint32_t>::Type _mapIndexNamePos;
+  MHashMap<string, uint32_t> _mapIndexNamePos;
   /**The map for index with first column's position in _vctColumn and index
    * position in _vctIndex*/
   unordered_multimap<uint32_t, uint32_t> _mapIndexFirstField;
   // The positions of all columns that constitute the all secondary index.
-  MVector<int>::Type _vctIndexPos;
+  MVector<int> _vctIndexPos;
   // The database this table belong to
   Database *_db;
 };
@@ -189,6 +189,6 @@ protected:
 class ResultTable : public BaseTable {
 public:
 protected:
-  MVector<ResultColumn>::Type _vctColumn;
+  MVector<ResultColumn> _vctColumn;
 };
 } // namespace storage

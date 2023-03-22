@@ -169,7 +169,7 @@ void ThreadPool::AddTask(Task *task, bool urgent) {
   }
 }
 
-void ThreadPool::AddTasks(MVector<Task *>::Type &vct) {
+void ThreadPool::AddTasks(MVector<Task *> &vct) {
   assert(!_stopThreads);
   if (vct.size() == 0)
     return;

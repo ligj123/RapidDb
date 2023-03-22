@@ -57,7 +57,7 @@ void PageBufferPool::PoolManage() {
   };
 
   for (int i = 0; i < _mapCache.GetGroupCount(); i++) {
-    priority_queue<CachePage *, MDeque<CachePage *>::Type, decltype(cmp)> queue(
+    priority_queue<CachePage *, MDeque<CachePage *>, decltype(cmp)> queue(
         cmp);
     forward_list<CachePage *> flist;
 

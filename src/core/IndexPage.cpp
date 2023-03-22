@@ -95,7 +95,7 @@ bool IndexPage::PageDivide() {
   _totalDataLength = len;
   _recordNum = pos;
 
-  MVector<IndexPage *>::Type vctPage;
+  MVector<IndexPage *> vctPage;
   IndexPage *newPage = nullptr;
 
   len = 0;
@@ -181,7 +181,7 @@ bool IndexPage::PageDivide() {
   }
 
   // Add bin log record for page divid
-  MVector<BranchRecord *>::Type vctLog;
+  MVector<BranchRecord *> vctLog;
   for (int i = posInParent - 1; i < posInParent + vctPage.size(); i++) {
     vctLog.push_back((BranchRecord *)parentPage->_vctRecord[i]);
   }

@@ -91,7 +91,7 @@ public:
                           Statement *stmt = nullptr, bool bQuery = true) const {
     return GetListValue({}, vct, verStamp, stmt, bQuery);
   }
-  int GetListValue(const MVector<int>::Type &vctPos, VectorDataValue &vct,
+  int GetListValue(const MVector<int> &vctPos, VectorDataValue &vct,
                    uint64_t verStamp = UINT64_MAX, Statement *stmt = nullptr,
                    bool bQuery = true) const;
   RawKey *GetKey() const;
@@ -163,7 +163,7 @@ public:
     return *(_bysVal + UI16_2_LEN + keyLen) & VERSION_NUM;
   }
 
-  void GetVerStamps(MVector<uint64_t>::Type &vctStamp) {
+  void GetVerStamps(MVector<uint64_t> &vctStamp) {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     Byte ver = GetVersionNumber();
     uint64_t *arrStamp = (uint64_t *)(_bysVal + UI16_2_LEN + keyLen + 1);
@@ -201,7 +201,7 @@ protected:
   void FillValueBuff(ValueStruct &valStru, const VectorDataValue &vctVal);
 
   uint32_t CalcValidValueLength(RecStruct &recStru, bool bUpdate,
-                                MVector<Byte>::Type &vctSN);
+                                MVector<Byte> &vctSN);
 
 protected:
   // If update this record, save old version for transaction rollback. If it
@@ -221,7 +221,7 @@ inline bool operator<(const LeafRecord &llr, const LeafRecord &rlr) {
 }
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
-class VectorLeafRecord : public MVector<LeafRecord *>::Type {
+class VectorLeafRecord : public MVector<LeafRecord *> {
 public:
   using vector::vector;
 

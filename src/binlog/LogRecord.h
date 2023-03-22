@@ -56,11 +56,11 @@ protected:
 class LogPageDivid : public LogBase {
 public:
   LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen, PageID parentID,
-               MVector<BranchRecord *>::Type &vctLastRec,
+               MVector<BranchRecord *> &vctLastRec,
                IndexPage *page = nullptr);
   LogPageDivid(Byte *buf, uint32_t len) : LogBase(buf, len) {}
   bool ReadData(uint64_t &logId, PageID &parentID,
-                MVector<BranchRecord *>::Type &vctLastRec,
+                MVector<BranchRecord *> &vctLastRec,
                 IndexPage *page = nullptr);
 };
 

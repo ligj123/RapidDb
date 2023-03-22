@@ -69,7 +69,7 @@ public:
   bool IsOvertime() { return MilliSecTime() - _createTime > _maxMicroSec; }
   uint64_t GetTranId() { return _tranId; }
   bool AbleAddTask() { return _tranStatus == TranStatus::CREATED; }
-  MVector<Statement *>::Type &GetStatements() { return _vctStatement; }
+  MVector<Statement *> &GetStatements() { return _vctStatement; }
   void Rollback();
   void Failed();
   void TimeOut();
@@ -83,7 +83,7 @@ protected:
   // To lock atomicTranId and generate new transaction id
   static SpinMutex _mutexTran;
   // To keep transactions until close them
-  static MHashMap<uint64_t, Transaction *>::Type _mapTransaction;
+  static MHashMap<uint64_t, Transaction *> _mapTransaction;
   // thread local error msg, it will be replaced by following error
   static thread_local ErrorMsg *_localErrorMsg;
 
@@ -116,7 +116,7 @@ protected:
   // All statements in this transaction
   // In this version, a transaction can have no more than 65536 statements.
   // It will throw exception when add the 65537 statement.
-  MVector<Statement *>::Type _vctStatement;
+  MVector<Statement *> _vctStatement;
   // To record the number of finished records
   uint64_t _recFinished = 0;
   // spin lock
