@@ -15,56 +15,56 @@
 namespace storage {
 namespace fs = std::filesystem;
 BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
-//
-// BOOST_AUTO_TEST_CASE(LeafRecord_test) {
-//  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
-//  const string TABLE_NAME = "testTable";
-//
-//  DataValueLong *dvKey = new DataValueLong(100LL, true);
-//  DataValueLong *dvVal = new DataValueLong(200LL, false);
-//  VectorDataValue vctKey = {dvKey->Clone()};
-//  VectorDataValue vctVal = {dvVal->Clone()};
-//  IndexTree *indexTree =
-//      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal,
-//      IndexType::PRIMARY);
-//
-//  vctKey.push_back(dvKey->Clone(true));
-//  vctVal.push_back(dvVal->Clone(true));
-//  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
-//  BOOST_TEST(8 == lr->GetKeyLength());
-//  BOOST_TEST(9 == lr->GetValueLength());
-//  BOOST_TEST(34 == lr->GetTotalLength());
-//  BOOST_TEST(lr->IsSole());
-//  BOOST_TEST(!lr->IsTransaction());
-//  BOOST_TEST(!lr->IsGapLock());
-//
-//  Byte byArr[512];
-//  lr->SaveData(byArr);
-//  LeafRecord *lr2 = new LeafRecord(indexTree, byArr);
-//
-//  RawKey *key = lr2->GetKey();
-//  RawKey key2(vctKey);
-//  BOOST_TEST(*key == key2);
-//  delete key;
-//
-//  VectorDataValue vctVal2;
-//  int hr = lr2->GetListValue(vctVal2);
-//  BOOST_TEST(hr == 0);
-//  BOOST_TEST(vctVal2[0]->GetLong() == 200LL);
-//
-//  BOOST_TEST(lr->CompareTo(*lr2) == 0);
-//  BOOST_TEST(lr->CompareKey(key2) == 0);
-//  BOOST_TEST(lr->CompareKey(*lr2) == 0);
-//
-//  lr->ReleaseRecord();
-//  lr2->ReleaseRecord();
-//
-//  indexTree->Close();
-//
-//  delete dvKey;
-//  delete dvVal;
-//}
-//
+
+BOOST_AUTO_TEST_CASE(LeafRecord_test) {
+  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+
+  DataValueLong *dvKey = new DataValueLong(100LL);
+  DataValueLong *dvVal = new DataValueLong(200LL);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  bool b = indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 1,
+                                  IndexType::PRIMARY);
+  BOOST_TEST(b);
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+  BOOST_TEST(8 == lr->GetKeyLength());
+  BOOST_TEST(9 == lr->GetValueLength());
+  BOOST_TEST(34 == lr->GetTotalLength());
+  BOOST_TEST(lr->IsSole());
+  BOOST_TEST(!lr->IsTransaction());
+  BOOST_TEST(!lr->IsGapLock());
+
+  Byte byArr[512];
+  lr->SaveData(byArr);
+  LeafRecord *lr2 = new LeafRecord(indexTree, byArr);
+
+  RawKey *key = lr2->GetKey();
+  RawKey key2(vctKey);
+  BOOST_TEST(*key == key2);
+  delete key;
+
+  VectorDataValue vctVal2;
+  int hr = lr2->GetListValue(vctVal2);
+  BOOST_TEST(hr == 0);
+  BOOST_TEST(vctVal2[0]->GetLong() == 200LL);
+
+  BOOST_TEST(lr->CompareTo(*lr2) == 0);
+  BOOST_TEST(lr->CompareKey(key2) == 0);
+  BOOST_TEST(lr->CompareKey(*lr2) == 0);
+
+  lr->ReleaseRecord();
+  lr2->ReleaseRecord();
+
+  indexTree->Close();
+
+  delete dvKey;
+  delete dvVal;
+}
+
 // BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
 //  const string FILE_NAME = "./dbTest/testLeafRecordBig" + StrMSTime() +
 //  ".dat"; const string TABLE_NAME = "testTable";

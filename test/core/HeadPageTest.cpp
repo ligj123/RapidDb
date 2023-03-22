@@ -4,12 +4,13 @@
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/pool/StoragePool.h"
 #include "../../src/utils/Utilitys.h"
+#include "CoreSuit.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
 
 namespace storage {
 namespace fs = std::filesystem;
-BOOST_AUTO_TEST_SUITE(CoreTest)
+BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 
 BOOST_AUTO_TEST_CASE(HeadPage_test) {
   const string FILE_NAME = "./dbTest/testHeadPage" + StrMSTime() + ".dat";
@@ -23,8 +24,8 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
   HeadPage *headPage = indexTree->GetHeadPage();
   headPage->WriteFileVersion();
   headPage->WriteIndexType(IndexType::PRIMARY);
-  // headPage->AddNewRecordVersion(100);
-  // headPage->AddNewRecordVersion(200);
+  headPage->AddNewRecordVersion(100, 0);
+  headPage->AddNewRecordVersion(200, 1);
   headPage->WriteKeyVariableFieldCount(100);
   headPage->WriteValueVariableFieldCount(100);
 
