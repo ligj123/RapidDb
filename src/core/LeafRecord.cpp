@@ -153,7 +153,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 
 void LeafRecord::ReleaseRecord(bool bUndo) {
   uint16_t val = _refCount.fetch_sub(1);
-  assert(val > 1);
+  assert(val >= 1);
 
   if (val == 1) {
     if (_undoRec != nullptr) {
@@ -401,7 +401,7 @@ int LeafRecord::GetListValue(const MVector<int> &vctPos,
     if (vctPos.size() == 0 || vctPos[ipos] == i) {
       IDataValue *dv = vdSrc[i]->Clone();
       if (flen > 0)
-        dv->ReadData(bys, flen, SavePosition::KEY);
+        dv->ReadData(bys, flen, SavePosition::VALUE);
 
       vctVal.push_back(dv);
       ipos++;
