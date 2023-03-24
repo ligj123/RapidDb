@@ -1,4 +1,5 @@
 #include "TimerThread.h"
+#include "ThreadPool.h"
 
 namespace storage {
 TimerThread *TimerThread::_instance = nullptr;
@@ -17,6 +18,9 @@ TimerThread::~TimerThread() {
 
 void TimerThread::Run() {
   _bRunning = true;
+  // TimeThread do not use FastQueue, so its id set to negitive.
+  ThreadPool::AddThread("TimerThread", -1);
+
   while (_bRunning) {
     _currTime = chrono::duration_cast<chrono::microseconds>(
                     chrono::system_clock::now().time_since_epoch())
@@ -52,6 +56,8 @@ void TimerThread::Run() {
 
     this_thread::sleep_for(chrono::microseconds(1));
   }
+
+  ThreadPool::RemoveThread(-1);
 }
 
 void TimerThread::AddCircleTask(string name, DT_MicroSec interval,

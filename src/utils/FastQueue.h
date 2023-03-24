@@ -23,7 +23,7 @@ struct InnerQueue {
 extern thread_local vector<InnerQueue *> _localInner;
 // To record how many instances of FastQueue in this process. Every instance's
 // index will get value from it and then it will increase one. The index will
-// be used to indentify how to set and get InnerQueue from _localVct
+// be used to indentify how to set and get InnerQueue from _localInner
 extern atomic_int32_t _queueCount;
 
 // Here T must be class pointer
@@ -53,19 +53,11 @@ public:
 
   // Push an element
   void Push(T *ele) {
-#ifdef DEBUG_TEST
-    if (ThreadPool::_threadID == -1) {
-      unique_lock<SpinMutex> lock(_spinMutex);
-      _queue.push(ele);
-      return;
-    }
-#else
-    assert(ThreadPool::_threadID >= 0);
-#endif // DEBUG_TEST
+    assert(ThreadPool::GetThreadId() >= 0);
 
     InnerQueue *q = _localInner[_index];
     if (q == nullptr) {
-      q = _vctInner[ThreadPool::_threadID];
+      q = _vctInner[ThreadPool::GetThreadId()];
       _localInner[_index] = q;
     }
 

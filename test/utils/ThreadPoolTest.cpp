@@ -14,7 +14,7 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
     TestTask() {}
     bool IsSmallTask() override { return false; }
     void Run() override {
-      _val = ThreadPool::_threadID;
+      _val = ThreadPool::GetThreadId();
       LOG_INFO << "thread id: " << _val;
       this_thread::sleep_for(500ms);
       _status = TaskStatus::PAUSE_WITHOUT_ADD;
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
   }
 
   LOG_INFO << "count: " << count;
-  BOOST_TEST(count == 28);
+  BOOST_TEST(count == 36);
 }
 
 BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {

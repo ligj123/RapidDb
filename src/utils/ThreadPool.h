@@ -6,6 +6,7 @@
 #include <condition_variable>
 #include <deque>
 #include <future>
+#include <set>
 #include <thread>
 #include <type_traits>
 #include <unordered_map>
@@ -53,10 +54,23 @@ protected:
 template <class T> class FastQueue;
 class ThreadPool {
 public:
-  static thread_local int _threadID;
-  static thread_local string _threadName;
   static thread_local Task *_currTask;
-  static string GetThreadName() { return _threadName; }
+  static inline string GetThreadName() { return _threadName; }
+  static inline int GetThreadId() { return _threadID; }
+  static inline void AddThread(string name, int id) {
+    _threadName = name;
+    _threadID = id;
+#ifdef DEBUG_TEST
+    if (_setId.find(id) != _setId.end())
+      abort();
+    _setId.insert(id);
+#endif
+  }
+  static inline void RemoveThread(int id) {
+#ifdef DEBUG_TEST
+    _setId.erase(id);
+#endif
+  }
   static ThreadPool &InstMain() {
     assert(_instMain != nullptr);
     return *_instMain;
@@ -80,7 +94,8 @@ public:
 public:
   ThreadPool(string threadPrefix, uint32_t maxQueueSize = 1000000,
              int minThreads = 1,
-             int maxThreads = std::thread::hardware_concurrency());
+             int maxThreads = std::thread::hardware_concurrency(),
+             int startId = 1 /*0 is main thread id, so it start from 1*/);
   ~ThreadPool();
 
   ThreadPool(const ThreadPool &) = delete;
@@ -113,19 +128,27 @@ protected:
   SpinMutex _task_mutex;
   SpinMutex _threadMutex;
   condition_variable_any _taskCv;
-  bool _stopThreads = false;
   string _threadPrefix;
+  bool _stopThreads = false;
   uint32_t _maxQueueSize;
   int _minThreads;
   int _maxThreads;
   int _aliveThreads;
   int _freeThreads;
   int _tasksNum;
+  int _startId;
   FastQueue<Task> *_fastQueue;
 
 protected:
   static ThreadPool *_instMain;
   static SpinMutex _smMain;
+  static thread_local int _threadID;
+  static thread_local string _threadName;
+
+#ifdef DEBUG_TEST
+  // Sve have used thread id to avoid id collide
+  static set<int> _setId;
+#endif
 };
 
 } // namespace storage

@@ -4,17 +4,20 @@
 #include <stdexcept>
 
 namespace storage {
+// The default thread is main thread and its id=0; other thread id start from 1
+// and must be series, because this id will be used in FastQueue.
 thread_local string ThreadPool::_threadName = "main";
-thread_local int ThreadPool::_threadID = -1;
+thread_local int ThreadPool::_threadID = 0;
 thread_local Task *ThreadPool::_currTask = nullptr;
 ThreadPool *ThreadPool::_instMain = nullptr;
 SpinMutex ThreadPool::_smMain;
+set<int> ThreadPool::_setId{0};
 
 ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
-                       int minThreads, int maxThreads)
+                       int minThreads, int maxThreads, int startId)
     : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize),
       _stopThreads(false), _minThreads(minThreads), _maxThreads(maxThreads),
-      _aliveThreads(0), _freeThreads(0), _tasksNum(0),
+      _aliveThreads(0), _freeThreads(0), _tasksNum(0), _startId(startId),
       _fastQueue(new FastQueue<Task>(maxThreads)) {
   if (_minThreads < 1 || _minThreads > _maxThreads || _maxThreads < 1) {
     throw invalid_argument(
@@ -30,6 +33,7 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
 }
 
 void ThreadPool::CreateThread(int id) {
+  std::unique_lock<SpinMutex> thread_lock(_threadMutex);
   if (id < 0) {
     for (int i = 0; i < _maxThreads; i++) {
       if (_vctThread[i] == nullptr) {
@@ -40,8 +44,7 @@ void ThreadPool::CreateThread(int id) {
   }
 
   thread *t = new thread([this, id]() {
-    _threadName = _threadPrefix + "_" + to_string(id);
-    _threadID = id;
+    AddThread(_threadPrefix + "_" + to_string(id), id + _startId);
     vector<Task *> vct;
     vct.reserve(10);
 
@@ -124,9 +127,9 @@ void ThreadPool::CreateThread(int id) {
       t->detach();
       delete t;
     }
+    RemoveThread(id);
   });
 
-  std::unique_lock<SpinMutex> thread_lock(_threadMutex);
   _vctThread[id] = t;
   _aliveThreads++;
 }

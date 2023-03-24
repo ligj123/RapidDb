@@ -29,7 +29,7 @@ struct GlobalFixTure {
       }
     }
 #ifdef DEBUG_TEST
-    LOG_INFO << "MemoryUsed: " << CachePool::GetMemoryUsed() << std::endl;
+    LOG_INFO << "Memory leaked: " << CachePool::GetMemoryUsed() << std::endl;
     unordered_map<Byte *, string> &map = CachePool::_mapApply;
     for (auto iter = map.begin(); iter != map.end(); iter++) {
       LOG_INFO << (void *)iter->first << "    " << iter->second;
