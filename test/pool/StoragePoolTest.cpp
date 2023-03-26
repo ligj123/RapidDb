@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
   indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0,
                          IndexType::PRIMARY);
 
-  int hc = std::thread::hardware_concurrency();
+  int hc = tp->GetMinThreads();
   for (int i = 1; i <= hc; i++) {
     StorageTask *task = new StorageTask(indexTree, pStrTest, sz);
     tp->AddTask(task);

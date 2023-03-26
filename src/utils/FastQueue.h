@@ -9,43 +9,37 @@
 
 namespace storage {
 using namespace std;
-
-struct InnerQueue {
+template <class T> struct InnerQueue {
   // Here all pointer address will convert int64_t
-  array<void *, 100> _arr;
+  array<T *, 100> _arr{};
   int _head = 0;
   int _tail = 0;
 };
-// To decrease lock time, every thread will has a thread_local list. In this
-// way it does not need to lock when add an element into thread local list.
-// Every instance will use _index in FastQueue to indentify the position in this
-// vector.
-extern thread_local vector<InnerQueue *> _localInner;
-// To record how many instances of FastQueue in this process. Every instance's
-// index will get value from it and then it will increase one. The index will
-// be used to indentify how to set and get InnerQueue from _localInner
-extern atomic_int32_t _queueCount;
 
-// Here T must be class pointer
-// This queue is depend on ThreadPool. The thread id in pool must start from 0
-// and must be series. If used in multi instances of ThreadPool. the thread ids
-// must be series between two pool.
+// This queue is fast queue and it depend on ThreadPool. As we know, the lock
+// and unlock are very consume time, so here every thread response to a inner
+// queue and the elements from this threads will insert the releated inner queue
+// and do not need lock or unlock in this process. If the array if full or
+// consumer, it will lock the mutex and transfer the element to consumer's
+// queue. This queue only fit to the cases that frequently push and massed pull,
+// and do not consider the elements series. The id from thread pool must start
+// from 0 and is series. If there have more than one thread pool, the ids in
+// this pools must series and threadCount must be the sum of all threads in all
+// pools. For all single threads, for example main or timer thread, the id must
+// be -1 and do not use inner queue to avlid lock.
 template <class T> class FastQueue {
 public:
   // threadCount: The total threads in all related ThreadPool
   FastQueue(int threadCount) : _threadCount(threadCount) {
-    _vctInner.reserve(threadCount);
-    for (int i = 0; i < threadCount; i++) {
-      _vctInner.push_back(new InnerQueue);
+    _vctInner.reserve(_threadCount);
+    for (int i = 0; i < _threadCount; i++) {
+      _vctInner.push_back(new InnerQueue<T>);
     }
-
-    _index = _queueCount.fetch_add(1, memory_order_relaxed);
-    assert(_index < MAX_QUEUE_COUNT);
   }
 
   ~FastQueue() {
     assert(_queue.size() == 0);
-    for (InnerQueue *q : _vctInner) {
+    for (InnerQueue<T> *q : _vctInner) {
       assert(q->_head == q->_tail);
       delete q;
     }
@@ -53,14 +47,14 @@ public:
 
   // Push an element
   void Push(T *ele) {
-    assert(ThreadPool::GetThreadId() >= 0);
-
-    InnerQueue *q = _localInner[_index];
-    if (q == nullptr) {
-      q = _vctInner[ThreadPool::GetThreadId()];
-      _localInner[_index] = q;
+    assert(ThreadPool::GetThreadId() < _threadCount);
+    if (ThreadPool::GetThreadId() < 0) {
+      unique_lock<SpinMutex> lock(_spinMutex);
+      _queue.push(ele);
+      return;
     }
 
+    InnerQueue<T> *q = _vctInner[ThreadPool::GetThreadId()];
     q->_arr[q->_tail] = ele;
     q->_tail = (q->_tail + 1) % 100;
     if ((q->_tail + 1) % 100 == q->_head) {
@@ -92,7 +86,7 @@ public:
   bool Empty() {
     if (_queue.size() > 0)
       return false;
-    for (InnerQueue *q : _vctInner) {
+    for (InnerQueue<T> *q : _vctInner) {
       if (q->_head != q->_tail)
         return false;
     }
@@ -105,7 +99,7 @@ protected:
       _spinMutex.lock();
     }
 
-    for (InnerQueue *q : _vctInner) {
+    for (InnerQueue<T> *q : _vctInner) {
       if (q->_head == q->_tail)
         continue;
 
@@ -127,12 +121,10 @@ protected:
 protected:
   queue<T *> _queue;
   SpinMutex _spinMutex;
-  // FastQueue depend on ThreadPool and only code run in ThreadPool can push
+  // FastQueue depend on ThreadPool and only run in ThreadPool can push
   // element. Every thread has a thread id and here will use thread id as
   // index of vector
-  vector<InnerQueue *> _vctInner;
-  // The index in thread_local variable vecotr<InnerQueue>
-  int _index;
+  vector<InnerQueue<T> *> _vctInner;
   // How many threads in thread pool
   int _threadCount;
 

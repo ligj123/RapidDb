@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include <stdint.h>
 
-#define MAX_QUEUE_COUNT 10
 typedef unsigned char Byte;
 typedef uint32_t PageID;
 typedef uint64_t VersionStamp;

@@ -4,14 +4,13 @@
 #include <stdexcept>
 
 namespace storage {
-// The default thread is main thread and its id=0; other thread id start from 1
-// and must be series, because this id will be used in FastQueue.
+// The default thread id is -1 expected threads from pool.
 thread_local string ThreadPool::_threadName = "main";
-thread_local int ThreadPool::_threadID = 0;
+thread_local int ThreadPool::_threadID = -1;
 thread_local Task *ThreadPool::_currTask = nullptr;
 ThreadPool *ThreadPool::_instMain = nullptr;
 SpinMutex ThreadPool::_smMain;
-set<int> ThreadPool::_setId{0};
+set<int> ThreadPool::_setId{};
 
 ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
                        int minThreads, int maxThreads, int startId)

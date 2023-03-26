@@ -34,7 +34,6 @@ struct SuiteFixture {
     PageBufferPool::StopPool();
     TimerThread::Stop();
 
-    _queueCount.store(0, memory_order_relaxed);
     LOG_INFO << "Suite core tear down.";
   }
 

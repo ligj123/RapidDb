@@ -61,14 +61,17 @@ public:
     _threadName = name;
     _threadID = id;
 #ifdef DEBUG_TEST
-    if (_setId.find(id) != _setId.end())
-      abort();
-    _setId.insert(id);
+    if (id >= 0) {
+      if (_setId.find(id) != _setId.end())
+        abort();
+      _setId.insert(id);
+    }
 #endif
   }
   static inline void RemoveThread(int id) {
 #ifdef DEBUG_TEST
-    _setId.erase(id);
+    if (id >= 0)
+      _setId.erase(id);
 #endif
   }
   static ThreadPool &InstMain() {
@@ -93,9 +96,7 @@ public:
 
 public:
   ThreadPool(string threadPrefix, uint32_t maxQueueSize = 1000000,
-             int minThreads = 1,
-             int maxThreads = std::thread::hardware_concurrency(),
-             int startId = 1 /*0 is main thread id, so it start from 1*/);
+             int minThreads = 1, int maxThreads = 8, int startId = 0);
   ~ThreadPool();
 
   ThreadPool(const ThreadPool &) = delete;
@@ -136,6 +137,9 @@ protected:
   int _aliveThreads;
   int _freeThreads;
   int _tasksNum;
+  // The start id for this pool, this parameter used for multi pool in one
+  // pragram and the ids must be series between pools. Because FastQueue will
+  // use those ids as index.
   int _startId;
   FastQueue<Task> *_fastQueue;
 
