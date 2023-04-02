@@ -20,7 +20,7 @@ enum class TaskStatus : Byte {
   INTERVAL,   // Interval time between two running
   PAUSE_WITHOUT_ADD, // Pause task and not need to add this task into ThreadPool
   PAUSE_WITH_ADD,    // Pause task and add this task into ThreadPool
-  STOPED             // The task has been remove from TimerThread
+  STOPED // The task has finished and will be removed from ThreadPool
 };
 
 // All tasks that run in thread pool must inherit this class.

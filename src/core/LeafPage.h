@@ -41,8 +41,28 @@ public:
    *
    * @param lr The leaf record will be inserted
    * @param pos The position for insert.
+   * @param incRef Increase lr reference times or not
    */
   void InsertRecord(LeafRecord *lr, int32_t pos, bool incRef = false);
+  /**
+   * @brief For test aim, if insert fail will put the error message into
+   * _threadErrorMsg
+   * @param lr The leaf record will be inserted
+   * @param incRef Increase lr reference times or not
+   * @return True: succeed to insert the record; False: failed to insert and set
+   * the failed reason into ErrorMsg::_threadErrorMsg
+   */
+  bool InsertRecord(LeafRecord *lr, bool incRef = false) {
+    bool bFind;
+    int32_t pos = SearchRecord(*lr, bFind);
+    if (bFind) {
+      _threadErrorMsg.reset(new ErrorMsg(CORE_REPEATED_RECORD, {}));
+      return false;
+    }
+
+    InsertRecord(lr, pos, incRef);
+    return true;
+  }
   bool AddRecord(LeafRecord *record);
   /**
    * @brief Get the Record in this LeafPage with position=pos   *

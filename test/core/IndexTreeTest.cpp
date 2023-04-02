@@ -1,4 +1,5 @@
 ﻿#include "../../src/core/IndexTree.h"
+#include "../../src/core/LeafPage.h"
 #include "../../src/dataType/DataValueDigit.h"
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/pool/PageDividePool.h"
@@ -10,51 +11,56 @@
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(CoreTest)
-//
-// BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexTreeInsertRecord" + StrMSTime() + ".dat";
-//  const string TABLE_NAME = "testTable";
-//  const int ROW_COUNT = 50000;
-//
-//  DataValueLong *dvKey = new DataValueLong(100, true);
-//  DataValueLong *dvVal = new DataValueLong(200, false);
-//  VectorDataValue vctKey = {dvKey->Clone()};
-//  VectorDataValue vctVal = {dvVal->Clone()};
-//  IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-//  indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-//
-//  vctKey.push_back(dvKey->Clone());
-//  vctVal.push_back(dvVal->Clone());
-//  for (int i = 0; i < ROW_COUNT; i++) {
-//    *((DataValueLong *)vctKey[0]) = i;
-//    *((DataValueLong *)vctVal[0]) = i + 100LL;
-//    LeafRecord *rr =
-//        new LeafRecord(indexTree, vctKey, vctVal,
-//                       indexTree->GetHeadPage()->ReadRecordStamp(), nullptr);
-//    indexTree->InsertRecord(rr);
-//  }
-//
-//  indexTree->Close(true);
-//
-//  indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-//  VectorLeafRecord vct;
-//  indexTree->QueryRecord(nullptr, nullptr, false, true, vct);
-//  for (int i = 0; i < ROW_COUNT; i++) {
-//    VectorDataValue v1, v2;
-//    vct[i]->GetListKey(v1);
-//    vct[i]->GetListValue(v2);
-//    BOOST_TEST(i == (int64_t)(*(DataValueLong *)v1[0]));
-//    BOOST_TEST((i + 100) == (int64_t)(*(DataValueLong *)v2[0]));
-//  }
-//
-//  indexTree->Close(true);
-//  delete dvKey;
-//  delete dvVal;
-//  PageBufferPool::ClearPool();
-//  std::filesystem::remove(std::filesystem::path(FILE_NAME));
-//}
-//
+
+BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
+  const string FILE_NAME =
+      "./dbTest/testIndexTreeInsertRecord" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = 50000;
+
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0,
+                         IndexType::PRIMARY);
+
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    *((DataValueLong *)vctVal[0]) = i + 100LL;
+    LeafRecord *rr =
+        new LeafRecord(indexTree, vctKey, vctVal,
+                       indexTree->GetHeadPage()->ReadRecordStamp(), nullptr);
+    IndexPage *idxPage = nullptr;
+    indexTree->SearchRecursively(*rr, true, idxPage, true);
+    assert(idxPage != nullptr && idxPage->GetPageType() == PageType::LEAF_PAGE);
+
+    ((LeafPage *)idxPage)->InsertRecord(;
+  }
+
+  indexTree->Close(true);
+
+  indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
+  VectorLeafRecord vct;
+  indexTree->QueryRecord(nullptr, nullptr, false, true, vct);
+  for (int i = 0; i < ROW_COUNT; i++) {
+    VectorDataValue v1, v2;
+    vct[i]->GetListKey(v1);
+    vct[i]->GetListValue(v2);
+    BOOST_TEST(i == (int64_t)(*(DataValueLong *)v1[0]));
+    BOOST_TEST((i + 100) == (int64_t)(*(DataValueLong *)v2[0]));
+  }
+
+  indexTree->Close(true);
+  delete dvKey;
+  delete dvVal;
+  PageBufferPool::ClearPool();
+  std::filesystem::remove(std::filesystem::path(FILE_NAME));
+}
+
 // BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
 //  const string FILE_NAME =
 //      "./dbTest/testIndexRepeatedKey" + StrMSTime() + ".dat";
