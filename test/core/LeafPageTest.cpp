@@ -66,8 +66,8 @@ namespace storage {
 //   BOOST_TEST(lr->CompareTo(*(LeafRecord *)vctLr[0]) == 0);
 //   BOOST_TEST(1 == vctLr.size());
 
-//   lr->ReleaseRecord();
-//   lr2->ReleaseRecord();
+//   lr->DecRef();
+//   lr2->DecRef();
 //   delete key;
 
 //   *((DataValueLong *)vctKey[0]) = ROW_COUNT - 1;
@@ -76,7 +76,7 @@ namespace storage {
 
 //   lr2 = lp->GetLastRecord();
 //   BOOST_TEST(lr->CompareTo(*lr2) == 0);
-//   lr2->ReleaseRecord();
+//   lr2->DecRef();
 
 //   BOOST_TEST(ROW_COUNT - 1 == lp->SearchRecord(*lr, bFind));
 //   BOOST_TEST(ROW_COUNT - 1 == lp->SearchKey(*key, bFind));
@@ -87,8 +87,8 @@ namespace storage {
 //   BOOST_TEST(lr->CompareTo(*(LeafRecord *)vctLr[0]) == 0);
 //   BOOST_TEST(1 == vctLr.size());
 
-//   lr->ReleaseRecord();
-//   lr2->ReleaseRecord();
+//   lr->DecRef();
+//   lr2->DecRef();
 //   delete key;
 
 //   *((DataValueLong *)vctKey[0]) = ROW_COUNT / 2;
@@ -103,8 +103,8 @@ namespace storage {
 //   BOOST_TEST(lr->CompareTo(*(LeafRecord *)vctLr[0]) == 0);
 //   BOOST_TEST(1 == vctLr.size());
 
-//   lr->ReleaseRecord();
-//   lr2->ReleaseRecord();
+//   lr->DecRef();
+//   lr2->DecRef();
 //   delete key;
 
 //   delete dvKey;

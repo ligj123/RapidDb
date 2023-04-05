@@ -43,7 +43,7 @@ namespace storage {
 //     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
 //     BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
 //     bp->InsertRecord(rr, i % 2 == 0 ? -1 : i);
-//     lr->ReleaseRecord();
+//     lr->DecRef();
 //   }
 
 //   bp->SaveRecords();
@@ -54,9 +54,9 @@ namespace storage {
 //   BranchRecord *rr = new BranchRecord(indexTree, lr, 100);
 //   BranchRecord *first = bp->GetRecordByPos(0, true);
 //   BOOST_TEST(rr->CompareTo(*first) == 0);
-//   lr->ReleaseRecord();
-//   rr->ReleaseRecord();
-//   first->ReleaseRecord();
+//   lr->DecRef();
+//   rr->DecRef();
+//   first->DecRef();
 
 //   *((DataValueLong *)vctKey[0]) = ROW_COUNT - 1;
 //   *((DataValueLong *)vctVal[0]) = ROW_COUNT + 99;
@@ -64,9 +64,9 @@ namespace storage {
 //   rr = new BranchRecord(indexTree, lr, ROW_COUNT + 99);
 //   BranchRecord *last = bp->GetRecordByPos(ROW_COUNT - 1, false);
 //   BOOST_TEST(rr->CompareTo(*last) == 0);
-//   lr->ReleaseRecord();
-//   rr->ReleaseRecord();
-//   last->ReleaseRecord();
+//   lr->DecRef();
+//   rr->DecRef();
+//   last->DecRef();
 
 //   *((DataValueLong *)vctKey[0]) = ROW_COUNT / 2;
 //   *((DataValueLong *)vctVal[0]) = ROW_COUNT / 2 + 100;
@@ -74,9 +74,9 @@ namespace storage {
 //   rr = new BranchRecord(indexTree, lr, ROW_COUNT / 2 + 100);
 //   BranchRecord *mid = bp->GetRecordByPos(ROW_COUNT / 2, false);
 //   BOOST_TEST(rr->CompareTo(*mid) == 0);
-//   lr->ReleaseRecord();
-//   rr->ReleaseRecord();
-//   mid->ReleaseRecord();
+//   lr->DecRef();
+//   rr->DecRef();
+//   mid->DecRef();
 
 //   bp->DecRef();
 //   indexTree->Close();
@@ -117,7 +117,7 @@ namespace storage {
 //     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
 //     BranchRecord *rr = new BranchRecord(indexTree, lr, i);
 //     bp->InsertRecord(rr);
-//     lr->ReleaseRecord();
+//     lr->DecRef();
 //   }
 
 //   bp->SaveRecords();
@@ -132,9 +132,9 @@ namespace storage {
 //     BranchRecord *br = bp->GetRecordByPos(index, false);
 //     BOOST_TEST(br->CompareTo(*rr) == 0);
 
-//     lr->ReleaseRecord();
-//     br->ReleaseRecord();
-//     rr->ReleaseRecord();
+//     lr->DecRef();
+//     br->DecRef();
+//     rr->DecRef();
 //   }
 
 //   bp->DecRef();
@@ -174,7 +174,7 @@ namespace storage {
 //     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
 //     BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
 //     bp->InsertRecord(rr);
-//     lr->ReleaseRecord();
+//     lr->DecRef();
 //   }
 
 //   bp->SaveRecords();
@@ -234,7 +234,7 @@ namespace storage {
 //     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
 //     BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
 //     bp->InsertRecord(rr);
-//     lr->ReleaseRecord();
+//     lr->DecRef();
 //   }
 
 //   uint64_t arKey[] = {0, 20, 135, 70, 999};

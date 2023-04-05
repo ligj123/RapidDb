@@ -52,7 +52,7 @@ void LeafPage::LoadRecords() {
 
 void LeafPage::CleanRecord() {
   for (RawRecord *lr : _vctRecord) {
-    ((LeafRecord *)lr)->ReleaseRecord();
+    ((LeafRecord *)lr)->DecRef();
   }
 
   _vctRecord.clear();
@@ -158,10 +158,10 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
   return true;
 }
 
-LeafRecord *LeafPage::GetRecord(int32_t pos, bool incRef) {
+LeafRecord *LeafPage::GetRecord(int32_t pos) {
   assert(pos >= 0 && pos < (int32_t)_recordNum);
   if (_vctRecord.size() > 0) {
-    return incRef ? GetVctRecord(pos)->ReferenceRecord() : GetVctRecord(pos);
+    return GetVctRecord(pos)->ReferenceRecord();
   } else {
     uint16_t offset = ReadShort(DATA_BEGIN_OFFSET + pos * UI16_LEN);
     return new LeafRecord(this, _bysPage + offset);

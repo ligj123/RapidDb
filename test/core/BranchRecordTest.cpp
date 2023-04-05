@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
   BOOST_TEST(br->GetTotalLength() == br2->GetTotalLength());
 
   delete key;
-  lr->ReleaseRecord();
+  lr->DecRef();
   delete br;
   delete br2;
   bp->DecRef();
@@ -109,8 +109,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
   BOOST_TEST(br2->GetBysValue() == buff);
   BOOST_TEST(br->GetTotalLength() == br2->GetTotalLength());
 
-  lr->ReleaseRecord();
-  lrSec->ReleaseRecord();
+  lr->DecRef();
+  lrSec->DecRef();
   delete br;
   delete br2;
   bp->DecRef();
@@ -169,8 +169,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   BOOST_TEST(br2->GetBysValue() == buff);
   BOOST_TEST(br->GetTotalLength() == br2->GetTotalLength());
 
-  lr->ReleaseRecord();
-  lrSec->ReleaseRecord();
+  lr->DecRef();
+  lrSec->DecRef();
   delete br;
   delete br2;
   bp->DecRef();

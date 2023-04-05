@@ -38,12 +38,27 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
     indexTree->SearchRecursively(*rr, true, idxPage, true);
     assert(idxPage != nullptr && idxPage->GetPageType() == PageType::LEAF_PAGE);
 
-    ((LeafPage *)idxPage)->InsertRecord(;
+    ((LeafPage *)idxPage)->InsertRecord(rr, false);
   }
 
-  indexTree->Close(true);
+  IndexTree::CloseWait(indexTree);
 
-  indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
+  indexTree = new IndexTree();
+  indexTree->InitIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0);
+  LeafPage *lp = indexTree->GetBeginPage();
+  uint64_t idx = 0;
+
+  while (lp != nullptr) {
+    for (uint32_t i = 0; i < lp->GetRecordNumber(); i++) {
+      VectorDataValue v1, v2;
+      LeafRecord *lr = lp->GetRecord(i);
+      *((DataValueLong *)vctKey[0]) = idx;
+      RawKey key(vctKey);
+      assert(lr->CompareKey(key) == 0);
+      lr->GetListValue(v2);
+      assert(v2[0]->GetLong() == (idx + 100));
+    }
+  }
   VectorLeafRecord vct;
   indexTree->QueryRecord(nullptr, nullptr, false, true, vct);
   for (int i = 0; i < ROW_COUNT; i++) {

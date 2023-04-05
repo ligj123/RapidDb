@@ -68,8 +68,8 @@ protected:
   // Gap lock to previous record. NOT NEXT RECORD is due to page will split by
   // last record, the new record will be insert into ahead of the found record.
   bool _gapLock = false;
-  /**How many times this record is referenced, only can be used when the page
+  /**How many times this record is referenced, it only can be used when the page
    * has been locked. Only valid for LeafPage*/
-  atomic_uint16_t _refCount = 1;
+  uint16_t _refCount = 1;
 };
 } // namespace storage

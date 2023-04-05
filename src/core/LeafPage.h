@@ -67,11 +67,9 @@ public:
   /**
    * @brief Get the Record in this LeafPage with position=pos   *
    * @param pos The position of records in this page
-   * @param incRef True: increase the reference count; False: keep the ref count
-   * no change
    * @return LeafRecord* The leaf record to get
    */
-  LeafRecord *GetRecord(int32_t pos, bool incRef = false);
+  LeafRecord *GetRecord(int32_t pos);
   int32_t SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc = true,
                        int32_t start = 0, int32_t end = INT32_MAX);
   int32_t SearchKey(const RawKey &key, bool &bFind, bool bInc = true,

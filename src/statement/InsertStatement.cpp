@@ -67,7 +67,7 @@ PRIMARY_PAGE_LOAD : {
           table->GetPrimaryKey()->_tree->GetHeadPage()->GetAndIncRecordStamp(),
           this, ActionType::UPSERT, false);
       lp->UpdateTotalLength(len);
-      lr->ReleaseRecord();
+      lr->DecRef();
       _vctRecord[_currRec] = lrSrc;
     } else {
       LeafPage::RollbackLeafRecords(_vctRecord, _currRec);
@@ -111,7 +111,7 @@ SECONDARY_PAGE_LOAD : {
   if (bFind) {
     if (lr->GetAction() == ActionType::DELETE) {
       LeafRecord *lrSrc = lp->GetRecord(pos, true);
-      lr->ReleaseRecord();
+      lr->DecRef();
       _vctRecord[_currRec] = lrSrc;
     } else {
       // For ActionType::INSERT, Here should not find the record or has error

@@ -97,7 +97,6 @@ public:
   RawKey *GetKey() const;
   /**Only for secondary index, Get the value as primary key*/
   RawKey *GetPrimayKey() const;
-  void ReleaseRecord(bool bUndo = false);
 
   int CompareTo(const LeafRecord &lr) const;
   int CompareKey(const RawKey &key) const;
@@ -123,11 +122,13 @@ public:
   }
   bool IsTransaction() const override { return _statement != nullptr; }
 
-  inline LeafRecord *ReferenceRecord() {
-    uint16_t val = _refCount.fetch_add(1);
-    assert(val < UINT16_MAX - 1);
+  inline LeafRecord *AddRef() {
+    _refCount++;
+    assert(_refCount < UINT16_MAX - 1);
     return this;
   }
+  void DecRef(bool bUndo = false);
+
   inline void LockForUpdate(Statement *stam, bool gapLock) {
     _statement = stam;
     _actionType = ActionType::QUERY_UPDATE;
@@ -229,13 +230,13 @@ public:
 
   ~VectorLeafRecord() {
     for (auto iter = begin(); iter != end(); iter++) {
-      (*iter)->ReleaseRecord();
+      (*iter)->DecRef();
     }
   }
 
   void RemoveAll() {
     for (auto iter = begin(); iter != end(); iter++) {
-      (*iter)->ReleaseRecord();
+      (*iter)->DecRef();
     }
 
     clear();

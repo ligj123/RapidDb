@@ -56,8 +56,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   BOOST_TEST(lr->CompareKey(key2) == 0);
   BOOST_TEST(lr->CompareKey(*lr2) == 0);
 
-  lr->ReleaseRecord();
-  lr2->ReleaseRecord();
+  lr->DecRef();
+  lr2->DecRef();
 
   indexTree->Close();
 
@@ -117,8 +117,8 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   BOOST_TEST(lr->CompareKey(rkey) == 0);
   BOOST_TEST(lr->CompareKey(*lr2) == 0);
 
-  lr->ReleaseRecord();
-  lr2->ReleaseRecord();
+  lr->DecRef();
+  lr2->DecRef();
 
   string str(18000, 'a');
   DataValueBlob dvBlob2(str.c_str(), (uint32_t)str.size(), 20000);
@@ -140,8 +140,8 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   BOOST_TEST(lr->CompareTo(*lr2) == 0);
   BOOST_TEST(lr->CompareKey(*lr2) == 0);
 
-  lr->ReleaseRecord();
-  lr2->ReleaseRecord();
+  lr->DecRef();
+  lr2->DecRef();
   indexTree->Close();
 }
 
@@ -282,7 +282,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
   BOOST_TEST(hr == 1);
   BOOST_TEST(vctDv.size() == 0);
 
-  lr->ReleaseRecord(true);
+  lr->DecRef(true);
   indexTree->Close();
 }
 
@@ -329,8 +329,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Second_test) {
   BOOST_TEST(lr->CompareKey(*key) == 0);
   delete key;
 
-  lrSec->ReleaseRecord();
-  lr->ReleaseRecord();
+  lrSec->DecRef();
+  lr->DecRef();
   indexTree->Close();
   secTree->Close();
 }

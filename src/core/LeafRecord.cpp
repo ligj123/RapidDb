@@ -151,13 +151,13 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   }
 }
 
-void LeafRecord::ReleaseRecord(bool bUndo) {
-  uint16_t val = _refCount.fetch_sub(1);
-  assert(val >= 1);
+void LeafRecord::DecRef(bool bUndo) {
+  assert(_refCount >= 1);
+  _refCount--;
 
-  if (val == 1) {
+  if (_refCount == 0) {
     if (_undoRec != nullptr) {
-      _undoRec->ReleaseRecord(bUndo);
+      _undoRec->DecRef(bUndo);
     }
     if (_overflowPage != nullptr) {
       if (bUndo) {

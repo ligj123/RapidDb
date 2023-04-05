@@ -27,6 +27,14 @@ struct PageLock {
 
 class IndexTree {
 public:
+  static void CloseWait(IndexTree *indexTree) {
+    SpinMutex sm;
+    sm.lock();
+    indexTree->Close([&sm]() { sm.unlock(); });
+    sm.lock();
+  }
+
+public:
   IndexTree() {}
   bool CreateIndex(const string &indexName, const string &fileName,
                    VectorDataValue &vctKey, VectorDataValue &vctVal,
@@ -109,6 +117,10 @@ public:
   inline uint16_t GetValOffset() { return _valOffset; }
   inline const VectorDataValue &GetVctKey() const { return _vctKey; }
   inline const VectorDataValue &GetVctValue() const { return _vctValue; }
+  inline LeafPage *GetBeginPage() {
+    PageID pid = _headPage->ReadBeginLeafPagePointer();
+    return (LeafPage *)GetPage(pid, true);
+  }
 
 protected:
   ~IndexTree();
