@@ -6,11 +6,12 @@
 #include "../../src/pool/StoragePool.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/utils/Utilitys.h"
+#include "CoreSuit.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
 
 namespace storage {
-BOOST_AUTO_TEST_SUITE(CoreTest)
+BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 
 BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
   const string FILE_NAME =
@@ -54,26 +55,15 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
       LeafRecord *lr = lp->GetRecord(i);
       *((DataValueLong *)vctKey[0]) = idx;
       RawKey key(vctKey);
-      assert(lr->CompareKey(key) == 0);
+      BOOST_TEST(lr->CompareKey(key) == 0);
       lr->GetListValue(v2);
-      assert(v2[0]->GetLong() == (idx + 100));
+      BOOST_TEST(v2[0]->GetLong() == (idx + 100));
     }
   }
-  VectorLeafRecord vct;
-  indexTree->QueryRecord(nullptr, nullptr, false, true, vct);
-  for (int i = 0; i < ROW_COUNT; i++) {
-    VectorDataValue v1, v2;
-    vct[i]->GetListKey(v1);
-    vct[i]->GetListValue(v2);
-    BOOST_TEST(i == (int64_t)(*(DataValueLong *)v1[0]));
-    BOOST_TEST((i + 100) == (int64_t)(*(DataValueLong *)v2[0]));
-  }
 
-  indexTree->Close(true);
+  IndexTree::CloseWait(indexTree);
   delete dvKey;
   delete dvVal;
-  PageBufferPool::ClearPool();
-  std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
 
 // BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {

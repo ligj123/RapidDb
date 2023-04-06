@@ -110,7 +110,7 @@ SECONDARY_PAGE_LOAD : {
   int32_t pos = lp->SearchRecord(*lr, bFind);
   if (bFind) {
     if (lr->GetAction() == ActionType::DELETE) {
-      LeafRecord *lrSrc = lp->GetRecord(pos, true);
+      LeafRecord *lrSrc = lp->GetRecord(pos);
       lr->DecRef();
       _vctRecord[_currRec] = lrSrc;
     } else {
