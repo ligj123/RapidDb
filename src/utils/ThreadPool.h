@@ -78,13 +78,14 @@ public:
     assert(_instMain != nullptr);
     return *_instMain;
   }
-  static ThreadPool *
-  InitMain(uint32_t maxQueueSize = 1000000, int minThreads = 1,
-           int maxThreads = std::thread::hardware_concurrency()) {
+  static ThreadPool *InitMain(uint32_t maxQueueSize = 1000000,
+                              int minThreads = 1,
+                              int maxThreads = DEFAULT_MAX_THREADS,
+                              int startId = 0) {
     assert(_instMain == nullptr);
     unique_lock<SpinMutex> lock(_smMain);
-    _instMain =
-        new ThreadPool("RapidMain", maxQueueSize, minThreads, maxThreads);
+    _instMain = new ThreadPool("RapidMain", maxQueueSize, minThreads,
+                               maxThreads, startId);
     return _instMain;
   }
 
@@ -96,7 +97,8 @@ public:
 
 public:
   ThreadPool(string threadPrefix, uint32_t maxQueueSize = 1000000,
-             int minThreads = 1, int maxThreads = 8, int startId = 0);
+             int minThreads = 1, int maxThreads = DEFAULT_MAX_THREADS,
+             int startId = 0);
   ~ThreadPool();
 
   ThreadPool(const ThreadPool &) = delete;

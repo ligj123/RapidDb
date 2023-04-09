@@ -27,7 +27,8 @@ struct PageLock {
 
 class IndexTree {
 public:
-  static void CloseWait(IndexTree *indexTree) {
+  // For test purpose, close the index tree and wait until all pages are saved.
+  static void TestCloseWait(IndexTree *indexTree) {
     SpinMutex sm;
     sm.lock();
     indexTree->Close([&sm]() { sm.unlock(); });

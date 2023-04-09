@@ -23,3 +23,4 @@ const PageID PAGE_NULL_POINTER = UINT32_MAX;
 #define DEBUG_TEST
 // Do not save bin log
 #define DEBUG_WITHOUT_BIN_LOG
+#define DEFAULT_MAX_THREADS 8
