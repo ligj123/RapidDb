@@ -33,6 +33,11 @@ public:
     _threadPool = tp;
   }
 
+  void PushTask() {
+    PagePoolTask *task = new PagePoolTask();
+    _threadPool->AddTask(task);
+  }
+
 protected:
   static ConcurrentHashMap<uint64_t, CachePage *> _mapCache;
   static SpinMutex _spinMutex;

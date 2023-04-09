@@ -1,5 +1,6 @@
 ﻿#include "../../src/pool/StoragePool.h"
 #include "../../src/core/IndexTree.h"
+#include "../../src/pool/PageBufferPool.h"
 #include "../../src/utils/Utilitys.h"
 #include <boost/test/unit_test.hpp>
 #include <cstring>
@@ -7,7 +8,7 @@
 
 namespace storage {
 namespace fs = std::filesystem;
-atomic_int32_t atm(0);
+atomic_int32_t atm(1);
 
 BOOST_AUTO_TEST_SUITE(PoolTest)
 
@@ -29,17 +30,19 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     void Run() override {
       while (true) {
         int ii = atm.fetch_add(1, memory_order_relaxed);
-        if (ii >= NUM) {
+        if (ii > NUM) {
           break;
         }
 
         CachePage *page = new CachePage(_indexTree, ii, PageType::UNKNOWN);
+        _indexTree->IncPages();
         page->WriteInt(0, ii);
         BytesCopy(page->GetBysPage() + 4, _pStrTest, _strSize);
         BytesCopy(page->GetBysPage() + Configure::GetCachePageSize() - _strSize,
                   _pStrTest, _strSize);
         page->SetDirty(true);
-        StoragePool::WriteCachePage(page, true);
+        StoragePool::WriteCachePage(page, false);
+        page->DecRef();
       }
 
       _status = TaskStatus::STOPED;
@@ -50,7 +53,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     size_t _strSize;
   };
 
-  ThreadPool *tp = new ThreadPool("StorageTest");
+  ThreadPool *tp = new ThreadPool("StorageTest", 1000000, 1, 1);
   StoragePool::InitPool(tp);
   string strTest = "abcdefg1234567890中文测试abcdefghigjlmnopqrstuvwrst";
   strTest += strTest;
@@ -70,11 +73,11 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     tp->AddTask(task);
   }
 
-  while (atm.load(memory_order_relaxed) < NUM &&
-         StoragePool::GetWaitingPageCount() > 0) {
-    this_thread::sleep_for(1ms);
+  while (atm.load(memory_order_relaxed) < NUM || !StoragePool::IsEmpty()) {
+    StoragePool::PushTask();
+    this_thread::sleep_for(1s);
   }
-
+  PageBufferPool::PoolManage();
   IndexTree::TestCloseWait(indexTree);
 
   class PageCmpTask : public Task {
@@ -89,7 +92,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
           memcmp(_pStrTest,
                  _page->GetBysPage() + Configure::GetCachePageSize() - _strSize,
                  _strSize) == 0);
-
+      _page->DecRef();
       _status = TaskStatus::STOPED;
     }
 
@@ -109,12 +112,11 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     tp->AddTask(rtask);
   }
 
-  indexTree->Close([&sm]() { sm.unlock(); });
-  sm.lock();
+  IndexTree::TestCloseWait(indexTree);
 
+  StoragePool::StopPool();
   tp->Stop();
   delete tp;
-  StoragePool::StopPool();
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

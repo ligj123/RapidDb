@@ -31,6 +31,10 @@ public:
     }
   }
   static size_t GetWaitingPageCount() { return _storagePool->_mapWrite.size(); }
+  static bool IsEmpty() {
+    return _storagePool->_mapWrite.size() == 0 &&
+           _storagePool->_fastQueue.Empty();
+  }
   static void InitPool(ThreadPool *tp) {
     assert(_storagePool == nullptr);
     _storagePool = new StoragePool(tp);
