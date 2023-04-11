@@ -8,7 +8,7 @@
 
 namespace storage {
 SpinMutex PageBufferPool::_spinMutex;
-int64_t PageBufferPool::_maxCacheSize =
+uint64_t PageBufferPool::_maxCacheSize =
     Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
 int64_t PageBufferPool::_prevDelNum = 100;
 // Initialize _mapCache and add lambad to increase page reference when call find
@@ -57,8 +57,7 @@ void PageBufferPool::PoolManage() {
   };
 
   for (int i = 0; i < _mapCache.GetGroupCount(); i++) {
-    priority_queue<CachePage *, MDeque<CachePage *>, decltype(cmp)> queue(
-        cmp);
+    priority_queue<CachePage *, MDeque<CachePage *>, decltype(cmp)> queue(cmp);
     forward_list<CachePage *> flist;
 
     for (auto iter = _mapCache.Begin(i); iter != _mapCache.End(i); iter++) {
@@ -121,5 +120,10 @@ void PageBufferPool::AddTimerTask() {
 
 void PageBufferPool::RemoveTimerTask() {
   TimerThread::RemoveTask("PageBufferPool");
+}
+
+void PageBufferPool::PushTask() {
+  PagePoolTask *task = new PagePoolTask();
+  _threadPool->AddTask(task);
 }
 } // namespace storage

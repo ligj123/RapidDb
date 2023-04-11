@@ -7,11 +7,12 @@
 
 namespace storage {
 using namespace std;
+class PagePoolTask;
 
 class PageBufferPool {
 public:
   static uint64_t GetMaxCacheSize() { return _maxCacheSize; }
-  static void SetMaxCacheSzie(uint64_t size) { _maxCacheSize = (int)size; }
+  static void SetMaxCacheSize(uint64_t sz) { _maxCacheSize = sz; }
 
   static void AddPage(CachePage *page);
 
@@ -22,8 +23,10 @@ public:
   static CachePage *GetPage(uint64_t hashId);
   /**Only used for test to remove results from previous test cases*/
   static void StopPool();
-  static void PoolManage();
+  /**For test purpose, manually add a PagePoolTask into thread pool*/
+  static void PushTask();
 
+  static void PoolManage();
   static void AddTimerTask();
   static void RemoveTimerTask();
 
@@ -33,16 +36,11 @@ public:
     _threadPool = tp;
   }
 
-  void PushTask() {
-    PagePoolTask *task = new PagePoolTask();
-    _threadPool->AddTask(task);
-  }
-
 protected:
   static ConcurrentHashMap<uint64_t, CachePage *> _mapCache;
   static SpinMutex _spinMutex;
   // The max cache pages in this pool
-  static int64_t _maxCacheSize;
+  static uint64_t _maxCacheSize;
   // To save how many pages have been removed from this pool in previous clean
   // task.
   static int64_t _prevDelNum;
