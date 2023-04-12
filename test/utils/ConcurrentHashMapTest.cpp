@@ -8,7 +8,7 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
-  class ConcurrentHashMapEx : public ConcurrentHashMap<int, MString> {
+  class ConcurrentHashMapEx : public ConcurrentHashMap<int, MString, false> {
   public:
     using ConcurrentHashMap::_groupCount;
     using ConcurrentHashMap::_vctLock;
