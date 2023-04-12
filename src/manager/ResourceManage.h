@@ -67,18 +67,18 @@ protected:
 
 protected:
   // The map for all opened table ids and themselves
-  ConcurrentHashMap<uint32_t, PhysTable *> _mapIdTable;
+  ConcurrentHashMap<uint32_t, PhysTable *, false> _mapIdTable;
   // The map for all opened table names and themselves, name should be 'db name'
   // + '/' + 'table name'
-  ConcurrentHashMap<string, PhysTable *> _mapNameTable;
+  ConcurrentHashMap<string, PhysTable *, false> _mapNameTable;
   // The map for all database names and databases. They should be loaded when
   // initializing
-  ConcurrentHashMap<string, Database *> _mapDatabase;
+  ConcurrentHashMap<string, Database *, false> _mapDatabase;
   // The map for its id and ExprStatement.
-  ConcurrentHashMap<uint64_t, ExprStatement *> _mapExprStat;
+  ConcurrentHashMap<uint64_t, ExprStatement *, false> _mapExprStat;
   // Every connection fron the client will create a session and assign a unique
   // id
-  ConcurrentHashMap<uint64_t, Session *> _mapSession;
+  ConcurrentHashMap<uint64_t, Session *, false> _mapSession;
   static ResourceManage *_inst;
 };
 } // namespace storage

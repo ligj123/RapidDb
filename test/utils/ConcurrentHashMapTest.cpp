@@ -16,7 +16,7 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
     using ConcurrentHashMap::ConcurrentHashMap;
   };
 
-  ConcurrentHashMapEx hMap(100, 1000000, [](MString str) {});
+  ConcurrentHashMapEx hMap(100, 1000000);
   BOOST_TEST(hMap._groupCount == 100);
   BOOST_TEST(hMap._vctMap.size() == 100);
   BOOST_TEST(hMap._vctLock.size() = 100);
@@ -48,6 +48,35 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
   }
 
   BOOST_TEST(count == 50000);
+  hMap.Clear();
 }
+
+BOOST_AUTO_TEST_CASE(ConcurrentHashMap_UseFunc_test) {
+  int count = 0;
+  ConcurrentHashMap<int, int, false> hMap(
+      100, 1000000, [&count](int ii) { count += ii; },
+      [&count](int ii) { count -= ii; });
+
+  for (int i = 0; i < 50000; i++) {
+    BOOST_TEST(hMap.Insert(i, ToMString(i)));
+  }
+
+  for (int i = 0; i < 50000; i++) {
+    int num;
+    BOOST_TEST(hMap.Find(i, num));
+    BOOST_TEST(num == i);
+  }
+
+  BOOST_TEST(count == (1 + 50000) * 50000 / 2);
+
+  for (int i = 0; i < 1000; i++) {
+    int num = i;
+    BOOST_TEST(hMap->Erase(num));
+  }
+
+  hMap.Clear();
+  BOOST_TEST(count == 0);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

@@ -6,7 +6,7 @@
 
 namespace storage {
 using namespace std;
-template <class Key, class Val, bool UseFunc = true> class ConcurrentHashMap {
+template <class Key, class Val, bool UseFunc> class ConcurrentHashMap {
 public:
   using ConHashMap = std::unordered_map<Key, Val>;
   using Iterator = typename std::unordered_map<Key, Val>::iterator;
@@ -16,7 +16,7 @@ public:
                     function<void(Val)> funcErase = nullptr)
       : _groupCount(groupCount), _funcFind(funcFind), _funcErase(funcErase) {
     assert((UseFunc && funcFind != nullptr && funcErase != nullptr) ||
-           (!UseFunc && funcFind == nullptr && funcErase == nullptr));
+           ((!UseFunc) && funcFind == nullptr && funcErase == nullptr));
     _vctMap.reserve(groupCount);
     _vctLock.reserve(groupCount);
     for (int i = 0; i < groupCount; i++) {
@@ -95,7 +95,6 @@ public:
     return Erase(pos, key);
   }
   void Clear(int pos) {
-    _vctLock[pos]->lock();
     ConHashMap *map = _vctMap[pos];
     if constexpr (UseFunc) {
       for (auto iter = map->begin(); iter != map->end(); iter++) {
@@ -103,9 +102,14 @@ public:
       }
     }
     map->clear();
-    _vctLock[pos]->unlock();
   }
-
+  void Clear() {
+    for (int i = 0; i < _groupCount; i++) {
+      _vctLock[i]->lock();
+      Clear(i);
+      _vctLock[i]->unlock();
+    }
+  }
   void Lock(int pos) { _vctLock[pos]->lock(); }
   void Unlock(int pos) { _vctLock[pos]->unlock(); }
 

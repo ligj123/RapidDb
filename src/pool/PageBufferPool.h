@@ -37,7 +37,7 @@ public:
   }
 
 protected:
-  static ConcurrentHashMap<uint64_t, CachePage *> _mapCache;
+  static ConcurrentHashMap<uint64_t, CachePage *, true> _mapCache;
   static SpinMutex _spinMutex;
   // The max cache pages in this pool
   static uint64_t _maxCacheSize;
