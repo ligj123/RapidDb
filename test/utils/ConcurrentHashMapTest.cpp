@@ -52,13 +52,13 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ConcurrentHashMap_UseFunc_test) {
-  int count = 0;
+  int64_t count = 0;
   ConcurrentHashMap<int, int, false> hMap(
       100, 1000000, [&count](int ii) { count += ii; },
       [&count](int ii) { count -= ii; });
 
   for (int i = 0; i < 50000; i++) {
-    BOOST_TEST(hMap.Insert(i, ToMString(i)));
+    BOOST_TEST(hMap.Insert(i, i));
   }
 
   for (int i = 0; i < 50000; i++) {
@@ -67,11 +67,11 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_UseFunc_test) {
     BOOST_TEST(num == i);
   }
 
-  BOOST_TEST(count == (1 + 50000) * 50000 / 2);
+  BOOST_TEST(count == (1 + 50000) * 50000LL / 2);
 
   for (int i = 0; i < 1000; i++) {
     int num = i;
-    BOOST_TEST(hMap->Erase(num));
+    BOOST_TEST(hMap.Erase(num));
   }
 
   hMap.Clear();
