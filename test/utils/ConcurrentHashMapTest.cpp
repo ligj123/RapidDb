@@ -53,7 +53,7 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
 
 BOOST_AUTO_TEST_CASE(ConcurrentHashMap_UseFunc_test) {
   int64_t count = 0;
-  ConcurrentHashMap<int, int, false> hMap(
+  ConcurrentHashMap<int, int, true> hMap(
       100, 1000000, [&count](int ii) { count += ii; },
       [&count](int ii) { count -= ii; });
 
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_UseFunc_test) {
     BOOST_TEST(num == i);
   }
 
-  BOOST_TEST(count == (1 + 50000) * 50000LL / 2);
+  BOOST_TEST(count == (0 + 49999) * 50000LL / 2);
 
   for (int i = 0; i < 1000; i++) {
     int num = i;

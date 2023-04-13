@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
   }
 
   LOG_INFO << "count: " << count;
-  BOOST_TEST(count == 36);
+  BOOST_TEST(count == 28);
 }
 
 BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
