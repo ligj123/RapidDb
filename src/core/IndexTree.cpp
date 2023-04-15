@@ -9,6 +9,17 @@
 #include <shared_mutex>
 
 namespace storage {
+void IndexTree::TestCloseWait(IndexTree *indexTree) {
+  SpinMutex sm;
+  sm.lock();
+  indexTree->Close([&sm]() { sm.unlock(); });
+  while (PageBufferPool::GetCacheSize() > 0) {
+    this_thread::sleep_for(1ms);
+    PageBufferPool::PoolManage();
+  }
+  sm.lock();
+}
+
 bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
                             VectorDataValue &vctKey, VectorDataValue &vctVal,
                             uint32_t indexId, IndexType iType) {
@@ -129,14 +140,7 @@ bool IndexTree::InitIndex(const string &indexName, const string &fileName,
 }
 
 IndexTree::~IndexTree() {
-  _bClosed = true;
-  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  if (_rootPage != nullptr) {
-    _rootPage->DecRef();
-    _rootPage = nullptr;
-  }
-
-  while (_pagesInMem.load() > 1) {
+  while (_pagesInMem.load(memory_order_acquire) > 1) {
     this_thread::sleep_for(chrono::milliseconds(1));
   }
 
@@ -171,9 +175,9 @@ IndexTree::~IndexTree() {
 }
 
 void IndexTree ::Close(function<void()> funcDestory) {
+  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
   _funcDestory = funcDestory;
   _bClosed = true;
-  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
   if (_rootPage != nullptr) {
     _rootPage->DecRef();
     _rootPage = nullptr;
@@ -223,8 +227,8 @@ void IndexTree::UpdateRootPage(IndexPage *root) {
 }
 
 IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
-  PageID newPageId = _garbageOwner == nullptr ? PAGE_NULL_POINTER
-                                              : _garbageOwner->ApplyPage(1);
+  PageID newPageId = (_garbageOwner == nullptr) ? PAGE_NULL_POINTER
+                                                : _garbageOwner->ApplyPage(1);
   if (newPageId == PAGE_NULL_POINTER)
     newPageId = _headPage->GetAndIncTotalPageCount();
 

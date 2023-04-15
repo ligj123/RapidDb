@@ -21,8 +21,6 @@ public:
   }
 
   static CachePage *GetPage(uint64_t hashId);
-  /**Only used for test to remove results from previous test cases*/
-  static void StopPool();
   /**For test purpose, manually add a PagePoolTask into thread pool*/
   static void PushTask();
 
@@ -35,6 +33,7 @@ public:
     assert(_threadPool == nullptr);
     _threadPool = tp;
   }
+  static void StopPool();
 
 protected:
   static ConcurrentHashMap<uint64_t, CachePage *, true> _mapCache;

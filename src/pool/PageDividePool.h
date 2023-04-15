@@ -17,13 +17,13 @@ public:
 public:
   static void AddTimerTask();
   static void RemoveTimerTask();
-  static void AddCachePage(IndexPage *page, bool bInc) {
+  static void AddCachePage(IndexPage *page, bool bIncr) {
     if (page->IsInDivid()) {
-      if (!bInc)
+      if (!bIncr)
         page->DecRef();
       return;
     } else {
-      if (bInc) {
+      if (bIncr) {
         page->IncRef();
       }
       page->SetInDivid(true);
