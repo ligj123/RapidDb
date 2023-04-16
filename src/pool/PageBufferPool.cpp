@@ -17,6 +17,7 @@ ConcurrentHashMap<uint64_t, CachePage *, true> PageBufferPool::_mapCache(
     100, PageBufferPool::_maxCacheSize, [](CachePage *page) { page->IncRef(); },
     [](CachePage *page) { page->DecRef(); });
 ThreadPool *PageBufferPool::_threadPool;
+atomic_bool PageBufferPool::_bInThreadPool{false};
 
 void PageBufferPool::AddPage(CachePage *page) {
   _mapCache.Insert(page->HashCode(), page);
@@ -106,12 +107,18 @@ void PageBufferPool::PoolManage() {
     _mapCache.Unlock(i);
   }
 
+  _bInThreadPool.store(false);
   LOG_INFO << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.Size()
            << "\tRemoved page:" << delCount;
 }
 
 void PageBufferPool::AddTimerTask() {
   TimerThread::AddCircleTask("PageBufferPool", 5000000, []() {
+    assert(_threadPool != nullptr);
+    bool b = _bInThreadPool.exchange(true, memory_order_relaxed);
+    if (b)
+      return;
+
     PagePoolTask *task = new PagePoolTask();
     _threadPool->AddTask(task);
   });
@@ -122,6 +129,11 @@ void PageBufferPool::RemoveTimerTask() {
 }
 
 void PageBufferPool::PushTask() {
+  assert(_threadPool != nullptr);
+  bool b = _bInThreadPool.exchange(true, memory_order_relaxed);
+  if (b)
+    return;
+
   PagePoolTask *task = new PagePoolTask();
   _threadPool->AddTask(task);
 }

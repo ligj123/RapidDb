@@ -44,6 +44,8 @@ protected:
   // task.
   static int64_t _prevDelNum;
   static ThreadPool *_threadPool;
+  // If thread pool has PagePoolTask, include watting and running
+  static atomic_bool _bInThreadPool;
   friend class PagePoolTask;
 };
 

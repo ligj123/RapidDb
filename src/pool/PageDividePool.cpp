@@ -10,6 +10,11 @@ PageDividePool *PageDividePool::_divPool = nullptr;
 
 void PageDividePool::AddTimerTask() {
   TimerThread::AddCircleTask("PageDividePool", 1000000, []() {
+    assert(_divPool != nullptr);
+    bool b = _divPool->_bInThreadPool.exchange(true, memory_order_relaxed);
+    if (b)
+      return;
+
     PageDivideTask *task = new PageDivideTask();
     _divPool->_threadPool->AddTask(task);
   });
@@ -27,6 +32,10 @@ void PageDividePool::StopPool() {
 }
 
 void PageDividePool::PushTask() {
+  assert(_divPool != nullptr);
+  bool b = _divPool->_bInThreadPool.exchange(true, memory_order_relaxed);
+  if (b)
+    return;
   PageDivideTask *task = new PageDivideTask();
   _divPool->_threadPool->AddTask(task);
 }

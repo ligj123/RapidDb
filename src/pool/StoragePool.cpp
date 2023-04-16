@@ -11,6 +11,11 @@ SpinMutex StoragePool::_spinMutex;
 
 void StoragePool::AddTimerTask() {
   TimerThread::AddCircleTask("StoragePool", 1000000, []() {
+    assert(_storagePool != nullptr);
+    bool b = _storagePool->_bInThreadPool.exchange(true, memory_order_relaxed);
+    if (b)
+      return;
+
     StorageTask *task = new StorageTask();
     _storagePool->_threadPool->AddTask(task);
   });
@@ -18,6 +23,11 @@ void StoragePool::AddTimerTask() {
 void StoragePool::RemoveTimerTask() { TimerThread::RemoveTask("StoragePool"); }
 
 void StoragePool::PushTask() {
+  assert(_storagePool != nullptr);
+  bool b = _storagePool->_bInThreadPool.exchange(true, memory_order_relaxed);
+  if (b)
+    return;
+
   StorageTask *task = new StorageTask();
   _storagePool->_threadPool->AddTask(task);
 }
@@ -80,5 +90,7 @@ void StoragePool::PoolManage() {
   if (tree != nullptr) {
     tree->ReleasePageFile(pf);
   }
+
+  _storagePool->_bInThreadPool.store(false, memory_order_relaxed);
 }
 } // namespace storage

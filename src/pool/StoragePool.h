@@ -53,6 +53,8 @@ protected:
   MTreeMap<uint64_t, CachePage *> _mapWrite;
   FastQueue<CachePage> _fastQueue;
   ThreadPool *_threadPool;
+  // If thread pool has StorageTask, include waitting or running status
+  atomic_bool _bInThreadPool{false};
   friend class StorageTask;
 };
 

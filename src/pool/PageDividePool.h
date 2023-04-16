@@ -50,6 +50,8 @@ protected:
   MTreeMap<uint64_t, IndexPage *> _mapPage;
   FastQueue<IndexPage> _fastQueue;
   ThreadPool *_threadPool;
+  // If thread pool has PageDivideTask, include watting and running
+  atomic_bool _bInThreadPool{false};
   friend class PageDivideTask;
 };
 
