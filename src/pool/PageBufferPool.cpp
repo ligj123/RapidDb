@@ -88,7 +88,6 @@ void PageBufferPool::PoolManage() {
 
     for (CachePage *page : flist) {
       _mapCache.Erase(i, page->HashCode());
-      page->DecRef();
       delCount++;
     }
 
@@ -101,7 +100,6 @@ void PageBufferPool::PoolManage() {
       }
 
       _mapCache.Erase(i, page->HashCode());
-      page->DecRef();
       delCount++;
     }
     _mapCache.Unlock(i);

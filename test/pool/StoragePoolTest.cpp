@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     size_t _strSize;
   };
 
-  ThreadPool *tp = new ThreadPool("StorageTest", 100000, 1, 1);
+  ThreadPool *tp = ThreadPool::InitMain(100000, 1, 1);
   StoragePool::InitPool(tp);
   string strTest = "abcdefg1234567890中文测试abcdefghigjlmnopqrstuvwrst";
   strTest += strTest;
@@ -74,13 +74,14 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     tp->AddTask(task);
   }
 
-  atomic_bool finish{false};
-  indexTree->Close([&finish]() { finish.store(true, memory_order_relaxed); });
-  this_thread::sleep_for(1s);
   while (atm.load(memory_order_relaxed) < NUM || !StoragePool::IsEmpty()) {
     StoragePool::PushTask();
     this_thread::sleep_for(1ms);
   }
+
+  atomic_bool finish{false};
+  this_thread::sleep_for(1s);
+  indexTree->Close([&finish]() { finish.store(true, memory_order_relaxed); });
 
   while (PageBufferPool::GetCacheSize() > 0 ||
          !finish.load(memory_order_relaxed)) {
