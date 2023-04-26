@@ -89,43 +89,42 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     PageBufferPool::PoolManage();
   }
 
-  // class PageCmpTask : public Task {
-  // public:
-  //   PageCmpTask(CachePage *page, int id, const char *pStrTest, size_t sz)
-  //       : _page(page), _id(id), _pStrTest(pStrTest), _strSize(sz) {}
-  //   bool IsSmallTask() override { return false; }
-  //   void Run() override {
-  //     BOOST_TEST(_id == _page->ReadInt(0));
-  //     BOOST_TEST(memcmp(_pStrTest, _page->GetBysPage() + 4, _strSize) == 0);
-  //     BOOST_TEST(
-  //         memcmp(_pStrTest,
-  //                _page->GetBysPage() + Configure::GetCachePageSize() -
-  //                _strSize, _strSize) == 0);
+  class PageCmpTask : public Task {
+  public:
+    PageCmpTask(CachePage *page, int id, const char *pStrTest, size_t sz)
+        : _page(page), _id(id), _pStrTest(pStrTest), _strSize(sz) {}
+    bool IsSmallTask() override { return false; }
+    void Run() override {
+      BOOST_TEST(_id == _page->ReadInt(0));
+      BOOST_TEST(memcmp(_pStrTest, _page->GetBysPage() + 4, _strSize) == 0);
+      BOOST_TEST(
+          memcmp(_pStrTest,
+                 _page->GetBysPage() + Configure::GetCachePageSize() - _strSize,
+                 _strSize) == 0);
 
-  //     _status = TaskStatus::STOPED;
-  //   }
+      _status = TaskStatus::STOPED;
+    }
 
-  //   CachePage *_page;
-  //   int _id;
-  //   const char *_pStrTest;
-  //   size_t _strSize;
-  // };
+    CachePage *_page;
+    int _id;
+    const char *_pStrTest;
+    size_t _strSize;
+  };
 
-  // indexTree = new IndexTree();
-  // indexTree->InitIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0);
-  // for (int i = 1; i <= NUM; i++) {
-  //   CachePage *page = new CachePage(indexTree, i, PageType::UNKNOWN);
-  //   PageCmpTask *ctask = new PageCmpTask(page, i, pStrTest, sz);
-  //   page->PushWaitTask(ctask);
-  //   ReadPageTask *rtask = new ReadPageTask(page);
-  //   tp->AddTask(rtask);
-  // }
+  indexTree = new IndexTree();
+  indexTree->InitIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0);
+  for (int i = 1; i <= NUM; i++) {
+    CachePage *page = new CachePage(indexTree, i, PageType::UNKNOWN);
+    PageCmpTask *ctask = new PageCmpTask(page, i, pStrTest, sz);
+    page->PushWaitTask(ctask);
+    ReadPageTask *rtask = new ReadPageTask(page);
+    tp->AddTask(rtask);
+  }
 
-  // IndexTree::TestCloseWait(indexTree);
+  IndexTree::TestCloseWait(indexTree);
 
   StoragePool::StopPool();
-  tp->Stop();
-  delete tp;
+  ThreadPool::StopMain();
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage
