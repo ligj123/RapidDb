@@ -104,6 +104,7 @@ void ThreadPool::CreateThread(int id) {
 
       for (Task *task : vct) {
         _currTask = task;
+        task->SetStatus(TaskStatus::RUNNING);
         task->Run();
         assert(task->Status() > TaskStatus::RUNNING);
         _currTask = nullptr;
@@ -111,7 +112,8 @@ void ThreadPool::CreateThread(int id) {
         if (task->Status() == TaskStatus::PAUSE_WITH_ADD ||
             task->Status() == TaskStatus::INTERVAL) {
           AddTask(task);
-        } else if (task->Status() == TaskStatus::STOPED) {
+        } else if (task->Status() == TaskStatus::FINISHED) {
+          AddTasks(task->GetWaitTasks());
           delete task;
         }
       }

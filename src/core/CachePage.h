@@ -199,11 +199,14 @@ protected:
 
 class ReadPageTask : public Task {
 public:
-  ReadPageTask(CachePage *page) : _page(page) { page->IncRef(); }
+  ReadPageTask(CachePage *page, PageFile *pageFile)
+      : _page(page), _pageFile(pageFile) {
+    page->IncRef();
+  }
   bool IsSmallTask() { return false; }
   void Run() {
     _status = TaskStatus::RUNNING;
-    _page->ReadPage(nullptr);
+    _page->ReadPage(_pageFile);
 
     if (_page->GetPageStatus() == PageStatus::VALID) {
       _page->Init();
@@ -218,5 +221,6 @@ public:
 
 protected:
   CachePage *_page;
+  PageFile *_pageFile;
 };
 } // namespace storage

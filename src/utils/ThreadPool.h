@@ -20,7 +20,7 @@ enum class TaskStatus : Byte {
   INTERVAL,   // Interval time between two running
   PAUSE_WITHOUT_ADD, // Pause task and not need to add this task into ThreadPool
   PAUSE_WITH_ADD,    // Pause task and add this task into ThreadPool
-  STOPED // The task has finished and will be removed from ThreadPool
+  FINISHED           // The task has finished and will be free.
 };
 
 // All tasks that run in thread pool must inherit this class.
@@ -29,6 +29,7 @@ public:
   virtual ~Task() {}
   virtual void Run() = 0;
   inline TaskStatus Status() { return _status; }
+  inline void SetStatus(TaskStatus s) { _status = s; }
   // If small task, the thread pool maybe get more than one tasks one time to
   // execute
   virtual bool IsSmallTask() { return true; }
@@ -38,6 +39,7 @@ public:
     _vctWaitTasks.push_back(task);
   }
 
+  MVector<Task *> &GetWaitTasks() { return _vctWaitTasks; }
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
   }
@@ -46,7 +48,8 @@ public:
   }
 
 protected:
-  /**Waiting tasks for this task*/
+  /**The tasks waiting for this task, they will be added into pool when current
+   * has been finished*/
   MVector<Task *> _vctWaitTasks;
   TaskStatus _status = TaskStatus::UNINIT;
 };

@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     tp->AddTask(task);
   }
 
-  while (atm.load(memory_order_relaxed) < NUM || !StoragePool::IsEmpty()) {
+  while (atm.load(memory_order_relaxed) <= NUM || !StoragePool::IsEmpty()) {
     StoragePool::PushTask();
     this_thread::sleep_for(1ms);
   }
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     CachePage *page = new CachePage(indexTree, i, PageType::UNKNOWN);
     PageCmpTask *ctask = new PageCmpTask(page, i, pStrTest, sz);
     page->PushWaitTask(ctask);
-    ReadPageTask *rtask = new ReadPageTask(page);
+    ReadPageTask *rtask = new ReadPageTask(page, nullptr);
     tp->AddTask(rtask);
   }
 
