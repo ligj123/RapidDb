@@ -25,7 +25,7 @@ BOOST_AUTO_TEST_CASE(FastQueue_test) {
         this_thread::sleep_for(chrono::milliseconds(1));
       }
 
-      _status = TaskStatus::STOPED;
+      _status = TaskStatus::FINISHED;
     }
   };
 

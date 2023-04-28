@@ -22,6 +22,7 @@ enum class TaskStatus : Byte {
   PAUSE_WITH_ADD,    // Pause task and add this task into ThreadPool
   FINISHED           // The task has finished and will be free.
 };
+class ThreadPool;
 
 // All tasks that run in thread pool must inherit this class.
 class Task {

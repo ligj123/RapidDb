@@ -59,6 +59,8 @@ void CachePage::ReadPage(PageFile *pageFile) {
       crc32.reset();
       crc32.process_bytes(_bysPage, CRC32_PAGE_OFFSET);
       if (crc32.checksum() != (uint32_t)ReadInt(CRC32_PAGE_OFFSET)) {
+        _pageStatus = PageStatus::INVALID;
+      } else {
         _pageStatus = PageStatus::VALID;
       }
     }
@@ -69,6 +71,8 @@ void CachePage::ReadPage(PageFile *pageFile) {
     crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
     if (crc32.checksum() != (uint32_t)ReadInt(CRC32_HEAD_OFFSET)) {
       _pageStatus = PageStatus::INVALID;
+    } else {
+      _pageStatus = PageStatus::VALID;
     }
   }
   if (pageFile == nullptr) {
@@ -76,9 +80,10 @@ void CachePage::ReadPage(PageFile *pageFile) {
   }
   _bDirty = false;
 
-  WriteLock();
   ThreadPool::InstMain().AddTasks(_waitTasks);
-  WriteUnlock();
+  _waitTasks.clear();
+  lock.unlock();
+  _pageCv.notify_all();
 }
 
 void CachePage::WritePage(PageFile *pageFile) {

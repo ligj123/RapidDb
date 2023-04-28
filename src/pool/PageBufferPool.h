@@ -56,7 +56,7 @@ class PagePoolTask : public Task {
     if (lock.try_lock()) {
       _status = TaskStatus::RUNNING;
       PageBufferPool::PoolManage();
-      _status = TaskStatus::STOPED;
+      _status = TaskStatus::FINISHED;
     } else {
       _status = TaskStatus::INTERVAL;
     }

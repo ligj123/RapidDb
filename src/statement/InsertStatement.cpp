@@ -22,7 +22,7 @@ TaskStatus InsertStatement::Execute() {
 // Start to insert a new row.
 INSERT_START : {
   if (_currRow >= _vctParas.size()) {
-    return TaskStatus::STOPED;
+    return TaskStatus::FINISHED;
   }
 
   VectorDataValue *vdv = _vctParas[_currRow];
@@ -72,7 +72,7 @@ PRIMARY_PAGE_LOAD : {
     } else {
       LeafPage::RollbackLeafRecords(_vctRecord, _currRec);
       _errorMsg.reset(new ErrorMsg(CORE_REPEATED_RECORD, {}));
-      return TaskStatus::STOPED;
+      return TaskStatus::FINISHED;
     }
   } else {
     table->GenSecondaryRecords(nullptr, lr, *_vctParas[_currRow],
@@ -127,6 +127,6 @@ SECONDARY_PAGE_LOAD : {
   }
 }
 
-  return TaskStatus::STOPED;
+  return TaskStatus::FINISHED;
 }
 } // namespace storage

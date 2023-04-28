@@ -249,40 +249,61 @@ IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
   return page;
 }
 
-IndexPage *IndexTree::GetPage(PageID pageId, bool bLeafPage) {
+IndexPage *IndexTree::GetPage(PageID pageId, PageType type, bool wait) {
   assert(pageId < _headPage->ReadTotalPageCount());
   IndexPage *page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
-  if (page != nullptr)
+  if (page != nullptr) {
+    if (wait)
+      page->WaitRead();
     return page;
+  }
 
   _pageMutex.lock();
   page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
   if (page == nullptr) {
-    if (bLeafPage) {
+    if (type == PageType::LEAF_PAGE) {
       page = new LeafPage(this, pageId);
-    } else {
+    } else if (type == PageType::BRANCH_PAGE) {
       page = new BranchPage(this, pageId);
+    } else {
+      abort();
     }
 
     PageBufferPool::AddPage(page);
     IncPages();
+    _pageMutex.unlock();
 
     if (Configure::GetDiskType() == DiskType::SSD) {
-      page->ReadPage(nullptr);
+      if (wait) {
+        page->ReadPage(nullptr);
 
-      if (page->GetPageStatus() == PageStatus::VALID) {
-        page->Init();
+        if (page->GetPageStatus() == PageStatus::VALID) {
+          page->Init();
+        } else {
+          // In following time will add code to fix page;
+          abort();
+        }
       } else {
-        // In following time will add code to fix page;
-        abort();
+        // For DiskType::SSD, multi threads load the pages at the same time is
+        // more fast than single thread.
+        ReadPageTask *task = new ReadPageTask(page);
+        ThreadPool::InstMain().AddTask(task, false);
       }
+
+      return page;
     } else {
-      ReadPageTask *task = new ReadPageTask(page);
-      ThreadPool::InstMain().AddTask(task);
+      // For DiskType::HDD, it will rise a large read task and all read requests
+      // will add the queue in large read task, then read one by one according
+      // to the page id.
+      // TO DO
+      abort();
     }
+  } else {
+    _pageMutex.unlock();
   }
 
-  _pageMutex.unlock();
+  if (wait)
+    page->WaitRead();
   return page;
 }
 
@@ -297,7 +318,6 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
     } else {
       page->ReadLock();
     }
-    page->RemoveTask(ThreadPool::_currTask);
   } else {
     while (true) {
       {
@@ -368,7 +388,6 @@ bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
     } else {
       page->ReadLock();
     }
-    page->RemoveTask(ThreadPool::_currTask);
   } else {
     while (page == nullptr) {
       {

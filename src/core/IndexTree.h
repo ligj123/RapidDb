@@ -41,7 +41,7 @@ public:
 
   void UpdateRootPage(IndexPage *root);
   IndexPage *AllocateNewPage(PageID parentId, Byte pageLevel);
-  IndexPage *GetPage(PageID pageId, bool bLeafPage);
+  IndexPage *GetPage(PageID pageId, PageType type, bool wait = false);
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
   // Apply a series of pages for overflow pages. It will search Garbage Pages

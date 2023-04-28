@@ -51,7 +51,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
       while (!*_pStop) {
         this_thread::sleep_for(chrono::milliseconds(1));
       }
-      _status = TaskStatus::STOPED;
+      _status = TaskStatus::FINISHED;
     }
 
   protected:

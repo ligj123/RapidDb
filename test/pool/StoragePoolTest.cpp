@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
         page->DecRef();
       }
 
-      _status = TaskStatus::STOPED;
+      _status = TaskStatus::FINISHED;
     }
 
     IndexTree *_indexTree;
@@ -102,7 +102,8 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
                  _page->GetBysPage() + Configure::GetCachePageSize() - _strSize,
                  _strSize) == 0);
 
-      _status = TaskStatus::STOPED;
+      _page->DecRef();
+      _status = TaskStatus::FINISHED;
     }
 
     CachePage *_page;
@@ -119,10 +120,18 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     page->PushWaitTask(ctask);
     ReadPageTask *rtask = new ReadPageTask(page, nullptr);
     tp->AddTask(rtask);
+    _page->DecRef();
   }
 
-  IndexTree::TestCloseWait(indexTree);
-
+  atomic_bool finish{false};
+  this_thread::sleep_for(1s);
+  indexTree->Close([&finish]() { finish.store(true, memory_order_relaxed); });
+  while (PageBufferPool::GetCacheSize() > 0 ||
+         !finish.load(memory_order_relaxed)) {
+    this_thread::sleep_for(1us);
+    PageBufferPool::PoolManage();
+  }
+  
   StoragePool::StopPool();
   ThreadPool::StopMain();
 }

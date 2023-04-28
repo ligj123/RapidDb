@@ -61,7 +61,7 @@ class PageDivideTask : public Task {
     if (lock.try_lock()) {
       _status = TaskStatus::RUNNING;
       PageDividePool::PoolManage();
-      _status = TaskStatus::STOPED;
+      _status = TaskStatus::FINISHED;
     } else {
       _status = TaskStatus::INTERVAL;
     }

@@ -139,19 +139,23 @@ public:
 
     return true;
   }
-  inline MVector<Task *> &GetWaitTasks() { return _waitTasks; }
+  inline void SwapWaitTasks(MVector<Task *> &wtask) {
+    unique_lock<SpinMutex> lock(_taskLock);
+    wtask.swap(_waitTasks);
+  }
+
   inline void SetInDivid(bool b) { _bInDivid.store(b, memory_order_relaxed); }
   inline bool IsInDivid() { return _bInDivid.load(memory_order_relaxed); }
   inline void SetInStorage(bool b) {
     _bInStorage.store(b, memory_order_relaxed);
   }
   inline bool IsInStorage() { return _bInStorage; }
-  inline void RemoveTask(Task *task) {
-    for (auto iter = _waitTasks.begin(); iter != _waitTasks.end(); iter++) {
-      if (*iter == task) {
-        _waitTasks.erase(iter);
-      }
-    }
+  inline void WaitRead() {
+    if (_pageStatus == PageStatus::VALID)
+      return;
+
+    std::unique_lock<std::mutex> lk(_pageLock);
+    _pageCv.wait(lk, []() { return _pageStatus != PageStatus::VALID; });
   }
 
 protected:
@@ -168,6 +172,7 @@ protected:
   ReentrantSharedSpinMutex _rwLock;
   // Locked when read from or write to disk
   SpinMutex _pageLock;
+  condition_variable_any _pageCv;
   // The last time to divid this page
   DT_MicroSec _dtPageLastDivid = 0;
   // The last time to update _bysPage
@@ -199,14 +204,11 @@ protected:
 
 class ReadPageTask : public Task {
 public:
-  ReadPageTask(CachePage *page, PageFile *pageFile)
-      : _page(page), _pageFile(pageFile) {
-    page->IncRef();
-  }
+  ReadPageTask(CachePage *page) : _page(page) { page->IncRef(); }
   bool IsSmallTask() { return false; }
   void Run() {
     _status = TaskStatus::RUNNING;
-    _page->ReadPage(_pageFile);
+    _page->ReadPage(nullptr);
 
     if (_page->GetPageStatus() == PageStatus::VALID) {
       _page->Init();
@@ -215,12 +217,11 @@ public:
       abort();
     }
 
-    _status = TaskStatus::STOPED;
+    _status = TaskStatus::FINISHED;
     _page->DecRef();
   }
 
 protected:
   CachePage *_page;
-  PageFile *_pageFile;
 };
 } // namespace storage
