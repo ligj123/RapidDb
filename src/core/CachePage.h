@@ -11,6 +11,7 @@
 #include "PageType.h"
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 
 namespace storage {
 class IndexTree;
@@ -139,11 +140,7 @@ public:
 
     return true;
   }
-  inline void SwapWaitTasks(MVector<Task *> &wtask) {
-    unique_lock<SpinMutex> lock(_taskLock);
-    wtask.swap(_waitTasks);
-  }
-
+  inline MVector<Task *> &GetWaitTasks() { return _waitTasks; }
   inline void SetInDivid(bool b) { _bInDivid.store(b, memory_order_relaxed); }
   inline bool IsInDivid() { return _bInDivid.load(memory_order_relaxed); }
   inline void SetInStorage(bool b) {
@@ -154,8 +151,8 @@ public:
     if (_pageStatus == PageStatus::VALID)
       return;
 
-    std::unique_lock<std::mutex> lk(_pageLock);
-    _pageCv.wait(lk, []() { return _pageStatus != PageStatus::VALID; });
+    std::unique_lock<SpinMutex> lk(_pageLock);
+    _pageCv.wait(lk, [this]() { return _pageStatus != PageStatus::VALID; });
   }
 
 protected:

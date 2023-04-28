@@ -50,7 +50,8 @@ bool IndexPage::PageDivide() {
     _parentPageId = parentPage->GetPageId();
     _indexTree->UpdateRootPage(parentPage);
   } else {
-    parentPage = (BranchPage *)_indexTree->GetPage(_parentPageId, false);
+    parentPage = (BranchPage *)_indexTree->GetPage(_parentPageId,
+                                                   PageType::BRANCH_PAGE, true);
     if (!parentPage->WriteTryLock()) {
       parentPage->DecRef();
       return false;
@@ -211,7 +212,8 @@ bool IndexPage::PageDivide() {
       _indexTree->GetHeadPage()->WriteEndLeafPagePointer(
           ((LeafPage *)vctPage[vctPage.size() - 1])->GetPageId());
     } else {
-      LeafPage *lastPage = (LeafPage *)_indexTree->GetPage(lastPointer, true);
+      LeafPage *lastPage = (LeafPage *)_indexTree->GetPage(
+          lastPointer, PageType::LEAF_PAGE, true);
       lastPage->SetPrevPageId(
           ((LeafPage *)vctPage[vctPage.size() - 1])->GetPageId());
       lastPage->SetDirty(true);

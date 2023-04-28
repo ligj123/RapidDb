@@ -115,7 +115,7 @@ public:
   inline const VectorDataValue &GetVctValue() const { return _vctValue; }
   inline LeafPage *GetBeginPage() {
     PageID pid = _headPage->ReadBeginLeafPagePointer();
-    return (LeafPage *)GetPage(pid, true);
+    return (LeafPage *)GetPage(pid, PageType::LEAF_PAGE, true);
   }
 
 protected:

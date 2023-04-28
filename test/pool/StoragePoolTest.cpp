@@ -118,12 +118,12 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     CachePage *page = new CachePage(indexTree, i, PageType::UNKNOWN);
     PageCmpTask *ctask = new PageCmpTask(page, i, pStrTest, sz);
     page->PushWaitTask(ctask);
-    ReadPageTask *rtask = new ReadPageTask(page, nullptr);
+    ReadPageTask *rtask = new ReadPageTask(page);
     tp->AddTask(rtask);
-    _page->DecRef();
+    page->DecRef();
   }
 
-  atomic_bool finish{false};
+  finish.store(false, memory_order_relaxed);
   this_thread::sleep_for(1s);
   indexTree->Close([&finish]() { finish.store(true, memory_order_relaxed); });
   while (PageBufferPool::GetCacheSize() > 0 ||
@@ -131,7 +131,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     this_thread::sleep_for(1us);
     PageBufferPool::PoolManage();
   }
-  
+
   StoragePool::StopPool();
   ThreadPool::StopMain();
 }

@@ -105,7 +105,8 @@ bool IndexTree::InitIndex(const string &indexName, const string &fileName,
   }
 
   uint32_t rootId = _headPage->ReadRootPagePointer();
-  _rootPage = GetPage(rootId, rootId == 0);
+  _rootPage = GetPage(
+      rootId, rootId == 0 ? PageType::LEAF_PAGE : PageType::BRANCH_PAGE, true);
 
 #ifdef _DEBUG
   uint16_t count = 0;
@@ -355,8 +356,10 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
     BranchRecord *br = bPage->GetRecordByPos(pos, true);
     uint32_t pageId = ((BranchRecord *)br)->GetChildPageId();
 
-    IndexPage *childPage =
-        (IndexPage *)GetPage(pageId, page->GetPageLevel() == 1);
+    IndexPage *childPage = (IndexPage *)GetPage(
+        pageId,
+        page->GetPageLevel() == 0 ? PageType::LEAF_PAGE : PageType::BRANCH_PAGE,
+        false);
     assert(childPage != nullptr);
 
     if (childPage->GetPageStatus() != PageStatus::VALID && !bWait) {
@@ -425,8 +428,10 @@ bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
     BranchRecord *br = bPage->GetRecordByPos(pos, true);
     uint32_t pageId = br->GetChildPageId();
 
-    IndexPage *childPage =
-        (IndexPage *)GetPage(pageId, page->GetPageLevel() == 1);
+    IndexPage *childPage = (IndexPage *)GetPage(
+        pageId,
+        page->GetPageLevel() == 0 ? PageType::LEAF_PAGE : PageType::BRANCH_PAGE,
+        false);
     assert(childPage != nullptr);
 
     if (childPage->GetPageStatus() != PageStatus::VALID && !bWait) {

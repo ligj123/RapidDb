@@ -174,9 +174,9 @@ void ThreadPool::AddTask(Task *task, bool urgent) {
 }
 
 void ThreadPool::AddTasks(MVector<Task *> &vct) {
-  assert(!_stopThreads);
   if (vct.size() == 0)
     return;
+  assert(!_stopThreads);
 
   for (auto task : vct) {
     _fastQueue->Push(task);
