@@ -75,13 +75,18 @@ void CachePage::ReadPage(PageFile *pageFile) {
       _pageStatus = PageStatus::VALID;
     }
   }
+
   if (pageFile == nullptr) {
     _indexTree->ReleasePageFile(pFile);
   }
-  _bDirty = false;
 
-  ThreadPool::InstMain().AddTasks(_waitTasks);
-  _waitTasks.clear();
+  if (_pageStatus == PageStatus::VALID) {
+    _bDirty = false;
+    Init();
+    ThreadPool::InstMain().AddTasks(_waitTasks);
+    _waitTasks.clear();
+  }
+
   lock.unlock();
   _pageCv.notify_all();
 }

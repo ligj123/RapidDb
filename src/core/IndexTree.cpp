@@ -66,6 +66,7 @@ bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
   _rootPage = AllocateNewPage(PAGE_NULL_POINTER, 0);
   _rootPage->SetBeginPage(true);
   _rootPage->SetEndPage(true);
+  _rootPage->SetDirty(true);
   StoragePool::WriteCachePage(_rootPage, true);
 
   _vctKey.swap(vctKey);
@@ -278,9 +279,7 @@ IndexPage *IndexTree::GetPage(PageID pageId, PageType type, bool wait) {
       if (wait) {
         page->ReadPage(nullptr);
 
-        if (page->GetPageStatus() == PageStatus::VALID) {
-          page->Init();
-        } else {
+        if (page->GetPageStatus() != PageStatus::VALID) {
           // In following time will add code to fix page;
           abort();
         }

@@ -207,9 +207,7 @@ public:
     _status = TaskStatus::RUNNING;
     _page->ReadPage(nullptr);
 
-    if (_page->GetPageStatus() == PageStatus::VALID) {
-      _page->Init();
-    } else {
+    if (_page->GetPageStatus() != PageStatus::VALID) {
       // In following time will add code to fix page;
       abort();
     }
