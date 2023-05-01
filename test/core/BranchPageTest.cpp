@@ -6,6 +6,7 @@
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/utils/Utilitys.h"
+#include "../TestHeader.h"
 #include "CoreSuit.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
@@ -13,9 +14,8 @@
 namespace storage {
 // BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 // BOOST_AUTO_TEST_CASE(BranchPage_test) {
-//   const string FILE_NAME = "./dbTest/testBranchPage" + StrMSTime() + ".dat";
-//   const string TABLE_NAME = "testTable";
-//   const int ROW_COUNT = 100;
+//   const string FILE_NAME = ROOT_PATH + "/testBranchPage" + StrMSTime() +
+//   ".dat"; const string TABLE_NAME = "testTable"; const int ROW_COUNT = 100;
 
 //   PageBufferPool::RemoveTimerTask();
 //   PageDividePool::RemoveTimerTask();
@@ -91,7 +91,7 @@ namespace storage {
 // }
 
 // BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
-//   const string FILE_NAME = "./dbTest/testBranchPageSave" + StrMSTime() +
+//   const string FILE_NAME = ROOT_PATH + "/testBranchPageSave" + StrMSTime() +
 //   ".dat"; const string TABLE_NAME = "testTable"; const int ROW_COUNT =
 //   IndexPage::MAX_DATA_LENGTH_BRANCH / 22;
 
@@ -148,9 +148,8 @@ namespace storage {
 // }
 
 // BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
-//   const string FILE_NAME = "./dbTest/testBranchPage" + StrMSTime() + ".dat";
-//   const string TABLE_NAME = "testTable";
-//   const int ROW_COUNT = 100;
+//   const string FILE_NAME = ROOT_PATH + "/testBranchPage" + StrMSTime() +
+//   ".dat"; const string TABLE_NAME = "testTable"; const int ROW_COUNT = 100;
 
 //   PageBufferPool::RemoveTimerTask();
 //   PageDividePool::RemoveTimerTask();
@@ -205,8 +204,8 @@ namespace storage {
 // }
 
 // BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
-//   const string FILE_NAME =
-//       "./dbTest/testBranchPageSearchKey" + StrMSTime() + ".dat";
+//   const string FILE_NAME =ROOT_PATH +
+//       "/testBranchPageSearchKey" + StrMSTime() + ".dat";
 //   const string TABLE_NAME = "testTable";
 
 //   PageBufferPool::RemoveTimerTask();

@@ -40,6 +40,7 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
 
   LOG_INFO << "count: " << count;
   BOOST_TEST(count == 28);
+  tp.Stop();
 }
 
 BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
@@ -86,6 +87,8 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   bStop = true;
   this_thread::sleep_for(chrono::milliseconds(1000));
   BOOST_TEST(tp.GetMinThreads() == tp.GetThreadCount());
+
+  tp.Stop();
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

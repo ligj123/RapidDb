@@ -2,6 +2,7 @@
 #include "../../src/core/IndexTree.h"
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/utils/Utilitys.h"
+#include "../TestHeader.h"
 #include <boost/test/unit_test.hpp>
 #include <cstring>
 #include <filesystem>
@@ -13,7 +14,8 @@ atomic_int32_t atm(1);
 BOOST_AUTO_TEST_SUITE(PoolTest)
 
 BOOST_AUTO_TEST_CASE(StoragePool_test) {
-  const string FILE_NAME = "./dbTest/testStoragePool" + StrMSTime() + ".dat";
+  const string FILE_NAME =
+      ROOT_PATH + "/testStoragePool" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
 #ifdef DEBUG_TEST
@@ -38,7 +40,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
         CachePage *page = new CachePage(_indexTree, ii, PageType::UNKNOWN);
         page->WriteInt(0, ii);
         BytesCopy(page->GetBysPage() + 4, _pStrTest, _strSize);
-        BytesCopy(page->GetBysPage() + Configure::GetCachePageSize() - _strSize,
+        BytesCopy(page->GetBysPage() + CachePage::CRC32_PAGE_OFFSET - _strSize,
                   _pStrTest, _strSize);
         page->SetDirty(true);
         _indexTree->IncPages();
@@ -99,7 +101,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
       BOOST_TEST(memcmp(_pStrTest, _page->GetBysPage() + 4, _strSize) == 0);
       BOOST_TEST(
           memcmp(_pStrTest,
-                 _page->GetBysPage() + Configure::GetCachePageSize() - _strSize,
+                 _page->GetBysPage() + CachePage::CRC32_PAGE_OFFSET - _strSize,
                  _strSize) == 0);
 
       _page->DecRef();
@@ -116,6 +118,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
   indexTree->InitIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0);
   for (int i = 1; i <= NUM; i++) {
     CachePage *page = new CachePage(indexTree, i, PageType::UNKNOWN);
+    indexTree->IncPages();
     PageCmpTask *ctask = new PageCmpTask(page, i, pStrTest, sz);
     page->PushWaitTask(ctask);
     ReadPageTask *rtask = new ReadPageTask(page);

@@ -5,6 +5,7 @@
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/utils/Utilitys.h"
+#include "../TestHeader.h"
 #include "CoreSuit.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
@@ -13,7 +14,7 @@ namespace storage {
 BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
   const string FILE_NAME =
-      "./dbTest/testBranchRecord_PrimaryKey_test" + StrMSTime() + ".dat";
+      ROOT_PATH + "/testBranchRecord_PrimaryKey_test" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong dvKey(100);
@@ -61,7 +62,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
 
 BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
   const string FILE_NAME =
-      "./dbTest/testBranchRecord_UniqueKey_test" + StrMSTime() + ".dat";
+      ROOT_PATH + "/testBranchRecord_UniqueKey_test" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong dvKey(100);
@@ -121,7 +122,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
 
 BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   const string FILE_NAME =
-      "./dbTest/testBranchRecord_NonUniqueKey_test" + StrMSTime() + ".dat";
+      ROOT_PATH + "/testBranchRecord_NonUniqueKey_test" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong dvKey(100);

@@ -1,12 +1,17 @@
 #define BOOST_TEST_MODULE RapidDb
 #include "../src/utils/Log.h"
+#include "TestHeader.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
 #include <string>
 
 namespace storage {
 namespace fs = std::filesystem;
-static const std::string ROOT_PATH = "./dbTest";
+#ifdef TEST_ROOT_PATH
+const std::string ROOT_PATH = TEST_ROOT_PATH;
+#else
+const std::string ROOT_PATH = "./dbTest";
+#endif
 
 struct GlobalFixTure {
   GlobalFixTure() {

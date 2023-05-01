@@ -8,6 +8,7 @@
 #include "../../src/dataType/DataValueVarChar.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/utils/Utilitys.h"
+#include "../TestHeader.h"
 #include "CoreSuit.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
@@ -17,7 +18,7 @@ namespace fs = std::filesystem;
 BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 
 BOOST_AUTO_TEST_CASE(LeafRecord_test) {
-  const string FILE_NAME = "./dbTest/testLeafRecord" + StrMSTime() + ".dat";
+  const string FILE_NAME = ROOT_PATH + "/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueLong *dvKey = new DataValueLong(100LL);
@@ -66,7 +67,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 }
 
 BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
-  const string FILE_NAME = "./dbTest/testLeafRecordBig" + StrMSTime() + ".dat";
+  const string FILE_NAME =
+      ROOT_PATH + "/testLeafRecordBig" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueInt dvInt(100);
@@ -147,7 +149,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafRecordMulti_Version" + StrMSTime() + ".dat";
+      ROOT_PATH + "/testLeafRecordMulti_Version" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
   DataValueInt dvInt(100);
@@ -288,9 +290,9 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
 
 BOOST_AUTO_TEST_CASE(LeafRecord_Second_test) {
   const string FILE_NAME =
-      "./dbTest/testLeafRecordSecond" + StrMSTime() + ".dat";
+      ROOT_PATH + "/testLeafRecordSecond" + StrMSTime() + ".dat";
   const string FILE_NAME2 =
-      "./dbTest/testLeafRecordSecond" + StrMSTime() + "2.dat";
+      ROOT_PATH + "/testLeafRecordSecond" + StrMSTime() + "2.dat";
   const string TABLE_NAME = "testTable";
   const string TABLE_NAME2 = "testTable2";
 

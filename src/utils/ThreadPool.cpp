@@ -136,12 +136,6 @@ void ThreadPool::CreateThread(int id) {
 }
 
 ThreadPool::~ThreadPool() {
-  {
-    std::unique_lock<SpinMutex> thread_lock(_threadMutex);
-    _stopThreads = true;
-  }
-  _taskCv.notify_all();
-
   for (int i = 0; i < _maxThreads; i++) {
     thread *t = _vctThread[i];
     if (t == nullptr)

@@ -110,7 +110,10 @@ public:
 
   void AddTask(Task *task, bool urgent = false);
   void AddTasks(MVector<Task *> &vct);
-  void Stop() { _stopThreads = true; }
+  void Stop() {
+    std::unique_lock<SpinMutex> thread_lock(_threadMutex);
+    _stopThreads = true;
+  }
   uint32_t GetTaskCount() {
     return (uint32_t)(_smallTasks.size() + _largeTasks.size() +
                       _urgentTasks.size());

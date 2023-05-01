@@ -4,6 +4,7 @@
 #include "../../src/pool/PageBufferPool.h"
 #include "../../src/pool/StoragePool.h"
 #include "../../src/utils/Utilitys.h"
+#include "../TestHeader.h"
 #include "CoreSuit.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
@@ -13,7 +14,7 @@ namespace fs = std::filesystem;
 BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 
 BOOST_AUTO_TEST_CASE(HeadPage_test) {
-  const string FILE_NAME = "./dbTest/testHeadPage" + StrMSTime() + ".dat";
+  const string FILE_NAME = ROOT_PATH + "/testHeadPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   VectorDataValue vctKey;
   VectorDataValue vctVal;

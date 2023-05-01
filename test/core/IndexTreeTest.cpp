@@ -14,8 +14,8 @@ namespace storage {
 BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexTreeInsertRecord" + StrMSTime() + ".dat";
+//  const string FILE_NAME =ROOT_PATH +
+//      "/testIndexTreeInsertRecord" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 1000;
 //
@@ -68,8 +68,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 
 // BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexRepeatedKey" + StrMSTime() + ".dat";
+//  const string FILE_NAME =ROOT_PATH +
+//      "/testIndexRepeatedKey" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 30000;
 //
@@ -115,8 +115,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToUniqueIndex_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexRepeatedKey" + StrMSTime() + ".dat";
+//  const string FILE_NAME = ROOT_PATH +
+//      "/testIndexRepeatedKey" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 30000;
 //
@@ -147,8 +147,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexRepeatedRecord" + StrMSTime() + ".dat";
+//  const string FILE_NAME = ROOT_PATH +
+//      "/testIndexRepeatedRecord" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //
 //  DataValueLong *dvKey = new DataValueLong(100, true);
@@ -181,8 +181,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithUniqueIndex_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexRepeatedRecord" + StrMSTime() + ".dat";
+//  const string FILE_NAME = ROOT_PATH +
+//      "/testIndexRepeatedRecord" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 2000;
 //
@@ -226,7 +226,7 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
-//  const string FILE_NAME = "./dbTest/testIndexGetRecord" + StrMSTime() +
+//  const string FILE_NAME = ROOT_PATH + "/testIndexGetRecord" + StrMSTime() +
 //  ".dat"; const string TABLE_NAME = "testTable"; const int ROW_COUNT = 6000;
 //
 //  DataValueLong *dvKey = new DataValueLong(100, true);
@@ -275,8 +275,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithUniqueIndex_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexRepeatedRecord" + StrMSTime() + ".dat";
+//  const string FILE_NAME =ROOT_PATH +
+//      "/testIndexRepeatedRecord" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 1000;
 //
@@ -373,8 +373,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeReadRecord_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexReadRecord" + StrMSTime() + ".dat";
+//  const string FILE_NAME =ROOT_PATH +
+//      "/testIndexReadRecord" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 6000;
 //
@@ -418,8 +418,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysNoUnique_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexReadPrimaryKeys" + StrMSTime() + ".dat";
+//  const string FILE_NAME =ROOT_PATH +
+//      "/testIndexReadPrimaryKeys" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 6000;
 //
@@ -467,8 +467,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysUnique_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexReadPrimaryKeys" + StrMSTime() + ".dat";
+//  const string FILE_NAME =ROOT_PATH +
+//      "/testIndexReadPrimaryKeys" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 6000;
 //
@@ -514,8 +514,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexPaimary_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexQueryIndex" + StrMSTime() + ".dat";
+//  const string FILE_NAME =ROOT_PATH +
+//      "/testIndexQueryIndex" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 6000;
 //
@@ -590,8 +590,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexUnique_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexQueryIndex" + StrMSTime() + ".dat";
+//  const string FILE_NAME =ROOT_PATH +
+//      "/testIndexQueryIndex" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 6000;
 //
@@ -664,8 +664,8 @@ BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
 //}
 //
 // BOOST_AUTO_TEST_CASE(IndexTreeQueryIndexNonUnique_test) {
-//  const string FILE_NAME =
-//      "./dbTest/testIndexQueryIndex" + StrMSTime() + ".dat";
+//  const string FILE_NAME =ROOT_PATH +
+//      "/testIndexQueryIndex" + StrMSTime() + ".dat";
 //  const string TABLE_NAME = "testTable";
 //  const int ROW_COUNT = 6000;
 //  const int KEY_COUNT = 2000;
