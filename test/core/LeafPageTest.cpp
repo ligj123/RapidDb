@@ -30,7 +30,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0,
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 1000,
                          IndexType::PRIMARY);
   LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(1, (Byte)0);
 
@@ -108,12 +108,13 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   PageDividePool::RemoveTimerTask();
   StoragePool::RemoveTimerTask();
 
-  DataValueLong *dvKey = new DataValueLong(100, true);
-  DataValueLong *dvVal = new DataValueLong(200, false);
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
-  IndexTree *indexTree =
-      new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, IndexType::PRIMARY);
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 1001,
+                         IndexType::PRIMARY);
   LeafPage *lp =
       (LeafPage *)indexTree->AllocateNewPage(PAGE_NULL_POINTER, (Byte)0);
 
@@ -125,11 +126,10 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
-    lp->InsertRecord(lr, (i % 2 == 0 ? -1 : i));
+    lp->InsertRecord(lr, i);
   }
   PageDividePool::AddCachePage(lp, true);
   lp->WriteUnlock();
-
   lp->DecRef();
 
   // Below code is to wait indexTree has been destory.
@@ -142,12 +142,12 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
     std::this_thread::yield();
   }
 
-  indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
+  indexTree = new IndexTree();
+  indexTree->InitIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 1001);
   lp = new LeafPage(indexTree, 1);
   indexTree->IncPages();
   lp->DecRef();
   lp->ReadPage();
-  lp->Init();
   lp->LoadRecords();
   vctKey.push_back(dvKey->Clone(true));
   for (int i = 0; i < ROW_COUNT; i++) {
