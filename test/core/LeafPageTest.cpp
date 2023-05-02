@@ -169,131 +169,131 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   PageBufferPool::AddTimerTask();
 }
 
-// BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
-//   const string FILE_NAME = ROOT_PATH +
-//       "/testLeafPageSaveLoad" + StrMSTime() + ".dat";
-//   const string TABLE_NAME = "testTable";
-//   const int ROW_COUNT = IndexPage::MAX_DATA_LENGTH_LEAF / 10;
-//   PageBufferPool::RemoveTimerTask();
-//   PageDividePool::RemoveTimerTask();
-//   StoragePool::RemoveTimerTask();
+BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
+  const string FILE_NAME =
+      ROOT_PATH + "/testLeafPageSaveLoad" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = IndexPage::MAX_DATA_LENGTH_LEAF / 10;
+  PageBufferPool::RemoveTimerTask();
+  PageDividePool::RemoveTimerTask();
+  StoragePool::RemoveTimerTask();
 
-//   DataValueLong *dvKey = new DataValueLong(100, true);
-//   DataValueLong *dvVal = new DataValueLong(200, false);
-//   VectorDataValue vctKey = {dvKey->Clone()};
-//   VectorDataValue vctVal = {dvVal->Clone()};
-//   IndexTree *indexTree =
-//       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal,
-//       IndexType::PRIMARY);
-//   HeadPage *hp = indexTree->GetHeadPage();
-//   LeafPage *lp = (LeafPage *)indexTree->GetPage(0, true);
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 1002,
+                         IndexType::PRIMARY);
+  HeadPage *hp = indexTree->GetHeadPage();
+  LeafPage *lp = (LeafPage *)indexTree->GetPage(0, true);
 
-//   vctKey.push_back(dvKey->Clone());
-//   vctVal.push_back(dvVal->Clone());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
-//   for (int i = ROW_COUNT * 9; i < ROW_COUNT * 10; i++) {
-//     *((DataValueLong *)vctKey[0]) = i;
-//     *((DataValueLong *)vctVal[0]) = i + 100LL;
-//     LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal,
-//                                     hp->GetAndIncRecordStamp(), nullptr);
-//     lp->InsertRecord(rr);
-//   }
+  for (int i = ROW_COUNT * 9; i < ROW_COUNT * 10; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    *((DataValueLong *)vctVal[0]) = i + 100LL;
+    LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal,
+                                    hp->GetAndIncRecordStamp(), nullptr);
+    lp->InsertRecord(rr);
+  }
 
-//   bool b = lp->PageDivide();
-//   BOOST_TEST(true == b);
-//   lp->IncRef();
+  bool b = lp->PageDivide();
+  BOOST_TEST(true == b);
+  lp->IncRef();
 
-//   LeafPage *lpNext = nullptr;
-//   VectorLeafRecord vlr;
-//   int count = ROW_COUNT * 9;
+  LeafPage *lpNext = nullptr;
+  VectorLeafRecord vlr;
+  int count = ROW_COUNT * 9;
 
-//   while (lp != nullptr) {
-//     // LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" <<
-//     // lp->GetRecordNum()
-//     //  << "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" <<
-//     //  lp->GetNextPageId();
-//     lp->GetAllRecords(vlr);
+  while (lp != nullptr) {
+    // LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" <<
+    // lp->GetRecordNum()
+    //  << "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" <<
+    //  lp->GetNextPageId();
+    lp->GetAllRecords(vlr);
 
-//     for (LeafRecord *lr : vlr) {
-//       VectorDataValue vVal;
-//       *((DataValueLong *)vctKey[0]) = count;
-//       RawKey key(vctKey);
-//       BOOST_TEST(lr->CompareKey(key) == 0);
+    for (LeafRecord *lr : vlr) {
+      VectorDataValue vVal;
+      *((DataValueLong *)vctKey[0]) = count;
+      RawKey key(vctKey);
+      BOOST_TEST(lr->CompareKey(key) == 0);
 
-//       lr->GetListValue(vVal);
-//       BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong *)vVal[0]));
-//       count++;
-//     }
+      lr->GetListValue(vVal);
+      BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong *)vVal[0]));
+      count++;
+    }
 
-//     uint32_t lNext = lp->GetNextPageId();
-//     lp->DecRef();
-//     if (lNext == PAGE_NULL_POINTER) {
-//       break;
-//     }
+    uint32_t lNext = lp->GetNextPageId();
+    lp->DecRef();
+    if (lNext == PAGE_NULL_POINTER) {
+      break;
+    }
 
-//     lpNext = (LeafPage *)indexTree->GetPage(lNext, true);
-//     int rn = lpNext->GetRecordNumber();
-//     BOOST_TEST(rn > 0);
+    lpNext = (LeafPage *)indexTree->GetPage(lNext, true);
+    int rn = lpNext->GetRecordNumber();
+    BOOST_TEST(rn > 0);
 
-//     lp = lpNext;
-//   }
+    lp = lpNext;
+  }
 
-//   BOOST_TEST(ROW_COUNT * 10 == count);
+  BOOST_TEST(ROW_COUNT * 10 == count);
 
-//   lp = (LeafPage *)indexTree->GetPage(0, true);
+  lp = (LeafPage *)indexTree->GetPage(0, true);
 
-//   for (int i = 0; i < ROW_COUNT * 9; i++) {
-//     *((DataValueLong *)vctKey[0]) = i;
-//     *((DataValueLong *)vctVal[0]) = i + 100LL;
-//     LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal,
-//                                     hp->GetAndIncRecordStamp(), nullptr);
-//     lp->InsertRecord(rr);
-//   }
+  for (int i = 0; i < ROW_COUNT * 9; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    *((DataValueLong *)vctVal[0]) = i + 100LL;
+    LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal,
+                                    hp->GetAndIncRecordStamp(), nullptr);
+    lp->InsertRecord(rr);
+  }
 
-//   b = lp->PageDivide();
-//   BOOST_TEST(true == b);
+  b = lp->PageDivide();
+  BOOST_TEST(true == b);
 
-//   lp->IncRef();
-//   count = 0;
-//   while (lp != nullptr) {
-//     // LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" <<
-//     // lp->GetRecordNum()
-//     //  << "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" <<
-//     //  lp->GetNextPageId();
-//     lp->GetAllRecords(vlr);
-//     for (LeafRecord *lr : vlr) {
-//       VectorDataValue vVal;
-//       *((DataValueLong *)vctKey[0]) = count;
-//       RawKey key(vctKey);
-//       BOOST_TEST(lr->CompareKey(key) == 0);
+  lp->IncRef();
+  count = 0;
+  while (lp != nullptr) {
+    // LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" <<
+    // lp->GetRecordNum()
+    //  << "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" <<
+    //  lp->GetNextPageId();
+    lp->GetAllRecords(vlr);
+    for (LeafRecord *lr : vlr) {
+      VectorDataValue vVal;
+      *((DataValueLong *)vctKey[0]) = count;
+      RawKey key(vctKey);
+      BOOST_TEST(lr->CompareKey(key) == 0);
 
-//       lr->GetListValue(vVal);
-//       BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong *)vVal[0]));
-//       count++;
-//     }
+      lr->GetListValue(vVal);
+      BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong *)vVal[0]));
+      count++;
+    }
 
-//     uint32_t lNext = lp->GetNextPageId();
-//     lp->DecRef();
-//     if (lNext == PAGE_NULL_POINTER) {
-//       break;
-//     }
+    uint32_t lNext = lp->GetNextPageId();
+    lp->DecRef();
+    if (lNext == PAGE_NULL_POINTER) {
+      break;
+    }
 
-//     lpNext = (LeafPage *)indexTree->GetPage(lNext, true);
-//     BOOST_TEST(lpNext->GetRecordNumber() > 0U);
+    lpNext = (LeafPage *)indexTree->GetPage(lNext, true);
+    BOOST_TEST(lpNext->GetRecordNumber() > 0U);
 
-//     lp = lpNext;
-//   }
+    lp = lpNext;
+  }
 
-//   BOOST_TEST(ROW_COUNT * 10 == count);
+  BOOST_TEST(ROW_COUNT * 10 == count);
 
-//   indexTree->Close();
-//   delete dvKey;
-//   delete dvVal;
+  indexTree->Close();
+  delete dvKey;
+  delete dvVal;
 
-//   StoragePool::AddTimerTask();
-//   PageDividePool::AddTimerTask();
-//   PageBufferPool::AddTimerTask();
-// }
+  StoragePool::AddTimerTask();
+  PageDividePool::AddTimerTask();
+  PageBufferPool::AddTimerTask();
+}
 
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

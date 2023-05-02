@@ -52,10 +52,10 @@ void ThreadPool::CreateThread(int id) {
       std::unique_lock<SpinMutex> queue_lock(_task_mutex);
       _freeThreads++;
       _taskCv.wait_for(queue_lock, 100ms, [this]() -> bool {
-        return _tasksNum > 0 || _stopThreads;
+        return _tasksNum > 0 || !_fastQueue->Empty() || _stopThreads;
       });
 
-      if (_tasksNum == 0) {
+      if (_tasksNum == 0 && _fastQueue->Empty()) {
         _freeThreads--;
         queue_lock.unlock();
         std::unique_lock<SpinMutex> thread_lock(_threadMutex);
@@ -70,9 +70,10 @@ void ThreadPool::CreateThread(int id) {
         vct.push_back(_urgentTasks.front());
         _urgentTasks.pop_front();
       } else {
-        if (_largeTasks.size() == 0 && _smallTasks.size() == 0) {
+        if (_smallTasks.size() == 0 && _largeTasks.size() == 0) {
           queue<Task *> q;
           _fastQueue->Swap(q);
+          _tasksNum += q.size();
 
           while (q.size() > 0) {
             Task *task = q.front();
@@ -159,7 +160,6 @@ void ThreadPool::AddTask(Task *task, bool urgent) {
   } else {
     _fastQueue->Push(task);
   }
-  _tasksNum++;
   _taskCv.notify_one();
 
   if (_aliveThreads < _maxThreads && _freeThreads <= 0) {
@@ -175,11 +175,14 @@ void ThreadPool::AddTasks(MVector<Task *> &vct) {
   for (auto task : vct) {
     _fastQueue->Push(task);
   }
-  _tasksNum += (int)vct.size();
   _taskCv.notify_all();
 
   if (_aliveThreads < _maxThreads && _freeThreads <= 0) {
     CreateThread();
   }
+}
+
+bool ThreadPool::IsFull() {
+  return _maxQueueSize <= _tasksNum + _fastQueue->RoughSize();
 }
 } // namespace storage

@@ -93,6 +93,10 @@ public:
     return true;
   }
 
+  // No consider thread safe, only return elements number in queue, neglect the
+  // elements in InnerQueue.
+  size_t RoughSize() { return _queue.size(); }
+
 protected:
   void ElementMove(bool bLock = false) {
     if (bLock) {

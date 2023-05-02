@@ -120,10 +120,8 @@ public:
   }
   void SetMaxQueueSize(uint32_t qsize) { _maxQueueSize = qsize; }
   uint32_t GetMaxQueueSize() { return _maxQueueSize; }
-  bool IsFull() {
-    return _maxQueueSize <=
-           _smallTasks.size() + _largeTasks.size() + _urgentTasks.size();
-  }
+  // Only rough access the watting tasks number
+  bool IsFull();
   void CreateThread(int id = -1);
   int GetThreadCount() { return _aliveThreads; }
   int GetMinThreads() { return _minThreads; }
@@ -145,7 +143,7 @@ protected:
   int _maxThreads;
   int _aliveThreads;
   int _freeThreads;
-  int _tasksNum;
+  int32_t _tasksNum;
   // The start id for this pool, this parameter used for multi pool in one
   // pragram and the ids must be series between pools. Because FastQueue will
   // use those ids as index.
