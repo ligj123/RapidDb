@@ -186,7 +186,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
   indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 1002,
                          IndexType::PRIMARY);
   HeadPage *hp = indexTree->GetHeadPage();
-  LeafPage *lp = (LeafPage *)indexTree->GetPage(0, true);
+  LeafPage *lp = (LeafPage *)indexTree->GetPage(0, PageType::LEAF_PAGE, true);
 
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
@@ -199,27 +199,26 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
     lp->InsertRecord(rr);
   }
 
+  lp->IncRef();
   bool b = lp->PageDivide();
   BOOST_TEST(true == b);
-  lp->IncRef();
 
   LeafPage *lpNext = nullptr;
   VectorLeafRecord vlr;
   int count = ROW_COUNT * 9;
 
-  while (lp != nullptr) {
+  while (true) {
     // LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" <<
     // lp->GetRecordNum()
     //  << "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" <<
     //  lp->GetNextPageId();
-    lp->GetAllRecords(vlr);
-
-    for (LeafRecord *lr : vlr) {
-      VectorDataValue vVal;
+    for (int i = 0; i < lp->GetRecordNumber(); i++) {
+      LeafRecord *lr = lp->GetRecord(i);
       *((DataValueLong *)vctKey[0]) = count;
       RawKey key(vctKey);
       BOOST_TEST(lr->CompareKey(key) == 0);
 
+      VectorDataValue vVal;
       lr->GetListValue(vVal);
       BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong *)vVal[0]));
       count++;
@@ -231,7 +230,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
       break;
     }
 
-    lpNext = (LeafPage *)indexTree->GetPage(lNext, true);
+    lpNext = (LeafPage *)indexTree->GetPage(lNext, PageType::LEAF_PAGE, true);
     int rn = lpNext->GetRecordNumber();
     BOOST_TEST(rn > 0);
 
@@ -240,7 +239,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
 
   BOOST_TEST(ROW_COUNT * 10 == count);
 
-  lp = (LeafPage *)indexTree->GetPage(0, true);
+  lp = (LeafPage *)indexTree->GetPage(0, PageType::LEAF_PAGE, true);
 
   for (int i = 0; i < ROW_COUNT * 9; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -255,18 +254,18 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
 
   lp->IncRef();
   count = 0;
-  while (lp != nullptr) {
+  while (true) {
     // LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" <<
     // lp->GetRecordNum()
     //  << "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" <<
     //  lp->GetNextPageId();
-    lp->GetAllRecords(vlr);
-    for (LeafRecord *lr : vlr) {
-      VectorDataValue vVal;
+    for (int i = 0; i < lp->GetRecordNumber(); i++) {
+      LeafRecord *lr = lp->GetRecord(i);
       *((DataValueLong *)vctKey[0]) = count;
       RawKey key(vctKey);
       BOOST_TEST(lr->CompareKey(key) == 0);
 
+      VectorDataValue vVal;
       lr->GetListValue(vVal);
       BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong *)vVal[0]));
       count++;
@@ -278,7 +277,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
       break;
     }
 
-    lpNext = (LeafPage *)indexTree->GetPage(lNext, true);
+    lpNext = (LeafPage *)indexTree->GetPage(lNext, PageType::LEAF_PAGE, true);
     BOOST_TEST(lpNext->GetRecordNumber() > 0U);
 
     lp = lpNext;
