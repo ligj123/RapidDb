@@ -63,6 +63,12 @@ public:
     InsertRecord(lr, pos, incRef);
     return true;
   }
+  /** @brief Add a new record to the last position of this page. Only used wehn
+   * batch add for ordered records.
+   * @param record The new record
+   * @return True: passed to add the record; False: failed to add the record due
+   * to reach length limit.
+   */
   bool AddRecord(LeafRecord *record);
   /**
    * @brief Get the Record in this LeafPage with position=pos   *
