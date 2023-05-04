@@ -56,8 +56,8 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   BranchRecord *first = bp->GetRecordByPos(0, true);
   BOOST_TEST(rr->CompareTo(*first) == 0);
   lr->DecRef();
-  rr->DecRef();
-  first->DecRef();
+  delete rr;
+  delete first;
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT - 1;
   *((DataValueLong *)vctVal[0]) = ROW_COUNT + 99;
@@ -66,8 +66,8 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   BranchRecord *last = bp->GetRecordByPos(ROW_COUNT - 1, false);
   BOOST_TEST(rr->CompareTo(*last) == 0);
   lr->DecRef();
-  rr->DecRef();
-  last->DecRef();
+  delete rr;
+  delete last;
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT / 2;
   *((DataValueLong *)vctVal[0]) = ROW_COUNT / 2 + 100;
@@ -76,8 +76,8 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   BranchRecord *mid = bp->GetRecordByPos(ROW_COUNT / 2, false);
   BOOST_TEST(rr->CompareTo(*mid) == 0);
   lr->DecRef();
-  rr->DecRef();
-  mid->DecRef();
+  delete rr;
+  delete mid;
 
   bp->DecRef();
   indexTree->Close();
