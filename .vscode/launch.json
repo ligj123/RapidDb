@@ -1,0 +1,68 @@
+{
+    "configurations": [
+        {
+            "name": "UnitTest Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/home/lgj/mydb/RapidDb/Debug/UnitTest",
+            "args": [
+                "--run_test=CoreTest/LeafPageSaveLoad_test"
+            ],
+            "stopAtEntry": false,
+            "cwd": "/home/lgj/mydb/RapidDb/Debug",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Attach",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "/home/lgj/mydb/RapidDb/Debug/UnitTest",
+            "processId": "${command:pickProcess}",
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/home/lgj/mydb/RapidDb/Debug/PressTest",
+            "args": [
+                "11",
+                "100000"
+            ],
+            "stopAtEntry": false,
+            "cwd": "/home/lgj/mydb/RapidDb",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "miDebuggerPath": "/usr/bin/gdb"
+        }
+    ]
+}
