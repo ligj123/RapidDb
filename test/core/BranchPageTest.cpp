@@ -29,7 +29,6 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   IndexTree *indexTree = new IndexTree();
   indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 2000,
                          IndexType::PRIMARY);
-
   BranchPage *bp =
       (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
@@ -57,7 +56,6 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   BOOST_TEST(rr->CompareTo(*first) == 0);
   lr->DecRef();
   delete rr;
-  delete first;
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT - 1;
   *((DataValueLong *)vctVal[0]) = ROW_COUNT + 99;
@@ -67,7 +65,6 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   BOOST_TEST(rr->CompareTo(*last) == 0);
   lr->DecRef();
   delete rr;
-  delete last;
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT / 2;
   *((DataValueLong *)vctVal[0]) = ROW_COUNT / 2 + 100;
@@ -77,7 +74,6 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   BOOST_TEST(rr->CompareTo(*mid) == 0);
   lr->DecRef();
   delete rr;
-  delete mid;
 
   bp->DecRef();
   indexTree->Close();

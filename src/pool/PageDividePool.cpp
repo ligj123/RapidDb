@@ -94,5 +94,7 @@ void PageDividePool::PoolManage() {
       iter++;
     }
   }
+
+  _divPool->_bInThreadPool.store(false);
 }
 } // namespace storage
