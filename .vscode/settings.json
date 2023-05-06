@@ -83,5 +83,17 @@
             "debugConfig": "UnitTest Launch",
             "cwd": "${workspaceFolder}"
         }
+    ],
+    "boost-test-adapter-feher.tests":  [
+        {
+            "testExecutables": [
+                {
+                    "path": "/home/lgj/mydb/RapidDb/Debug/UnitTest",
+                    "label": "UnitTest (debug)"
+                }
+            ],
+            "debugConfig": "UnitTest Launch",
+            "cwd": "${workspaceFolder}"
+        }
     ]
 }

@@ -46,7 +46,8 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
     lr->DecRef();
   }
 
-  bp->SaveRecords();
+  bool b = bp->SaveRecords();
+  BOOST_TEST(b);
 
   *((DataValueLong *)vctKey[0]) = 0;
   *((DataValueLong *)vctVal[0]) = 100;
@@ -87,62 +88,63 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   PageBufferPool::AddTimerTask();
 }
 
-// BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
-//   const string FILE_NAME = ROOT_PATH + "/testBranchPageSave" + StrMSTime() +
-//   ".dat"; const string TABLE_NAME = "testTable"; const int ROW_COUNT =
-//   IndexPage::MAX_DATA_LENGTH_BRANCH / 22;
+BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
+  const string FILE_NAME =
+      ROOT_PATH + "/testBranchPageSave" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = IndexPage::MAX_DATA_LENGTH_BRANCH / 22;
 
-//   PageBufferPool::RemoveTimerTask();
-//   PageDividePool::RemoveTimerTask();
-//   StoragePool::RemoveTimerTask();
+  PageBufferPool::RemoveTimerTask();
+  PageDividePool::RemoveTimerTask();
+  StoragePool::RemoveTimerTask();
 
-//   DataValueLong *dvKey = new DataValueLong(100, true);
-//   DataValueLong *dvVal = new DataValueLong(200, false);
-//   VectorDataValue vctKey = {dvKey->Clone()};
-//   VectorDataValue vctVal = {dvVal->Clone()};
-//   IndexTree *indexTree =
-//       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal,
-//       IndexType::PRIMARY);
-//   BranchPage *bp =
-//       (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 2001,
+                         IndexType::PRIMARY);
+  BranchPage *bp =
+      (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
-//   vctKey.push_back(dvKey->Clone(true));
-//   vctVal.push_back(dvVal->Clone(true));
-//   for (int i = 0; i < ROW_COUNT; i++) {
-//     *((DataValueLong *)vctKey[0]) = i;
-//     *((DataValueLong *)vctVal[0]) = i + 100;
-//     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
-//     BranchRecord *rr = new BranchRecord(indexTree, lr, i);
-//     bp->InsertRecord(rr);
-//     lr->DecRef();
-//   }
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    *((DataValueLong *)vctVal[0]) = i + 100;
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+    BranchRecord *rr = new BranchRecord(indexTree, lr, i);
+    bp->InsertRecord(rr);
+    lr->DecRef();
+  }
 
-//   bp->SaveRecords();
+  bool b = bp->SaveRecords();
+  BOOST_TEST(b);
 
-//   for (int i = 0; i < ROW_COUNT; i++) {
-//     *((DataValueLong *)vctKey[0]) = i;
-//     *((DataValueLong *)vctVal[0]) = i + 100;
-//     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
-//     BranchRecord *rr = new BranchRecord(indexTree, lr, i);
-//     bool bFind;
-//     uint32_t index = bp->SearchRecord(*rr, bFind);
-//     BranchRecord *br = bp->GetRecordByPos(index, false);
-//     BOOST_TEST(br->CompareTo(*rr) == 0);
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    *((DataValueLong *)vctVal[0]) = i + 100;
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+    BranchRecord *rr = new BranchRecord(indexTree, lr, i);
+    bool bFind;
+    uint32_t index = bp->SearchRecord(*rr, bFind);
+    BranchRecord *br = bp->GetRecordByPos(index, false);
+    BOOST_TEST(br->CompareTo(*rr) == 0);
 
-//     lr->DecRef();
-//     br->DecRef();
-//     rr->DecRef();
-//   }
+    lr->DecRef();
+    delete rr;
+  }
 
-//   bp->DecRef();
-//   indexTree->Close();
-//   delete dvKey;
-//   delete dvVal;
+  bp->DecRef();
+  indexTree->Close();
+  delete dvKey;
+  delete dvVal;
 
-//   StoragePool::AddTimerTask();
-//   PageDividePool::AddTimerTask();
-//   PageBufferPool::AddTimerTask();
-// }
+  StoragePool::AddTimerTask();
+  PageDividePool::AddTimerTask();
+  PageBufferPool::AddTimerTask();
+}
 
 // BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
 //   const string FILE_NAME = ROOT_PATH + "/testBranchPage" + StrMSTime() +
