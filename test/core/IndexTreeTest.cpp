@@ -6,66 +6,67 @@
 #include "../../src/pool/StoragePool.h"
 #include "../../src/utils/BytesConvert.h"
 #include "../../src/utils/Utilitys.h"
+#include "../TestHeader.h"
 #include "CoreSuit.h"
 #include <boost/test/unit_test.hpp>
 #include <filesystem>
 
 namespace storage {
 BOOST_FIXTURE_TEST_SUITE(CoreTest, SuiteFixture)
-//
-// BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
-//  const string FILE_NAME =ROOT_PATH +
-//      "/testIndexTreeInsertRecord" + StrMSTime() + ".dat";
-//  const string TABLE_NAME = "testTable";
-//  const int ROW_COUNT = 1000;
-//
-//  DataValueLong *dvKey = new DataValueLong(100);
-//  DataValueLong *dvVal = new DataValueLong(200);
-//  VectorDataValue vctKey = {dvKey->Clone()};
-//  VectorDataValue vctVal = {dvVal->Clone()};
-//  IndexTree *indexTree = new IndexTree();
-//  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0,
-//                         IndexType::PRIMARY);
-//
-//  vctKey.push_back(dvKey->Clone());
-//  vctVal.push_back(dvVal->Clone());
-//  for (int i = 0; i < ROW_COUNT; i++) {
-//    *((DataValueLong *)vctKey[0]) = i;
-//    *((DataValueLong *)vctVal[0]) = i + 100LL;
-//    LeafRecord *rr =
-//        new LeafRecord(indexTree, vctKey, vctVal,
-//                       indexTree->GetHeadPage()->ReadRecordStamp(), nullptr);
-//    IndexPage *idxPage = nullptr;
-//    indexTree->SearchRecursively(*rr, true, idxPage, true);
-//    assert(idxPage != nullptr && idxPage->GetPageType() ==
-//    PageType::LEAF_PAGE);
-//
-//    ((LeafPage *)idxPage)->InsertRecord(rr, false);
-//  }
-//
-//  IndexTree::TestCloseWait(indexTree);
-//
-//  indexTree = new IndexTree();
-//  indexTree->InitIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0);
-//  LeafPage *lp = indexTree->GetBeginPage();
-//  uint64_t idx = 0;
-//
-//  while (lp != nullptr) {
-//    for (uint32_t i = 0; i < lp->GetRecordNumber(); i++) {
-//      VectorDataValue v1, v2;
-//      LeafRecord *lr = lp->GetRecord(i);
-//      *((DataValueLong *)vctKey[0]) = idx;
-//      RawKey key(vctKey);
-//      BOOST_TEST(lr->CompareKey(key) == 0);
-//      lr->GetListValue(v2);
-//      BOOST_TEST(v2[0]->GetLong() == (idx + 100));
-//    }
-//  }
-//
-//  IndexTree::TestCloseWait(indexTree);
-//  delete dvKey;
-//  delete dvVal;
-//}
+
+BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
+  const string FILE_NAME =
+      ROOT_PATH + "/testIndexTreeInsertRecord" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = 1000;
+
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 3000,
+                         IndexType::PRIMARY);
+
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    *((DataValueLong *)vctVal[0]) = i + 100LL;
+    LeafRecord *rr =
+        new LeafRecord(indexTree, vctKey, vctVal,
+                       indexTree->GetHeadPage()->ReadRecordStamp(), nullptr);
+    IndexPage *idxPage = nullptr;
+    bool b = indexTree->SearchRecursively(*rr, true, idxPage, true);
+    BOOST_TEST(b);
+    BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
+
+    ((LeafPage *)idxPage)->InsertRecord(rr, false);
+  }
+
+  IndexTree::TestCloseWait(indexTree);
+
+  indexTree = new IndexTree();
+  indexTree->InitIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 3000);
+  LeafPage *lp = indexTree->GetBeginPage();
+  uint64_t idx = 0;
+
+  while (lp != nullptr) {
+    for (uint32_t i = 0; i < lp->GetRecordNumber(); i++) {
+      VectorDataValue v1, v2;
+      LeafRecord *lr = lp->GetRecord(i);
+      *((DataValueLong *)vctKey[0]) = idx;
+      RawKey key(vctKey);
+      BOOST_TEST(lr->CompareKey(key) == 0);
+      lr->GetListValue(v2);
+      BOOST_TEST(v2[0]->GetLong() == (idx + 100));
+    }
+  }
+
+  IndexTree::TestCloseWait(indexTree);
+  delete dvKey;
+  delete dvVal;
+}
 
 // BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
 //  const string FILE_NAME =ROOT_PATH +

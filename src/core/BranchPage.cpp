@@ -90,7 +90,6 @@ BranchRecord *BranchPage::DeleteRecord(uint16_t index) {
   BranchRecord *br = (BranchRecord *)_vctRecord[index];
   _vctRecord.erase(_vctRecord.begin() + index);
   _totalDataLength -= br->GetTotalLength() + UI16_LEN;
-  delete br;
   _recordNum--;
   _bRecordUpdate = true;
   _bDirty = true;

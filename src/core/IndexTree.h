@@ -61,26 +61,31 @@ public:
   PageFile *ApplyPageFile();
   /** @brief Search B+ tree from root according record's key, util find the
    * LeafPage.
-   * @param key The record's key for search
+   * @param key The record's key to search
    * @param bEdit if edit the LeafPage, true: WriteLock, false: ReadLock
-   * @param page The inputed and returned page. Null: start from root, or start
-   * from this page.
-   * @param bWait True: wait when load IndexPage from disk until find the
-   * LeafPage, False: return directly when the IndexPage is not in memory.
-   * @return True: found the LeafPage and in memory, False: Need to seach again.
+   * @param page The start page for search, if Null, start from root page, then
+   * return the result page after search, maybe the BranchPage if bWait=False.
+   * @param bWait True: wait when load IndexPage from disk until find and return
+   * the LeafPage, False: return directly when the related IndexPage is not in
+   * memory.
+   * @return True: All related IndexPages are in memory, False: One of related
+   * IndexPages is not in memory and will load in a read task, it will search
+   * again after loaded.
    */
   bool SearchRecursively(const RawKey &key, bool bEdit, IndexPage *&page,
                          bool bWait = false);
   /** @brief Search B+ tree from root according record, util find the
    * LeafPage. If primary or unique key, only compare key, or Nonunique key,
-   * compare key and value too.
+   * compare key and value at the same time.
    * @param key The record's key for search
    * @param bEdit if edit the LeafPage, true: WriteLock, false: ReadLock
-   * @param page The inputed and returned page. Null: start from root, or start
-   * from this page.
+   * @param page The start page for search, if Null, start from root page, then
+   * return the result page after search, maybe the BranchPage if bWait=False.
    * @param bWait True: wait when load IndexPage from disk until find the
    * LeafPage, False: return directly when the IndexPage is not in memory.
-   * @return True: found the LeafPage and in memory, False: Need to seach again.
+   * @return True: All related IndexPages are in memory, False: One of related
+   * IndexPages is not in memory and will load in a read task, it will search
+   * again after loaded.
    */
   bool SearchRecursively(const LeafRecord &lr, bool bEdit, IndexPage *&page,
                          bool bWait = false);

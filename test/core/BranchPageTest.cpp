@@ -146,113 +146,118 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   PageBufferPool::AddTimerTask();
 }
 
-// BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
-//   const string FILE_NAME = ROOT_PATH + "/testBranchPage" + StrMSTime() +
-//   ".dat"; const string TABLE_NAME = "testTable"; const int ROW_COUNT = 100;
+BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
+  const string FILE_NAME = ROOT_PATH + "/testBranchPage" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = 100;
 
-//   PageBufferPool::RemoveTimerTask();
-//   PageDividePool::RemoveTimerTask();
-//   StoragePool::RemoveTimerTask();
+  PageBufferPool::RemoveTimerTask();
+  PageDividePool::RemoveTimerTask();
+  StoragePool::RemoveTimerTask();
 
-//   DataValueLong *dvKey = new DataValueLong(100, true);
-//   DataValueLong *dvVal = new DataValueLong(200, true);
-//   VectorDataValue vctKey = {dvKey->Clone()};
-//   VectorDataValue vctVal = {dvVal->Clone()};
-//   IndexTree *indexTree =
-//       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal,
-//       IndexType::PRIMARY);
-//   BranchPage *bp =
-//       (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 2002,
+                         IndexType::PRIMARY);
+  BranchPage *bp =
+      (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
-//   vctKey.push_back(dvKey->Clone(true));
-//   vctVal.push_back(dvVal->Clone(true));
-//   for (int i = 0; i < ROW_COUNT; i++) {
-//     *((DataValueLong *)vctKey[0]) = i;
-//     *((DataValueLong *)vctVal[0]) = i + 100;
-//     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
-//     BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
-//     bp->InsertRecord(rr);
-//     lr->DecRef();
-//   }
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    *((DataValueLong *)vctVal[0]) = i + 100;
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+    BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
+    bp->InsertRecord(rr);
+    lr->DecRef();
+  }
 
-//   bp->SaveRecords();
-//   for (int i = ROW_COUNT - 1; i >= 0; i--) {
-//     if (i % 2 == 1) {
-//       bp->DeleteRecord(i);
-//     }
-//   }
+  bool b = bp->SaveRecords();
+  BOOST_TEST(b);
 
-//   bp->SaveRecords();
-//   BOOST_TEST(ROW_COUNT / 2 == bp->GetRecordNumber());
+  for (int i = ROW_COUNT - 1; i >= 0; i--) {
+    if (i % 2 == 1) {
+      BranchRecord *br = bp->DeleteRecord(i);
+      delete br;
+    }
+  }
 
-//   for (int i = 0; i < ROW_COUNT; i++) {
-//     *((DataValueLong *)vctKey[0]) = i;
-//     RawKey key(vctKey);
+  b = bp->SaveRecords();
+  BOOST_TEST(b);
+  BOOST_TEST(ROW_COUNT / 2 == bp->GetRecordNumber());
 
-//     BOOST_TEST((i % 2 != 1) == bp->RecordExist(key));
-//   }
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    RawKey key(vctKey);
 
-//   bp->DecRef();
-//   indexTree->Close();
-//   delete dvKey;
-//   delete dvVal;
+    BOOST_TEST((i % 2 != 1) == bp->RecordExist(key));
+  }
 
-//   StoragePool::AddTimerTask();
-//   PageDividePool::AddTimerTask();
-//   PageBufferPool::AddTimerTask();
-// }
+  bp->DecRef();
+  indexTree->Close();
+  delete dvKey;
+  delete dvVal;
 
-// BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
-//   const string FILE_NAME =ROOT_PATH +
-//       "/testBranchPageSearchKey" + StrMSTime() + ".dat";
-//   const string TABLE_NAME = "testTable";
+  StoragePool::AddTimerTask();
+  PageDividePool::AddTimerTask();
+  PageBufferPool::AddTimerTask();
+}
 
-//   PageBufferPool::RemoveTimerTask();
-//   PageDividePool::RemoveTimerTask();
-//   StoragePool::RemoveTimerTask();
+BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
+  const string FILE_NAME =
+      ROOT_PATH + "/testBranchPageSearchKey" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
 
-//   DataValueVarChar *dvKey = new DataValueVarChar(1000, true);
-//   DataValueLong *dvVal = new DataValueLong(200, false);
-//   VectorDataValue vctKey = {dvKey->Clone()};
-//   VectorDataValue vctVal = {dvVal->Clone()};
-//   IndexTree *indexTree =
-//       new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal,
-//       IndexType::PRIMARY);
-//   indexTree->GetHeadPage()->WriteKeyVariableFieldCount((short)1);
-//   BranchPage *bp =
-//       (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
+  PageBufferPool::RemoveTimerTask();
+  PageDividePool::RemoveTimerTask();
+  StoragePool::RemoveTimerTask();
 
-//   vctKey.push_back(dvKey->Clone(true));
-//   vctVal.push_back(dvVal->Clone(true));
-//   uint64_t arLong[] = {1, 123456, 3456, 789, 8776};
-//   for (int i = 0; i < 5; i++) {
-//     MString str = "testString" + ToMString(arLong[i]);
-//     *((DataValueVarChar *)vctKey[0]) = str.c_str();
-//     *((DataValueLong *)vctVal[0]) = i + 100;
-//     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
-//     BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
-//     bp->InsertRecord(rr);
-//     lr->DecRef();
-//   }
+  DataValueVarChar *dvKey = new DataValueVarChar(1000);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 2003,
+                         IndexType::PRIMARY);
+  indexTree->GetHeadPage()->WriteKeyVariableFieldCount((short)1);
+  BranchPage *bp =
+      (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
-//   uint64_t arKey[] = {0, 20, 135, 70, 999};
-//   int arPos[] = {0, 2, 2, 3, 5};
-//   for (int i = 0; i < 5; i++) {
-//     MString str = "testString" + ToMString(arKey[i]);
-//     *((DataValueVarChar *)vctKey[0]) = str.c_str();
-//     RawKey key(vctKey);
-//     bool bFind;
-//     BOOST_TEST(arPos[i] == bp->SearchKey(key, bFind));
-//   }
+  vctKey.push_back(dvKey->Clone(true));
+  vctVal.push_back(dvVal->Clone(true));
+  uint64_t arLong[] = {1, 123456, 3456, 789, 8776};
+  for (int i = 0; i < 5; i++) {
+    MString str = "testString" + ToMString(arLong[i]);
+    *((DataValueVarChar *)vctKey[0]) = str.c_str();
+    *((DataValueLong *)vctVal[0]) = i + 100;
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+    BranchRecord *rr = new BranchRecord(indexTree, lr, i + 100);
+    bp->InsertRecord(rr);
+    lr->DecRef();
+  }
 
-//   bp->DecRef();
-//   indexTree->Close();
-//   delete dvKey;
-//   delete dvVal;
+  uint64_t arKey[] = {0, 20, 135, 70, 999};
+  int arPos[] = {0, 2, 2, 3, 5};
+  for (int i = 0; i < 5; i++) {
+    MString str = "testString" + ToMString(arKey[i]);
+    *((DataValueVarChar *)vctKey[0]) = str.c_str();
+    RawKey key(vctKey);
+    bool bFind;
+    BOOST_TEST(arPos[i] == bp->SearchKey(key, bFind));
+  }
 
-//   StoragePool::AddTimerTask();
-//   PageDividePool::AddTimerTask();
-//   PageBufferPool::AddTimerTask();
-// }
+  bp->DecRef();
+  indexTree->Close();
+  delete dvKey;
+  delete dvVal;
+
+  StoragePool::AddTimerTask();
+  PageDividePool::AddTimerTask();
+  PageBufferPool::AddTimerTask();
+}
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage
