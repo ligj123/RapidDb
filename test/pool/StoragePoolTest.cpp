@@ -44,7 +44,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
                   _pStrTest, _strSize);
         page->SetDirty(true);
         _indexTree->IncPages();
-        StoragePool::WriteCachePage(page, false);
+        StoragePool::AddPage(page, false);
         page->DecRef();
       }
 

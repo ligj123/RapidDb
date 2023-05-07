@@ -81,7 +81,7 @@ void PageDividePool::PoolManage() {
       page->SetInDivid(false);
       bPassed = page->SaveRecords();
       if (bPassed) {
-        StoragePool::WriteCachePage(page, false);
+        StoragePool::AddPage(page, false);
       } else {
         page->SetInDivid(true);
       }

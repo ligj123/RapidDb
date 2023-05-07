@@ -17,7 +17,7 @@ public:
 public:
   static void AddTimerTask();
   static void RemoveTimerTask();
-  static void AddCachePage(IndexPage *page, bool bIncr) {
+  static void AddPage(IndexPage *page, bool bIncr) {
     if (page->IsInDivid()) {
       if (!bIncr)
         page->DecRef();

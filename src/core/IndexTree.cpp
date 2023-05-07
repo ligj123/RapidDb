@@ -1,5 +1,6 @@
 ﻿#include "IndexTree.h"
 #include "../pool/PageBufferPool.h"
+#include "../pool/PageDividePool.h"
 #include "../pool/StoragePool.h"
 #include "../utils/Log.h"
 #include "BranchPage.h"
@@ -15,7 +16,9 @@ void IndexTree::TestCloseWait(IndexTree *indexTree) {
   indexTree->Close([&sm]() { sm.unlock(); });
   while (PageBufferPool::GetCacheSize() > 0) {
     this_thread::sleep_for(1ms);
-    PageBufferPool::PoolManage();
+    PageDividePool::AddTimerTask();
+    StoragePool::AddTimerTask();
+    PageBufferPool::AddTimerTask();
   }
   sm.lock();
 }
@@ -62,12 +65,12 @@ bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
     _headPage->WriteValueVariableFieldCount(count);
   }
 
-  StoragePool::WriteCachePage(_headPage, false);
+  StoragePool::AddPage(_headPage, false);
   _rootPage = AllocateNewPage(PAGE_NULL_POINTER, 0);
   _rootPage->SetBeginPage(true);
   _rootPage->SetEndPage(true);
   _rootPage->SetDirty(true);
-  StoragePool::WriteCachePage(_rootPage, true);
+  StoragePool::AddPage(_rootPage, true);
 
   _vctKey.swap(vctKey);
   _vctValue.swap(vctVal);
@@ -225,7 +228,7 @@ void IndexTree::UpdateRootPage(IndexPage *root) {
   _headPage->WriteRootPagePointer(root->GetPageId());
   _rootPage = root;
   root->IncRef();
-  StoragePool::WriteCachePage(_headPage, false);
+  StoragePool::AddPage(_headPage, false);
 }
 
 IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {

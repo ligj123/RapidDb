@@ -42,6 +42,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
     BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
 
     ((LeafPage *)idxPage)->InsertRecord(rr, false);
+    PageDividePool::AddPage(idxPage, false);
+    idxPage->WriteUnlock();
   }
 
   IndexTree::TestCloseWait(indexTree);
@@ -63,6 +65,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
     }
   }
 
+  lp->DecRef();
   IndexTree::TestCloseWait(indexTree);
   delete dvKey;
   delete dvVal;

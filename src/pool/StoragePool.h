@@ -17,7 +17,7 @@ public:
 public:
   static void AddTimerTask();
   static void RemoveTimerTask();
-  static void WriteCachePage(CachePage *page, bool bInc) {
+  static void AddPage(CachePage *page, bool bInc) {
     if (page->IsInStorage()) {
       if (!bInc)
         page->DecRef();

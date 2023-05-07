@@ -128,7 +128,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
     LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     lp->InsertRecord(lr, i);
   }
-  PageDividePool::AddCachePage(lp, true);
+  PageDividePool::AddPage(lp, true);
   lp->WriteUnlock();
   lp->DecRef();
 
