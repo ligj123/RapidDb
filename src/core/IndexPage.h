@@ -4,6 +4,11 @@
 #include "IndexType.h"
 #include "RawRecord.h"
 
+#define BEGIN_PAGE 0x80
+#define END_PAGE 0x40
+#define NOT_BEGIN_PAGE 0x7F
+#define NOT_END_PAGE 0xBF
+
 namespace storage {
 class AbsoleteBuffer {
 public:
@@ -80,17 +85,19 @@ public:
   inline uint32_t GetTotalDataLength() { return _totalDataLength; }
   inline uint32_t GetRecordNumber() { return _recordNum; }
   bool Releaseable() override { return _refCount == 1 && _tranCount == 0; }
-  inline bool IsBeginPage() { return _bysPage[PAGE_BEGIN_END_OFFSET] & 0x80; }
+  inline bool IsBeginPage() {
+    return _bysPage[PAGE_BEGIN_END_OFFSET] & BEGIN_PAGE;
+  }
   inline void SetBeginPage(bool bBegin) {
     _bysPage[PAGE_BEGIN_END_OFFSET] =
-        bBegin ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x80)
-               : (_bysPage[PAGE_BEGIN_END_OFFSET] & 0x7f);
+        bBegin ? (_bysPage[PAGE_BEGIN_END_OFFSET] | BEGIN_PAGE)
+               : (_bysPage[PAGE_BEGIN_END_OFFSET] & NOT_BEGIN_PAGE);
   }
-  inline bool IsEndPage() { return _bysPage[PAGE_BEGIN_END_OFFSET] & 0x40; }
+  inline bool IsEndPage() { return _bysPage[PAGE_BEGIN_END_OFFSET] & END_PAGE; }
   inline void SetEndPage(bool bEnd) {
     _bysPage[PAGE_BEGIN_END_OFFSET] =
-        bEnd ? (_bysPage[PAGE_BEGIN_END_OFFSET] | 0x40)
-             : (_bysPage[PAGE_BEGIN_END_OFFSET] & 0xbf);
+        bEnd ? (_bysPage[PAGE_BEGIN_END_OFFSET] | END_PAGE)
+             : (_bysPage[PAGE_BEGIN_END_OFFSET] & NOT_END_PAGE);
   }
   inline uint32_t GetTranCount() { return _tranCount; }
 

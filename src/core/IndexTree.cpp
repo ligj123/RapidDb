@@ -11,16 +11,17 @@
 
 namespace storage {
 void IndexTree::TestCloseWait(IndexTree *indexTree) {
-  SpinMutex sm;
-  sm.lock();
-  indexTree->Close([&sm]() { sm.unlock(); });
+  atomic_bool atomic{false};
+  indexTree->Close([&atomic]() { atomic.store(true, memory_order_relaxed); });
   while (PageBufferPool::GetCacheSize() > 0) {
     this_thread::sleep_for(1ms);
     PageDividePool::AddTimerTask();
     StoragePool::AddTimerTask();
     PageBufferPool::AddTimerTask();
   }
-  sm.lock();
+  while (!atomic.load(memory_order_relaxed)) {
+    std::this_thread::yield();
+  }
 }
 
 bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
@@ -69,6 +70,8 @@ bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
   _rootPage = AllocateNewPage(PAGE_NULL_POINTER, 0);
   _rootPage->SetBeginPage(true);
   _rootPage->SetEndPage(true);
+  ((LeafPage *)_rootPage)->SetPrevPageId(PAGE_NULL_POINTER);
+  ((LeafPage *)_rootPage)->SetNextPageId(PAGE_NULL_POINTER);
   _rootPage->SetDirty(true);
   StoragePool::AddPage(_rootPage, true);
 
@@ -224,10 +227,12 @@ PageFile *IndexTree::ApplyPageFile() {
 
 void IndexTree::UpdateRootPage(IndexPage *root) {
   unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  _rootPage->DecRef();
   _headPage->WriteRootPagePointer(root->GetPageId());
-  _rootPage = root;
-  root->IncRef();
+  if (_rootPage != nullptr) {
+    _rootPage->DecRef();
+    _rootPage = root;
+    root->IncRef();
+  }
   StoragePool::AddPage(_headPage, false);
 }
 

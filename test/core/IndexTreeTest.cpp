@@ -62,7 +62,14 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
       BOOST_TEST(lr->CompareKey(key) == 0);
       lr->GetListValue(v2);
       BOOST_TEST(v2[0]->GetLong() == (idx + 100));
+      idx++;
     }
+
+    PageID nid = lp->GetNextPageId();
+    LeafPage *lp2 =
+        (LeafPage *)indexTree->GetPage(nid, PageType::LEAF_PAGE, true);
+    lp->DecRef();
+    lp = lp2;
   }
 
   lp->DecRef();
