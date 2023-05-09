@@ -12,7 +12,7 @@ struct SuiteFixture {
   SuiteFixture() {
     LOG_INFO << "Suite core setup: "
              << boost::unit_test::framework::current_test_case().p_name;
-    _threadPool = ThreadPool::InitMain();
+    _threadPool = ThreadPool::InitMain(100000, 1, 1);
     TimerThread::Start();
     StoragePool::InitPool(_threadPool);
     StoragePool::AddTimerTask();

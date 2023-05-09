@@ -148,7 +148,7 @@ bool IndexTree::InitIndex(const string &indexName, const string &fileName,
 }
 
 IndexTree::~IndexTree() {
-  while (_pagesInMem.load(memory_order_acquire) > 1) {
+  while (_pagesInMem.load(memory_order_acquire) > 0) {
     this_thread::sleep_for(chrono::milliseconds(1));
   }
 

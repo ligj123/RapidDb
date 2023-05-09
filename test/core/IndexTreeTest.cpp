@@ -66,6 +66,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
     }
 
     PageID nid = lp->GetNextPageId();
+    if (nid == PAGE_NULL_POINTER)
+      break;
+
     LeafPage *lp2 =
         (LeafPage *)indexTree->GetPage(nid, PageType::LEAF_PAGE, true);
     lp->DecRef();
