@@ -240,7 +240,6 @@ bool IndexPage::PageDivide() {
 
   _bRecordUpdate = true;
   // SaveRecords();
-  PageDividePool::AddPage(this, false);
   PageDividePool::AddPage(parentPage, false);
   StoragePool::AddPage(_indexTree->GetHeadPage(), false);
 

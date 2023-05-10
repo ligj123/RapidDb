@@ -73,7 +73,7 @@ bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
   ((LeafPage *)_rootPage)->SetPrevPageId(PAGE_NULL_POINTER);
   ((LeafPage *)_rootPage)->SetNextPageId(PAGE_NULL_POINTER);
   _rootPage->SetDirty(true);
-  StoragePool::AddPage(_rootPage, true);
+  PageDividePool::AddPage(_rootPage, true);
 
   _vctKey.swap(vctKey);
   _vctValue.swap(vctVal);

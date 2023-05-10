@@ -76,23 +76,21 @@ void PageDividePool::PoolManage() {
 
     bool bPassed = false;
     if (page->GetTotalDataLength() > page->GetMaxDataLength()) {
-      bPassed = page->PageDivide();
+      page->PageDivide();
+      iter++;
     } else {
       page->SetInDivid(false);
       bPassed = page->SaveRecords();
       if (bPassed) {
         StoragePool::AddPage(page, false);
+        iter = _divPool->_mapPage.erase(iter);
       } else {
         page->SetInDivid(true);
+        iter++;
       }
     }
 
     page->WriteUnlock();
-    if (bPassed) {
-      iter = _divPool->_mapPage.erase(iter);
-    } else {
-      iter++;
-    }
   }
 
   _divPool->_bInThreadPool.store(false);
