@@ -73,7 +73,7 @@ void ThreadPool::CreateThread(int id) {
         if (_smallTasks.size() == 0 && _largeTasks.size() == 0) {
           queue<Task *> q;
           _fastQueue->Swap(q);
-          _tasksNum += q.size();
+          _tasksNum += (int32_t)q.size();
 
           while (q.size() > 0) {
             Task *task = q.front();

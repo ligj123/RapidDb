@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
     // lp->GetRecordNum()
     //  << "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" <<
     //  lp->GetNextPageId();
-    for (int i = 0; i < lp->GetRecordNumber(); i++) {
+    for (uint32_t i = 0; i < lp->GetRecordNumber(); i++) {
       LeafRecord *lr = lp->GetRecord(i);
       *((DataValueLong *)vctKey[0]) = count;
       RawKey key(vctKey);
@@ -259,7 +259,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
     // lp->GetRecordNum()
     //  << "  PrevPage:" << lp->GetPrevPageId() << "  NextPage:" <<
     //  lp->GetNextPageId();
-    for (int i = 0; i < lp->GetRecordNumber(); i++) {
+    for (uint32_t i = 0; i < lp->GetRecordNumber(); i++) {
       LeafRecord *lr = lp->GetRecord(i);
       *((DataValueLong *)vctKey[0]) = count;
       RawKey key(vctKey);
