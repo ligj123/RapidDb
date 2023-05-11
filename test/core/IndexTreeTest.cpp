@@ -57,13 +57,14 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
 
-  while (lp != nullptr) {
+  while (true) {
     for (uint32_t i = 0; i < lp->GetRecordNumber(); i++) {
-      VectorDataValue vdv;
       LeafRecord *lr = lp->GetRecord(i);
       *((DataValueLong *)vctKey[0]) = idx;
       RawKey key(vctKey);
       BOOST_TEST(lr->CompareKey(key) == 0);
+
+      VectorDataValue vdv;
       lr->GetListValue(vdv);
       BOOST_TEST(vdv[0]->GetLong() == (idx + 100));
       idx++;
@@ -114,6 +115,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
     BOOST_TEST(b);
     BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
     ((LeafPage *)idxPage)->InsertRecord(rr);
+    idxPage->WriteUnlock();
   }
 
   IndexTree::TestCloseWait(indexTree);
@@ -121,17 +123,31 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
   indexTree = new IndexTree();
   rt = indexTree->InitIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 3002);
   BOOST_TEST(rt);
-  VectorLeafRecord vct;
-  indexTree->QueryRecord(nullptr, nullptr, false, true, vct);
+  LeafPage *lp = indexTree->GetBeginPage();
+  uint64_t idx = 0;
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
-  for (int i = 0; i < ROW_COUNT; i++) {
-    VectorDataValue v1, v2;
-    vct[i]->GetListKey(v1);
-    vct[i]->GetListValue(v2);
-    int64_t key = *(DataValueLong *)v1[0];
-    int64_t val = *(DataValueLong *)v2[0];
-    BOOST_TEST((val - 100) % (ROW_COUNT / 3) == key);
-    BOOST_TEST(key == i / 3);
+  while (true) {
+    for (int i = 0; i < lp->GetRecordNumber(); i++) {
+      LeafRecord *lr = lp->GetRecord(i);
+      *((DataValueLong *)vctKey[0]) = idx / 3;
+       RawKey key(vctKey);
+      BOOST_TEST(lr->CompareKey(key) == 0);
+
+      VectorDataValue vdv;
+      lr->GetListValue(vdv);
+      BOOST_TEST(vdv[0]->GetLong() == (idx + 100));
+      idx++;
+
+      VectorDataValue v1, v2;
+      vct[i]->GetListKey(v1);
+      vct[i]->GetListValue(v2);
+      int64_t key = *(DataValueLong *)v1[0];
+      int64_t val = *(DataValueLong *)v2[0];
+      BOOST_TEST((val - 100) % (ROW_COUNT / 3) == key);
+      BOOST_TEST(key == i / 3);
+    }
   }
 
   indexTree->Close(true);
