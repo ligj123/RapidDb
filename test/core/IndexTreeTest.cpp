@@ -67,6 +67,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
       VectorDataValue vdv;
       lr->GetListValue(vdv);
       BOOST_TEST(vdv[0]->GetLong() == (idx + 100));
+      lr->DecRef();
       idx++;
     }
 
@@ -129,32 +130,35 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
   vctVal.push_back(dvVal->Clone());
 
   while (true) {
-    for (int i = 0; i < lp->GetRecordNumber(); i++) {
+    for (uint32_t i = 0; i < lp->GetRecordNumber(); i++) {
       LeafRecord *lr = lp->GetRecord(i);
       *((DataValueLong *)vctKey[0]) = idx / 3;
-       RawKey key(vctKey);
+      RawKey key(vctKey);
       BOOST_TEST(lr->CompareKey(key) == 0);
 
-      VectorDataValue vdv;
-      lr->GetListValue(vdv);
-      BOOST_TEST(vdv[0]->GetLong() == (idx + 100));
-      idx++;
+      RawKey *pkey = lr->GetPrimayKey();
+      *((DataValueLong *)vctKey[0]) = idx % (ROW_COUNT / 3);
+      RawKey key2(vctKey);
 
-      VectorDataValue v1, v2;
-      vct[i]->GetListKey(v1);
-      vct[i]->GetListValue(v2);
-      int64_t key = *(DataValueLong *)v1[0];
-      int64_t val = *(DataValueLong *)v2[0];
-      BOOST_TEST((val - 100) % (ROW_COUNT / 3) == key);
-      BOOST_TEST(key == i / 3);
+      BOOST_TEST(key2.CompareTo(*pkey));
+      delete pkey;
+      idx++;
     }
+
+    PageID nid = lp->GetNextPageId();
+    if (nid == PAGE_NULL_POINTER)
+      break;
+
+    LeafPage *lp2 =
+        (LeafPage *)indexTree->GetPage(nid, PageType::LEAF_PAGE, true);
+    lp->DecRef();
+    lp = lp2;
   }
 
-  indexTree->Close(true);
+  lp->DecRef();
+  IndexTree::TestCloseWait(indexTree);
   delete dvKey;
   delete dvVal;
-  PageBufferPool::ClearPool();
-  std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
 
 // BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToUniqueIndex_test) {
