@@ -64,12 +64,13 @@ void PageBufferPool::PoolManage() {
 
     for (auto iter = _mapCache.Begin(i); iter != _mapCache.End(i); iter++) {
       CachePage *page = iter->second;
-      if (page->GetIndexTree()->IsClosed()) {
-        flist.push_front(page);
+
+      if (!page->Releaseable()) {
         continue;
       }
 
-      if (!page->Releaseable()) {
+      if (page->GetIndexTree()->IsClosed()) {
+        flist.push_front(page);
         continue;
       }
 

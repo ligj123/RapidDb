@@ -214,6 +214,7 @@ PageFile *IndexTree::ApplyPageFile() {
     _fileCv.wait_for(lock, 1ms, [this] {
       return _rpfCount < Configure::GetMaxPageFileCount();
     });
+
     if (_fileQueue.size() > 0) {
       PageFile *rpf = _fileQueue.front();
       _fileQueue.pop();

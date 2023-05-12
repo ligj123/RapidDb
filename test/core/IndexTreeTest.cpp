@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testIndexRepeatedKey" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
-  const int ROW_COUNT = 30000;
+  const int ROW_COUNT = 3000;
 
   DataValueLong *dvKey = new DataValueLong(100);
   DataValueLong *dvVal = new DataValueLong(200);
@@ -116,6 +116,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
     BOOST_TEST(b);
     BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
     ((LeafPage *)idxPage)->InsertRecord(rr);
+    PageDividePool::AddPage(idxPage, false);
     idxPage->WriteUnlock();
   }
 

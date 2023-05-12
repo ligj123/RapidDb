@@ -77,6 +77,7 @@ void StoragePool::PoolManage() {
           tree->ReleasePageFile(pf);
         }
 
+        assert(page->GetRefCount() > 0);
         tree = page->GetIndexTree();
         pf = tree->ApplyPageFile();
       }
