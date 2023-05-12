@@ -67,6 +67,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
       VectorDataValue vdv;
       lr->GetListValue(vdv);
       BOOST_TEST(vdv[0]->GetLong() == (idx + 100));
+      lr->DecRef();
       idx++;
     }
 
