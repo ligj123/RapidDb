@@ -118,9 +118,6 @@ void LeafPage::InsertRecord(LeafRecord *lr, int32_t pos, bool incRef) {
     LoadRecords();
   }
 
-  bool bUnique =
-      (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
-
   _totalDataLength += lr->GetTotalLength() + UI16_LEN;
   lr->SetParentPage(this);
   _vctRecord.insert(_vctRecord.begin() + pos, lr);
@@ -170,6 +167,9 @@ LeafRecord *LeafPage::GetRecord(int32_t pos) {
 
 int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc,
                                int32_t start, int32_t end) {
+  bool bUnique =
+      (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
+
   if (end >= (int32_t)_recordNum)
     end = _recordNum - 1;
   bFind = true;
@@ -183,9 +183,10 @@ int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc,
 
     int middle = (start + end) / 2;
     if (_vctRecord.size() > 0) {
-      hr = GetVctRecord(middle)->CompareTo(rr);
+      hr = bUnique ? GetVctRecord(middle)->CompareKey(rr)
+                   : GetVctRecord(middle)->CompareTo(rr);
     } else {
-      hr = CompareTo(middle, rr, false);
+      hr = CompareTo(middle, rr, bUnique);
     }
 
     if (hr < 0) {

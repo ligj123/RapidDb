@@ -138,10 +138,11 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
       BOOST_TEST(lr->CompareKey(key) == 0);
 
       RawKey *pkey = lr->GetPrimayKey();
-      *((DataValueLong *)vctKey[0]) = idx % (ROW_COUNT / 3);
+      *((DataValueLong *)vctKey[0]) =
+          idx / 3 + (idx % 3) * (ROW_COUNT / 3) + 100;
       RawKey key2(vctKey);
 
-      BOOST_TEST(key2.CompareTo(*pkey));
+      BOOST_TEST(key2.CompareTo(*pkey) == 0);
       delete pkey;
       idx++;
     }
@@ -162,38 +163,43 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
   delete dvVal;
 }
 
-// BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToUniqueIndex_test) {
-//  const string FILE_NAME = ROOT_PATH +
-//      "/testIndexRepeatedKey" + StrMSTime() + ".dat";
-//  const string TABLE_NAME = "testTable";
-//  const int ROW_COUNT = 30000;
-//
-//  DataValueLong *dvKey = new DataValueLong(100, true);
-//  DataValueLong *dvVal = new DataValueLong(200, true);
-//  VectorDataValue vctKey = {dvKey->Clone()};
-//  VectorDataValue vctVal = {dvVal->Clone()};
-//  IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
-//  indexTree->GetHeadPage()->WriteIndexType(IndexType::PRIMARY);
-//
-//  vctKey.push_back(new DataValueLong(10, true));
-//  vctVal.push_back(new DataValueLong(100, true));
-//
-//  LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, 0);
-//  ErrorMsg *err = indexTree->InsertRecord(rr);
-//  BOOST_TEST(err == nullptr);
-//
-//  *((DataValueLong *)vctVal[0]) = 200;
-//  rr = new LeafRecord(indexTree, vctKey, vctVal, 1);
-//  err = indexTree->InsertRecord(rr);
-//  BOOST_TEST(err->getErrId() == CORE_REPEATED_RECORD);
-//
-//  indexTree->Close(true);
-//  delete dvKey;
-//  delete dvVal;
-//  PageBufferPool::ClearPool();
-//  std::filesystem::remove(std::filesystem::path(FILE_NAME));
-//}
-//
+BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToPrimaryKey_test) {
+  const string FILE_NAME =
+      ROOT_PATH + "/testIndexRepeatedKey" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = 30000;
+
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 3002,
+                         IndexType::PRIMARY);
+
+  vctKey.push_back(new DataValueLong(10));
+  vctVal.push_back(new DataValueLong(100));
+
+  IndexPage *idxPage = nullptr;
+  LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, 0, nullptr);
+  indexTree->SearchRecursively(*rr, true, idxPage, true);
+  bool b = ((LeafPage *)idxPage)->InsertRecord(rr, false);
+  BOOST_TEST(b);
+
+  *((DataValueLong *)vctVal[0]) = 200;
+  rr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
+  b = ((LeafPage *)idxPage)->InsertRecord(rr, false);
+  BOOST_TEST(!b);
+  BOOST_TEST(_threadErrorMsg->getErrId() == CORE_REPEATED_RECORD);
+
+  rr->DecRef();
+  idxPage->DecRef();
+
+  IndexTree::TestCloseWait(indexTree);
+  delete dvKey;
+  delete dvVal;
+}
+
 // BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
 //  const string FILE_NAME = ROOT_PATH +
 //      "/testIndexRepeatedRecord" + StrMSTime() + ".dat";
