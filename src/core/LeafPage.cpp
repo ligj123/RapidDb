@@ -165,8 +165,8 @@ LeafRecord *LeafPage::GetRecord(int32_t pos) {
   }
 }
 
-int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc,
-                               int32_t start, int32_t end) {
+int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, int32_t start,
+                               int32_t end) {
   bool bUnique =
       (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
 
@@ -194,13 +194,13 @@ int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc,
     } else if (hr > 0) {
       end = middle - 1;
     } else {
-      return bInc ? middle : middle + 1;
+      return middle;
     }
   }
 }
 
-int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, bool bInc,
-                            int32_t start, int32_t end) {
+int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, int32_t start,
+                            int32_t end) {
   if (end >= (int32_t)_recordNum)
     end = _recordNum - 1;
   bFind = true;
@@ -227,34 +227,23 @@ int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, bool bInc,
       end = middle - 1;
     } else {
       if (bUnique) {
-        return bInc ? middle : middle + 1;
+        return middle;
       } else {
-        if (bInc) {
-          if (middle > start &&
-              (_vctRecord.size() > 0
-                   ? GetVctRecord(middle - 1)->CompareKey(key) == 0
-                   : CompareTo(middle - 1, key) == 0)) {
-            end = middle - 1;
-          } else {
-            return middle;
-          }
+        if (middle > start &&
+            (_vctRecord.size() > 0
+                 ? GetVctRecord(middle - 1)->CompareKey(key) == 0
+                 : CompareTo(middle - 1, key) == 0)) {
+          end = middle - 1;
         } else {
-          if (middle < end &&
-              (_vctRecord.size() > 0
-                   ? GetVctRecord(middle + 1)->CompareKey(key) == 0
-                   : CompareTo(middle + 1, key) == 0)) {
-            start = middle + 1;
-          } else {
-            return middle + 1;
-          }
+          return middle;
         }
       }
     }
   }
 }
 
-int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, bool bInc,
-                            int32_t start, int32_t end) {
+int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, int32_t start,
+                            int32_t end) {
   if (end >= (int32_t)_recordNum)
     end = _recordNum - 1;
   bFind = true;
@@ -281,26 +270,15 @@ int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, bool bInc,
       end = middle - 1;
     } else {
       if (bUnique) {
-        return bInc ? middle : middle + 1;
+        return middle;
       } else {
-        if (bInc) {
-          if (middle > start &&
-              (_vctRecord.size() > 0
-                   ? GetVctRecord(middle - 1)->CompareKey(rr) == 0
-                   : CompareTo(middle - 1, rr, true) == 0)) {
-            end = middle - 1;
-          } else {
-            return middle;
-          }
+        if (middle > start &&
+            (_vctRecord.size() > 0
+                 ? GetVctRecord(middle - 1)->CompareKey(rr) == 0
+                 : CompareTo(middle - 1, rr, true) == 0)) {
+          end = middle - 1;
         } else {
-          if (middle < end &&
-              (_vctRecord.size() > 0
-                   ? GetVctRecord(middle + 1)->CompareKey(rr) == 0
-                   : CompareTo(middle + 1, rr, true) == 0)) {
-            start = middle + 1;
-          } else {
-            return middle + 1;
-          }
+          return middle;
         }
       }
     }

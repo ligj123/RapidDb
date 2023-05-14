@@ -76,12 +76,12 @@ public:
    * @return LeafRecord* The leaf record to get
    */
   LeafRecord *GetRecord(int32_t pos);
-  int32_t SearchRecord(const LeafRecord &rr, bool &bFind, bool bInc = true,
-                       int32_t start = 0, int32_t end = INT32_MAX);
-  int32_t SearchKey(const RawKey &key, bool &bFind, bool bInc = true,
-                    int32_t start = 0, int32_t end = INT32_MAX);
-  int32_t SearchKey(const LeafRecord &rr, bool &bFind, bool bInc = true,
-                    int32_t start = 0, int32_t end = INT32_MAX);
+  int32_t SearchRecord(const LeafRecord &rr, bool &bFind, int32_t start = 0,
+                       int32_t end = INT32_MAX);
+  int32_t SearchKey(const RawKey &key, bool &bFind, int32_t start = 0,
+                    int32_t end = INT32_MAX);
+  int32_t SearchKey(const LeafRecord &rr, bool &bFind, int32_t start = 0,
+                    int32_t end = INT32_MAX);
   void UpdateTotalLength(int32_t len) { _totalDataLength += len; }
 
 protected:
