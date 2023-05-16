@@ -25,6 +25,7 @@ struct SuiteFixture {
     PageBufferPool::RemoveTimerTask();
     PageDividePool::RemoveTimerTask();
     StoragePool::RemoveTimerTask();
+    TimerThread::Stop();
 
     ThreadPool::StopMain();
     _threadPool = nullptr;
@@ -32,7 +33,6 @@ struct SuiteFixture {
     PageDividePool::StopPool();
     StoragePool::StopPool();
     PageBufferPool::StopPool();
-    TimerThread::Stop();
 
     LOG_INFO << "Suite core tear down.";
   }

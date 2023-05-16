@@ -9,11 +9,12 @@ TimerThread::TimerThread() : _currTime(0), _bRunning(false) {
 }
 
 TimerThread::~TimerThread() {
+  _thread->join();
+  delete _thread;
+
   for (TimerTask *task : _vctTask) {
     delete task;
   }
-  _thread->join();
-  delete _thread;
 }
 
 void TimerThread::Run() {

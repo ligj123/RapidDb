@@ -144,6 +144,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
 
       BOOST_TEST(key2.CompareTo(*pkey) == 0);
       delete pkey;
+      lr->DecRef();
       idx++;
     }
 
@@ -347,34 +348,55 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
     Int64ToBytes(100 + i, bys, true);
     LeafRecord *rr = new LeafRecord(indexTree, vctKey, bys, sizeof(int64_t),
                                     ActionType::INSERT, nullptr);
-    indexTree->InsertRecord(rr);
+    IndexPage *idxPage = nullptr;
+    bool b = indexTree->SearchRecursively(*rr, true, idxPage, true);
+    BOOST_TEST(b);
+    BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
+
+    ((LeafPage *)idxPage)->InsertRecord(rr, false);
+    PageDividePool::AddPage(idxPage, false);
+    idxPage->WriteUnlock();
   }
 
-  indexTree->Close(true);
+  IndexTree::TestCloseWait(indexTree);
 
-  indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal);
+  indexTree = new IndexTree();
+  bool b = indexTree->InitIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 3005);
+  BOOST_TEST(b);
+
   vctKey.push_back(dvKey->Clone());
 
   for (int i = 0; i < ROW_COUNT / 3; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     RawKey key(vctKey);
-    VectorLeafRecord vlr;
-    indexTree->GetRecords(key, vlr);
-    assert(3 == vlr.size());
-    for (int j = 0; j < 3; j++) {
-      VectorDataValue vct;
-      vlr[j]->GetListValue(vct);
-      assert((i + 100 + ROW_COUNT / 3 * j) ==
-             (int64_t)(*(DataValueLong *)vct[0]));
+
+    IndexPage *idp = nullptr;
+    bool b = indexTree->SearchRecursively(key, false, idp, true);
+    BOOST_TEST(b);
+    BOOST_TEST(idp->GetPageType() == PageType::LEAF_PAGE);
+
+    bool bFind;
+    int32_t pos = ((LeafPage *)idp)->SearchKey(key, bFind);
+    BOOST_TEST(bFind);
+
+    for (uint32_t j = 0; j < 3; j++) {
+      LeafRecord *lr = ((LeafPage *)idp)->GetRecord(pos);
+      BOOST_TEST(lr->CompareKey(key));
+
+      RawKey *pkey = lr->GetPrimayKey();
+      *((DataValueLong *)vctKey[0]) = i + j * (ROW_COUNT / 3) + 100;
+      RawKey key2(vctKey);
+      BOOST_TEST(key2.CompareTo(*pkey) == 0);
+      delete pkey;
+      lr->DecRef();
     }
+
+    idp->DecRef();
   }
 
-  PageDividePool::SetThreadStatus(false);
-  indexTree->Close(true);
+  IndexTree::TestCloseWait(indexTree);
   delete dvKey;
   delete dvVal;
-  PageBufferPool::ClearPool();
-  std::filesystem::remove(std::filesystem::path(FILE_NAME));
 }
 
 // BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithUniqueIndex_test) {
