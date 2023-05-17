@@ -146,7 +146,9 @@ public:
   inline void SetInStorage(bool b) {
     _bInStorage.store(b, memory_order_relaxed);
   }
-  inline bool IsInStorage() { return _bInStorage; }
+  inline bool IsInStorage() {
+    return _bInStorage.load(memory_order::memory_order_relaxed);
+  }
   inline void WaitRead() {
     if (_pageStatus == PageStatus::VALID)
       return;

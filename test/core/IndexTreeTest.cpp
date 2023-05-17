@@ -375,12 +375,21 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
     BOOST_TEST(b);
     BOOST_TEST(idp->GetPageType() == PageType::LEAF_PAGE);
 
+    LeafPage *lp = (LeafPage *)idp;
     bool bFind;
-    int32_t pos = ((LeafPage *)idp)->SearchKey(key, bFind);
+    int32_t pos = lp->SearchKey(key, bFind);
     BOOST_TEST(bFind);
 
     for (uint32_t j = 0; j < 3; j++) {
-      LeafRecord *lr = ((LeafPage *)idp)->GetRecord(pos);
+      if (pos >= lp->GetRecordNumber()) {
+        PageID nid = lp->GetNextPageId();
+        lp->ReadUnlock();
+        lp->DecRef();
+        lp = (LeafPage *)indexTree->GetPage(nid, PageType::LEAF_PAGE, true);
+        lp->ReadLock();
+        pos = 0;
+      }
+      LeafRecord *lr = lp->GetRecord(pos);
       BOOST_TEST(lr->CompareKey(key) == 0);
 
       RawKey *pkey = lr->GetPrimayKey();
@@ -389,9 +398,11 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
       BOOST_TEST(key2.CompareTo(*pkey) == 0);
       delete pkey;
       lr->DecRef();
+      pos++;
     }
 
     idp->DecRef();
+    idp->ReadUnlock();
   }
 
   IndexTree::TestCloseWait(indexTree);
