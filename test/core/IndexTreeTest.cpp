@@ -381,7 +381,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
 
     for (uint32_t j = 0; j < 3; j++) {
       LeafRecord *lr = ((LeafPage *)idp)->GetRecord(pos);
-      BOOST_TEST(lr->CompareKey(key));
+      BOOST_TEST(lr->CompareKey(key) == 0);
 
       RawKey *pkey = lr->GetPrimayKey();
       *((DataValueLong *)vctKey[0]) = i + j * (ROW_COUNT / 3) + 100;

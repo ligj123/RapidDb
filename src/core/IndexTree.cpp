@@ -366,7 +366,7 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
 
     IndexPage *childPage = (IndexPage *)GetPage(
         pageId,
-        page->GetPageLevel() == 0 ? PageType::LEAF_PAGE : PageType::BRANCH_PAGE,
+        page->GetPageLevel() == 1 ? PageType::LEAF_PAGE : PageType::BRANCH_PAGE,
         false);
     assert(childPage != nullptr);
 
