@@ -99,5 +99,6 @@
     <ClInclude Include="..\..\test\core\CoreSuit.h">
       <Filter>core</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\test\TestHeader.h" />
   </ItemGroup>
 </Project>
