@@ -146,15 +146,13 @@ public:
   inline void SetInStorage(bool b) {
     _bInStorage.store(b, memory_order_relaxed);
   }
-  inline bool IsInStorage() {
-    return _bInStorage.load(memory_order::memory_order_relaxed);
-  }
+  inline bool IsInStorage() { return _bInStorage.load(memory_order_relaxed); }
   inline void WaitRead() {
     if (_pageStatus == PageStatus::VALID)
       return;
 
     std::unique_lock<SpinMutex> lk(_pageLock);
-    _pageCv.wait(lk, [this]() { return _pageStatus != PageStatus::VALID; });
+    _pageCv.wait(lk, [this]() { return _pageStatus == PageStatus::VALID; });
   }
 
 protected:

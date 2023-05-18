@@ -367,7 +367,7 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
     IndexPage *childPage = (IndexPage *)GetPage(
         pageId,
         page->GetPageLevel() == 1 ? PageType::LEAF_PAGE : PageType::BRANCH_PAGE,
-        false);
+        bWait);
     assert(childPage != nullptr);
 
     if (childPage->GetPageStatus() != PageStatus::VALID && !bWait) {
@@ -439,7 +439,7 @@ bool IndexTree::SearchRecursively(const LeafRecord &lr, bool bEdit,
     IndexPage *childPage = (IndexPage *)GetPage(
         pageId,
         page->GetPageLevel() == 1 ? PageType::LEAF_PAGE : PageType::BRANCH_PAGE,
-        false);
+        bWait);
     assert(childPage != nullptr);
 
     if (childPage->GetPageStatus() != PageStatus::VALID && !bWait) {
