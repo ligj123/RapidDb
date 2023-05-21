@@ -7,7 +7,8 @@ enum class TranType : uint8_t {
   AUTOMATE = 0,
   /**Manual create a transaction. The tasks will be executed after committed*/
   MANUAL_DELAY,
-  /**Manual create a transaction, execute the tasks at once after add */
+  /**Manual create a transaction, execute the tasks at once after add the
+     transaction*/
   MANUAL_ATONCE
 };
 

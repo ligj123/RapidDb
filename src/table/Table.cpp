@@ -83,9 +83,8 @@ uint32_t IndexProp::Read(Byte *bys) {
   return len;
 }
 
-PhysTable::PhysTable(Database *db, string &tableName, string &tableAlias,
-                     string &description)
-    : BaseTable(tableName, tableAlias, description), _db(db) {
+PhysTable::PhysTable(Database *db, string &tableName, string &desc)
+    : _name(name), _alias(alias), _desc(desc) {
   ReadData();
 };
 

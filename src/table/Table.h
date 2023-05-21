@@ -89,40 +89,35 @@ struct IndexProp {
 
 class PhysTable : public BaseTable {
 public:
-  PhysTable(Database *db, string &tableName, string &tableAlias,
-            string &description);
-  PhysTable(Database *db) : _db(db){};
+  PhysTable(string &dbName, string &tableName, string &desc);
+  PhysTable(){};
   ~PhysTable();
 
   uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   const IndexProp *GetPrimaryKey() const { return _vctIndex[0]; }
-  const MVector<IndexProp *> &GetVectorIndex() const { return _vctIndex; }
+  const MVector<IndexProp> &GetVectorIndex() const { return _vctIndex; }
   IndexType GetIndexType(string &indexName) const {
     auto iter = _mapIndexNamePos.find(indexName);
     if (iter == _mapIndexNamePos.end())
       return IndexType::UNKNOWN;
-    return _vctIndex[iter->second]->_type;
+    return _vctIndex[iter->second]._type;
   }
 
-  const MVector<PhysColumn *> &GetColumnArray() const {
-    return _vctColumn;
-  }
+  const MVector<PhysColumn> &GetColumnArray() const { return _vctColumn; }
 
-  const PhysColumn *GetColumn(string &fieldName) const;
-  const PhysColumn *GetColumn(int pos);
-  const MHashMap<string, uint32_t> GetMapColumnPos() {
-    return _mapColumnPos;
-  }
+  const PhysColumn GetColumn(string &fieldName) const;
+  const PhysColumn GetColumn(int pos);
+  const MHashMap<string, uint32_t> GetMapColumnPos() { return _mapColumnPos; }
   const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
     return _mapIndexFirstField;
   }
 
-  void AddColumn(string &columnName, DataType dataType, bool nullable,
+  bool AddColumn(string &columnName, DataType dataType, bool nullable,
                  uint32_t maxLen, string &comment, Charsets charset,
                  any &valDefault);
 
-  void AddIndex(IndexType indexType, string &indexName,
+  bool AddIndex(IndexType indexType, string &indexName,
                 MVector<string> &colNames);
   // Only used in developing time, in the future will save table schema to
   // system table
@@ -132,8 +127,9 @@ public:
   bool OpenIndex(size_t idx, bool bCreate);
   void CloseIndex(size_t idx) {
     assert(idx > 0 && idx < _vctIndex.size());
-    IndexProp *prop = _vctIndex[idx];
-    prop->_tree->Close();
+    IndexProp &prop = _vctIndex[idx];
+    prop._tree->Close();
+    prop._tree = nullptr;
   }
 
   DT_MilliSec GetCreateTime() { return _dtCreate; }
@@ -158,6 +154,10 @@ protected:
   }
 
 protected:
+  /**Table name*/
+  string _name;
+  /**Table describer*/
+  string _desc;
   // How much time that this instance has been referenced.
   atomic_int32_t _refCount;
   // Auto increment id, every time add 256.
@@ -170,11 +170,11 @@ protected:
   DT_MilliSec _dtLastUpdate;
   /**Include all columns in this table, they will order by actual position in
    * the table.*/
-  MVector<PhysColumn *> _vctColumn;
+  MVector<PhysColumn> _vctColumn;
   /** The map for column name and their position in column list */
   MHashMap<string, uint32_t> _mapColumnPos;
   /**All index, the primary key must be the first.*/
-  MVector<IndexProp *> _vctIndex;
+  MVector<IndexProp> _vctIndex;
   // The map for index with index name and position
   MHashMap<string, uint32_t> _mapIndexNamePos;
   /**The map for index with first column's position in _vctColumn and index
@@ -182,13 +182,8 @@ protected:
   unordered_multimap<uint32_t, uint32_t> _mapIndexFirstField;
   // The positions of all columns that constitute the all secondary index.
   MVector<int> _vctIndexPos;
-  // The database this table belong to
-  Database *_db;
+  // The database name this table belong to
+  string _dbName;
 };
 
-class ResultTable : public BaseTable {
-public:
-protected:
-  MVector<ResultColumn> _vctColumn;
-};
 } // namespace storage
