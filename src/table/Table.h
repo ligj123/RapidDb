@@ -88,10 +88,15 @@ struct IndexProp {
 
 class PhysTable : public BaseTable {
 public:
-  PhysTable(string &dbName, string &tableName, string &desc);
+  PhysTable(string &dbName, string &tableName, string &desc, uint32_t tid)
+      : _dbName(dbName), _name(name), _desc(desc), _tid(tid){};
   PhysTable(){};
   ~PhysTable() {}
 
+  const string &GetTableName() const { return _name; }
+  const string &GetDescription() const { return _desc; }
+  const string &GetDbName() const { return _dbName; }
+  const string GetFullName() const { return _dbName + "/" + _name; }
   uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   const IndexProp &GetPrimaryKey() const { return _vctIndex[0]; }
@@ -104,7 +109,6 @@ public:
   }
 
   const MVector<PhysColumn> &GetColumnArray() const { return _vctColumn; }
-
   const PhysColumn *GetColumn(string &fieldName) const;
   const PhysColumn *GetColumn(int pos);
   const MHashMap<string, uint32_t> GetMapColumnPos() { return _mapColumnPos; }
@@ -155,8 +159,6 @@ public:
   int32_t DecRef(int32_t i = 1) {
     return _refCount.fetch_sub(i, memory_order_relaxed);
   }
-  const string &GetDb() const { return _dbName; }
-  const string GetFullName() const { return _dbName + "/" + _name; }
 
 protected:
   inline bool IsExistedColumn(string name) {
@@ -171,7 +173,7 @@ protected:
   /**Table describer*/
   string _desc;
   // How much time that this instance has been referenced.
-  atomic_int32_t _refCount;
+  atomic_int32_t _refCount{0};
   // Auto increment id, every time add 256.
   // The high 3 bytes used for table id, and the last byte used for index id.
   // Primary key id is 0 and other index ids order by index order.
