@@ -1,9 +1,9 @@
 #pragma once
 #include "../expr/ExprStatement.h"
-#include "../table/Database.h"
 #include "../table/Table.h"
 #include "../utils/ConcurrentHashMap.h"
-#include "Session.h"
+#include "./Database.h"
+#include "./Session.h"
 
 using namespace std;
 // Mutex need very much

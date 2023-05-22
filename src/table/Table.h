@@ -9,7 +9,6 @@
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
 #include "Column.h"
-#include "Database.h"
 
 #include <any>
 
@@ -91,11 +90,11 @@ class PhysTable : public BaseTable {
 public:
   PhysTable(string &dbName, string &tableName, string &desc);
   PhysTable(){};
-  ~PhysTable();
+  ~PhysTable() {}
 
   uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
-  const IndexProp *GetPrimaryKey() const { return _vctIndex[0]; }
+  const IndexProp &GetPrimaryKey() const { return _vctIndex[0]; }
   const MVector<IndexProp> &GetVectorIndex() const { return _vctIndex; }
   IndexType GetIndexType(string &indexName) const {
     auto iter = _mapIndexNamePos.find(indexName);
@@ -106,8 +105,8 @@ public:
 
   const MVector<PhysColumn> &GetColumnArray() const { return _vctColumn; }
 
-  const PhysColumn GetColumn(string &fieldName) const;
-  const PhysColumn GetColumn(int pos);
+  const PhysColumn *GetColumn(string &fieldName) const;
+  const PhysColumn *GetColumn(int pos);
   const MHashMap<string, uint32_t> GetMapColumnPos() { return _mapColumnPos; }
   const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
     return _mapIndexFirstField;
@@ -119,10 +118,21 @@ public:
 
   bool AddIndex(IndexType indexType, string &indexName,
                 MVector<string> &colNames);
-  // Only used in developing time, in the future will save table schema to
-  // system table
-  void ReadData();
-  void WriteData();
+  /**
+   * @brief Load this table information from the byte array.
+   * @param bys The byte array saved the information.
+   * @param len the length of byte array.
+   * @return True: passed to load table information; False: failed to load. When
+   * False, the error information will be saved into _threadErrorMsg
+   */
+  bool LoadData(Byte *bys, uint32_t len);
+  /**
+   * @brief Save this table information into the byte array.
+   * @param bys The byte array used to save the table information.
+   * @param len the length of byte array.
+   * @return The length of the byte array occupied by table information
+   */
+  uint32_t SaveData(Byte *bys, uint32_t len);
 
   bool OpenIndex(size_t idx, bool bCreate);
   void CloseIndex(size_t idx) {
@@ -145,8 +155,8 @@ public:
   int32_t DecRef(int32_t i = 1) {
     return _refCount.fetch_sub(i, memory_order_relaxed);
   }
-  const Database *GetDb() const { return _db; }
-  const string GetFullName() const { return _db->_dbName + "/" + _name; }
+  const string &GetDb() const { return _dbName; }
+  const string GetFullName() const { return _dbName + "/" + _name; }
 
 protected:
   inline bool IsExistedColumn(string name) {
@@ -154,6 +164,8 @@ protected:
   }
 
 protected:
+  /** The database name this table belong to*/
+  string _dbName;
   /**Table name*/
   string _name;
   /**Table describer*/
@@ -182,8 +194,8 @@ protected:
   unordered_multimap<uint32_t, uint32_t> _mapIndexFirstField;
   // The positions of all columns that constitute the all secondary index.
   MVector<int> _vctIndexPos;
-  // The database name this table belong to
-  string _dbName;
+  // The last time to be visited.
+  DT_MilliSec _dtLastVisit;
 };
 
 } // namespace storage

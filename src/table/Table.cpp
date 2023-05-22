@@ -83,23 +83,15 @@ uint32_t IndexProp::Read(Byte *bys) {
   return len;
 }
 
-PhysTable::PhysTable(Database *db, string &tableName, string &desc)
-    : _name(name), _alias(alias), _desc(desc) {
-  ReadData();
-};
-
-PhysTable::~PhysTable() {
-  for (auto iter = _vctColumn.begin(); iter != _vctColumn.end(); iter++) {
-    delete *iter;
-  }
-}
+PhysTable::PhysTable(string &dbName, , string &tableName, string &desc)
+    : _dbName(dbName), _name(name), _desc(desc){};
 
 const PhysColumn *PhysTable::GetColumn(string &fieldName) const {
   auto iter = _mapColumnPos.find(fieldName);
   if (iter == _mapColumnPos.end()) {
     return nullptr;
   } else {
-    return _vctColumn[iter->second];
+    return &_vctColumn[iter->second];
   }
 }
 
@@ -107,7 +99,7 @@ const PhysColumn *PhysTable::GetColumn(int pos) {
   if (pos < 0 || pos > _vctColumn.size()) {
     return nullptr;
   } else {
-    return _vctColumn[pos];
+    return &_vctColumn[pos];
   }
 }
 

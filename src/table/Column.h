@@ -13,8 +13,8 @@ using namespace std;
 class PhysColumn {
 public:
   PhysColumn()
-      : _name(), _index(), _dataType(), BaseColumn(), _bNullable(false),
-        _comments(), _maxLength(0), _initVal(0), _incStep(1), _charset(),
+      : _name(), _index(), _dataType(), _bNullable(false), _comments(),
+        _maxLength(0), _initVal(0), _incStep(1), _charset(),
         _pDefaultVal(nullptr) {}
   PhysColumn(const string &name, int32_t index, DataType dataType,
              const string &comments, bool bNullable, int32_t maxLen,

@@ -14,7 +14,7 @@ uint32_t PhysColumn::WriteData(Byte *pBuf) {
   BytesCopy(p, _name.c_str(), _name.size());
   p += _name.size();
 
-  *((uint32_t *)p) = _position;
+  *((uint32_t *)p) = _index;
   p += sizeof(uint32_t);
 
   *((uint32_t *)p) = (uint32_t)_dataType;
@@ -57,7 +57,7 @@ uint32_t PhysColumn::ReadData(Byte *pBuf) {
   _name = string((char *)p, len);
   p += len;
 
-  _position = *((uint32_t *)p);
+  _index = *((uint32_t *)p);
   p += sizeof(uint32_t);
 
   _dataType = (DataType) * ((uint32_t *)p);
@@ -91,90 +91,5 @@ uint32_t PhysColumn::ReadData(Byte *pBuf) {
   }
 
   return (uint32_t)(p - pBuf);
-}
-
-int ResultColumn::GetLength(Byte *bys) {
-  if ((bys[UI32_LEN + _position / BYTE_SIZE] &
-       (Byte)(1 << (_position % BYTE_SIZE))) == 0) {
-    return 0;
-  }
-
-  switch (_dataType) {
-  case DataType::LONG:
-  case DataType::ULONG:
-  case DataType::DOUBLE:
-  case DataType::DATETIME:
-    return 8;
-  case DataType::FLOAT:
-  case DataType::INT:
-  case DataType::UINT:
-    return 4;
-  case DataType::SHORT:
-  case DataType::USHORT:
-    return 2;
-  case DataType::BOOL:
-  case DataType::CHAR:
-  case DataType::BYTE:
-    return 1;
-  case DataType::FIXCHAR:
-  case DataType::VARCHAR:
-  case DataType::BLOB: {
-    int pos = sizeof(int32_t) + _colNullPlace;
-    return (_prevVarCols == 0
-                ? UInt32FromBytes(bys + pos)
-                : UInt32FromBytes(bys + pos + _prevVarCols * UI32_LEN) -
-                      UInt32FromBytes(bys + pos + _prevVarCols * UI32_LEN -
-                                      UI32_LEN));
-  }
-  default:
-    return -1;
-  }
-}
-
-int ResultColumn::CompareTo(Byte *bys1, Byte *bys2) {
-  int pos1 = CalcPosition(bys1);
-  int pos2 = CalcPosition(bys2);
-  if (pos1 < 0 && pos2 < 0) {
-    return 0;
-  } else if (pos1 < 0) {
-    return -1;
-  } else if (pos2 < 0) {
-    return 1;
-  }
-
-  Byte *b1 = bys1 + pos1;
-  Byte *b2 = bys2 + pos2;
-  switch (_dataType) {
-  case DataType::LONG:
-    return (int)(*((int64_t *)b1) - *((int64_t *)b2));
-  case DataType::ULONG:
-    return (int)(*((uint64_t *)b1) - *((uint64_t *)b2));
-  case DataType::DOUBLE:
-    return (int)(*((double *)b1) - *((double *)b2));
-  case DataType::DATETIME:
-    return (int)(*((uint64_t *)b1) - *((uint64_t *)b2));
-  case DataType::FLOAT:
-    return (int)(*((float *)b1) - *((float *)b2));
-  case DataType::INT:
-    return *((int32_t *)b1) - *((int32_t *)b2);
-  case DataType::UINT:
-    return *((uint32_t *)b1) - *((uint32_t *)b2);
-  case DataType::SHORT:
-    return *((int16_t *)b1) - *((int16_t *)b2);
-  case DataType::USHORT:
-    return *((uint16_t *)b1) - *((uint16_t *)b2);
-  case DataType::BOOL:
-    return (*b1 ? 1 : 0) - (*b2 ? 1 : 0);
-  case DataType::CHAR:
-    return *((char *)b1) - *((char *)b2);
-  case DataType::BYTE:
-    return *b1 - *b2;
-  case DataType::FIXCHAR:
-  case DataType::VARCHAR:
-  case DataType::BLOB:
-    return BytesCompare(b1, GetLength(bys1), b2, GetLength(bys2));
-  default:
-    throw new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)_dataType)});
-  }
 }
 } // namespace storage
