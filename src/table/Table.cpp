@@ -5,17 +5,14 @@
 
 namespace storage {
 // IndexProp buffer:
-// 4 bytes to save buffer length, include this 4 bytes
 // 2 bytes to save index name length + n bytes to save index name
-// 2 bytes to save index position in all index, primarykey is 0
 // 1 byte to save index type
 // 2 bytes to save this index include how many columns
-// Every column information will include 2 bytes column name length, n bytes
-// column name and 2 bytes to save column position
+// Every column information will include 2 bytes column name length + n bytes
+// column name.
 uint32_t IndexProp::CalcSize() {
-  uint32_t sz = UI32_LEN;
-  sz += UI16_LEN + (uint32_t)_name.size();
-  sz += UI16_LEN + 1 + UI16_LEN + UI16_LEN * 2 * (uint32_t)_vctCol.size();
+  uint32_t sz = UI16_LEN + (uint32_t)_name.size();
+  sz += 1 + UI16_LEN + UI16_LEN * (uint32_t)_vctCol.size();
 
   for (IndexColumn col : _vctCol) {
     sz += col.colName.size();
@@ -25,14 +22,11 @@ uint32_t IndexProp::CalcSize() {
 }
 
 uint32_t IndexProp::Write(Byte *bys, uint32_t bysLen) {
-  Byte *tmp = bys + UI32_LEN;
+  Byte *tmp = bys;
   *(uint16_t *)tmp = (uint16_t)_name.size();
   tmp += UI16_LEN;
   BytesCopy(tmp, _name.c_str(), _name.size());
   tmp += _name.size();
-
-  *(uint16_t *)tmp = _position;
-  tmp += UI16_LEN;
   *tmp = (Byte)_type;
   tmp++;
 
@@ -43,27 +37,19 @@ uint32_t IndexProp::Write(Byte *bys, uint32_t bysLen) {
     tmp += UI16_LEN;
     BytesCopy(tmp, col.colName.c_str(), col.colName.size());
     tmp += col.colName.size();
-    *(uint16_t *)tmp = col.colPos;
-    tmp += UI16_LEN;
   }
 
   assert((uint32_t)(tmp - bys) < bysLen);
-  *(uint32_t *)bys = (uint32_t)(tmp - bys);
-
   return (uint32_t)(tmp - bys);
 }
 
-uint32_t IndexProp::Read(Byte *bys) {
-  uint32_t len = *(uint32_t *)bys;
-
-  bys += UI32_LEN;
+uint32_t IndexProp::Read(Byte *bys,
+                         const MHashMap<string, uint32_t> &mapColumnPos) {
+  Byte *tmp = bys;
   uint16_t sz = *(uint16_t *)bys;
   bys += UI16_LEN;
   _name = string((char *)bys, sz);
   bys += sz;
-
-  _position = *(uint16_t *)bys;
-  bys += UI16_LEN;
   _type = (IndexType) * (int8_t *)bys;
   bys++;
 
@@ -76,34 +62,15 @@ uint32_t IndexProp::Read(Byte *bys) {
 
     col.colName = string((char *)bys, len);
     bys += len;
-    col.colPos = *(uint16_t *)bys;
-    bys += UI16_LEN;
+
+    col.colPos = mapColumnPos.find(col.colName)->second;
+    _vctCol.push_back(col);
   }
 
-  return len;
+  return uint32_t(bys - tmp);
 }
 
-PhysTable::PhysTable(string &dbName, , string &tableName, string &desc)
-    : _dbName(dbName), _name(name), _desc(desc){};
-
-const PhysColumn *PhysTable::GetColumn(string &fieldName) const {
-  auto iter = _mapColumnPos.find(fieldName);
-  if (iter == _mapColumnPos.end()) {
-    return nullptr;
-  } else {
-    return &_vctColumn[iter->second];
-  }
-}
-
-const PhysColumn *PhysTable::GetColumn(int pos) {
-  if (pos < 0 || pos > _vctColumn.size()) {
-    return nullptr;
-  } else {
-    return &_vctColumn[pos];
-  }
-}
-
-void PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
+bool PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
                           uint32_t maxLen, string &comment, Charsets charset,
                           any &valDefault) {
   assert(_vctIndex.size() == 0);
@@ -112,11 +79,13 @@ void PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
   IsValidName(columnName);
 
   if (_mapColumnPos.find(columnName) != _mapColumnPos.end()) {
-    throw ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName});
+    _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName}));
+    return false;
   }
 
   if (maxLen <= 0 && !IDataValue::IsArrayType(dataType)) {
-    throw new ErrorMsg(TB_Array_MAX_LEN, {columnName});
+    _threadErrorMsg.reset(new ErrorMsg(TB_Array_MAX_LEN, {columnName}));
+    return false;
   }
 
   IDataValue *dvDefault = nullptr;
@@ -130,6 +99,29 @@ void PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
 
   _vctColumn.push_back(cm);
   _mapColumnPos.insert(pair<string, int>(columnName, cm->GetPosition()));
+  return true;
+}
+
+bool PhysTable::AddColumn(string &columnName, DataType dataType,
+                          string &comment, int64_t initVal, int64_t incStep) {
+  assert(_vctIndex.size() == 0);
+  assert(_vctColumn.size() == 0);
+
+  transform(columnName.begin(), columnName.end(), columnName.begin(),
+            ::toupper);
+  IsValidName(columnName);
+
+  if (_vctColumn.size() > 0) {
+    _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName}));
+    return false;
+  }
+
+  PhysColumn *cm = new PhysColumn(columnName, 0, dataType, comment, false, -1,
+                                  initVal, incStep, Charsets::UTF8, nullptr);
+
+  _vctColumn.push_back(cm);
+  _mapColumnPos.insert(pair<string, int>(columnName, cm->GetPosition()));
+  return true;
 }
 
 void PhysTable::AddIndex(IndexType indexType, string &indexName,

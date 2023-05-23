@@ -17,42 +17,6 @@ using namespace std;
 static const char *COLUMN_CONNECTOR_CHAR = "|";
 static const char *PRIMARY_KEY = "PARMARYKEY";
 
-class BaseTable {
-public:
-  BaseTable() {}
-  BaseTable(const string &name, const string &alias, const string &desc)
-      : _name(name), _alias(alias), _desc(desc) {}
-  virtual ~BaseTable() {}
-  inline const string &GetName() const { return _name; }
-  inline void SetName(string name) {
-    IsValidName(name);
-    _name = name;
-  }
-  inline const string GetTableAlias() { return _alias; }
-  inline void SetTableAlias(string alias) {
-    IsValidName(alias);
-    _alias = alias;
-  }
-  inline const string &GetDescription() const { return _desc; }
-  inline void SetTableDesc(const string &desc) { _desc = desc; }
-
-public:
-  static void *operator new(size_t size) {
-    return CachePool::Apply((uint32_t)size);
-  }
-  static void operator delete(void *ptr, size_t size) {
-    CachePool::Release((Byte *)ptr, (uint32_t)size);
-  }
-
-protected:
-  /**Table name*/
-  string _name;
-  /**Table alias*/
-  string _alias;
-  /**Table describer*/
-  string _desc;
-};
-
 struct IndexColumn {
   IndexColumn() {}
   IndexColumn(const string &name, uint32_t pos) : colName(name), colPos(pos) {}
@@ -86,7 +50,15 @@ struct IndexProp {
   IndexTree *_tree = nullptr;
 };
 
-class PhysTable : public BaseTable {
+class PhysTable {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
 public:
   PhysTable(string &dbName, string &tableName, string &desc, uint32_t tid)
       : _dbName(dbName), _name(name), _desc(desc), _tid(tid){};
@@ -96,7 +68,7 @@ public:
   const string &GetTableName() const { return _name; }
   const string &GetDescription() const { return _desc; }
   const string &GetDbName() const { return _dbName; }
-  const string GetFullName() const { return _dbName + "/" + _name; }
+  const string GetFullName() const { return _dbName + "." + _name; }
   uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   const IndexProp &GetPrimaryKey() const { return _vctIndex[0]; }
@@ -107,19 +79,36 @@ public:
       return IndexType::UNKNOWN;
     return _vctIndex[iter->second]._type;
   }
-
   const MVector<PhysColumn> &GetColumnArray() const { return _vctColumn; }
-  const PhysColumn *GetColumn(string &fieldName) const;
-  const PhysColumn *GetColumn(int pos);
+  const PhysColumn *GetColumn(string &fieldName) const {
+    auto iter = _mapColumnPos.find(fieldName);
+    if (iter == _mapColumnPos.end()) {
+      return nullptr;
+    } else {
+      return &_vctColumn[iter->second];
+    }
+  }
+  const PhysColumn *GetColumn(int pos) {
+    if (pos < 0 || pos > _vctColumn.size()) {
+      return nullptr;
+    } else {
+      return &_vctColumn[pos];
+    }
+  }
   const MHashMap<string, uint32_t> GetMapColumnPos() { return _mapColumnPos; }
   const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
     return _mapIndexFirstField;
   }
 
+  // Add normal column
   bool AddColumn(string &columnName, DataType dataType, bool nullable,
                  uint32_t maxLen, string &comment, Charsets charset,
                  any &valDefault);
-
+  // Add auto increment column. In this version, only one auto increment column
+  // in a table and must be first column and as primary key, maybe update in
+  // future.
+  bool AddColumn(string &columnName, DataType dataType, string &comment,
+                 int64_t initVal, int64_t incStep);
   bool AddIndex(IndexType indexType, string &indexName,
                 MVector<string> &colNames);
   /**
