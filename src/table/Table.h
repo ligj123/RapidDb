@@ -33,8 +33,15 @@ struct IndexProp {
     _vctCol.swap(vctCol);
   }
 
-  uint32_t Write(Byte *bys, uint32_t bysLen);
-  uint32_t Read(Byte *bys);
+  uint32_t Write(Byte *bys);
+  uint32_t Read(Byte *bys, uint32_t pos,
+                const MHashMap<string, uint32_t> &mapColumnPos);
+  /** @brief To calculate the length to save this index
+   * 1) 2 + n bytes: index name length + contents
+   * 2) 1 byte: Index type
+   * 3) 2 bytes: The number of columns to composite this index.
+   * 4) (2 + n) * m: The column name length + contents * number
+   */
   uint32_t CalcSize();
 
   // Index name
@@ -127,6 +134,18 @@ public:
    * @return The length of the byte array occupied by table information
    */
   uint32_t SaveData(Byte *bys, uint32_t len);
+  /**
+   * @brief Calculate the l byte array length to save this table information.
+   * 1) 4 bytes: The length of byte array to save this table information
+   * 2) 4 bytes: table id
+   * 3) 2 + n bytes: table name length and contents.
+   * 4) 2 + n bytes: table describer length and contents.
+   * 5) 8 bytes: table create time
+   * 6) 8 bytes: table last update time
+   * 7) 2 + n bytes: columns number and contents
+   * 8) 2 + n bytes: Index number and contents, include primary key
+   */
+  uint32_t CalcSize();
 
   bool OpenIndex(size_t idx, bool bCreate);
   void CloseIndex(size_t idx) {

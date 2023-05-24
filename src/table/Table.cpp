@@ -4,24 +4,19 @@
 #include <filesystem>
 
 namespace storage {
-// IndexProp buffer:
-// 2 bytes to save index name length + n bytes to save index name
-// 1 byte to save index type
-// 2 bytes to save this index include how many columns
-// Every column information will include 2 bytes column name length + n bytes
-// column name.
-uint32_t IndexProp::CalcSize() {
+
+int32_t IndexProp::CalcSize() {
   uint32_t sz = UI16_LEN + (uint32_t)_name.size();
-  sz += 1 + UI16_LEN + UI16_LEN * (uint32_t)_vctCol.size();
+  sz += 1 + UI16_LEN;
 
   for (IndexColumn col : _vctCol) {
-    sz += col.colName.size();
+    sz += UI16_LEN + col.colName.size();
   }
 
   return sz;
 }
 
-uint32_t IndexProp::Write(Byte *bys, uint32_t bysLen) {
+uint32_t IndexProp::Write(Byte *bys) {
   Byte *tmp = bys;
   *(uint16_t *)tmp = (uint16_t)_name.size();
   tmp += UI16_LEN;
@@ -39,12 +34,12 @@ uint32_t IndexProp::Write(Byte *bys, uint32_t bysLen) {
     tmp += col.colName.size();
   }
 
-  assert((uint32_t)(tmp - bys) < bysLen);
   return (uint32_t)(tmp - bys);
 }
 
-uint32_t IndexProp::Read(Byte *bys,
+uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
                          const MHashMap<string, uint32_t> &mapColumnPos) {
+  _position = pos;
   Byte *tmp = bys;
   uint16_t sz = *(uint16_t *)bys;
   bys += UI16_LEN;
@@ -167,6 +162,8 @@ bool PhysTable::AddIndex(IndexType indexType, string &indexName,
   _vctIndex.push_back(prop);
   _mapIndexNamePos.insert({prop->_name, prop->_position});
 }
+
+uint32_t PhysTable::CalcLength() {}
 
 void PhysTable::WriteData() {
   Byte *buf = CachePool::ApplyBlock();

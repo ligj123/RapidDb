@@ -5,45 +5,56 @@
 #include <cstring>
 
 namespace storage {
+uint32_t PhysColumn::CalcSize() {
+  uint32_t len = UI16_LEN + _name.size();
+  len += UI32_LEN;
+  len += 1 + UI16_LEN + UI32_LEN + UI64_LEN + UI64_LEN;
+  len += UI16_LEN + _comments.size();
+  len += 2 + (_pDefaultVal == nullptr
+                  ? 0
+                  : _pDefaultVal->GetPersistenceLength(SavePosition::VALUE));
+  return len;
+}
+
 /**Write column's information into buffer, this is a 1M byes buffer
  */
 uint32_t PhysColumn::WriteData(Byte *pBuf) {
   Byte *p = pBuf;
-  *((uint32_t *)p) = (uint32_t)_name.size();
-  p += sizeof(uint32_t);
+  *((uint16_t *)p) = (uint16_t)_name.size();
+  p += UI16_LEN;
   BytesCopy(p, _name.c_str(), _name.size());
   p += _name.size();
 
-  *((uint32_t *)p) = _index;
-  p += sizeof(uint32_t);
-
   *((uint32_t *)p) = (uint32_t)_dataType;
-  p += sizeof(uint32_t);
+  p += UI32_LEN;
 
   *p = (_bNullable ? 0 : 1);
   p++;
 
-  *((uint32_t *)p) = (uint32_t)_charset;
-  p += sizeof(uint32_t);
+  *((uint16_t *)p) = (uint16_t)_charset;
+  p += UI16_LEN;
 
   *((uint32_t *)p) = _maxLength;
-  p += sizeof(uint32_t);
+  p += UI32_LEN;
 
   *((uint64_t *)p) = _initVal;
-  p += sizeof(uint64_t);
+  p += UI64_LEN;
 
   *((uint64_t *)p) = _incStep;
-  p += sizeof(uint64_t);
+  p += UI64_LEN;
 
-  *((uint32_t *)p) = (uint32_t)_comments.size();
-  p += sizeof(uint32_t);
+  *((uint16_t *)p) = (uint16_t)_comments.size();
+  p += UI16_LEN;
   BytesCopy(p, _comments.c_str(), _comments.size());
   p += _comments.size();
 
-  *p = (_pDefaultVal == nullptr ? 0 : 1);
-  p++;
+  *((uint16_t *)p) =
+      (_pDefaultVal == nullptr
+           ? 0
+           : _pDefaultVal->GetPersistenceLength(SavePosition::VALUE));
+  p += UI16_LEN;
   if (_pDefaultVal != nullptr) {
-    p += _pDefaultVal->WriteData(p);
+    p += _pDefaultVal->WriteData(p, SavePosition::VALUE);
   }
 
   return (int32_t)(p - pBuf);
