@@ -124,58 +124,48 @@ bool PhysTable::AddColumn(string &columnName, DataType dataType,
   return true;
 }
 
-void PhysTable::AddIndex(IndexType indexType, string &indexName,
+bool PhysTable::AddIndex(IndexType indexType, string &indexName,
                          MVector<string> &colNames) {
   if (colNames.size() == 0) {
-    throw ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName});
+    _threadErrorMsg.reset(new ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName}));
+    return false;
   }
   if (_mapIndexNamePos.find(indexName) != _mapIndexNamePos.end()) {
-    throw ErrorMsg(TB_REPEATED_INDEX, {indexName});
+    _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_INDEX, {indexName}));
+    return false;
   }
 
   assert(indexType != IndexType::PRIMARY || _vctIndex.size() == 0);
 
   MVector<IndexColumn> vctCol;
+  MHashSet<MString> mset;
   for (string cname : colNames) {
+    if (mset.contains(cname)) {
+      _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {cname}));
+      return false;
+    }
+    mset.insert(cname);
+
     auto iter = _mapColumnPos.find(cname);
     if (iter == _mapColumnPos.end()) {
-      throw ErrorMsg(TB_UNEXIST_COLUMN, {cname});
-    }
-  }
-
-  MVector<IndexColumn> vctIc;
-  for (string col : colNames) {
-    auto iter = _mapColumnPos.find(col);
-    if (iter == _mapColumnPos.end()) {
-      throw ErrorMsg(TB_UNEXIST_COLUMN, {col});
+      _threadErrorMsg.reset(new ErrorMsg(TB_UNEXIST_COLUMN, {cname}));
+      return false;
     }
 
-    if (!IDataValue::IsIndexType(_vctColumn[iter->second]->GetDataType())) {
-      throw ErrorMsg(
+    if (!IDataValue::IsIndexType(_vctColumn[iter->second].GetDataType())) {
+      _threadErrorMsg.reset(new ErrorMsg(
           TB_INDEX_UNSUPPORT_DATA_TYPE,
-          {col, DateTypeToString(_vctColumn[iter->second]->GetDataType())});
+          {col, DateTypeToString(_vctColumn[iter->second]->GetDataType())}));
+      return false;
     }
 
-    vctIc.push_back(IndexColumn(iter->first, iter->second));
+    vctCol.push_back(IndexColumn(iter->first, iter->second));
   }
+
   string iname = (indexType == IndexType::PRIMARY ? PRIMARY_KEY : indexName);
-  IndexProp *prop =
-      new IndexProp(iname, (uint32_t)_vctIndex.size(), indexType, vctIc);
+  IndexProp prop(iname, (uint32_t)_vctIndex.size(), indexType, vctCol);
   _vctIndex.push_back(prop);
   _mapIndexNamePos.insert({prop->_name, prop->_position});
-
-  for (IndexColumn &ic : vctIc) {
-    int pos = 0;
-    for (; pos < _vctIndexPos.size(); pos++) {
-      if (ic.colPos <= _vctIndexPos[pos]) {
-        break;
-      }
-    }
-
-    if (pos >= _vctIndexPos.size() || ic.colPos == _vctIndexPos[pos]) {
-      _vctIndexPos.insert(_vctIndexPos.begin() + pos, ic.colPos);
-    }
-  }
 }
 
 void PhysTable::WriteData() {

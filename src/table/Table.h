@@ -61,14 +61,15 @@ public:
 
 public:
   PhysTable(string &dbName, string &tableName, string &desc, uint32_t tid)
-      : _dbName(dbName), _name(name), _desc(desc), _tid(tid){};
+      : _dbName(dbName), _name(name), _fullName(_dbName + "." + _name),
+        _desc(desc), _tid(tid){};
   PhysTable(){};
   ~PhysTable() {}
 
   const string &GetTableName() const { return _name; }
   const string &GetDescription() const { return _desc; }
   const string &GetDbName() const { return _dbName; }
-  const string GetFullName() const { return _dbName + "." + _name; }
+  const string &GetFullName() const { return _fullName; }
   uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   const IndexProp &GetPrimaryKey() const { return _vctIndex[0]; }
@@ -159,6 +160,8 @@ protected:
   string _dbName;
   /**Table name*/
   string _name;
+  /**db name + '.' + table name*/
+  string _fullName;
   /**Table describer*/
   string _desc;
   // How much time that this instance has been referenced.
@@ -182,10 +185,10 @@ protected:
   MHashMap<string, uint32_t> _mapIndexNamePos;
   /**The map for index with first column's position in _vctColumn and index
    * position in _vctIndex*/
-  unordered_multimap<uint32_t, uint32_t> _mapIndexFirstField;
-  // The positions of all columns that constitute the all secondary index.
-  MVector<int> _vctIndexPos;
-  // The last time to be visited.
+  // MHashMap<uint32_t, uint32_t> _mapIndexFirstField;
+  //  The positions of all columns that constitute the all secondary index.
+  // MVector<int> _vctIndexPos;
+  //  The last time to be visited.
   DT_MilliSec _dtLastVisit;
 };
 
