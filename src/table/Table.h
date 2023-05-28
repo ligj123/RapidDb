@@ -122,28 +122,27 @@ public:
   /**
    * @brief Load this table information from the byte array.
    * @param bys The byte array saved the information.
-   * @param len the length of byte array.
-   * @return True: passed to load table information; False: failed to load. When
-   * False, the error information will be saved into _threadErrorMsg
+   * @return The length of byte array to load, If error, return UINT32_MAX, the
+   * detail information saved in _threadErrorMsg.
    */
-  bool LoadData(Byte *bys, uint32_t len);
+  uint32_t LoadData(Byte *bys);
   /**
    * @brief Save this table information into the byte array.
    * @param bys The byte array used to save the table information.
-   * @param len the length of byte array.
    * @return The length of the byte array occupied by table information
    */
-  uint32_t SaveData(Byte *bys, uint32_t len);
+  uint32_t SaveData(Byte *bys);
   /**
-   * @brief Calculate the l byte array length to save this table information.
+   * @brief Calculate the byte array length to save this table information.
    * 1) 4 bytes: The length of byte array to save this table information
-   * 2) 4 bytes: table id
-   * 3) 2 + n bytes: table name length and contents.
-   * 4) 2 + n bytes: table describer length and contents.
-   * 5) 8 bytes: table create time
-   * 6) 8 bytes: table last update time
-   * 7) 2 + n bytes: columns number and contents
-   * 8) 2 + n bytes: Index number and contents, include primary key
+   * 2) 4 bytes: File version CURRENT_FILE_VERSION
+   * 3) 4 bytes: table id
+   * 4) 2 + n bytes: table name length and contents.
+   * 5) 2 + n bytes: table describer length and contents.
+   * 6) 8 bytes: table create time
+   * 7) 8 bytes: table last update time
+   * 8) 2 + n bytes: columns number and contents
+   * 9) 2 + n bytes: Index number and contents, include primary key
    */
   uint32_t CalcSize();
 

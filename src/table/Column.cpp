@@ -63,40 +63,37 @@ uint32_t PhysColumn::WriteData(Byte *pBuf) {
 uint32_t PhysColumn::ReadData(Byte *pBuf) {
   Byte *p = pBuf;
 
-  uint32_t len = *((uint32_t *)p);
-  p += sizeof(uint32_t);
+  uint16_t len = *((uint16_t *)p);
+  p += UI16_LEN;
   _name = string((char *)p, len);
   p += len;
 
-  _index = *((uint32_t *)p);
-  p += sizeof(uint32_t);
-
   _dataType = (DataType) * ((uint32_t *)p);
-  p += sizeof(uint32_t);
+  p += UI32_LEN;
 
   _bNullable = (*p == 0);
   p++;
 
-  _charset = (Charsets) * ((uint32_t *)p);
-  p += sizeof(uint32_t);
+  _charset = (Charsets) * ((uint16_t *)p);
+  p += UI16_LEN;
 
   _maxLength = *((uint32_t *)p);
-  p += sizeof(uint32_t);
+  p += UI32_LEN;
 
   _initVal = *((uint64_t *)p);
-  p += sizeof(uint64_t);
+  p += UI64_LEN;
 
   _incStep = *((uint64_t *)p);
-  p += sizeof(uint64_t);
+  p += UI64_LEN;
 
-  len = *((uint32_t *)p);
-  p += sizeof(uint32_t);
+  len = *((uint16_t *)p);
+  p += UI16_LEN;
   _comments = string((char *)p, len);
   p += len;
 
-  bool bDefault = (*p != 0);
-  p++;
-  if (bDefault) {
+  len = *((uint16_t *)p);
+  p += UI16_LEN;
+  if (len > 0) {
     _pDefaultVal = DataValueFactory(_dataType);
     p += _pDefaultVal->ReadData(p);
   }

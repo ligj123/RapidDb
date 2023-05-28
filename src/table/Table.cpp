@@ -163,11 +163,28 @@ bool PhysTable::AddIndex(IndexType indexType, string &indexName,
   _mapIndexNamePos.insert({prop->_name, prop->_position});
 }
 
-uint32_t PhysTable::CalcLength() {}
+uint32_t PhysTable::CalcSize() {
+  uint32_t len = UI32_LEN + UI32_LEN + UI32_LEN;
+  len += UI16_LEN + _fullName.size();
+  len += UI16_LEN + _desc.size();
+  len += UI64_LEN + UI64_LEN;
+  len += UI16_LEN;
 
-void PhysTable::WriteData() {
-  Byte *buf = CachePool::ApplyBlock();
-  Byte *bufs = buf;
+  for (size_t i = 0; i < _vctColumn.size(); i++) {
+    len += _vctColumn[i].CalcSize();
+  }
+
+  len += UI16_LEN;
+  for (size_t i = 0; i < _vctIndex.size(); i++) {
+    len += _vctIndex[i].CalcSize();
+  }
+
+  return len;
+}
+
+uint32_t PhysTable::SaveData(Byte *bys) {
+  Byte *buf = bys;
+  buf += UI32_LEN;
 
   *(short *)buf = CURRENT_FILE_VERSION.GetMajorVersion();
   buf += UI16_LEN;
@@ -175,113 +192,94 @@ void PhysTable::WriteData() {
   buf++;
   *buf = CURRENT_FILE_VERSION.GetPatchVersion();
   buf++;
-  buf += UI32_LEN * 2;
 
-  *(uint32_t *)buf = (uint32_t)_name.size();
-  buf += UI32_LEN;
-  BytesCopy(buf, _name.c_str(), _name.size());
-  buf += _name.size();
-  *(uint32_t *)buf = (uint32_t)_desc.size();
+  *(uint32_t *)buf = _tid;
+
+  *(uint16_t *)buf = (uint16_t)_fullName.size();
+  buf += UI16_LEN;
+  BytesCopy(buf, _fullName.c_str(), _fullName.size());
+  buf += _fullName.size();
+  *(uint16_t *)buf = (uint16_t)_desc.size();
   buf += UI32_LEN;
   BytesCopy(buf, _desc.c_str(), _desc.size());
   buf += _desc.size();
 
-  *(uint32_t *)buf = (uint32_t)_vctColumn.size();
-  buf + UI32_LEN;
+  *(uint64_t *)buf = _dtCreate;
+  buf += UI64_LEN;
+  *(uint64_t *)buf = _dtLastUpdate;
+  buf += UI64_LEN;
+
+  *(uint16_t *)buf = (uint16_t)_vctColumn.size();
+  buf + UI16_LEN;
 
   for (size_t i = 0; i < _vctColumn.size(); i++) {
-    PhysColumn *col = _vctColumn[i];
-    uint32_t len = col->WriteData(buf);
+    uint32_t sz = col->WriteData(buf);
+    buf += sz;
+  }
+
+  *(uint16_t *)buf = (uint16_t)_vctIndex.size();
+  buf += UI16_LEN;
+  for (size_t i = 0; i < _vctIndex.size(); i++) {
+    uint32_t len = _vctIndex[i].Write(buf);
     buf += len;
   }
 
-  *(uint32_t *)buf = (uint32_t)_vctIndex.size();
-  buf += UI32_LEN;
-  for (auto prop : _vctIndex) {
-    uint32_t len = prop->Write(buf, 102400);
-    buf += len;
-  }
-
-  assert(buf - bufs < Configure::GetResultBlockSize());
-
-  *(uint32_t *)(bufs + UI32_LEN * 2) = (uint32_t)(buf - bufs - UI32_LEN * 2);
-  boost::crc_32_type crc32;
-  crc32.process_bytes(bufs + UI32_LEN * 2, buf - bufs - UI32_LEN * 2);
-  *(uint32_t *)(bufs + UI32_LEN) = crc32.checksum();
-
-  string path = _db->GetPath() + "/" + _name + "/metafile.dat";
-  ofstream fs(path.c_str(), ios::out | ios::binary | ios::trunc);
-  fs.write((char *)bufs, buf - bufs);
-  fs.close();
-  CachePool::ReleaseBlock(bufs);
+  return (int32_t)(p - pBuf);
 }
 
-void PhysTable::ReadData() {
-  Byte *buf = CachePool::ApplyBlock();
-  Byte *bufs = buf;
-
-  string path = _db->GetPath() + "/" + _name + "/metafile.dat";
-  ifstream fs(path.c_str(), ios::in | ios::binary);
-  fs.read((char *)buf, Configure::GetResultBlockSize());
-  uint32_t sz = fs.gcount();
-  fs.close();
-  assert(sz < Configure::GetResultBlockSize());
+uint32_t PhysTable::LoadData(Byte *bys) {
+  Byte *buf = bys;
+  uint32_t sz = *(uint32_t *)buf;
+  buf += UI32_LEN;
 
   FileVersion fv(*(int16_t *)buf, *(uint8_t *)(buf + 2), *(uint8_t *)(buf + 3));
   if (!(fv == CURRENT_FILE_VERSION)) {
-    CachePool::ReleaseBlock(bufs);
-    throw ErrorMsg(TB_ERROR_INDEX_VERSION, {path});
+     _threadErrorMsg.reset(new ErrorMsg(TB_ERROR_INDEX_VERSION, {path});
+     return UINT32_MAX;
   }
 
   buf += UI32_LEN;
 
-  uint32_t len = *(uint32_t *)(buf + UI32_LEN);
-  if (len + UI32_LEN * 2 != sz) {
-    CachePool::ReleaseBlock(bufs);
-    throw ErrorMsg(FILE_OPEN_FAILED, {path});
-  }
+  _tid = *(uint32_t *)buf;
 
-  boost::crc_32_type crc32;
-  crc32.process_bytes(buf + UI32_LEN, len);
-  if (*(uint32_t *)buf != crc32.checksum()) {
-    CachePool::ReleaseBlock(buf);
-    throw ErrorMsg(FILE_OPEN_FAILED, {path});
-  }
-
-  buf += UI32_LEN * 2;
-
-  len = *(uint32_t *)buf;
-  buf += UI32_LEN;
-  _name = string((char *)buf, len);
+  uint32_t len = *(uint16_t *)buf;
+  buf += UI16_LEN;
+  _fullName = string((char *)buf, len);
   buf += len;
+  size_t pos = _fullName.find(".");
+  _name = _fullName.substr(pos + 1);
+  _dbName = _fullName.substr(0, pos);
 
-  len = *(uint32_t *)buf;
-  buf += UI32_LEN;
+  len = *(uint16_t *)buf;
+  buf += UI16_LEN;
   _desc = string((char *)buf, len);
   buf += len;
 
-  len = *(uint32_t *)buf;
-  buf += UI32_LEN;
-  for (uint32_t i = 0; i < len; i++) {
-    PhysColumn *col = new PhysColumn();
-    uint32_t sz = col->ReadData(buf);
-    buf += sz;
+  _dtCreate = *(uint64_t *)buf;
+  buf += UI64_LEN;
+  _dtLastUpdate = *(uint64_t *)buf;
+  buf += UI64_LEN;
 
-    _vctColumn.push_back(col);
-    _mapColumnPos.insert({col->GetName(), i});
+  len = *(uint16_t *)buf;
+  buf += UI16_LEN;
+  for (uint32_t i = 0; i < len; i++) {
+     PhysColumn col;
+     uint32_t csz = col.ReadData(buf, i);
+     buf += csz;
+
+     _vctColumn.push_back(col);
+     _mapColumnPos.insert({col->GetName(), i});
   }
 
-  len = *(uint32_t *)buf;
-  buf += UI32_LEN;
+  len = *(uint16_t *)buf;
+  buf += UI16_LEN;
+  for (uint32_t i = 0; i < len; i++) {
+     IndexProp prop;
+     uint32_t isz = prop.Read(buf, i, _mapColumnPos);
+     buf += isz;
 
-  for (int i = 0; i < len; i++) {
-    IndexProp *prop = new IndexProp;
-    uint32_t sz = prop->Read(buf);
-    buf += sz;
-
-    _vctIndex.push_back(prop);
-    _mapIndexNamePos.insert({prop->_name, i});
-    _mapIndexFirstField.insert({i, prop->_vctCol[0].colPos});
+     _vctIndex.push_back(prop);
+     _mapIndexNamePos.insert({prop->_name, i});
   }
 }
 
@@ -294,33 +292,33 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   VectorDataValue dvKey;
   dvKey.reserve(prop->_vctCol.size());
   for (IndexColumn ic : prop->_vctCol) {
-    PhysColumn *pc = _vctColumn[ic.colPos];
-    dvKey.push_back(
-        DataValueFactory(pc->GetDataType(), true, pc->GetMaxLength()));
+     PhysColumn *pc = _vctColumn[ic.colPos];
+     dvKey.push_back(
+         DataValueFactory(pc->GetDataType(), true, pc->GetMaxLength()));
   }
 
   VectorDataValue dvVal;
   if (idx == 0) {
-    dvVal.reserve(_vctColumn.size());
-    for (PhysColumn *pc : _vctColumn) {
-      dvVal.push_back(
-          DataValueFactory(pc->GetDataType(), false, pc->GetMaxLength()));
-    }
+     dvVal.reserve(_vctColumn.size());
+     for (PhysColumn *pc : _vctColumn) {
+       dvVal.push_back(
+           DataValueFactory(pc->GetDataType(), false, pc->GetMaxLength()));
+     }
   } else {
-    IndexProp *pPri = _vctIndex[0];
-    dvVal.reserve(pPri->_vctCol.size());
-    for (IndexColumn ic : pPri->_vctCol) {
-      PhysColumn *pc = _vctColumn[ic.colPos];
-      dvKey.push_back(
-          DataValueFactory(pc->GetDataType(), true, pc->GetMaxLength()));
-    }
+     IndexProp *pPri = _vctIndex[0];
+     dvVal.reserve(pPri->_vctCol.size());
+     for (IndexColumn ic : pPri->_vctCol) {
+       PhysColumn *pc = _vctColumn[ic.colPos];
+       dvKey.push_back(
+           DataValueFactory(pc->GetDataType(), true, pc->GetMaxLength()));
+     }
   }
 
   if (bCreate == filesystem::exists(path)) {
-    LOG_FATAL << "The index file"
-              << (bCreate ? "has existed" : "should be existed")
-              << ". path= " << path;
-    abort();
+     LOG_FATAL << "The index file"
+               << (bCreate ? "has existed" : "should be existed")
+               << ". path= " << path;
+     abort();
   }
 
   prop->_tree = new IndexTree();
@@ -334,60 +332,60 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
                                     ActionType type, Statement *stmt,
                                     VectorLeafRecord &vctRec) {
   if (_vctIndex.size() == 1) {
-    return;
+     return;
   }
   assert(lrSrc != nullptr || type == ActionType::INSERT);
   VectorDataValue srcPr;
 
   if (lrSrc != nullptr) {
-    int rt = lrSrc->GetListValue(_vctIndexPos, srcPr);
-    assert(rt >= 0);
+     int rt = lrSrc->GetListValue(_vctIndexPos, srcPr);
+     assert(rt >= 0);
   }
 
   for (size_t i = 1; i < _vctIndex.size(); i++) {
-    IndexProp *prop = _vctIndex[i];
-    VectorDataValue dstSk;
+     IndexProp *prop = _vctIndex[i];
+     VectorDataValue dstSk;
 
-    dstSk.SetRef(true);
-    dstSk.reserve(prop->_vctCol.size());
+     dstSk.SetRef(true);
+     dstSk.reserve(prop->_vctCol.size());
 
-    for (IndexColumn &ic : prop->_vctCol) {
-      dstSk.push_back(dstPr.at(ic.colPos));
-    }
-    if (lrSrc == nullptr) {
-      LeafRecord *lr =
-          new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
-      vctRec.push_back(lr);
-      continue;
-    }
+     for (IndexColumn &ic : prop->_vctCol) {
+       dstSk.push_back(dstPr.at(ic.colPos));
+     }
+     if (lrSrc == nullptr) {
+       LeafRecord *lr =
+           new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+                          lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+       vctRec.push_back(lr);
+       continue;
+     }
 
-    VectorDataValue srcSk;
-    srcSk.SetRef(true);
-    srcSk.reserve(prop->_vctCol.size());
-    for (IndexColumn &ic : prop->_vctCol) {
-      srcSk.push_back(srcPr.at(ic.colPos));
-    }
+     VectorDataValue srcSk;
+     srcSk.SetRef(true);
+     srcSk.reserve(prop->_vctCol.size());
+     for (IndexColumn &ic : prop->_vctCol) {
+       srcSk.push_back(srcPr.at(ic.colPos));
+     }
 
-    assert(srcSk.size() == dstSk.size());
-    bool equal = true;
-    for (size_t i = 0; i < srcSk.size(); i++) {
-      if (*srcSk[i] == *dstSk[i]) {
-        equal = false;
-        break;
-      }
-    }
+     assert(srcSk.size() == dstSk.size());
+     bool equal = true;
+     for (size_t i = 0; i < srcSk.size(); i++) {
+       if (*srcSk[i] == *dstSk[i]) {
+         equal = false;
+         break;
+       }
+     }
 
-    if (!equal) {
-      LeafRecord *lrSrc2 =
-          new LeafRecord(prop->_tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::DELETE, stmt);
-      LeafRecord *lrDst2 =
-          new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
-      vctRec.push_back(lrSrc2);
-      vctRec.push_back(lrDst2);
-    }
+     if (!equal) {
+       LeafRecord *lrSrc2 =
+           new LeafRecord(prop->_tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
+                          lrDst->GetKeyLength(), ActionType::DELETE, stmt);
+       LeafRecord *lrDst2 =
+           new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+                          lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+       vctRec.push_back(lrSrc2);
+       vctRec.push_back(lrDst2);
+     }
   }
 }
 } // namespace storage
