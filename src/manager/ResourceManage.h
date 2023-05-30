@@ -1,8 +1,8 @@
 #pragma once
 #include "../expr/ExprStatement.h"
+#include "../table/Database.h"
 #include "../table/Table.h"
 #include "../utils/ConcurrentHashMap.h"
-#include "./Database.h"
 #include "./Session.h"
 
 using namespace std;
@@ -46,9 +46,11 @@ public:
     _inst->_mapNameTable.Erase(table->GetFullName());
   }
   static void AddDb(Database *db) {
-    _inst->_mapDatabase.Insert(db->_dbName, db);
+    _inst->_mapDatabase.Insert(db->GetDbName(), db);
   }
-  static void RemoveDb(Database *db) { _inst->_mapDatabase.Erase(db->_dbName); }
+  static void RemoveDb(Database *db) {
+    _inst->_mapDatabase.Erase(db->GetDbName());
+  }
   static void AddExprStatement(uint64_t id, ExprStatement *es) {
     _inst->_mapExprStat.Insert(id, es);
   }

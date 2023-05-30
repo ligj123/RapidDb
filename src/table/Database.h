@@ -7,7 +7,8 @@ using namespace std;
 
 class Database {
 public:
-  Database(string rootPath, string dbName) : _dbPath(dbPath), _dbName(dbName) {}
+  Database(string rootPath, string dbName)
+      : _rootPath(rootPath), _dbName(dbName) {}
   const string GetDbPath() { return _rootPath + "/" + _dbName; }
   const string &GetRootPath() { return _rootPath; }
   const string &GetDbName() { return _dbName; }

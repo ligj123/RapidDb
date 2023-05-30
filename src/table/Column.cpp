@@ -60,8 +60,9 @@ uint32_t PhysColumn::WriteData(Byte *pBuf) {
   return (int32_t)(p - pBuf);
 }
 
-uint32_t PhysColumn::ReadData(Byte *pBuf) {
+uint32_t PhysColumn::ReadData(Byte *pBuf, uint32_t index) {
   Byte *p = pBuf;
+  _index = index;
 
   uint16_t len = *((uint16_t *)p);
   p += UI16_LEN;

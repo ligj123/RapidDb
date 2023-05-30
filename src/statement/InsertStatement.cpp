@@ -26,17 +26,17 @@ INSERT_START : {
   }
 
   VectorDataValue *vdv = _vctParas[_currRow];
-  const IndexProp *priProp = table->GetPrimaryKey();
+  const IndexProp &priProp = table->GetPrimaryKey();
   VectorDataValue pdv;
   pdv.SetRef(true);
-  pdv.reserve(priProp->_vctCol.size());
-  for (const IndexColumn &col : priProp->_vctCol) {
+  pdv.reserve(priProp._vctCol.size());
+  for (const IndexColumn &col : priProp._vctCol) {
     pdv.push_back(vdv->at(col.colPos));
   }
 
   LeafRecord *lr = new LeafRecord(
-      priProp->_tree, pdv, *vdv,
-      priProp->_tree->GetHeadPage()->GetAndIncRecordStamp(), this);
+      priProp._tree, pdv, *vdv,
+      priProp._tree->GetHeadPage()->GetAndIncRecordStamp(), this);
   _vctRecord.push_back(lr);
   _currRow++;
   _indexPage = nullptr;
@@ -64,7 +64,7 @@ PRIMARY_PAGE_LOAD : {
                                  ActionType::INSERT, this, vctRec);
       int32_t len = lrSrc->UpdateRecord(
           *_vctParas[_currRow],
-          table->GetPrimaryKey()->_tree->GetHeadPage()->GetAndIncRecordStamp(),
+          table->GetPrimaryKey()._tree->GetHeadPage()->GetAndIncRecordStamp(),
           this, ActionType::UPSERT, false);
       lp->UpdateTotalLength(len);
       lr->DecRef();

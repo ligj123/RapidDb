@@ -5,7 +5,7 @@
 
 namespace storage {
 
-int32_t IndexProp::CalcSize() {
+uint32_t IndexProp::CalcSize() {
   uint32_t sz = UI16_LEN + (uint32_t)_name.size();
   sz += 1 + UI16_LEN;
 
@@ -88,12 +88,11 @@ bool PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
     dvDefault = DataValueFactory(dataType, maxLen, valDefault);
   }
 
-  PhysColumn *cm =
-      new PhysColumn(columnName, (uint32_t)_vctColumn.size(), dataType, comment,
-                     nullable, maxLen, -1, -1, Charsets::UTF8, dvDefault);
+  PhysColumn cm(columnName, (uint32_t)_vctColumn.size(), dataType, comment,
+                nullable, maxLen, -1, -1, Charsets::UTF8, dvDefault);
 
   _vctColumn.push_back(cm);
-  _mapColumnPos.insert(pair<string, int>(columnName, cm->GetPosition()));
+  _mapColumnPos.insert(pair<string, int>(columnName, cm.GetIndex()));
   return true;
 }
 
@@ -111,11 +110,11 @@ bool PhysTable::AddColumn(string &columnName, DataType dataType,
     return false;
   }
 
-  PhysColumn *cm = new PhysColumn(columnName, 0, dataType, comment, false, -1,
-                                  initVal, incStep, Charsets::UTF8, nullptr);
+  PhysColumn cm(columnName, 0, dataType, comment, false, -1, initVal, incStep,
+                Charsets::UTF8, nullptr);
 
   _vctColumn.push_back(cm);
-  _mapColumnPos.insert(pair<string, int>(columnName, cm->GetPosition()));
+  _mapColumnPos.insert(pair<string, int>(columnName, cm.GetIndex()));
   return true;
 }
 
@@ -133,7 +132,7 @@ bool PhysTable::AddIndex(IndexType indexType, string &indexName,
   assert(indexType != IndexType::PRIMARY || _vctIndex.size() == 0);
 
   MVector<IndexColumn> vctCol;
-  MHashSet<MString> mset;
+  MHashSet<string> mset;
   for (string cname : colNames) {
     if (mset.contains(cname)) {
       _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {cname}));
@@ -150,7 +149,7 @@ bool PhysTable::AddIndex(IndexType indexType, string &indexName,
     if (!IDataValue::IsIndexType(_vctColumn[iter->second].GetDataType())) {
       _threadErrorMsg.reset(new ErrorMsg(
           TB_INDEX_UNSUPPORT_DATA_TYPE,
-          {col, DateTypeToString(_vctColumn[iter->second]->GetDataType())}));
+          {cname, DateTypeToString(_vctColumn[iter->second].GetDataType())}));
       return false;
     }
 
@@ -160,7 +159,7 @@ bool PhysTable::AddIndex(IndexType indexType, string &indexName,
   string iname = (indexType == IndexType::PRIMARY ? PRIMARY_KEY : indexName);
   IndexProp prop(iname, (uint32_t)_vctIndex.size(), indexType, vctCol);
   _vctIndex.push_back(prop);
-  _mapIndexNamePos.insert({prop->_name, prop->_position});
+  _mapIndexNamePos.insert({prop._name, prop._position});
 }
 
 uint32_t PhysTable::CalcSize() {
@@ -213,7 +212,7 @@ uint32_t PhysTable::SaveData(Byte *bys) {
   buf + UI16_LEN;
 
   for (size_t i = 0; i < _vctColumn.size(); i++) {
-    uint32_t sz = col->WriteData(buf);
+    uint32_t sz = _vctColumn[i].WriteData(buf);
     buf += sz;
   }
 
@@ -224,7 +223,7 @@ uint32_t PhysTable::SaveData(Byte *bys) {
     buf += len;
   }
 
-  return (int32_t)(p - pBuf);
+  return (int32_t)(buf - bys);
 }
 
 uint32_t PhysTable::LoadData(Byte *bys) {
@@ -234,8 +233,8 @@ uint32_t PhysTable::LoadData(Byte *bys) {
 
   FileVersion fv(*(int16_t *)buf, *(uint8_t *)(buf + 2), *(uint8_t *)(buf + 3));
   if (!(fv == CURRENT_FILE_VERSION)) {
-     _threadErrorMsg.reset(new ErrorMsg(TB_ERROR_INDEX_VERSION, {path});
-     return UINT32_MAX;
+    _threadErrorMsg.reset(new ErrorMsg(TB_ERROR_INDEX_VERSION));
+    return UINT32_MAX;
   }
 
   buf += UI32_LEN;
@@ -263,66 +262,66 @@ uint32_t PhysTable::LoadData(Byte *bys) {
   len = *(uint16_t *)buf;
   buf += UI16_LEN;
   for (uint32_t i = 0; i < len; i++) {
-     PhysColumn col;
-     uint32_t csz = col.ReadData(buf, i);
-     buf += csz;
+    PhysColumn col;
+    uint32_t csz = col.ReadData(buf, i);
+    buf += csz;
 
-     _vctColumn.push_back(col);
-     _mapColumnPos.insert({col->GetName(), i});
+    _vctColumn.push_back(col);
+    _mapColumnPos.insert({col.GetName(), i});
   }
 
   len = *(uint16_t *)buf;
   buf += UI16_LEN;
   for (uint32_t i = 0; i < len; i++) {
-     IndexProp prop;
-     uint32_t isz = prop.Read(buf, i, _mapColumnPos);
-     buf += isz;
+    IndexProp prop;
+    uint32_t isz = prop.Read(buf, i, _mapColumnPos);
+    buf += isz;
 
-     _vctIndex.push_back(prop);
-     _mapIndexNamePos.insert({prop->_name, i});
+    _vctIndex.push_back(prop);
+    _mapIndexNamePos.insert({prop._name, i});
   }
 }
 
 bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   assert(idx > 0 && idx < _vctIndex.size());
-  IndexProp *prop = _vctIndex[idx];
-  string path =
-      _db->GetPath() + "/" + _name + "/" + _vctIndex[idx]->_name + ".idx";
+  IndexProp &prop = _vctIndex[idx];
+  string path = Configure::GetDbRootPath() + _dbName + "/" + _name + "/" +
+                _vctIndex[idx]._name + ".idx";
 
   VectorDataValue dvKey;
-  dvKey.reserve(prop->_vctCol.size());
-  for (IndexColumn ic : prop->_vctCol) {
-     PhysColumn *pc = _vctColumn[ic.colPos];
-     dvKey.push_back(
-         DataValueFactory(pc->GetDataType(), true, pc->GetMaxLength()));
+  dvKey.reserve(prop._vctCol.size());
+  for (IndexColumn &ic : prop._vctCol) {
+    PhysColumn &pc = _vctColumn[ic.colPos];
+    dvKey.push_back(
+        DataValueFactory(pc.GetDataType(), true, pc.GetMaxLength()));
   }
 
   VectorDataValue dvVal;
   if (idx == 0) {
-     dvVal.reserve(_vctColumn.size());
-     for (PhysColumn *pc : _vctColumn) {
-       dvVal.push_back(
-           DataValueFactory(pc->GetDataType(), false, pc->GetMaxLength()));
-     }
+    dvVal.reserve(_vctColumn.size());
+    for (PhysColumn &pc : _vctColumn) {
+      dvVal.push_back(
+          DataValueFactory(pc.GetDataType(), false, pc.GetMaxLength()));
+    }
   } else {
-     IndexProp *pPri = _vctIndex[0];
-     dvVal.reserve(pPri->_vctCol.size());
-     for (IndexColumn ic : pPri->_vctCol) {
-       PhysColumn *pc = _vctColumn[ic.colPos];
-       dvKey.push_back(
-           DataValueFactory(pc->GetDataType(), true, pc->GetMaxLength()));
-     }
+    IndexProp &pPri = _vctIndex[0];
+    dvVal.reserve(pPri._vctCol.size());
+    for (IndexColumn &ic : pPri._vctCol) {
+      PhysColumn &pc = _vctColumn[ic.colPos];
+      dvKey.push_back(
+          DataValueFactory(pc.GetDataType(), true, pc.GetMaxLength()));
+    }
   }
 
   if (bCreate == filesystem::exists(path)) {
-     LOG_FATAL << "The index file"
-               << (bCreate ? "has existed" : "should be existed")
-               << ". path= " << path;
-     abort();
+    LOG_FATAL << "The index file"
+              << (bCreate ? "has existed" : "should be existed")
+              << ". path= " << path;
+    abort();
   }
 
-  prop->_tree = new IndexTree();
-  prop->_tree->InitIndex(prop->_name, path, dvKey, dvVal, 0);
+  prop._tree = new IndexTree();
+  prop._tree->InitIndex(prop._name, path, dvKey, dvVal, 0);
   return true;
 }
 
@@ -332,60 +331,60 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
                                     ActionType type, Statement *stmt,
                                     VectorLeafRecord &vctRec) {
   if (_vctIndex.size() == 1) {
-     return;
+    return;
   }
   assert(lrSrc != nullptr || type == ActionType::INSERT);
   VectorDataValue srcPr;
 
   if (lrSrc != nullptr) {
-     int rt = lrSrc->GetListValue(_vctIndexPos, srcPr);
-     assert(rt >= 0);
+    int rt = lrSrc->GetListValue(_vctIndexPos, srcPr);
+    assert(rt >= 0);
   }
 
   for (size_t i = 1; i < _vctIndex.size(); i++) {
-     IndexProp *prop = _vctIndex[i];
-     VectorDataValue dstSk;
+    IndexProp &prop = _vctIndex[i];
+    VectorDataValue dstSk;
 
-     dstSk.SetRef(true);
-     dstSk.reserve(prop->_vctCol.size());
+    dstSk.SetRef(true);
+    dstSk.reserve(prop._vctCol.size());
 
-     for (IndexColumn &ic : prop->_vctCol) {
-       dstSk.push_back(dstPr.at(ic.colPos));
-     }
-     if (lrSrc == nullptr) {
-       LeafRecord *lr =
-           new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-                          lrDst->GetKeyLength(), ActionType::INSERT, stmt);
-       vctRec.push_back(lr);
-       continue;
-     }
+    for (IndexColumn &ic : prop._vctCol) {
+      dstSk.push_back(dstPr.at(ic.colPos));
+    }
+    if (lrSrc == nullptr) {
+      LeafRecord *lr =
+          new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+      vctRec.push_back(lr);
+      continue;
+    }
 
-     VectorDataValue srcSk;
-     srcSk.SetRef(true);
-     srcSk.reserve(prop->_vctCol.size());
-     for (IndexColumn &ic : prop->_vctCol) {
-       srcSk.push_back(srcPr.at(ic.colPos));
-     }
+    VectorDataValue srcSk;
+    srcSk.SetRef(true);
+    srcSk.reserve(prop->_vctCol.size());
+    for (IndexColumn &ic : prop->_vctCol) {
+      srcSk.push_back(srcPr.at(ic.colPos));
+    }
 
-     assert(srcSk.size() == dstSk.size());
-     bool equal = true;
-     for (size_t i = 0; i < srcSk.size(); i++) {
-       if (*srcSk[i] == *dstSk[i]) {
-         equal = false;
-         break;
-       }
-     }
+    assert(srcSk.size() == dstSk.size());
+    bool equal = true;
+    for (size_t i = 0; i < srcSk.size(); i++) {
+      if (*srcSk[i] == *dstSk[i]) {
+        equal = false;
+        break;
+      }
+    }
 
-     if (!equal) {
-       LeafRecord *lrSrc2 =
-           new LeafRecord(prop->_tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
-                          lrDst->GetKeyLength(), ActionType::DELETE, stmt);
-       LeafRecord *lrDst2 =
-           new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-                          lrDst->GetKeyLength(), ActionType::INSERT, stmt);
-       vctRec.push_back(lrSrc2);
-       vctRec.push_back(lrDst2);
-     }
+    if (!equal) {
+      LeafRecord *lrSrc2 =
+          new LeafRecord(prop->_tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
+                         lrDst->GetKeyLength(), ActionType::DELETE, stmt);
+      LeafRecord *lrDst2 =
+          new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+      vctRec.push_back(lrSrc2);
+      vctRec.push_back(lrDst2);
+    }
   }
 }
 } // namespace storage

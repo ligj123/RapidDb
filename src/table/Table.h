@@ -68,7 +68,7 @@ public:
 
 public:
   PhysTable(string &dbName, string &tableName, string &desc, uint32_t tid)
-      : _dbName(dbName), _name(name), _fullName(_dbName + "." + _name),
+      : _dbName(dbName), _name(tableName), _fullName(_dbName + "." + tableName),
         _desc(desc), _tid(tid){};
   PhysTable(){};
   ~PhysTable() {}
@@ -104,9 +104,9 @@ public:
     }
   }
   const MHashMap<string, uint32_t> GetMapColumnPos() { return _mapColumnPos; }
-  const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
-    return _mapIndexFirstField;
-  }
+  // const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
+  //   return _mapIndexFirstField;
+  // }
 
   // Add normal column
   bool AddColumn(string &columnName, DataType dataType, bool nullable,

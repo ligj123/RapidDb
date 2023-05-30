@@ -12,7 +12,7 @@
 1007  Failed to find the column {1}.
 1008  Try to add index with unsupport data type, column name = {1}, data type = {2}.
 1009  Index should have one column at least. Index name = {1}.
-1010  Error index file version, fileName={1}.
+1010  Error index file version.
 1011  Error record version, its value should be between {1} and {2}.
 1012  column index is out of range, column index={1}, column index range from 0 to {2}.
 1013  Invalid column name, name={1}.
