@@ -172,6 +172,13 @@ protected:
   inline bool IsExistedColumn(string name) {
     return _mapColumnPos.find(name) != _mapColumnPos.end();
   }
+  inline void Clear() {
+    _vctColumn.clear();
+    _mapColumnPos.clear();
+    _vctIndex.clear();
+    _mapIndexNamePos.clear();
+    _vctIndexPos.clear();
+  }
 
 protected:
   /** The database name this table belong to*/
@@ -205,7 +212,7 @@ protected:
    * position in _vctIndex*/
   // MHashMap<uint32_t, uint32_t> _mapIndexFirstField;
   //  The positions of all columns that constitute the all secondary index.
-  // MVector<int> _vctIndexPos;
+  MVector<int> _vctIndexPos;
   //  The last time to be visited.
   DT_MilliSec _dtLastVisit;
 };

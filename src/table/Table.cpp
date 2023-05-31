@@ -160,6 +160,20 @@ bool PhysTable::AddIndex(IndexType indexType, string &indexName,
   IndexProp prop(iname, (uint32_t)_vctIndex.size(), indexType, vctCol);
   _vctIndex.push_back(prop);
   _mapIndexNamePos.insert({prop._name, prop._position});
+
+  for (IndexColumn &ic : vctCol) {
+    size_t i = 0;
+    for (; i < _vctIndexPos.size(); i++) {
+      if (_vctIndexPos[i] == ic.colPos)
+        break;
+      else if (_vctIndexPos[i] > ic.colPos)
+        _vctIndexPos.insert(_vctIndexPos.begin() + i, ic.colPos);
+    }
+    if (i == _vctIndexPos.size())
+      _vctIndexPos.push_back(ic.colPos);
+  }
+
+  return true;
 }
 
 uint32_t PhysTable::CalcSize() {
@@ -279,7 +293,21 @@ uint32_t PhysTable::LoadData(Byte *bys) {
 
     _vctIndex.push_back(prop);
     _mapIndexNamePos.insert({prop._name, i});
+
+    for (IndexColumn &ic : prop._vctCol) {
+      size_t i = 0;
+      for (; i < _vctIndexPos.size(); i++) {
+        if (_vctIndexPos[i] == ic.colPos)
+          break;
+        else if (_vctIndexPos[i] > ic.colPos)
+          _vctIndexPos.insert(_vctIndexPos.begin() + i, ic.colPos);
+      }
+      if (i == _vctIndexPos.size())
+        _vctIndexPos.push_back(ic.colPos);
+    }
   }
+
+  return (uint32_t)(bys - buf);
 }
 
 bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
@@ -361,8 +389,8 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
 
     VectorDataValue srcSk;
     srcSk.SetRef(true);
-    srcSk.reserve(prop->_vctCol.size());
-    for (IndexColumn &ic : prop->_vctCol) {
+    srcSk.reserve(prop._vctCol.size());
+    for (IndexColumn &ic : prop._vctCol) {
       srcSk.push_back(srcPr.at(ic.colPos));
     }
 
@@ -377,10 +405,10 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
 
     if (!equal) {
       LeafRecord *lrSrc2 =
-          new LeafRecord(prop->_tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
+          new LeafRecord(prop._tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
                          lrDst->GetKeyLength(), ActionType::DELETE, stmt);
       LeafRecord *lrDst2 =
-          new LeafRecord(prop->_tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+          new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
                          lrDst->GetKeyLength(), ActionType::INSERT, stmt);
       vctRec.push_back(lrSrc2);
       vctRec.push_back(lrDst2);
