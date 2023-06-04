@@ -311,9 +311,9 @@ uint32_t PhysTable::LoadData(Byte *bys) {
 }
 
 bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
-  assert(idx > 0 && idx < _vctIndex.size());
+  assert(idx >= 0 && idx < _vctIndex.size());
   IndexProp &prop = _vctIndex[idx];
-  string path = Configure::GetDbRootPath() + _dbName + "/" + _name + "/" +
+  string path = Configure::GetDbRootPath() + "/" + _dbName + "/" + _name + "/" +
                 _vctIndex[idx]._name + ".idx";
 
   VectorDataValue dvKey;
@@ -341,15 +341,14 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
     }
   }
 
-  if (bCreate == filesystem::exists(path)) {
-    LOG_FATAL << "The index file"
-              << (bCreate ? "has existed" : "should be existed")
-              << ". path= " << path;
-    abort();
-  }
+  assert(bCreate == filesystem::exists(path));
 
   prop._tree = new IndexTree();
-  prop._tree->InitIndex(prop._name, path, dvKey, dvVal, 0);
+  if (bCreate)
+    prop._tree->CreateIndex(prop._name, path, dvKey, dvVal, _tid + idx,
+                            prop._type);
+  else
+    prop._tree->InitIndex(prop._name, path, dvKey, dvVal, _tid + idx);
   return true;
 }
 

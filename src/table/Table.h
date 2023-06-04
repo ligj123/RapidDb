@@ -146,12 +146,14 @@ public:
    */
   uint32_t CalcSize();
 
-  bool OpenIndex(size_t idx, bool bCreate);
+  bool OpenIndex(size_t idx, bool bCreate = false);
   void CloseIndex(size_t idx) {
-    assert(idx > 0 && idx < _vctIndex.size());
+    assert(idx >= 0 && idx < _vctIndex.size());
     IndexProp &prop = _vctIndex[idx];
-    prop._tree->Close();
-    prop._tree = nullptr;
+    if (prop._tree != nullptr) {
+      prop._tree->Close();
+      prop._tree = nullptr;
+    }
   }
 
   DT_MilliSec GetCreateTime() { return _dtCreate; }
