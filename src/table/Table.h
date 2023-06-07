@@ -169,6 +169,12 @@ public:
   int32_t DecRef(int32_t i = 1) {
     return _refCount.fetch_sub(i, memory_order_relaxed);
   }
+  bool CreateTable() {
+    for (size_t i = 0; i < _vctIndex.size(); i++) {
+      assert(_vctIndex[i]._tree == nullptr);
+      OpenIndex(i, true);
+    }
+  }
 
 protected:
   inline bool IsExistedColumn(string name) {
@@ -217,6 +223,8 @@ protected:
   MVector<int> _vctIndexPos;
   //  The last time to be visited.
   DT_MilliSec _dtLastVisit;
+  // If this table has been locked at table level.
+  bool _bTableLock;
 };
 
 } // namespace storage
