@@ -6,7 +6,9 @@
 #include "../core/LeafRecord.h"
 #include "../dataType/IDataValue.h"
 #include "../table/Column.h"
+#include "../transaction/Transaction.h"
 #include "../utils/ErrorMsg.h"
+#include "../utils/SpinMutex.h"
 #include "../utils/Utilitys.h"
 #include "Column.h"
 
@@ -16,6 +18,14 @@ namespace storage {
 using namespace std;
 static const char *COLUMN_CONNECTOR_CHAR = "|";
 static const char *PRIMARY_KEY = "PARMARYKEY";
+
+enum class TableStatus : uint8_t {
+  Normal,  // This table is opening with normal status
+  Locking, // This table has been locked by a transaction and other transaction
+           // can not visit it.
+  Droped   // This table has been droped and it is only remainder and will be
+           // remove in near future
+};
 
 struct IndexColumn {
   IndexColumn() {}
@@ -175,6 +185,25 @@ public:
       OpenIndex(i, true);
     }
   }
+  bool LockTable(Transaction *tran) {
+    if (!_spinMutex.try_lock())
+      return false;
+    if (_bTableLock) {
+      _spinMutex.unlock();
+      return false;
+    }
+
+    _lockTran = tran;
+    _bTableLock = true;
+    _spinMutex.unlock();
+  }
+  void UnlockTable() {
+    _spinMutex.lock();
+    _lockTran = nullptr;
+    _bTableLock = false;
+    _spinMutex.unlock();
+  }
+  inline IsTableLocked() { return _bTableLock; }
 
 protected:
   inline bool IsExistedColumn(string name) {
@@ -223,8 +252,12 @@ protected:
   MVector<int> _vctIndexPos;
   //  The last time to be visited.
   DT_MilliSec _dtLastVisit;
-  // If this table has been locked at table level.
-  bool _bTableLock;
+  // This table status.
+  TableStatus _tableStatus{TableStatus::Normal};
+  // The transaction to lock this table
+  Transaction *_lockTran{nullptr};
+  // The mutex for table lock
+  SpinMutex _spinMutex;
 };
 
 } // namespace storage
