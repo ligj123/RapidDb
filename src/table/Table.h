@@ -77,10 +77,14 @@ public:
   }
 
 public:
-  PhysTable(string &dbName, string &tableName, string &desc, uint32_t tid)
+  PhysTable(string &dbName, string &tableName, string &desc, uint32_t tid,
+            DT_MilliSec dtCreate)
       : _dbName(dbName), _name(tableName), _fullName(_dbName + "." + tableName),
-        _desc(desc), _tid(tid){};
-  PhysTable(){};
+        _desc(desc), _tid(tid), _dtCreate(dtCreate) {
+    _dtLastUpdate = MilliSecTime();
+  };
+  PhysTable()
+      : _dbName(), _name(), _fullName(), _desc(), _tid(0), _dtCreate(0){};
   ~PhysTable() {}
 
   const string &GetTableName() const { return _name; }
@@ -188,22 +192,22 @@ public:
   bool LockTable(Transaction *tran) {
     if (!_spinMutex.try_lock())
       return false;
-    if (_bTableLock) {
+    if (_tableStatus != TableStatus::Normal) {
       _spinMutex.unlock();
       return false;
     }
 
     _lockTran = tran;
-    _bTableLock = true;
+    _tableStatus = TableStatus::Locking;
     _spinMutex.unlock();
   }
   void UnlockTable() {
     _spinMutex.lock();
     _lockTran = nullptr;
-    _bTableLock = false;
+    _tableStatus = TableStatus::Normal;
     _spinMutex.unlock();
   }
-  inline IsTableLocked() { return _bTableLock; }
+  inline TableStatus GetTableStatus() { return _tableStatus; }
 
 protected:
   inline bool IsExistedColumn(string name) {
@@ -251,7 +255,7 @@ protected:
   //  The positions of all columns that constitute the all secondary index.
   MVector<int> _vctIndexPos;
   //  The last time to be visited.
-  DT_MilliSec _dtLastVisit;
+  DT_MilliSec _dtLastVisit{0};
   // This table status.
   TableStatus _tableStatus{TableStatus::Normal};
   // The transaction to lock this table

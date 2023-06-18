@@ -6,10 +6,10 @@
 
 namespace storage {
 uint32_t PhysColumn::CalcSize() {
-  uint32_t len = UI16_LEN + _name.size();
+  uint32_t len = UI16_LEN + (uint32_t)_name.size();
   len += UI32_LEN;
   len += 1 + UI16_LEN + UI32_LEN + UI64_LEN + UI64_LEN;
-  len += UI16_LEN + _comments.size();
+  len += UI16_LEN + (uint32_t)_comments.size();
   len += 2 + (_pDefaultVal == nullptr
                   ? 0
                   : _pDefaultVal->GetPersistenceLength(SavePosition::VALUE));

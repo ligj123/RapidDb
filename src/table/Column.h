@@ -12,7 +12,10 @@ using namespace std;
 
 class PhysColumn {
 public:
-  PhysColumn() {}
+  PhysColumn()
+      : _name(), _index(-1), _dataType(DataType::UNKNOWN), _bNullable(false),
+        _comments(), _maxLength(-1), _initVal(-1), _incStep(-1),
+        _charset(Charsets::UNKNOWN), _pDefaultVal(nullptr) {}
   PhysColumn(const string &name, int32_t index, DataType dataType,
              const string &comments, bool bNullable, int32_t maxLen,
              int64_t initVal, int64_t incStep, Charsets charset,

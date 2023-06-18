@@ -10,7 +10,7 @@ uint32_t IndexProp::CalcSize() {
   sz += 1 + UI16_LEN;
 
   for (IndexColumn col : _vctCol) {
-    sz += UI16_LEN + col.colName.size();
+    sz += UI16_LEN + (uint32_t)col.colName.size();
   }
 
   return sz;
@@ -178,8 +178,8 @@ bool PhysTable::AddIndex(IndexType indexType, string &indexName,
 
 uint32_t PhysTable::CalcSize() {
   uint32_t len = UI32_LEN + UI32_LEN + UI32_LEN;
-  len += UI16_LEN + _fullName.size();
-  len += UI16_LEN + _desc.size();
+  len += UI16_LEN + (uint32_t)_fullName.size();
+  len += UI16_LEN + (uint32_t)_desc.size();
   len += UI64_LEN + UI64_LEN;
   len += UI16_LEN;
 
@@ -223,7 +223,7 @@ uint32_t PhysTable::SaveData(Byte *bys) {
   buf += UI64_LEN;
 
   *(uint16_t *)buf = (uint16_t)_vctColumn.size();
-  buf + UI16_LEN;
+  buf += UI16_LEN;
 
   for (size_t i = 0; i < _vctColumn.size(); i++) {
     uint32_t sz = _vctColumn[i].WriteData(buf);
@@ -345,10 +345,10 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
 
   prop._tree = new IndexTree();
   if (bCreate)
-    prop._tree->CreateIndex(prop._name, path, dvKey, dvVal, _tid + idx,
-                            prop._type);
+    prop._tree->CreateIndex(prop._name, path, dvKey, dvVal,
+                            _tid + (uint32_t)idx, prop._type);
   else
-    prop._tree->InitIndex(prop._name, path, dvKey, dvVal, _tid + idx);
+    prop._tree->InitIndex(prop._name, path, dvKey, dvVal, _tid + (uint32_t)idx);
   return true;
 }
 
