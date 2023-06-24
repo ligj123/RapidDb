@@ -60,9 +60,8 @@ uint32_t PhysColumn::WriteData(Byte *pBuf) {
   return (int32_t)(p - pBuf);
 }
 
-uint32_t PhysColumn::ReadData(Byte *pBuf, uint32_t index) {
+uint32_t PhysColumn::ReadData(Byte *pBuf) {
   Byte *p = pBuf;
-  _index = index;
 
   uint16_t len = *((uint16_t *)p);
   p += UI16_LEN;
@@ -96,7 +95,7 @@ uint32_t PhysColumn::ReadData(Byte *pBuf, uint32_t index) {
   p += UI16_LEN;
   if (len > 0) {
     _pDefaultVal = DataValueFactory(_dataType);
-    p += _pDefaultVal->ReadData(p);
+    p += _pDefaultVal->ReadData(p, len, SavePosition::VALUE, true);
   }
 
   return (uint32_t)(p - pBuf);

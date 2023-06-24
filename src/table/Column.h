@@ -12,8 +12,8 @@ using namespace std;
 
 class PhysColumn {
 public:
-  PhysColumn()
-      : _name(), _index(-1), _dataType(DataType::UNKNOWN), _bNullable(false),
+  PhysColumn(int32_t index)
+      : _name(), _index(index), _dataType(DataType::UNKNOWN), _bNullable(false),
         _comments(), _maxLength(-1), _initVal(-1), _incStep(-1),
         _charset(Charsets::UNKNOWN), _pDefaultVal(nullptr) {}
   PhysColumn(const string &name, int32_t index, DataType dataType,
@@ -39,7 +39,7 @@ public:
   const IDataValue *GetDefaultVal() { return _pDefaultVal; }
   const string &GetComments() { return _comments; }
 
-  uint32_t ReadData(Byte *pBuf, uint32_t index);
+  uint32_t ReadData(Byte *pBuf);
   uint32_t WriteData(Byte *pBuf);
   /**
    * @brief To calucate the length of byte arrray to save this column

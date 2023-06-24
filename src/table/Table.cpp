@@ -276,8 +276,8 @@ uint32_t PhysTable::LoadData(Byte *bys) {
   len = *(uint16_t *)buf;
   buf += UI16_LEN;
   for (uint32_t i = 0; i < len; i++) {
-    PhysColumn col;
-    uint32_t csz = col.ReadData(buf, i);
+    PhysColumn col(i);
+    uint32_t csz = col.ReadData(buf);
     buf += csz;
 
     _vctColumn.push_back(col);
