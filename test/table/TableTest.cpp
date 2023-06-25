@@ -97,7 +97,116 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
   BOOST_TEST(ptable.GetIndexType(c3_c4_non_unique) == IndexType::NON_UNIQUE);
 
   const MVector<PhysColumn> &vct_col = ptable.GetColumnArray();
-  BOOST_TEST()
+  BOOST_TEST(vct_col.size() == 4);
+  BOOST_TEST(vct_col[0].GetName() == "c1");
+  BOOST_TEST(vct_col[0].GetIndex() == 0);
+  BOOST_TEST(vct_col[0].GetDataType() == DataType::LONG);
+  BOOST_TEST(vct_col[0].IsNullable() == false);
+  BOOST_TEST(vct_col[0].GetMaxLength() == -1);
+  BOOST_TEST(vct_col[0].GetInitVal() == 100);
+  BOOST_TEST(vct_col[0].GetIncStep() == 2);
+  BOOST_TEST(vct_col[0].GetCharset() == Charsets::UTF8);
+  BOOST_TEST(vct_col[0].GetComments() == "primary key");
+  BOOST_TEST(vct_col[0].GetDefaultVal() == nullptr);
+
+  BOOST_TEST(vct_col[0].GetName() == "c2");
+  BOOST_TEST(vct_col[0].GetIndex() == 1);
+  BOOST_TEST(vct_col[0].GetDataType() == DataType::VARCHAR);
+  BOOST_TEST(vct_col[0].IsNullable() == false);
+  BOOST_TEST(vct_col[0].GetMaxLength() == 100);
+  BOOST_TEST(vct_col[0].GetInitVal() == -1);
+  BOOST_TEST(vct_col[0].GetIncStep() == -1);
+  BOOST_TEST(vct_col[0].GetCharset() == Charsets::UTF8);
+  BOOST_TEST(vct_col[0].GetComments() == "varchar test");
+  BOOST_TEST(vct_col[0].GetDefaultVal() == nullptr);
+
+  BOOST_TEST(vct_col[0].GetName() == "c3");
+  BOOST_TEST(vct_col[0].GetIndex() == 2);
+  BOOST_TEST(vct_col[0].GetDataType() == DataType::DOUBLE);
+  BOOST_TEST(vct_col[0].IsNullable() == true);
+  BOOST_TEST(vct_col[0].GetMaxLength() == 0);
+  BOOST_TEST(vct_col[0].GetInitVal() == -1);
+  BOOST_TEST(vct_col[0].GetIncStep() == -1);
+  BOOST_TEST(vct_col[0].GetCharset() == Charsets::UTF8);
+  BOOST_TEST(vct_col[0].GetComments() == "double column test");
+  BOOST_TEST(vct_col[0].GetDefaultVal()->GetDouble() == 1.23456);
+
+  BOOST_TEST(vct_col[0].GetName() == "c4");
+  BOOST_TEST(vct_col[0].GetIndex() == 3);
+  BOOST_TEST(vct_col[0].GetDataType() == DataType::FIXCHAR);
+  BOOST_TEST(vct_col[0].IsNullable() == true);
+  BOOST_TEST(vct_col[0].GetMaxLength() == 0);
+  BOOST_TEST(vct_col[0].GetInitVal() == -1);
+  BOOST_TEST(vct_col[0].GetIncStep() == -1);
+  BOOST_TEST(vct_col[0].GetCharset() == Charsets::UTF8);
+  BOOST_TEST(vct_col[0].GetComments() == "Fixchar test");
+  BOOST_TEST(vct_col[0].GetDefaultVal()->GetValue() ==
+             "this is default value for the fixchar column");
+
+  Byte buf[10000];
+  uint32_t sz = ptable.CalcSize();
+  uint32_t sz2 = ptable.SaveData(buf);
+  BOOST_TEST(sz = sz2);
+
+  PhysTable ptable2;
+  sz2 = ptable2.LoadData(buf);
+  BOOST_TEST(sz = sz2);
+  BOOST_TEST(ptable2.GetIndexType(PRIMARY_KEY) == IndexType::PRIMARY);
+  BOOST_TEST(ptable2.GetIndexType("c2_unique") == IndexType::UNIQUE);
+  BOOST_TEST(ptable2.GetIndexType("c3_c4_non_unique") == IndexType::NON_UNIQUE);
+
+  const PhysColumn *col = ptable2.GetColumn("c1");
+  BOOST_TEST(col == ptable2.GetColumn(0));
+  BOOST_TEST(col->GetName() == "c1");
+  BOOST_TEST(col->GetIndex() == 0);
+  BOOST_TEST(col->GetDataType() == DataType::LONG);
+  BOOST_TEST(col->IsNullable() == false);
+  BOOST_TEST(col->GetMaxLength() == -1);
+  BOOST_TEST(col->GetInitVal() == 100);
+  BOOST_TEST(col->GetIncStep() == 2);
+  BOOST_TEST(col->GetCharset() == Charsets::UTF8);
+  BOOST_TEST(col->GetComments() == "primary key");
+  BOOST_TEST(col->GetDefaultVal() == nullptr);
+
+  col = ptable2.GetColumn("c2");
+  BOOST_TEST(col == ptable2.GetColumn(1));
+  BOOST_TEST(col->GetName() == "c2");
+  BOOST_TEST(col->GetIndex() == 1);
+  BOOST_TEST(col->GetDataType() == DataType::VARCHAR);
+  BOOST_TEST(col->IsNullable() == false);
+  BOOST_TEST(col->GetMaxLength() == 100);
+  BOOST_TEST(col->GetInitVal() == -1);
+  BOOST_TEST(col->GetIncStep() == -1);
+  BOOST_TEST(col->GetCharset() == Charsets::UTF8);
+  BOOST_TEST(col->GetComments() == "varchar test");
+  BOOST_TEST(col->GetDefaultVal() == nullptr);
+
+  col = ptable2.GetColumn("c3");
+  BOOST_TEST(col == ptable2.GetColumn(2));
+  BOOST_TEST(col->GetName() == "c3");
+  BOOST_TEST(col->GetIndex() == 2);
+  BOOST_TEST(col->GetDataType() == DataType::DOUBLE);
+  BOOST_TEST(col->IsNullable() == true);
+  BOOST_TEST(col->GetMaxLength() == 0);
+  BOOST_TEST(col->GetInitVal() == -1);
+  BOOST_TEST(col->GetIncStep() == -1);
+  BOOST_TEST(col->GetCharset() == Charsets::UTF8);
+  BOOST_TEST(col->GetComments() == "double column test");
+  BOOST_TEST(col->GetDefaultVal()->GetDouble() == 1.23456);
+
+  col = ptable2.GetColumn("c4");
+  BOOST_TEST(col == ptable2.GetColumn(3));
+  BOOST_TEST(col->GetName() == "c4");
+  BOOST_TEST(col->GetIndex() == 3);
+  BOOST_TEST(col->GetDataType() == DataType::FIXCHAR);
+  BOOST_TEST(col->IsNullable() == true);
+  BOOST_TEST(col->GetMaxLength() == 0);
+  BOOST_TEST(col->GetInitVal() == -1);
+  BOOST_TEST(col->GetIncStep() == -1);
+  BOOST_TEST(col->GetCharset() == Charsets::UTF8);
+  BOOST_TEST(col->GetComments() == "Fixchar test");
+  BOOST_TEST(col->GetDefaultVal()->GetValue() ==
+             "this is default value for the fixchar column");
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage
