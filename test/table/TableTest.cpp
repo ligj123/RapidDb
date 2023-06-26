@@ -207,6 +207,31 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
   BOOST_TEST(col->GetComments() == "Fixchar test");
   BOOST_TEST(col->GetDefaultVal()->GetValue() ==
              "this is default value for the fixchar column");
+
+  const MVector<IndexProp> &vct_ip2 = ptable2.GetVectorIndex();
+  BOOST_TEST(vct_ip2.size() == 3);
+  BOOST_TEST(vct_ip2[0]._name == PRIMARY_KEY);
+  BOOST_TEST(vct_ip2[0]._position == 0);
+  BOOST_TEST(vct_ip2[0]._type == IndexType::PRIMARY);
+  BOOST_TEST(vct_ip2[0]._vctCol.size() == 1);
+  BOOST_TEST(vct_ip2[0]._vctCol[0].colName == "c1");
+  BOOST_TEST(vct_ip2[0]._vctCol[0].colPos == 0);
+
+  BOOST_TEST(vct_ip2[1]._name == "c2_unique");
+  BOOST_TEST(vct_ip2[1]._position == 1);
+  BOOST_TEST(vct_ip2[1]._type == IndexType::UNIQUE);
+  BOOST_TEST(vct_ip2[1]._vctCol.size() == 1);
+  BOOST_TEST(vct_ip2[1]._vctCol[0].colName == "c2");
+  BOOST_TEST(vct_ip2[1]._vctCol[0].colPos == 0);
+
+  BOOST_TEST(vct_ip2[2]._name == "c3_c4_non_unique");
+  BOOST_TEST(vct_ip2[2]._position == 2);
+  BOOST_TEST(vct_ip2[2]._type == IndexType::NON_UNIQUE);
+  BOOST_TEST(vct_ip2[2]._vctCol.size() == 2);
+  BOOST_TEST(vct_ip2[2]._vctCol[0].colName == "c3");
+  BOOST_TEST(vct_ip2[2]._vctCol[0].colPos == 0);
+  BOOST_TEST(vct_ip2[2]._vctCol[1].colName == "c4");
+  BOOST_TEST(vct_ip2[2]._vctCol[1].colPos == 1);
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

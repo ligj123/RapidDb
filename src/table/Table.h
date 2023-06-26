@@ -78,8 +78,8 @@ public:
   }
 
 public:
-  PhysTable(string &dbName, string &tableName, string &desc, uint32_t tid,
-            DT_MilliSec dtCreate)
+  PhysTable(const string &dbName, const string &tableName, const string &desc,
+            uint32_t tid, DT_MilliSec dtCreate)
       : _dbName(dbName), _name(tableName), _fullName(_dbName + "." + tableName),
         _desc(desc), _tid(tid), _dtCreate(dtCreate) {
     _dtLastUpdate = MilliSecTime();
@@ -124,16 +124,16 @@ public:
   // }
 
   // Add normal column
-  bool AddColumn(string &columnName, DataType dataType, bool nullable,
-                 uint32_t maxLen, string &comment, Charsets charset,
-                 any &valDefault);
+  bool AddColumn(const string &columnName, DataType dataType, bool nullable,
+                 uint32_t maxLen, const string &comment, Charsets charset,
+                 const any &valDefault);
   // Add auto increment column. In this version, only one auto increment column
   // in a table and must be first column and as primary key, maybe update in
   // future.
-  bool AddColumn(string &columnName, DataType dataType, string &comment,
-                 int64_t initVal, int64_t incStep);
-  bool AddIndex(IndexType indexType, string &indexName,
-                MVector<string> &colNames);
+  bool AddColumn(const string &columnName, DataType dataType,
+                 const string &comment, int64_t initVal, int64_t incStep);
+  bool AddIndex(IndexType indexType, const string &indexName,
+                const MVector<string> &colNames);
   /**
    * @brief Load this table information from the byte array.
    * @param bys The byte array saved the information.

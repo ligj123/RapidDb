@@ -65,13 +65,10 @@ uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
   return uint32_t(bys - tmp);
 }
 
-bool PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
-                          uint32_t maxLen, string &comment, Charsets charset,
-                          any &valDefault) {
+bool PhysTable::AddColumn(const string &columnName, DataType dataType,
+                          bool nullable, uint32_t maxLen, const string &comment,
+                          Charsets charset, const any &valDefault) {
   assert(_vctIndex.size() == 0);
-  transform(columnName.begin(), columnName.end(), columnName.begin(),
-            ::toupper);
-  IsValidName(columnName);
 
   if (_mapColumnPos.find(columnName) != _mapColumnPos.end()) {
     _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName}));
@@ -96,14 +93,11 @@ bool PhysTable::AddColumn(string &columnName, DataType dataType, bool nullable,
   return true;
 }
 
-bool PhysTable::AddColumn(string &columnName, DataType dataType,
-                          string &comment, int64_t initVal, int64_t incStep) {
+bool PhysTable::AddColumn(const string &columnName, DataType dataType,
+                          const string &comment, int64_t initVal,
+                          int64_t incStep) {
   assert(_vctIndex.size() == 0);
   assert(_vctColumn.size() == 0);
-
-  transform(columnName.begin(), columnName.end(), columnName.begin(),
-            ::toupper);
-  IsValidName(columnName);
 
   if (_vctColumn.size() > 0) {
     _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName}));
@@ -118,8 +112,8 @@ bool PhysTable::AddColumn(string &columnName, DataType dataType,
   return true;
 }
 
-bool PhysTable::AddIndex(IndexType indexType, string &indexName,
-                         MVector<string> &colNames) {
+bool PhysTable::AddIndex(IndexType indexType, const string &indexName,
+                         const MVector<string> &colNames) {
   if (colNames.size() == 0) {
     _threadErrorMsg.reset(new ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName}));
     return false;
@@ -133,7 +127,7 @@ bool PhysTable::AddIndex(IndexType indexType, string &indexName,
 
   MVector<IndexColumn> vctCol;
   MHashSet<string> mset;
-  for (string cname : colNames) {
+  for (const string &cname : colNames) {
     if (mset.contains(cname)) {
       _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {cname}));
       return false;
@@ -413,5 +407,23 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
       vctRec.push_back(lrDst2);
     }
   }
+}
+
+bool PhysTable::ColumnNameExist(const string name) {
+  for (size_t i = 0; i < _vctColumn.size(); i++) {
+    const string &ss = _vctColumn[i].GetName();
+    if (name.size() != ss.size())
+      continue;
+
+    size_t j = 0;
+    for (; j < name.size(); j++) {
+      if (toupper(name[j]) != toupper(ss[j]))
+        break;
+    }
+    if (j == name.size())
+      return true;
+  }
+
+  return false;
 }
 } // namespace storage
