@@ -29,15 +29,15 @@ public:
   }
 
   const string &GetName() const { return _name; }
-  int32_t GetIndex() { return _index; }
-  DataType GetDataType() { return _dataType; }
+  int32_t GetIndex() const { return _index; }
+  DataType GetDataType() const { return _dataType; }
   bool IsNullable() const { return _bNullable; }
   int32_t GetMaxLength() const { return _maxLength; }
   int64_t GetInitVal() const { return _initVal; }
   int64_t GetIncStep() const { return _incStep; }
-  Charsets GetCharset() { return _charset; }
-  const IDataValue *GetDefaultVal() { return _pDefaultVal; }
-  const string &GetComments() { return _comments; }
+  Charsets GetCharset() const { return _charset; }
+  const IDataValue *GetDefaultVal() const { return _pDefaultVal; }
+  const string &GetComments() const { return _comments; }
 
   uint32_t ReadData(Byte *pBuf);
   uint32_t WriteData(Byte *pBuf);

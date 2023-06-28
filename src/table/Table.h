@@ -96,14 +96,14 @@ public:
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   const IndexProp &GetPrimaryKey() const { return _vctIndex[0]; }
   const MVector<IndexProp> &GetVectorIndex() const { return _vctIndex; }
-  IndexType GetIndexType(string &indexName) const {
+  IndexType GetIndexType(const string &indexName) const {
     auto iter = _mapIndexNamePos.find(indexName);
     if (iter == _mapIndexNamePos.end())
       return IndexType::UNKNOWN;
     return _vctIndex[iter->second]._type;
   }
   const MVector<PhysColumn> &GetColumnArray() const { return _vctColumn; }
-  const PhysColumn *GetColumn(string &fieldName) const {
+  const PhysColumn *GetColumn(const string &fieldName) const {
     auto iter = _mapColumnPos.find(fieldName);
     if (iter == _mapColumnPos.end()) {
       return nullptr;
@@ -211,6 +211,7 @@ public:
   inline TableStatus GetTableStatus() { return _tableStatus; }
 
 protected:
+  bool ColumnNameExist(const string name);
   inline bool IsExistedColumn(string name) {
     return _mapColumnPos.find(name) != _mapColumnPos.end();
   }
