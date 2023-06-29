@@ -129,4 +129,17 @@ static inline const char *toChars(double value) {
   std::sprintf(buffer, "%f", value);
   return buffer;
 }
+
+static bool StringEqualIgnoreCase(const string &lhs, const string &rhs) {
+  if (lhs.size() != rhs.size())
+    return false;
+  const char *p1 = lhs.c_str();
+  const char *p2 = rhs.c_str();
+  for (int i = lhs.size(); i > 0; --i, p1++, p2++) {
+    if (toupper(*p1) != toupper(*p2))
+      return false;
+  }
+
+  return true;
+}
 } // namespace storage

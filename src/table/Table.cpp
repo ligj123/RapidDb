@@ -70,9 +70,12 @@ bool PhysTable::AddColumn(const string &columnName, DataType dataType,
                           Charsets charset, const any &valDefault) {
   assert(_vctIndex.size() == 0);
 
-  if (_mapColumnPos.find(columnName) != _mapColumnPos.end()) {
-    _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName}));
-    return false;
+  for (auto iter = _mapColumnPos.begin(); iter != _mapColumnPos.end(); iter++) {
+    if (!StringEqualIgnoreCase(columnName, iter->first)) {
+      _threadErrorMsg.reset(
+          new ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName}));
+      return false;
+    }
   }
 
   if (maxLen <= 0 && !IDataValue::IsArrayType(dataType)) {
@@ -407,23 +410,5 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
       vctRec.push_back(lrDst2);
     }
   }
-}
-
-bool PhysTable::ColumnNameExist(const string name) {
-  for (size_t i = 0; i < _vctColumn.size(); i++) {
-    const string &ss = _vctColumn[i].GetName();
-    if (name.size() != ss.size())
-      continue;
-
-    size_t j = 0;
-    for (; j < name.size(); j++) {
-      if (toupper(name[j]) != toupper(ss[j]))
-        break;
-    }
-    if (j == name.size())
-      return true;
-  }
-
-  return false;
 }
 } // namespace storage

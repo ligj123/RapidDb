@@ -211,7 +211,6 @@ public:
   inline TableStatus GetTableStatus() { return _tableStatus; }
 
 protected:
-  bool ColumnNameExist(const string name);
   inline bool IsExistedColumn(string name) {
     return _mapColumnPos.find(name) != _mapColumnPos.end();
   }
