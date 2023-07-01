@@ -54,10 +54,12 @@ bool DataValueBlob::PutValue(std::any val) {
     buf = toChars(any_cast<int8_t>(val));
   else if (val.type() == typeid(uint8_t))
     buf = toChars(any_cast<uint8_t>(val));
+  else if (val.type() == typeid(double))
+    buf = toChars(any_cast<double>(val));
+  else if (val.type() == typeid(float))
+    buf = toChars(any_cast<float>(val));
   else {
-    _threadErrorMsg.reset(new ErrorMsg(DT_UNSUPPORT_CONVERT,
-                                       {val.type().name(), "DataValueBlob"}));
-    return false;
+    abort();
   }
 
   if (len == 0)

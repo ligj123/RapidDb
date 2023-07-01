@@ -6,6 +6,7 @@
 #include "../utils/BytesConvert.h"
 #include "../utils/CharsetConvert.h"
 #include <any>
+#include <memory>
 
 namespace storage {
 using namespace std;
@@ -23,10 +24,22 @@ public:
       : _name(name), _index(index), _dataType(dataType), _bNullable(bNullable),
         _comments(comments), _maxLength(maxLen), _initVal(initVal),
         _incStep(incStep), _charset(charset), _pDefaultVal(defaultVal) {}
-  ~PhysColumn() {
-    if (_pDefaultVal != nullptr)
-      delete _pDefaultVal;
+  ~PhysColumn() {}
+  PhysColumn(PhysColumn &&rhs) noexcept {
+    _name = rhs._name;
+    _index = rhs._index;
+    _dataType = rhs._dataType;
+    _bNullable = rhs._bNullable;
+    _comments = rhs._comments;
+    _maxLength = rhs._maxLength;
+    _initVal = rhs._initVal;
+    _incStep = rhs._incStep;
+    _charset = rhs._charset;
+    _pDefaultVal = rhs._pDefaultVal;
+    rhs._pDefaultVal = nullptr;
   }
+  PhysColumn(const PhysColumn &rhs) = delete;
+  PhysColumn &operator=(const PhysColumn &rhs) = delete;
 
   const string &GetName() const { return _name; }
   int32_t GetIndex() const { return _index; }
@@ -66,7 +79,7 @@ protected:
   int64_t _initVal;
   int64_t _incStep; // The step between two neighbor value, the default is 1
   string _comments; // Comments for this column
-  IDataValue *_pDefaultVal; // The default value if has or null
+  IDataValue *_pDefaultVal; // If the default value has or null
 };
 
 } // namespace storage

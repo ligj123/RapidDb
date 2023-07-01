@@ -57,6 +57,10 @@ bool DataValueVarChar::PutValue(std::any val) {
     buf = toChars(any_cast<int8_t>(val));
   else if (val.type() == typeid(uint8_t))
     buf = toChars(any_cast<uint8_t>(val));
+  else if (val.type() == typeid(double))
+    buf = toChars(any_cast<double>(val));
+  else if (val.type() == typeid(float))
+    buf = toChars(any_cast<float>(val));
   else {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_UNSUPPORT_CONVERT, {val.type().name(), "DataValueVarChar"}));
@@ -72,7 +76,7 @@ bool DataValueVarChar::PutValue(std::any val) {
     return false;
   }
 
-  if(valType_ == ValueType::SOLE_VALUE){
+  if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, soleLength_);
   }
 

@@ -61,8 +61,12 @@ uint32_t PhysColumn::WriteData(Byte *pBuf) {
 }
 
 uint32_t PhysColumn::ReadData(Byte *pBuf) {
-  Byte *p = pBuf;
+  if (_pDefaultVal != nullptr) {
+    delete _pDefaultVal;
+    _pDefaultVal = nullptr;
+  }
 
+  Byte *p = pBuf;
   uint16_t len = *((uint16_t *)p);
   p += UI16_LEN;
   _name = string((char *)p, len);

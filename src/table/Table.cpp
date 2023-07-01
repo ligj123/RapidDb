@@ -78,7 +78,7 @@ bool PhysTable::AddColumn(const string &columnName, DataType dataType,
     }
   }
 
-  if (maxLen <= 0 && !IDataValue::IsArrayType(dataType)) {
+  if (maxLen <= 0 && IDataValue::IsArrayType(dataType)) {
     _threadErrorMsg.reset(new ErrorMsg(TB_Array_MAX_LEN, {columnName}));
     return false;
   }
@@ -88,11 +88,10 @@ bool PhysTable::AddColumn(const string &columnName, DataType dataType,
     dvDefault = DataValueFactory(dataType, maxLen, valDefault);
   }
 
-  PhysColumn cm(columnName, (uint32_t)_vctColumn.size(), dataType, comment,
-                nullable, maxLen, -1, -1, Charsets::UTF8, dvDefault);
-
-  _vctColumn.push_back(cm);
-  _mapColumnPos.insert(pair<string, int>(columnName, cm.GetIndex()));
+  _mapColumnPos.insert(pair<string, int>(columnName, (int)_vctColumn.size()));
+  _vctColumn.emplace_back(columnName, (uint32_t)_vctColumn.size(), dataType,
+                          comment, nullable, maxLen, -1, -1, Charsets::UTF8,
+                          dvDefault);
   return true;
 }
 
@@ -107,11 +106,9 @@ bool PhysTable::AddColumn(const string &columnName, DataType dataType,
     return false;
   }
 
-  PhysColumn cm(columnName, 0, dataType, comment, false, -1, initVal, incStep,
-                Charsets::UTF8, nullptr);
-
-  _vctColumn.push_back(cm);
-  _mapColumnPos.insert(pair<string, int>(columnName, cm.GetIndex()));
+  _mapColumnPos.insert(pair<string, int>(columnName, 0));
+  _vctColumn.emplace_back(columnName, 0, dataType, comment, false, -1, initVal,
+                          incStep, Charsets::UTF8, nullptr);
   return true;
 }
 
@@ -163,7 +160,7 @@ bool PhysTable::AddIndex(IndexType indexType, const string &indexName,
     for (; i < _vctIndexPos.size(); i++) {
       if (_vctIndexPos[i] == ic.colPos)
         break;
-      else if (_vctIndexPos[i] > ic.colPos)
+      else if (_vctIndexPos[i] > (int)ic.colPos)
         _vctIndexPos.insert(_vctIndexPos.begin() + i, ic.colPos);
     }
     if (i == _vctIndexPos.size())
@@ -277,7 +274,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     uint32_t csz = col.ReadData(buf);
     buf += csz;
 
-    _vctColumn.push_back(col);
+    _vctColumn.push_back(move(col));
     _mapColumnPos.insert({col.GetName(), i});
   }
 
@@ -296,7 +293,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
       for (; i < _vctIndexPos.size(); i++) {
         if (_vctIndexPos[i] == ic.colPos)
           break;
-        else if (_vctIndexPos[i] > ic.colPos)
+        else if (_vctIndexPos[i] > (int)ic.colPos)
           _vctIndexPos.insert(_vctIndexPos.begin() + i, ic.colPos);
       }
       if (i == _vctIndexPos.size())

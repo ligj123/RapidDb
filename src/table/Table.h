@@ -86,7 +86,7 @@ public:
   };
   PhysTable()
       : _dbName(), _name(), _fullName(), _desc(), _tid(0), _dtCreate(0){};
-  ~PhysTable() {}
+  ~PhysTable() { Clear(); }
 
   const string &GetTableName() const { return _name; }
   const string &GetDescription() const { return _desc; }
@@ -240,7 +240,7 @@ protected:
   // The date time to create this table
   DT_MilliSec _dtCreate;
   // The last date time to update this table
-  DT_MilliSec _dtLastUpdate;
+  DT_MilliSec _dtLastUpdate{0};
   /**Include all columns in this table, they will order by actual position in
    * the table.*/
   MVector<PhysColumn> _vctColumn;

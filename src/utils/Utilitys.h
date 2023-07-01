@@ -135,7 +135,7 @@ static bool StringEqualIgnoreCase(const string &lhs, const string &rhs) {
     return false;
   const char *p1 = lhs.c_str();
   const char *p2 = rhs.c_str();
-  for (int i = lhs.size(); i > 0; --i, p1++, p2++) {
+  for (size_t i = lhs.size(); i > 0; --i, p1++, p2++) {
     if (toupper(*p1) != toupper(*p2))
       return false;
   }

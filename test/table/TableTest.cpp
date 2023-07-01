@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
   ptable.AddColumn("c1", DataType::LONG, "primary key", 100, 2);
   ptable.AddColumn("c2", DataType::VARCHAR, false, 100, "varchar test",
                    Charsets::UTF8, var_default);
-  ptable.AddColumn("c3", DataType::DOUBLE, true, 0, "double column test",
+  ptable.AddColumn("c3", DataType::DOUBLE, true, -1, "double column test",
                    Charsets::UTF8, 1.23456);
   ptable.AddColumn("c4", DataType::FIXCHAR, true, 50, "Fixchar test",
                    Charsets::UTF8, fix_default);
@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
   BOOST_TEST(vct_col[1].GetCharset() == Charsets::UTF8);
   BOOST_TEST(vct_col[1].GetComments() == "varchar test");
   BOOST_TEST(*(const DataValueVarChar *)vct_col[1].GetDefaultVal() ==
-             DataValueVarChar(var_default, strlen(var_default)));
+             DataValueVarChar(var_default, (uint32_t)strlen(var_default)));
 
   BOOST_TEST(vct_col[2].GetName() == "c3");
   BOOST_TEST(vct_col[2].GetIndex() == 2);
@@ -180,7 +180,7 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
   BOOST_TEST(col->GetCharset() == Charsets::UTF8);
   BOOST_TEST(col->GetComments() == "varchar test");
   BOOST_TEST(*(const DataValueVarChar *)col->GetDefaultVal() ==
-             DataValueVarChar(var_default, strlen(var_default)));
+             DataValueVarChar(var_default, (uint32_t)strlen(var_default)));
 
   col = ptable2.GetColumn("c3");
   BOOST_TEST(col == ptable2.GetColumn(2));

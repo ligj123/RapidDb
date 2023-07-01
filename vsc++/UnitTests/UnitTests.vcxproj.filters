@@ -56,12 +56,6 @@
     <ClCompile Include="..\..\test\utils\ConcurrentHashMapTest.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\test\table\ColumnTest.cpp">
-      <Filter>table</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\test\table\TableDescTest.cpp">
-      <Filter>table</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\test\utils\BytesConvertTest.cpp">
       <Filter>utils</Filter>
     </ClCompile>
@@ -70,6 +64,9 @@
     </ClCompile>
     <ClCompile Include="..\..\test\utils\TimerThreadTest.cpp">
       <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\test\table\TableTest.cpp">
+      <Filter>table</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -43,6 +43,10 @@ public:
       _value = std::any_cast<int8_t>(val);
     else if (val.type() == typeid(uint8_t))
       _value = std::any_cast<uint8_t>(val);
+    else if (val.type() == typeid(double))
+      _value = (T)any_cast<double>(val);
+    else if (val.type() == typeid(float))
+      _value = (T)any_cast<float>(val);
     else if (val.type() == typeid(MString)) {
       if (IDataValue::IsAutoPrimaryKey(DT))
         _value = (T)stoi(std::any_cast<MString>(val).c_str());
@@ -54,9 +58,7 @@ public:
       else
         _value = (T)stod(std::any_cast<string>(val));
     } else {
-      _threadErrorMsg.reset(new ErrorMsg(
-          DT_UNSUPPORT_CONVERT, {val.type().name(), StrOfDataType(DT)}));
-      return false;
+      abort();
     }
 
     valType_ = ValueType::SOLE_VALUE;
