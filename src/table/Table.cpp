@@ -71,7 +71,7 @@ bool PhysTable::AddColumn(const string &columnName, DataType dataType,
   assert(_vctIndex.size() == 0);
 
   for (auto iter = _mapColumnPos.begin(); iter != _mapColumnPos.end(); iter++) {
-    if (!StringEqualIgnoreCase(columnName, iter->first)) {
+    if (StringEqualIgnoreCase(columnName, iter->first)) {
       _threadErrorMsg.reset(
           new ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName}));
       return false;
