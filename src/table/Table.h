@@ -38,7 +38,7 @@ struct IndexColumn {
 
 struct IndexProp {
   IndexProp() : _position(UINT32_MAX), _type(IndexType::UNKNOWN) {}
-  IndexProp(string &name, uint32_t pos, IndexType type,
+  IndexProp(const string &name, uint32_t pos, IndexType type,
             MVector<IndexColumn> &vctCol)
       : _name(name), _position(pos), _type(type) {
     _vctCol.swap(vctCol);
@@ -253,7 +253,8 @@ protected:
   /**The map for index with first column's position in _vctColumn and index
    * position in _vctIndex*/
   // MHashMap<uint32_t, uint32_t> _mapIndexFirstField;
-  //  The positions of all columns that constitute the all secondary index.
+  //  The positions of all columns that constitute the all secondary index. This
+  //  variable is used to know which columns are compose secondary index.
   MVector<int> _vctIndexPos;
   //  The last time to be visited.
   DT_MilliSec _dtLastVisit{0};

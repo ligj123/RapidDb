@@ -114,16 +114,32 @@ bool PhysTable::AddColumn(const string &columnName, DataType dataType,
 
 bool PhysTable::AddIndex(IndexType indexType, const string &indexName,
                          const MVector<string> &colNames) {
-  if (colNames.size() == 0) {
+  if (colNames.size() == 0 && indexType != IndexType::HIDE_PRIMARY) {
     _threadErrorMsg.reset(new ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName}));
     return false;
   }
-  if (_mapIndexNamePos.find(indexName) != _mapIndexNamePos.end()) {
-    _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_INDEX, {indexName}));
-    return false;
+
+  string iname = (indexType == IndexType::PRIMARY ? PRIMARY_KEY : indexName);
+
+  for (auto iter = _mapIndexNamePos.begin(); iter != _mapIndexNamePos.end();
+       iter++) {
+    if (StringEqualIgnoreCase(iter->first, iname)) {
+      _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_INDEX, {iname}));
+      return false;
+    }
   }
 
-  assert(indexType != IndexType::PRIMARY || _vctIndex.size() == 0);
+  assert((indexType != IndexType::PRIMARY &&
+          indexType != IndexType::HIDE_PRIMARY) ||
+         _vctIndex.size() == 0);
+
+  if (indexType == IndexType::HIDE_PRIMARY) {
+    MVector<IndexColumn> vctCol;
+    IndexProp prop(PRIMARY_KEY, 0, indexType, vctCol);
+    _vctIndex.push_back(prop);
+    _mapIndexNamePos.insert({prop._name, prop._position});
+    return true;
+  }
 
   MVector<IndexColumn> vctCol;
   MHashSet<string> mset;
@@ -150,18 +166,22 @@ bool PhysTable::AddIndex(IndexType indexType, const string &indexName,
     vctCol.push_back(IndexColumn(iter->first, iter->second));
   }
 
-  string iname = (indexType == IndexType::PRIMARY ? PRIMARY_KEY : indexName);
   IndexProp prop(iname, (uint32_t)_vctIndex.size(), indexType, vctCol);
   _vctIndex.push_back(prop);
   _mapIndexNamePos.insert({prop._name, prop._position});
 
-  for (IndexColumn &ic : vctCol) {
+  if (indexType == IndexType::PRIMARY)
+    return true;
+
+  for (IndexColumn &ic : prop._vctCol) {
     size_t i = 0;
     for (; i < _vctIndexPos.size(); i++) {
       if (_vctIndexPos[i] == ic.colPos)
         break;
-      else if (_vctIndexPos[i] > (int)ic.colPos)
+      else if (_vctIndexPos[i] > (int)ic.colPos) {
         _vctIndexPos.insert(_vctIndexPos.begin() + i, ic.colPos);
+        break;
+      }
     }
     if (i == _vctIndexPos.size())
       _vctIndexPos.push_back(ic.colPos);
@@ -201,13 +221,15 @@ uint32_t PhysTable::SaveData(Byte *bys) {
   buf++;
 
   *(uint32_t *)buf = _tid;
+  buf += UI32_LEN;
 
   *(uint16_t *)buf = (uint16_t)_fullName.size();
   buf += UI16_LEN;
   BytesCopy(buf, _fullName.c_str(), _fullName.size());
   buf += _fullName.size();
+
   *(uint16_t *)buf = (uint16_t)_desc.size();
-  buf += UI32_LEN;
+  buf += UI16_LEN;
   BytesCopy(buf, _desc.c_str(), _desc.size());
   buf += _desc.size();
 
@@ -231,7 +253,9 @@ uint32_t PhysTable::SaveData(Byte *bys) {
     buf += len;
   }
 
-  return (int32_t)(buf - bys);
+  uint32_t sz = (int32_t)(buf - bys);
+  *(uint32_t *)buf = sz;
+  return sz;
 }
 
 uint32_t PhysTable::LoadData(Byte *bys) {
@@ -244,10 +268,10 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     _threadErrorMsg.reset(new ErrorMsg(TB_ERROR_INDEX_VERSION));
     return UINT32_MAX;
   }
-
   buf += UI32_LEN;
 
   _tid = *(uint32_t *)buf;
+  buf += UI32_LEN;
 
   uint32_t len = *(uint16_t *)buf;
   buf += UI16_LEN;
@@ -274,8 +298,8 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     uint32_t csz = col.ReadData(buf);
     buf += csz;
 
-    _vctColumn.push_back(move(col));
     _mapColumnPos.insert({col.GetName(), i});
+    _vctColumn.push_back(move(col));
   }
 
   len = *(uint16_t *)buf;
@@ -293,8 +317,10 @@ uint32_t PhysTable::LoadData(Byte *bys) {
       for (; i < _vctIndexPos.size(); i++) {
         if (_vctIndexPos[i] == ic.colPos)
           break;
-        else if (_vctIndexPos[i] > (int)ic.colPos)
+        else if (_vctIndexPos[i] > (int)ic.colPos) {
           _vctIndexPos.insert(_vctIndexPos.begin() + i, ic.colPos);
+          break;
+        }
       }
       if (i == _vctIndexPos.size())
         _vctIndexPos.push_back(ic.colPos);

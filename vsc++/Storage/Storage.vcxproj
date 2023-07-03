@@ -123,6 +123,7 @@
     <ClInclude Include="..\..\src\utils\BytesMicro.h" />
     <ClInclude Include="..\..\src\utils\CharsetConvert.h" />
     <ClInclude Include="..\..\src\utils\ConcurrentHashMap.h" />
+    <ClInclude Include="..\..\src\utils\Coroutine.h" />
     <ClInclude Include="..\..\src\utils\ErrorMsg.h" />
     <ClInclude Include="..\..\src\utils\ExceptionEx.h" />
     <ClInclude Include="..\..\src\utils\FastQueue.h" />

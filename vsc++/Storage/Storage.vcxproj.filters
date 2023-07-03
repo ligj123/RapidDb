@@ -334,6 +334,9 @@
     <ClInclude Include="..\..\src\manager\Session.h">
       <Filter>manager</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\utils\Coroutine.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="dataType">

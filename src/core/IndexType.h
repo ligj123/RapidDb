@@ -2,12 +2,21 @@
 #include <ostream>
 
 namespace storage {
-enum class IndexType : int8_t { UNKNOWN = 0, PRIMARY, UNIQUE, NON_UNIQUE };
+enum class IndexType : int8_t {
+  UNKNOWN = 0,
+  PRIMARY,
+  HIDE_PRIMARY,
+  UNIQUE,
+  NON_UNIQUE
+};
 
 inline std::ostream &operator<<(std::ostream &os, const IndexType &it) {
   switch (it) {
   case IndexType::PRIMARY:
     os << "PRIMARY(" << (int)IndexType::PRIMARY << ")";
+    break;
+  case IndexType::HIDE_PRIMARY:
+    os << "HIDEPRIMARY(" << (int)IndexType::HIDE_PRIMARY << ")";
     break;
   case IndexType::UNIQUE:
     os << "UNIQUE(" << (int)IndexType::UNIQUE << ")";

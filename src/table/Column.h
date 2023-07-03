@@ -24,7 +24,10 @@ public:
       : _name(name), _index(index), _dataType(dataType), _bNullable(bNullable),
         _comments(comments), _maxLength(maxLen), _initVal(initVal),
         _incStep(incStep), _charset(charset), _pDefaultVal(defaultVal) {}
-  ~PhysColumn() {}
+  ~PhysColumn() {
+    if (_pDefaultVal != nullptr)
+      delete _pDefaultVal;
+  }
   PhysColumn(PhysColumn &&rhs) noexcept {
     _name = rhs._name;
     _index = rhs._index;
