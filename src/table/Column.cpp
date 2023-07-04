@@ -98,7 +98,7 @@ uint32_t PhysColumn::ReadData(Byte *pBuf) {
   len = *((uint16_t *)p);
   p += UI16_LEN;
   if (len > 0) {
-    _pDefaultVal = DataValueFactory(_dataType);
+    _pDefaultVal = DataValueFactory(_dataType, len);
     p += _pDefaultVal->ReadData(p, len, SavePosition::VALUE, true);
   }
 
