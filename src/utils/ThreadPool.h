@@ -3,6 +3,7 @@
 #include "../cache/Mallocator.h"
 #include "ErrorMsg.h"
 #include "SpinMutex.h"
+#include <boost/coroutine2/all.hpp>
 #include <condition_variable>
 #include <deque>
 #include <future>
@@ -13,6 +14,8 @@
 
 namespace storage {
 using namespace std;
+using namespace boost::coroutines2;
+
 enum class TaskStatus : Byte {
   UNINIT = 0, // Before initialize
   STARTED,    // The task has been added into TimerThread, only for special task
@@ -53,6 +56,7 @@ protected:
    * has been finished*/
   MVector<Task *> _vctWaitTasks;
   TaskStatus _status = TaskStatus::UNINIT;
+  coroutine<TaskStatus>::pull_type *_coroutine;
 };
 
 template <class T> class FastQueue;

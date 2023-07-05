@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(UnitTest)
 
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.74.0 REQUIRED COMPONENTS log locale unit_test_framework stacktrace_backtrace)
+find_package(Boost 1.74.0 REQUIRED COMPONENTS log locale unit_test_framework stacktrace_backtrace coroutine)
 find_package(Threads)
 find_package(Backtrace)
 
@@ -18,6 +18,7 @@ target_link_libraries(UnitTest
   Boost::log
   Boost::locale
   Boost::stacktrace_backtrace
+  Boost::coroutine
   backtrace
   ${CMAKE_DL_LIBS}
   ${CMAKE_THREAD_LIBS_INIT}
