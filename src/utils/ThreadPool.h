@@ -25,6 +25,35 @@ enum class TaskStatus : Byte {
   PAUSE_WITH_ADD,    // Pause task and add this task into ThreadPool
   FINISHED           // The task has finished and will be free.
 };
+
+inline std::ostream &operator<<(std::ostream &os, const TaskStatus &sta) {
+  switch (sta) {
+  case TaskStatus::UNINIT:
+    os << "UNINIT(" << (int)TaskStatus::UNINIT << ")";
+    break;
+  case TaskStatus::STARTED:
+    os << "STARTED(" << (int)TaskStatus::STARTED << ")";
+    break;
+  case TaskStatus::RUNNING:
+    os << "RUNNING(" << (int)TaskStatus::RUNNING << ")";
+    break;
+  case TaskStatus::INTERVAL:
+    os << "INTERVAL(" << (int)TaskStatus::INTERVAL << ")";
+    break;
+  case TaskStatus::PAUSE_WITHOUT_ADD:
+    os << "PAUSE_WITHOUT_ADD(" << (int)TaskStatus::PAUSE_WITHOUT_ADD << ")";
+    break;
+  case TaskStatus::PAUSE_WITH_ADD:
+    os << "PAUSE_WITH_ADD(" << (int)TaskStatus::PAUSE_WITH_ADD << ")";
+    break;
+  case TaskStatus::FINISHED:
+    os << "FINISHED(" << (int)TaskStatus::FINISHED << ")";
+    break;
+  }
+
+  return os;
+}
+
 class ThreadPool;
 
 // All tasks that run in thread pool must inherit this class.

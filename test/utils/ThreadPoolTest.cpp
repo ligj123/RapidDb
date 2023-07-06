@@ -107,29 +107,28 @@ BOOST_AUTO_TEST_CASE(ThreadPool_Coroutine_test) {
       _coroutine = new coroutine<TaskStatus>::pull_type(
           boost::bind(&TestTask::Coroutine, this, boost::placeholders::_1,
                       TaskStatus::UNINIT));
-    }
 
-  public:
-    int _val = 0;
+      BOOST_TEST(_coroutine->get() == TaskStatus::UNINIT);
+      (*_coroutine)();
+      BOOST_TEST(_coroutine->get() == TaskStatus::STARTED);
+      (*_coroutine)();
+      BOOST_TEST(_coroutine->get() == TaskStatus::RUNNING);
+      (*_coroutine)();
+      BOOST_TEST(_coroutine->get() == TaskStatus::INTERVAL);
+      (*_coroutine)();
+      BOOST_TEST(_coroutine->get() == TaskStatus::PAUSE_WITHOUT_ADD);
+      (*_coroutine)();
+      BOOST_TEST(_coroutine->get() == TaskStatus::PAUSE_WITH_ADD);
+      (*_coroutine)();
+      BOOST_TEST(_coroutine->get() == TaskStatus::FINISHED);
+      _status = TaskStatus::FINISHED;
+    }
   };
 
   ThreadPool tp("Test_ThreadPool", 10000, 1, 1);
-  //   TestTask arr[8];
-  //   for (int i = 0; i < 8; i++) {
-  //     tp.AddTask(&arr[i]);
-  //     this_thread::sleep_for(1ms);
-  //   }
-
-  //   this_thread::sleep_for(1000ms);
-
-  //   int count = 0;
-  //   for (int i = 0; i < 8; i++) {
-  //     count += arr[i]._val;
-  //   }
-
-  //   LOG_INFO << "count: " << count;
-  //   BOOST_TEST(count == 28);
-  //   tp.Stop();
+  tp.AddTask(new TestTask());
+  this_thread::sleep_for(chrono::milliseconds(1));
+  tp.Stop();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
