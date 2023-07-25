@@ -24,22 +24,19 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
   }
 
   _vctThread.resize(_maxThreads, nullptr);
-  for (int i = 0; i < maxThreads; ++i) {
-    if (i < minThreads) {
-      CreateThread(i);
-    }
+  for (int i = 0; i < minThreads; ++i) {
+    CreateThread(i);
   }
 }
 
 void ThreadPool::CreateThread(int id) {
-  std::unique_lock<SpinMutex> thread_lock(_threadMutex);
+  std::unique_lock<SpinMutex> thread_lock(_threadMutex, try_to_lock);
+  if (!thread_lock.owns_lock()) {
+    return;
+  }
+
   if (id < 0) {
-    for (int i = 0; i < _maxThreads; i++) {
-      if (_vctThread[i] == nullptr) {
-        id = i;
-        break;
-      }
-    }
+    id = _aliveThreads;
   }
 
   thread *t = new thread([this, id]() {
@@ -59,7 +56,8 @@ void ThreadPool::CreateThread(int id) {
         _freeThreads--;
         queue_lock.unlock();
         std::unique_lock<SpinMutex> thread_lock(_threadMutex);
-        if (_aliveThreads > _minThreads || _stopThreads) {
+        if ((_aliveThreads > _minThreads && _aliveThreads == id + 1) ||
+            _stopThreads) {
           break;
         } else {
           continue;

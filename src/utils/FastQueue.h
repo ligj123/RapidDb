@@ -30,9 +30,10 @@ template <class T> struct InnerQueue {
 template <class T> class FastQueue {
 public:
   // threadCount: The total threads in all related ThreadPool
-  FastQueue(int threadCount) : _threadCount(threadCount) {
-    _vctInner.reserve(_threadCount);
-    for (int i = 0; i < _threadCount; i++) {
+  FastQueue(ThreadPool *tp) : _threadPool(tp) {
+    int tcount = tp->GetMaxThreads();
+    _vctInner.reserve(tcount);
+    for (int i = 0; i < tcount; i++) {
       _vctInner.push_back(new InnerQueue<T>);
     }
   }
@@ -47,14 +48,15 @@ public:
 
   // Push an element
   void Push(T *ele) {
-    assert(ThreadPool::GetThreadId() < _threadCount);
+    assert(ThreadPool::GetThreadId() < _threadPool->GetAliveThreadCount());
     if (ThreadPool::GetThreadId() < 0) {
       unique_lock<SpinMutex> lock(_spinMutex);
       _queue.push(ele);
       return;
     }
 
-    InnerQueue<T> *q = _vctInner[ThreadPool::GetThreadId()];
+    InnerQueue<T> *q =
+        _vctInner[ThreadPool::GetThreadId() - _threadPool->GetStartId()];
     q->_arr[q->_tail] = ele;
     q->_tail = (q->_tail + 1) % 100;
     if ((q->_tail + 1) % 100 == q->_head) {
@@ -130,7 +132,8 @@ protected:
   // index of vector
   vector<InnerQueue<T> *> _vctInner;
   // How many threads in thread pool
-  int _threadCount;
+  ThreadPool *_threadPool;
+  int _aliveThreads;
 
 protected:
 };

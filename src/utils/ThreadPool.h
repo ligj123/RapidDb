@@ -156,10 +156,11 @@ public:
   // Only rough access the watting tasks number
   bool IsFull();
   void CreateThread(int id = -1);
-  int GetThreadCount() { return _aliveThreads; }
-  int GetMinThreads() { return _minThreads; }
-  int GetMaxThreads() { return _maxThreads; }
-  int GetFreeThreads() { return _freeThreads; }
+  int GetAliveThreadCount() const { return _aliveThreads; }
+  int GetMinThreads() const { return _minThreads; }
+  int GetMaxThreads() const { return _maxThreads; }
+  int GetFreeThreads() const { return _freeThreads; }
+  int GetStartId() const { return _startId; }
 
 protected:
   vector<thread *> _vctThread;
