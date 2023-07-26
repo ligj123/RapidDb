@@ -36,6 +36,13 @@ public:
     for (int i = 0; i < tcount; i++) {
       _vctInner.push_back(new InnerQueue<T>);
     }
+
+    tp->PushLambda([this](){
+      unique_lock<SpinMutex> lock(_spinMutex);
+      if (_aliveMaxThreads < _threadPool->GetAliveThreadCount()){
+        _aliveMaxThreads = _threadPool->GetAliveThreadCount();
+      }
+    });
   }
 
   ~FastQueue() {
@@ -105,7 +112,11 @@ protected:
       _spinMutex.lock();
     }
 
-    for (InnerQueue<T> *q : _vctInner) {
+    int num = _aliveMaxThreads > _threadPool->GetAliveThreadCount() ? 
+        _aliveMaxThreads : _threadPool->GetAliveThreadCount();
+    
+    for (int i = 0; i < num; i++) {
+      InnerQueue<T> *q = _vctInner[i];
       if (q->_head == q->_tail)
         continue;
 
@@ -119,6 +130,7 @@ protected:
       }
     }
 
+    _aliveMaxThreads > _threadPool->GetAliveThreadCount();
     if (bLock) {
       _spinMutex.unlock();
     }
@@ -133,7 +145,8 @@ protected:
   vector<InnerQueue<T> *> _vctInner;
   // How many threads in thread pool
   ThreadPool *_threadPool;
-  int _aliveThreads;
+  // The max threads number since previous to call ElementMove
+  int _aliveMaxThreads;
 
 protected:
 };

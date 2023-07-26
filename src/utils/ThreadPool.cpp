@@ -132,6 +132,11 @@ void ThreadPool::CreateThread(int id) {
 
   _vctThread[id] = t;
   _aliveThreads++;
+  thread_lock.unlock();
+
+  for(function<void()> func : _vctLambda) {
+    func();
+  }
 }
 
 ThreadPool::~ThreadPool() {
