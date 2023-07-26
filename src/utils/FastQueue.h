@@ -37,9 +37,9 @@ public:
       _vctInner.push_back(new InnerQueue<T>);
     }
 
-    tp->PushLambda([this](){
+    tp->PushLambda([this]() {
       unique_lock<SpinMutex> lock(_spinMutex);
-      if (_aliveMaxThreads < _threadPool->GetAliveThreadCount()){
+      if (_aliveMaxThreads < _threadPool->GetAliveThreadCount()) {
         _aliveMaxThreads = _threadPool->GetAliveThreadCount();
       }
     });
@@ -112,9 +112,10 @@ protected:
       _spinMutex.lock();
     }
 
-    int num = _aliveMaxThreads > _threadPool->GetAliveThreadCount() ? 
-        _aliveMaxThreads : _threadPool->GetAliveThreadCount();
-    
+    int num = _aliveMaxThreads > _threadPool->GetAliveThreadCount()
+                  ? _aliveMaxThreads
+                  : _threadPool->GetAliveThreadCount();
+
     for (int i = 0; i < num; i++) {
       InnerQueue<T> *q = _vctInner[i];
       if (q->_head == q->_tail)

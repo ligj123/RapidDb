@@ -10,9 +10,11 @@ namespace storage {
 template <class T, DataType DT> class DataValueDigit : public IDataValue {
 public:
   DataValueDigit()
-      : IDataValue(DT, ValueType::NULL_VALUE, SavePosition::ALL), _value(0) {}
+      : IDataValue(DT, ValueType::NULL_VALUE, SavePosition::UNKNOWN),
+        _value(0) {}
   DataValueDigit(T val)
-      : IDataValue(DT, ValueType::SOLE_VALUE, SavePosition::ALL), _value(val) {}
+      : IDataValue(DT, ValueType::SOLE_VALUE, SavePosition::UNKNOWN),
+        _value(val) {}
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
     _value = src._value;
   }
@@ -95,7 +97,7 @@ public:
     return new DataValueDigit(*this);
   }
   uint32_t GetPersistenceLength(SavePosition dtPos) const override {
-    return dtPos == SavePosition::KEY
+    return (dtPos == SavePosition::KEY_FIX || dtPos == SavePosition::KEY_VAR)
                ? sizeof(T)
                : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(T));
   };
@@ -124,10 +126,10 @@ public:
   size_t Hash() const override { return std::hash<T>{}(_value); }
 
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override {
-    assert(svPos != SavePosition::ALL);
-    if (svPos == SavePosition::KEY) {
+    assert(svPos != SavePosition::UNKNOWN);
+    if (svPos == SavePosition::KEY_FIX || svPos == SavePosition::KEY_VAR) {
       if (valType_ == ValueType::NULL_VALUE) {
-        DigitalToBytes<T, DT>(0, buf, true);
+        DigitalToBytes<T, DT>(DefaultValue(), buf, true);
       } else {
         DigitalToBytes<T, DT>(_value, buf, true);
       }
@@ -143,8 +145,8 @@ public:
   }
   uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
                     bool bSole = true) override {
-    assert(svPos != SavePosition::ALL);
-    if (svPos == SavePosition::KEY) {
+    assert(svPos != SavePosition::UNKNOWN);
+    if (svPos == SavePosition::KEY_FIX || svPos == SavePosition::KEY_VAR) {
       valType_ = ValueType::SOLE_VALUE;
       _value = DigitalFromBytes<T, DT>(buf, true);
       return sizeof(T);
@@ -185,7 +187,7 @@ public:
     _value = MaxValue<T, DT>();
   }
   void SetDefaultValue() override {
-    _value = 0;
+    _value = MaxValue<T, DT>();
     valType_ = ValueType::SOLE_VALUE;
   }
 
@@ -348,6 +350,7 @@ public:
     _value /= (T)(V)dv;
     return this;
   }
+  static T DefaultValue() { MaxValue<T, DT>(); }
 
 protected:
   T _value;

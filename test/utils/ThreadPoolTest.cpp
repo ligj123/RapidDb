@@ -60,7 +60,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   };
 
   ThreadPool tp("Test_ThreadPool", 100000, 1, 8);
-  BOOST_TEST(tp.GetMinThreads() == tp.GetThreadCount());
+  BOOST_TEST(tp.GetMinThreads() == tp.GetAliveThreadCount());
 
   bool bStop = false;
   for (int i = 0; i < 20; i++) {
@@ -69,11 +69,11 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   }
 
   this_thread::sleep_for(chrono::milliseconds(10));
-  BOOST_TEST(tp.GetMaxThreads() == tp.GetThreadCount());
+  BOOST_TEST(tp.GetMaxThreads() == tp.GetAliveThreadCount());
 
   bStop = true;
   this_thread::sleep_for(chrono::milliseconds(1000));
-  BOOST_TEST(tp.GetMinThreads() == tp.GetThreadCount());
+  BOOST_TEST(tp.GetMinThreads() == tp.GetAliveThreadCount());
 
   bStop = false;
   for (int i = 0; i < 20; i++) {
@@ -82,11 +82,11 @@ BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
   }
 
   this_thread::sleep_for(chrono::milliseconds(10));
-  BOOST_TEST(tp.GetMaxThreads() == tp.GetThreadCount());
+  BOOST_TEST(tp.GetMaxThreads() == tp.GetAliveThreadCount());
 
   bStop = true;
   this_thread::sleep_for(chrono::milliseconds(1000));
-  BOOST_TEST(tp.GetMinThreads() == tp.GetThreadCount());
+  BOOST_TEST(tp.GetMinThreads() == tp.GetAliveThreadCount());
 
   tp.Stop();
 }
