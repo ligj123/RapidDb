@@ -60,16 +60,18 @@ public:
 
   std::any GetValue() const override { return std::any(); }
 
-  uint32_t GetPersistenceLength(
-      SavePosition dtPos = SavePosition::VALUE) const override {
-    assert(dtPos == SavePosition::VALUE);
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
-    case ValueType::BYTES_VALUE:
-      return soleLength_;
-    case ValueType::NULL_VALUE:
-    default:
-      return 0;
+  uint32_t GetPersistenceLength(SavePosition dtPos) const override {
+    if (dtPos == SavePosition::KEY_FIX || dtPos == SavePosition::KEY_VAR) {
+      return maxLength_;
+    } else {
+      switch (valType_) {
+      case ValueType::SOLE_VALUE:
+      case ValueType::BYTES_VALUE:
+        return soleLength_;
+      case ValueType::NULL_VALUE:
+      default:
+        return 0;
+      }
     }
   }
 
