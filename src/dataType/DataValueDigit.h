@@ -9,12 +9,8 @@
 namespace storage {
 template <class T, DataType DT> class DataValueDigit : public IDataValue {
 public:
-  DataValueDigit()
-      : IDataValue(DT, ValueType::NULL_VALUE, SavePosition::UNKNOWN),
-        _value(0) {}
-  DataValueDigit(T val)
-      : IDataValue(DT, ValueType::SOLE_VALUE, SavePosition::UNKNOWN),
-        _value(val) {}
+  DataValueDigit() : IDataValue(DT, ValueType::NULL_VALUE), _value(0) {}
+  DataValueDigit(T val) : IDataValue(DT, ValueType::SOLE_VALUE), _value(val) {}
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
     _value = src._value;
   }

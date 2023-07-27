@@ -8,11 +8,11 @@ using namespace std;
 class DataValueVarChar : public IDataValue {
 public:
   DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
-      : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE, SavePosition::ALL),
+      : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE),
         maxLength_(maxLength), soleLength_(0), bysValue_(nullptr) {}
   DataValueVarChar(const char *val, uint32_t len,
                    uint32_t maxLength = UINT32_MAX)
-      : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, SavePosition::ALL),
+      : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE),
         maxLength_(maxLength == UINT32_MAX ? len + 1 : maxLength),
         soleLength_(len + 1) {
     bysValue_ = CachePool::Apply(soleLength_);
@@ -73,11 +73,13 @@ public:
   }
 
   uint32_t GetPersistenceLength(SavePosition dtPos) const override {
-    if (dtPos == SavePosition::KEY) {
+    if (dtPos == SavePosition::KEY_VAR) {
       if (valType_ == ValueType::NULL_VALUE) {
-        return 1;
+        return maxLength_;
       }
       return soleLength_;
+    } else if (dtPos == SavePosition::KEY_FIX) {
+      return maxLength_;
     } else {
       switch (valType_) {
       case ValueType::SOLE_VALUE:

@@ -172,11 +172,23 @@ bool DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
 }
 
 uint32_t DataValueVarChar::WriteData(Byte *buf, SavePosition svPos) const {
-  if (svPos == SavePosition::KEY) {
+  if (svPos == SavePosition::KEY_FIX) {
     // Write default value if is null for key
     if (valType_ == ValueType::NULL_VALUE) {
-      *buf = 0;
-      return 1;
+      memset(buf, 0xff, maxLength_ - 1);
+    } else {
+      BytesCopy(buf, bysValue_, soleLength_);
+      memset(buf + soleLength_, 0xff, maxLength_ - soleLength_ - 1);
+    }
+
+    buf[maxLength_ - 1] = 0;
+    return maxLength_;
+  } else if (svPos == SavePosition::KEY_VAR) {
+    // Write default value if is null for key
+    if (valType_ == ValueType::NULL_VALUE) {
+      memset(buf, 0xff, maxLength_ - 1);
+      buf[maxLength_ - 1] = 0;
+      return maxLength_;
     }
 
     BytesCopy(buf, bysValue_, soleLength_);
@@ -197,7 +209,20 @@ uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
     CachePool::Release(bysValue_, soleLength_);
   }
 
-  if (svPos == SavePosition::KEY) {
+  if (svPos == SavePosition::KEY_FIX) {
+    assert(len == maxLength_);
+    soleLength_ = len;
+    if (bSole) {
+      valType_ = ValueType::SOLE_VALUE;
+      bysValue_ = CachePool::Apply(soleLength_);
+      BytesCopy(bysValue_, buf, len);
+    } else {
+      valType_ = ValueType::BYTES_VALUE;
+      bysValue_ = buf;
+    }
+
+    return len;
+  } else if (svPos == SavePosition::KEY_VAR) {
     assert(len > 0);
     soleLength_ = len;
     if (bSole) {
@@ -276,10 +301,10 @@ void DataValueVarChar::SetMaxValue() {
     CachePool::Release(bysValue_, soleLength_);
 
   valType_ = ValueType::SOLE_VALUE;
-  soleLength_ = 4;
-  bysValue_ = CachePool::Apply(soleLength_);
-  bysValue_[0] = bysValue_[1] = bysValue_[2] = -1;
-  bysValue_[3] = 0;
+  soleLength_ = maxLength_;
+  bysValue_ = CachePool::Apply(maxLength_);
+  memset(bysValue_, 0xff, soleLength_ - 1);
+  bysValue_[soleLength_ - 1] = 0;
 }
 
 void DataValueVarChar::SetDefaultValue() {
@@ -287,9 +312,10 @@ void DataValueVarChar::SetDefaultValue() {
     CachePool::Release(bysValue_, soleLength_);
 
   valType_ = ValueType::SOLE_VALUE;
-  soleLength_ = 1;
-  bysValue_ = CachePool::Apply(soleLength_);
-  bysValue_[0] = 0;
+  soleLength_ = maxLength_;
+  bysValue_ = CachePool::Apply(maxLength_);
+  memset(bysValue_, 0xff, soleLength_ - 1);
+  bysValue_[soleLength_ - 1] = 0;
 }
 
 DataValueVarChar &DataValueVarChar::operator=(const char *val) {

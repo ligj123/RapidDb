@@ -65,17 +65,14 @@ public:
   }
 
   IDataValue(const IDataValue &dv)
-      : dataType_(dv.dataType_), valType_(dv.valType_), savePos_(dv.savePos_),
-        bReuse_(false) {}
-  IDataValue(DataType dataType, ValueType valType, SavePosition savePos)
-      : dataType_(dataType), valType_(valType), savePos_(savePos),
-        bReuse_(false) {}
+      : dataType_(dv.dataType_), valType_(dv.valType_), bReuse_(false) {}
+  IDataValue(DataType dataType, ValueType valType)
+      : dataType_(dataType), valType_(valType), bReuse_(false) {}
   virtual ~IDataValue() {}
   // return the data type for this data value
   inline DataType GetDataType() const { return dataType_; }
   inline ValueType GetValueType() const { return valType_; }
   inline bool IsNull() const { return valType_ == ValueType::NULL_VALUE; }
-  inline SavePosition GetSavePosition() const { return savePos_; }
   inline bool IsReuse() const { return bReuse_; }
   inline void SetReuse(bool b) { bReuse_ = b; }
   // Only copy value from the dv, not include maxlength, bKey. If bMove=true,
@@ -146,7 +143,6 @@ public:
 protected:
   DataType dataType_;
   ValueType valType_;
-  SavePosition savePos_;
   // If true, the instance will be used in multi place, use it to ensure this dv
   // will be deleted once.
   bool bReuse_;

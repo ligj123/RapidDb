@@ -180,9 +180,9 @@ bool DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
 }
 
 uint32_t DataValueFixChar::WriteData(Byte *buf, SavePosition svPos) const {
-  if (svPos == SavePosition::KEY) {
+  if (svPos == SavePosition::KEY_FIX || svPos == SavePosition::KEY_VAR) {
     if (valType_ == ValueType::NULL_VALUE) {
-      memset(buf, ' ', maxLength_ - 1);
+      memset(buf, 0xff, maxLength_ - 1);
       buf[maxLength_ - 1] = 0;
     } else {
       BytesCopy(buf, bysValue_, maxLength_);
@@ -201,7 +201,7 @@ uint32_t DataValueFixChar::WriteData(Byte *buf, SavePosition svPos) const {
 uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
                                     bool bSole) {
   assert(len == 0 || len == maxLength_);
-  if (svPos == SavePosition::KEY) {
+  if (svPos == SavePosition::KEY_FIX || svPos == SavePosition::KEY_VAR) {
     assert(len > 0);
     if (bSole) {
       if (valType_ != ValueType::SOLE_VALUE) {
@@ -288,8 +288,8 @@ void DataValueFixChar::SetMaxValue() {
   }
 
   valType_ = ValueType::SOLE_VALUE;
-  bysValue_[0] = bysValue_[1] = bysValue_[2] = -1;
-  bysValue_[3] = 0;
+  memset(bysValue_, 0xff, maxLength_ - 1);
+  bysValue_[maxLength_ - 1] = 0;
 }
 
 void DataValueFixChar::SetDefaultValue() {
@@ -298,7 +298,7 @@ void DataValueFixChar::SetDefaultValue() {
   }
 
   valType_ = ValueType::SOLE_VALUE;
-  memset(bysValue_, ' ', maxLength_ - 1);
+  memset(bysValue_, 0xff, maxLength_ - 1);
   bysValue_[maxLength_ - 1] = 0;
 }
 
