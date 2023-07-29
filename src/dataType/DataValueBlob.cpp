@@ -255,8 +255,8 @@ DataValueBlob &DataValueBlob::operator=(const DataValueBlob &src) {
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 
+  dataType_ = src.dataType_;
   valType_ = src.valType_;
-  savePos_ = src.savePos_;
   maxLength_ = src.maxLength_;
   soleLength_ = src.soleLength_;
 

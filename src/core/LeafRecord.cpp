@@ -87,12 +87,12 @@ LeafRecord::LeafRecord(IndexTree *indexTree, Byte *bys)
 
 LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
                        Byte *bysPri, uint32_t lenPri, ActionType type,
-                       Statement *stmt)
+                       Statement *stmt, SavePosition svKey)
     : RawRecord(indexTree, nullptr, nullptr, true), _statement(stmt) {
   _actionType = type;
 
   int i;
-  uint16_t lenKey = CalcKeyLength(vctKey);
+  uint16_t lenKey = CalcKeyLength(vctKey, svKey);
 
   int totalLen = lenKey + lenPri + UI16_2_LEN;
   _bysVal = CachePool::Apply(totalLen);
@@ -101,7 +101,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 
   uint16_t pos = UI16_2_LEN;
   for (i = 0; i < vctKey.size(); i++) {
-    uint16_t len = vctKey[i]->WriteData(_bysVal + pos, SavePosition::KEY);
+    uint16_t len = vctKey[i]->WriteData(_bysVal + pos, svKey);
     pos += len;
   }
 
@@ -111,11 +111,11 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 
 LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
-                       Statement *stmt)
+                       Statement *stmt, SavePosition svKey)
     : RawRecord(indexTree, nullptr, nullptr, true), _statement(stmt) {
   _actionType = ActionType::INSERT;
 
-  uint32_t lenKey = CalcKeyLength(vctKey);
+  uint32_t lenKey = CalcKeyLength(vctKey, svKey);
   uint32_t lenVal = CalcValueLength(vctVal, ActionType::INSERT);
   uint16_t infoLen = 1 + UI64_LEN + UI32_LEN;
   uint32_t max_lenVal =
@@ -136,7 +136,7 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
   _bysVal = CachePool::Apply(totalLen);
   RecStruct recStru(_bysVal, lenKey, 1, _overflowPage);
   FillHeaderBuff(recStru, totalLen, lenKey, 1, recStamp, lenVal);
-  FillKeyBuff(recStru, vctKey);
+  FillKeyBuff(recStru, vctKey, svKey);
 
   ValueStruct valStru;
   SetValueStruct(recStru, &valStru, (uint32_t)vctVal.size(),
@@ -457,12 +457,12 @@ void LeafRecord::FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
   recStru._arrValLen[0] = valLen;
 }
 
-void LeafRecord::FillKeyBuff(RecStruct &recStru,
-                             const VectorDataValue &vctKey) {
+void LeafRecord::FillKeyBuff(RecStruct &recStru, const VectorDataValue &vctKey,
+                             SavePosition svKey) {
   Byte *bys = recStru._bysKey;
 
   for (size_t i = 0; i < vctKey.size(); i++) {
-    uint16_t vl = vctKey[i]->WriteData(bys, SavePosition::KEY);
+    uint16_t vl = vctKey[i]->WriteData(bys, svKey);
     bys += vl;
   }
 }

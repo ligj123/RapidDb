@@ -77,10 +77,12 @@ public:
   LeafRecord(LeafRecord &src);
   // Constructor for secondary index LeafRecord
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey, Byte *bysPri,
-             uint32_t lenPri, ActionType type, Statement *stmt);
+             uint32_t lenPri, ActionType type, Statement *stmt,
+             SavePosition svKey);
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
-             const VectorDataValue &vctVal, uint64_t recStamp, Statement *stmt);
+             const VectorDataValue &vctVal, uint64_t recStamp, Statement *stmt,
+             SavePosition svKey);
 
   int32_t UpdateRecord(const VectorDataValue &newVal, uint64_t recStamp,
                        Statement *stmt, ActionType type, bool gapLock);
@@ -178,14 +180,17 @@ public:
 
 protected:
   // To calc key length
-  inline uint32_t CalcKeyLength(const VectorDataValue &vctKey) {
+  inline uint32_t CalcKeyLength(const VectorDataValue &vctKey,
+                                SavePosition svKey) {
     uint32_t lenKey = 0;
     for (int i = 0; i < vctKey.size(); i++) {
-      lenKey += vctKey[i]->GetPersistenceLength(SavePosition::KEY);
+      lenKey += vctKey[i]->GetPersistenceLength(svKey);
     }
 
     if (lenKey > Configure::GetMaxKeyLength()) {
-      throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {to_string(lenKey)});
+      _threadErrorMsg.reset(
+          new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {to_string(lenKey)}));
+      return UINT32_MAX;
     }
     return lenKey;
   }
@@ -196,7 +201,8 @@ protected:
   void FillHeaderBuff(RecStruct &recStru, uint32_t totalLen, uint32_t keyLen,
                       Byte verNum, uint64_t stamp, uint32_t valLen);
 
-  void FillKeyBuff(RecStruct &recStru, const VectorDataValue &vctKey);
+  void FillKeyBuff(RecStruct &recStru, const VectorDataValue &vctKey,
+                   SavePosition svKey);
 
   // Save a version's value into buffer
   void FillValueBuff(ValueStruct &valStru, const VectorDataValue &vctVal);

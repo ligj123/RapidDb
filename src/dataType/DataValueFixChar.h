@@ -22,8 +22,8 @@ public:
     bysValue_[maxLength_ - 1] = 0;
   }
 
-  DataValueFixChar(Byte *byArray, uint32_t maxLength, SavePosition svPos)
-      : IDataValue(DataType::FIXCHAR, ValueType::BYTES_VALUE, svPos),
+  DataValueFixChar(Byte *byArray, uint32_t maxLength)
+      : IDataValue(DataType::FIXCHAR, ValueType::BYTES_VALUE),
         bysValue_(byArray), maxLength_(maxLength) {}
 
   DataValueFixChar(const DataValueFixChar &src);
@@ -50,7 +50,7 @@ public:
   }
 
   uint32_t GetPersistenceLength(SavePosition dtPos) const override {
-    if (dtPos == SavePosition::KEY_FIX||dtPos == SavePosition::KEY_VAR) {
+    if (dtPos == SavePosition::KEY_FIX || dtPos == SavePosition::KEY_VAR) {
       return maxLength_;
     } else {
       switch (valType_) {

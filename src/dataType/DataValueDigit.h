@@ -200,7 +200,6 @@ public:
   }
   DataValueDigit &operator=(const DataValueDigit &src) {
     valType_ = src.valType_;
-    savePos_ = src.savePos_;
     _value = src._value;
 
     return *this;
@@ -346,7 +345,7 @@ public:
     _value /= (T)(V)dv;
     return this;
   }
-  static T DefaultValue() { MaxValue<T, DT>(); }
+  static T DefaultValue() { return MaxValue<T, DT>(); }
 
 protected:
   T _value;

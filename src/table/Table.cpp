@@ -399,9 +399,9 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
       dstSk.push_back(dstPr.at(ic.colPos));
     }
     if (lrSrc == nullptr) {
-      LeafRecord *lr =
-          new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+      LeafRecord *lr = new LeafRecord(
+          prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+          lrDst->GetKeyLength(), ActionType::INSERT, stmt, _keySp);
       vctRec.push_back(lr);
       continue;
     }
@@ -423,12 +423,12 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
     }
 
     if (!equal) {
-      LeafRecord *lrSrc2 =
-          new LeafRecord(prop._tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::DELETE, stmt);
-      LeafRecord *lrDst2 =
-          new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+      LeafRecord *lrSrc2 = new LeafRecord(
+          prop._tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
+          lrDst->GetKeyLength(), ActionType::DELETE, stmt, _keySp);
+      LeafRecord *lrDst2 = new LeafRecord(
+          prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+          lrDst->GetKeyLength(), ActionType::INSERT, stmt, _keySp);
       vctRec.push_back(lrSrc2);
       vctRec.push_back(lrDst2);
     }

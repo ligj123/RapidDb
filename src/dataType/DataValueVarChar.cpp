@@ -369,7 +369,6 @@ DataValueVarChar &DataValueVarChar::operator=(const DataValueVarChar &src) {
 
   dataType_ = src.dataType_;
   valType_ = src.valType_;
-  savePos_ = src.savePos_;
   maxLength_ = src.maxLength_;
   soleLength_ = src.soleLength_;
 

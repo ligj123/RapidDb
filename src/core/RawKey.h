@@ -9,17 +9,17 @@ namespace storage {
 class RawKey {
 public:
   RawKey() : _bysVal(nullptr), _length(0), _bSole(false) {}
-  RawKey(VectorDataValue &vctKey) : _bSole(true) {
+  RawKey(VectorDataValue &vctKey, SavePosition svPos) : _bSole(true) {
     _length = 0;
     for (size_t i = 0; i < vctKey.size(); i++) {
-      _length += vctKey[i]->GetPersistenceLength(SavePosition::KEY);
+      _length += vctKey[i]->GetPersistenceLength(svPos);
     }
 
     _bysVal = CachePool::Apply(_length);
 
     int pos = 0;
     for (int i = 0; i < vctKey.size(); i++) {
-      pos += vctKey[i]->WriteData(_bysVal + pos, SavePosition::KEY);
+      pos += vctKey[i]->WriteData(_bysVal + pos, svPos);
     }
   }
   RawKey(Byte *bys, uint32_t len, bool sole = false)

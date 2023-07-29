@@ -19,9 +19,8 @@ public:
     BytesCopy(bysValue_, val, len);
     bysValue_[len] = 0;
   }
-  DataValueVarChar(Byte *byArray, uint32_t strLen, uint32_t maxLength,
-                   SavePosition svPos)
-      : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE, svPos),
+  DataValueVarChar(Byte *byArray, uint32_t strLen, uint32_t maxLength)
+      : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE),
         maxLength_(maxLength), soleLength_(strLen), bysValue_(byArray) {
     assert(soleLength_ <= maxLength_);
   }

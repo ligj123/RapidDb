@@ -34,9 +34,10 @@ INSERT_START : {
     pdv.push_back(vdv->at(col.colPos));
   }
 
-  LeafRecord *lr = new LeafRecord(
-      priProp._tree, pdv, *vdv,
-      priProp._tree->GetHeadPage()->GetAndIncRecordStamp(), this);
+  LeafRecord *lr =
+      new LeafRecord(priProp._tree, pdv, *vdv,
+                     priProp._tree->GetHeadPage()->GetAndIncRecordStamp(), this,
+                     table->GetKeySavePosition());
   _vctRecord.push_back(lr);
   _currRow++;
   _indexPage = nullptr;

@@ -9,19 +9,18 @@ using namespace std;
 class DataValueBlob : public IDataValue {
 public:
   DataValueBlob(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
-      : IDataValue(DataType::BLOB, ValueType::NULL_VALUE, SavePosition::VALUE),
+      : IDataValue(DataType::BLOB, ValueType::NULL_VALUE),
         maxLength_(maxLength), bysValue_(nullptr), soleLength_(0) {}
   DataValueBlob(const char *val, int len, uint32_t maxLength = UINT32_MAX)
-      : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, SavePosition::VALUE),
+      : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE),
         maxLength_(maxLength == UINT32_MAX ? len : maxLength),
         soleLength_(len) {
     bysValue_ = CachePool::Apply(soleLength_);
     BytesCopy(bysValue_, val, len);
   }
-  DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength,
-                SavePosition svPos = SavePosition::VALUE)
-      : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE, svPos),
-        bysValue_(byArray), maxLength_(maxLength), soleLength_(len) {
+  DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength)
+      : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE), bysValue_(byArray),
+        maxLength_(maxLength), soleLength_(len) {
     assert(soleLength_ <= maxLength_);
   }
   DataValueBlob(const DataValueBlob &src) : IDataValue(src) {

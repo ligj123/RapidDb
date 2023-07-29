@@ -79,9 +79,9 @@ public:
 
 public:
   PhysTable(const string &dbName, const string &tableName, const string &desc,
-            uint32_t tid, DT_MilliSec dtCreate)
+            uint32_t tid, DT_MilliSec dtCreate, SavePosition keySp)
       : _dbName(dbName), _name(tableName), _fullName(_dbName + "." + tableName),
-        _desc(desc), _tid(tid), _dtCreate(dtCreate) {
+        _desc(desc), _tid(tid), _dtCreate(dtCreate), _keySp(keySp) {
     _dtLastUpdate = MilliSecTime();
   };
   PhysTable()
@@ -96,6 +96,7 @@ public:
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   const IndexProp &GetPrimaryKey() const { return _vctIndex[0]; }
   const MVector<IndexProp> &GetVectorIndex() const { return _vctIndex; }
+  const SavePosition GetKeySavePosition() { return _keySp; }
   IndexType GetIndexType(const string &indexName) const {
     auto iter = _mapIndexNamePos.find(indexName);
     if (iter == _mapIndexNamePos.end())
@@ -264,6 +265,8 @@ protected:
   Transaction *_lockTran{nullptr};
   // The mutex for table lock
   SpinMutex _spinMutex;
+  // Save key as fix or var length key
+  SavePosition _keySp;
 };
 
 } // namespace storage
