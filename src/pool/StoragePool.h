@@ -48,8 +48,7 @@ protected:
   static SpinMutex _spinMutex;
 
 protected:
-  StoragePool(ThreadPool *tp)
-      : _fastQueue(tp->GetMaxThreads()), _threadPool(tp){};
+  StoragePool(ThreadPool *tp) : _fastQueue(tp), _threadPool(tp){};
   MTreeMap<uint64_t, CachePage *> _mapWrite;
   FastQueue<CachePage> _fastQueue;
   ThreadPool *_threadPool;

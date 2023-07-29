@@ -8,20 +8,19 @@ using namespace std;
 class DataValueVarChar : public IDataValue {
 public:
   DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
-      : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE, SavePosition::ALL),
+      : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE),
         maxLength_(maxLength), soleLength_(0), bysValue_(nullptr) {}
   DataValueVarChar(const char *val, uint32_t len,
                    uint32_t maxLength = UINT32_MAX)
-      : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE, SavePosition::ALL),
+      : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE),
         maxLength_(maxLength == UINT32_MAX ? len + 1 : maxLength),
         soleLength_(len + 1) {
     bysValue_ = CachePool::Apply(soleLength_);
     BytesCopy(bysValue_, val, len);
     bysValue_[len] = 0;
   }
-  DataValueVarChar(Byte *byArray, uint32_t strLen, uint32_t maxLength,
-                   SavePosition svPos)
-      : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE, svPos),
+  DataValueVarChar(Byte *byArray, uint32_t strLen, uint32_t maxLength)
+      : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE),
         maxLength_(maxLength), soleLength_(strLen), bysValue_(byArray) {
     assert(soleLength_ <= maxLength_);
   }

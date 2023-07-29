@@ -12,7 +12,6 @@ BOOST_AUTO_TEST_CASE(DataValueDigital_test) {
   BOOST_TEST(dv1.IsNull());
   BOOST_TEST(dv1.GetMaxLength() == 8);
   BOOST_TEST(dv1.GetDataLength() == 0);
-  BOOST_TEST(dv1.GetSavePosition() == SavePosition::ALL);
   BOOST_TEST(dv1.GetPersistenceLength(SavePosition::KEY) == 8);
   BOOST_TEST(dv1.GetPersistenceLength(SavePosition::VALUE) == 0);
   BOOST_TEST(!dv1.GetValue().has_value());

@@ -45,8 +45,7 @@ protected:
   static PageDividePool *_divPool;
 
 protected:
-  PageDividePool(ThreadPool *tp)
-      : _fastQueue(tp->GetMaxThreads()), _threadPool(tp) {}
+  PageDividePool(ThreadPool *tp) : _fastQueue(tp), _threadPool(tp) {}
   MTreeMap<uint64_t, IndexPage *> _mapPage;
   FastQueue<IndexPage> _fastQueue;
   ThreadPool *_threadPool;

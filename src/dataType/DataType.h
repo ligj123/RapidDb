@@ -37,9 +37,9 @@ enum class DataType : uint32_t {
 
 // DataValue in record's position
 enum class SavePosition : uint8_t {
-  ALL = 0, // Data used in both key and value
-  KEY,     // Data used in key
-  VALUE    // Data used in value
+  UNKNOWN = 0, // Data used in both key and value
+  KEY,         // Data used in key
+  VALUE        // Data used in value
 };
 
 enum class ValueType : uint8_t { NULL_VALUE = 0, SOLE_VALUE, BYTES_VALUE };
@@ -121,8 +121,8 @@ inline std::ostream &operator<<(std::ostream &os, const ValueType &vt) {
 
 inline std::ostream &operator<<(std::ostream &os, const SavePosition &sp) {
   switch (sp) {
-  case SavePosition::ALL:
-    os << "ALL(" << (int)SavePosition::ALL << ")";
+  case SavePosition::UNKNOWN:
+    os << "UNKNOWN(" << (int)SavePosition::UNKNOWN << ")";
     break;
   case SavePosition::KEY:
     os << "KEY(" << (int)SavePosition::KEY << ")";

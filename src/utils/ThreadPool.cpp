@@ -17,7 +17,7 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
     : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize),
       _stopThreads(false), _minThreads(minThreads), _maxThreads(maxThreads),
       _aliveThreads(0), _freeThreads(0), _tasksNum(0), _startId(startId),
-      _fastQueue(new FastQueue<Task>(maxThreads)) {
+      _fastQueue(new FastQueue<Task>(this)) {
   if (_minThreads < 1 || _minThreads > _maxThreads || _maxThreads < 1) {
     throw invalid_argument(
         "Please set min threads and max thread in right range!");
@@ -134,7 +134,7 @@ void ThreadPool::CreateThread(int id) {
   _aliveThreads++;
   thread_lock.unlock();
 
-  for(function<void()> func : _vctLambda) {
+  for (function<void()> func : _vctLambda) {
     func();
   }
 }

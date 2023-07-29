@@ -10,7 +10,8 @@ BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(FastQueue_test) {
   static atomic_int64_t taskCount{0};
-  static FastQueue<DataValueLong> fastQueue(8);
+  static ThreadPool tp("Test_ThreadPool", 100000, 1, 8);
+  static FastQueue<DataValueLong> fastQueue(&tp);
   static bool bStop1 = false;
   static bool bStop2 = false;
 
@@ -29,7 +30,6 @@ BOOST_AUTO_TEST_CASE(FastQueue_test) {
     }
   };
 
-  ThreadPool tp("Test_ThreadPool", 100000, 1, 8);
   for (int i = 0; i < 8; i++) {
     tp.AddTask(new TestTask());
   }

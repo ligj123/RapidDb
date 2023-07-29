@@ -71,7 +71,7 @@ enum class ExprType {
 class BaseExpr {
 public:
   virtual ~BaseExpr() {}
-  ExprType GetType() { return ExprType::EXPR_BASE; }
+  virtual ExprType GetType() { return ExprType::EXPR_BASE; }
 
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);

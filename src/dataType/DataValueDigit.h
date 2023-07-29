@@ -9,10 +9,8 @@
 namespace storage {
 template <class T, DataType DT> class DataValueDigit : public IDataValue {
 public:
-  DataValueDigit()
-      : IDataValue(DT, ValueType::NULL_VALUE, SavePosition::ALL), _value(0) {}
-  DataValueDigit(T val)
-      : IDataValue(DT, ValueType::SOLE_VALUE, SavePosition::ALL), _value(val) {}
+  DataValueDigit() : IDataValue(DT, ValueType::NULL_VALUE), _value(0) {}
+  DataValueDigit(T val) : IDataValue(DT, ValueType::SOLE_VALUE), _value(val) {}
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
     _value = src._value;
   }
@@ -124,7 +122,7 @@ public:
   size_t Hash() const override { return std::hash<T>{}(_value); }
 
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override {
-    assert(svPos != SavePosition::ALL);
+    assert(svPos != SavePosition::UNKNOWN);
     if (svPos == SavePosition::KEY) {
       if (valType_ == ValueType::NULL_VALUE) {
         DigitalToBytes<T, DT>(0, buf, true);
@@ -143,7 +141,7 @@ public:
   }
   uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
                     bool bSole = true) override {
-    assert(svPos != SavePosition::ALL);
+    assert(svPos != SavePosition::UNKNOWN);
     if (svPos == SavePosition::KEY) {
       valType_ = ValueType::SOLE_VALUE;
       _value = DigitalFromBytes<T, DT>(buf, true);
@@ -202,7 +200,7 @@ public:
   }
   DataValueDigit &operator=(const DataValueDigit &src) {
     valType_ = src.valType_;
-    savePos_ = src.savePos_;
+    dataType_ = src.dataType_;
     _value = src._value;
 
     return *this;

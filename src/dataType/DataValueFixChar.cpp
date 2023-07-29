@@ -359,7 +359,6 @@ DataValueFixChar *DataValueFixChar::operator=(const DataValueFixChar &src) {
 
   dataType_ = src.dataType_;
   valType_ = src.valType_;
-  savePos_ = src.savePos_;
   maxLength_ = src.maxLength_;
 
   switch (valType_) {

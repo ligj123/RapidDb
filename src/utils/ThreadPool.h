@@ -161,9 +161,7 @@ public:
   int GetMaxThreads() const { return _maxThreads; }
   int GetFreeThreads() const { return _freeThreads; }
   int GetStartId() const { return _startId; }
-  void PushLambda(function<void()> func){
-    _vctLambda.push_back(func);
-  }
+  void PushLambda(function<void()> func) { _vctLambda.push_back(func); }
 
 protected:
   vector<thread *> _vctThread;
@@ -186,8 +184,8 @@ protected:
   // use those ids as index.
   int _startId;
   FastQueue<Task> *_fastQueue;
-  //lambda fucntions, when create a new thread, to call the functions.
-  vector<function<void()> _vctLambda;
+  // lambda fucntions, when create a new thread, to call the functions.
+  vector<function<void()>> _vctLambda;
 
 protected:
   static ThreadPool *_instMain;
