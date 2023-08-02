@@ -46,6 +46,7 @@ public:
   ExprStatement(VectorDataValue *paraTmpl) : _paraTmpl(paraTmpl) {}
   ~ExprStatement() { delete _paraTmpl; }
   const VectorDataValue *GetParaTemplate() const { return _paraTmpl; }
+  bool Preprocess() = 0;
 
 protected:
   // The template for paramters, only need by top statement
@@ -142,6 +143,7 @@ public:
   PhysTable *GetSourTable() const { return _physTable; }
   const ExprTable *GetExprTable() { return _exprTable; }
   const ExprSelect *GetExprSelect() { return _exprSelect; }
+
   bool IsUpsert() { return _bUpsert; }
 
 protected:

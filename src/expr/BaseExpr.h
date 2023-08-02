@@ -72,7 +72,7 @@ class BaseExpr {
 public:
   virtual ~BaseExpr() {}
   virtual ExprType GetType() { return ExprType::EXPR_BASE; }
-  virtual void Preprocess() = 0;
+  virtual void Preprocess(){};
 
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
@@ -95,7 +95,8 @@ public:
    * @param vdRow The data value array parsed from current row.
    * @return If the result is directly from vdPara or vdRow, it will be marked
    * as resued and does not need to free. If it is calculated result, it will
-   * need to free it.
+   * need to free it. If return nullptr, it has error in internal and the error
+   * is saved in _threadErrorMsg.
    */
   virtual IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
 };
@@ -111,10 +112,13 @@ public:
    * vdDst
    * @param vdSrc The row data value array from source table.
    * @param vdDst the raw data value array to save calculated result
+   * @return If return false, it has error in internal,and the error
+   * is saved in _threadErrorMsg.
    */
-  virtual void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
+  virtual bool Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
 };
 
+enum class TriBool { Error = -1, False = 0, True };
 /**
  * @brief Base class for all logic expression, for example and,or
  */
@@ -125,9 +129,10 @@ public:
    * @brief To calc the bool result from child expr and return.
    * @param vdSrc The row data value array from source table.
    * @param vdDst the raw data value array to save calculated result
-   * @return the bool result
+   * @return TriBool:Error it has error in internal,and the error
+   * is saved in _threadErrorMsg.
    */
-  virtual bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
+  virtual TriBool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
 };
 
 /**
@@ -136,11 +141,22 @@ public:
  */
 class ExprEditColumn : public BaseExpr {
 public:
-  ExprEditColumn(const string &name) : _name(name), _pos(-1) {}
+  ExprEditColumn(const string &name)
+      : _name(name), _pos(-1), _exprData(nullptr) {}
+  ~ExprEditColumn() { delete _exprData; }
+  void Preprocess(int pos, ExprData *exprData) {
+    _pos = pos;
+    _exprData = exprData;
+  }
+
+  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
+    IDataValue *dv = _exprData->Calc(vdPara, vdRow);
+  }
 
 protected:
-  string _name; // column name
-  int _pos;     // The position in table columns
+  string _name;        // column name
+  int _pos;            // The position in table columns
+  ExprData *_exprData; // The expression to get data value
 }
 
 // /**
