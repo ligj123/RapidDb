@@ -274,9 +274,6 @@
     <ClInclude Include="..\..\src\expr\ExprLogic.h">
       <Filter>expr</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\expr\ExprValue.h">
-      <Filter>expr</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\expr\ExprStatement.h">
       <Filter>expr</Filter>
     </ClInclude>

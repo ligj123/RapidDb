@@ -67,7 +67,8 @@
         "variant": "cpp",
         "shared_mutex": "cpp",
         "forward_list": "cpp",
-        "iterator": "cpp"
+        "iterator": "cpp",
+        "xstring": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "boost-test-adapter.cwd": "/home/lgj/mydb/RapidDb",
