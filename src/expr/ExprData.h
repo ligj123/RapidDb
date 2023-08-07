@@ -19,7 +19,7 @@ public:
   ExprConst(IDataValue *val) : _val(val) { _val->SetReuse(true); }
   ~ExprConst() { delete _val; }
   ExprType GetType() { return ExprType::EXPR_CONST; }
-  IDataValue *Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
+  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
     return _val;
   }
   IDataValue *GetValue() { return _val; }
@@ -33,14 +33,15 @@ protected:
  */
 class ExprField : public ExprData {
 public:
-  ExprField(int rowPos) : _rowPos(rowPos) {}
+  ExprField(bool lr, int rowPos) : _lr(lr), _rowPos(rowPos) {}
 
   ExprType GetType() { return ExprType::EXPR_FIELD; }
-  IDataValue *Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) override {
-    return vdDst[_rowPos];
+  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
+    return _lr ? vdLeft[_rowPos] : vdRight[_rowPos];
   }
 
 protected:
+  bool _lr;    // true: left; false right
   int _rowPos; // The position in the table.
 };
 
@@ -52,8 +53,8 @@ public:
   ExprParameter(int paraPos) : _paraPos(paraPos) {}
 
   ExprType GetType() { return ExprType::EXPR_PARAMETER; }
-  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    return vdPara[_paraPos];
+  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
+    return vdLeft[_paraPos];
   }
 
 protected:
@@ -70,9 +71,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_ADD; }
-  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
-    IDataValue *right = _exprRight->Calc(vdPara, vdRow);
+  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
+    IDataValue *left = _exprLeft->Calc(vdLeft, vdRight);
+    IDataValue *right = _exprRight->Calc(vdLeft, vdRight);
     IDataValue *rt = nullptr;
 
     if (left->IsStringType() || right->IsStringType()) {
@@ -109,9 +110,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_SUB; }
-  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
-    IDataValue *right = _exprRight->Calc(vdPara, vdRow);
+  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
+    IDataValue *left = _exprLeft->Calc(vdLeft, vdRight);
+    IDataValue *right = _exprRight->Calc(vdLeft, vdRight);
     IDataValue *rt = nullptr;
 
     if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
@@ -144,9 +145,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_MUL; }
-  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
-    IDataValue *right = _exprRight->Calc(vdPara, vdRow);
+  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
+    IDataValue *left = _exprLeft->Calc(vdLeft, vdRight);
+    IDataValue *right = _exprRight->Calc(vdLeft, vdRight);
     IDataValue *rt = nullptr;
 
     if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
@@ -179,9 +180,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_DIV; }
-  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
-    IDataValue *right = _exprRight->Calc(vdPara, vdRow);
+  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
+    IDataValue *left = _exprLeft->Calc(vdLeft, vdRight);
+    IDataValue *right = _exprRight->Calc(vdLeft, vdRight);
     IDataValue *rt = nullptr;
 
     if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {

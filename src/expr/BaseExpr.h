@@ -49,9 +49,9 @@ enum class ExprType {
   EXPR_ON,
 
   // Input or oupt value and table
-  EXPR_EDIT_COLUMN,
-  EXPR_TABLE,
+  EXPR_COLUMN,
   EXPR_RESULT_COLUMN,
+  EXPR_TABLE,
 
   // Select
   EXPR_TABLE_SELECT,
@@ -89,16 +89,18 @@ class ExprData : public BaseExpr {
 public:
   using BaseExpr::BaseExpr;
   /**
-   * @brief Get data value from vdPara or vdRow, then calc them and return the
+   * @brief Get data value from vdLeft or vdRight, then calc them and return the
    * result.
-   * @param vdPara The data value array that are inputed from client.
-   * @param vdRow The data value array parsed from current row.
-   * @return If the result is directly from vdPara or vdRow, it will be marked
+   * @param vdLeft The data value array that are inputed from client or left
+   * table (join table).
+   * @param vdRight The data value array from table or right table (join table).
+   * @return If the result is directly from vdLeft or vdRight, it will be marked
    * as resued and does not need to free. If it is calculated result, it will
    * need to free it. If return nullptr, it has error in internal and the error
    * is saved in _threadErrorMsg.
    */
-  virtual IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
+  virtual IDataValue *Calc(VectorDataValue &vdLeft,
+                           VectorDataValue &vdRight) = 0;
 };
 
 /**
@@ -185,12 +187,11 @@ protected:
  * get the data value from exist row data or parameters, then save it into row
  * data value array
  */
-class ExprEditColumn : public BaseExpr {
+class ExprColumn : public BaseExpr {
 public:
-  ExprEditColumn(string &name)
-      : _name(move(name)), _pos(-1), _exprData(nullptr) {}
-  ~ExprEditColumn() { delete _exprData; }
-  ExprType GetType() { return ExprType::EXPR_EDIT_COLUMN; }
+  ExprColumn(string &name) : _name(move(name)), _pos(-1), _exprData(nullptr) {}
+  ~ExprColumn() { delete _exprData; }
+  ExprType GetType() { return ExprType::EXPR_COLUMN; }
   void Preprocess(int pos, ExprData *exprData) {
     _pos = pos;
     _exprData = exprData;
@@ -211,19 +212,24 @@ protected:
 };
 
 // The column in temp table for select result.
-class ExprResColumn : public BaseExpr {
+class ExprResColumn : public ExprColumn {
 public:
-  ExprResColumn(string &name) : _name(move(name)) {}
+  ExprResColumn(string &tname, string &name, string &alias)
+      : ExprColumn(name), _tName(move(tname)), _alias(move(alias)) {}
   ~ExprResColumn() {}
   ExprType GetDataType() const { return ExprType::EXPR_RESULT_COLUMN; }
-  void Preprocess() {}
-  void Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) {}
-
-  const string &GetColumnName() const { return _name; }
+  /**
+   * @brief Load data value from left or right source table, and calculate and
+   * get the last result, then save it into dest table
+   * @param vdLeft The vector of data values from left source table
+   * @param vdRight The vector of data values from right source table
+   * @param vdDest The vector of data value for destion table
+   */
+  bool Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight,
+            VectorDataValue &vdDest) {}
 
 protected:
-  string _name;        // Column name
-  int _pos;            // The index in table's columns array
-  ExprData *_exprData; // The expression to get data value from source
+  string _tName; // table name
+  string _alias; // alias name
 };
 } // namespace storage
