@@ -199,10 +199,15 @@ public:
 
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     IDataValue *dv = _exprData->Calc(vdPara, vdRow);
+    if (dv == nullptr)
+      return false;
+
     vdRow[_pos]->Copy(*dv, !dv->IsReuse());
     if (!dv->IsReuse()) {
       delete dv;
     }
+
+    return true;
   }
 
 protected:
@@ -226,7 +231,17 @@ public:
    * @param vdDest The vector of data value for destion table
    */
   bool Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight,
-            VectorDataValue &vdDest) {}
+            VectorDataValue &vdDest) {
+    IDataValue *dv = _exprData->Calc(vdLeft, vdRight);
+    if (dv == nullptr)
+      return false;
+
+    vdDest[_pos]->Copy(*dv, !dv->IsReuse());
+    if (!dv->IsReuse()) {
+      delete dv;
+    }
+    return false;
+  }
 
 protected:
   string _tName; // table name

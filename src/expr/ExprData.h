@@ -33,16 +33,25 @@ protected:
  */
 class ExprField : public ExprData {
 public:
-  ExprField(bool lr, int rowPos) : _lr(lr), _rowPos(rowPos) {}
+  ExprField(string &tName, string &name)
+      : _tName(move(tName)), _name(move(name)) {}
 
   ExprType GetType() { return ExprType::EXPR_FIELD; }
+  void Preprocess(bool lr, int rowPos) {
+    _lr = lr;
+    _rowPos = rowPos;
+  }
+
   IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
+    
     return _lr ? vdLeft[_rowPos] : vdRight[_rowPos];
   }
 
 protected:
-  bool _lr;    // true: left; false right
-  int _rowPos; // The position in the table.
+  string _tName; // The table name this field belong to
+  string _name;  // The field name (The related column)
+  bool _lr;      // true: left; false right
+  int _rowPos;   // The position in the table.
 };
 
 /*
