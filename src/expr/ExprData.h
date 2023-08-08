@@ -43,7 +43,6 @@ public:
   }
 
   IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
-    
     return _lr ? vdLeft[_rowPos] : vdRight[_rowPos];
   }
 

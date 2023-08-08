@@ -45,6 +45,7 @@ enum class ExprType {
   EXPR_AND,
   EXPR_OR,
   EXPR_NOT,
+
   EXPR_WHERE,
   EXPR_ON,
 
@@ -247,4 +248,44 @@ protected:
   string _tName; // table name
   string _alias; // alias name
 };
+
+class ExprWhere : public BaseExpr {
+public:
+  ExprWhere(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
+  ~ExprWhere() { delete _exprLogic; }
+  ExprType GetDataType() const { return ExprType::EXPR_WHERE; }
+
+protected:
+  ExprLogic *_exprLogic;
+};
+
+class ExprOn : public BaseExpr {
+public:
+  ExprOn(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
+  ~ExprOn() { delete _exprLogic; }
+  ExprType GetDataType() const { return ExprType::EXPR_ON; }
+
+protected:
+  ExprLogic *_exprLogic;
+};
+
+class ExprHaving : public BaseExpr {
+public:
+  ExprHaving(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
+  ~ExprHaving() { delete _exprLogic; }
+  ExprType GetDataType() const { return ExprType::EXPR_ON; }
+
+protected:
+  ExprLogic *_exprLogic;
+};
+
+class ExprGroupBy : public BaseExpr {
+public:
+protected:
+};
+
+class ExprOrderBy : public BaseExpr {
+public:
+protected:
+}
 } // namespace storage
