@@ -73,7 +73,7 @@ enum class ExprType {
 class BaseExpr {
 public:
   virtual ~BaseExpr() {}
-  virtual ExprType GetType() { return ExprType::EXPR_BASE; }
+  virtual ExprType GetType() = 0;
 
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
@@ -247,6 +247,17 @@ public:
 protected:
   string _tName; // table name
   string _alias; // alias name
+};
+
+class ExprCond<ExprType ET> : public BaseExpr {
+public:
+  ~ExprCond() { delete _exprLogic; }
+  ExprType GetDataType() const { return ET; }
+
+  bool AddElem() {}
+
+protected:
+  ExprLogic *_exprLogic{nullptr};
 };
 
 class ExprWhere : public BaseExpr {
