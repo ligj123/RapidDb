@@ -49,6 +49,12 @@ enum class ExprType {
   EXPR_WHERE,
   EXPR_ON,
 
+  // DDL
+  EXPR_CREATE_DATABASE,
+  EXPR_DROP_DATABASE,
+  EXPR_CREATE_TABLE,
+  EXPR_DROP_TABLE,
+
   // Input or oupt value and table
   EXPR_COLUMN,
   EXPR_RESULT_COLUMN,
@@ -156,7 +162,7 @@ public:
   ExprType GetType() { return ExprType::EXPR_ARRAY; }
   bool Exist(IDataValue *pdv) { return (_setVal.find(pdv) != _setVal.end()); }
 
-protected:
+public:
   unordered_set<IDataValue *, DataValueHash, DataValueEqual,
                 Mallocator<IDataValue *>>
       _setVal;
@@ -177,7 +183,7 @@ public:
   const string &GetTableAlias() const { return _tAlias; }
   void SetDbName(string &dbName) { _dbName = move(dbName); }
 
-protected:
+public:
   string _dbName;
   string _tName;
   string _tAlias;
@@ -211,7 +217,7 @@ public:
     return true;
   }
 
-protected:
+public:
   string _name;        // column name
   int _pos;            // The position in table columns
   ExprData *_exprData; // The expression to get data value from source
@@ -244,59 +250,9 @@ public:
     return false;
   }
 
-protected:
+public:
   string _tName; // table name
   string _alias; // alias name
 };
 
-class ExprCond<ExprType ET> : public BaseExpr {
-public:
-  ~ExprCond() { delete _exprLogic; }
-  ExprType GetDataType() const { return ET; }
-
-  bool AddElem() {}
-
-protected:
-  ExprLogic *_exprLogic{nullptr};
-};
-
-class ExprWhere : public BaseExpr {
-public:
-  ExprWhere(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
-  ~ExprWhere() { delete _exprLogic; }
-  ExprType GetDataType() const { return ExprType::EXPR_WHERE; }
-
-protected:
-  ExprLogic *_exprLogic;
-};
-
-class ExprOn : public BaseExpr {
-public:
-  ExprOn(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
-  ~ExprOn() { delete _exprLogic; }
-  ExprType GetDataType() const { return ExprType::EXPR_ON; }
-
-protected:
-  ExprLogic *_exprLogic;
-};
-
-class ExprHaving : public BaseExpr {
-public:
-  ExprHaving(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
-  ~ExprHaving() { delete _exprLogic; }
-  ExprType GetDataType() const { return ExprType::EXPR_ON; }
-
-protected:
-  ExprLogic *_exprLogic;
-};
-
-class ExprGroupBy : public BaseExpr {
-public:
-protected:
-};
-
-class ExprOrderBy : public BaseExpr {
-public:
-protected:
-}
 } // namespace storage

@@ -17,14 +17,32 @@ namespace storage {
 class ExprConst : public ExprData {
 public:
   ExprConst(IDataValue *val) : _val(val) { _val->SetReuse(true); }
+  ExprConst(int64_t ival) {
+    _val = new DataValueLong(ival);
+    _val->SetReuse(true);
+  }
+  ExprConst(double dval) {
+    _val = new DataValueDouble(dval);
+    _val->SetReuse(true);
+  }
+  ExprConst(char *sval) {
+    _val = new DataValueVarChar(sval, strlen(sval));
+    _val->SetReuse(true);
+  }
+  ExprConst(bool bval) {
+    _val = new DataValueBool(bval);
+    _val->SetReuse(true);
+  }
+  ExprConst() { _val = nullptr; }
   ~ExprConst() { delete _val; }
   ExprType GetType() { return ExprType::EXPR_CONST; }
   IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
     return _val;
   }
   IDataValue *GetValue() { return _val; }
+  bool IsNull() { return _val == nullptr; }
 
-protected:
+public:
   IDataValue *_val;
 };
 
@@ -37,19 +55,15 @@ public:
       : _tName(move(tName)), _name(move(name)) {}
 
   ExprType GetType() { return ExprType::EXPR_FIELD; }
-  void Preprocess(bool lr, int rowPos) {
-    _lr = lr;
-    _rowPos = rowPos;
+  void Preprocess(int rowPos) { _rowPos = rowPos; }
+
+  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
+    return vdRow[_rowPos];
   }
 
-  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
-    return _lr ? vdLeft[_rowPos] : vdRight[_rowPos];
-  }
-
-protected:
+public:
   string _tName; // The table name this field belong to
   string _name;  // The field name (The related column)
-  bool _lr;      // true: left; false right
   int _rowPos;   // The position in the table.
 };
 
@@ -65,7 +79,7 @@ public:
     return vdLeft[_paraPos];
   }
 
-protected:
+public:
   int _paraPos; // The position in parameter array.
 };
 
@@ -103,7 +117,7 @@ public:
     return rt;
   }
 
-protected:
+public:
   ExprData *_exprLeft;
   ExprData *_exprRight;
 };
@@ -138,7 +152,7 @@ public:
     return rt;
   }
 
-protected:
+public:
   ExprData *_exprLeft;
   ExprData *_exprRight;
 };
@@ -173,7 +187,7 @@ public:
     return rt;
   }
 
-protected:
+public:
   ExprData *_exprLeft;
   ExprData *_exprRight;
 };
@@ -213,7 +227,7 @@ public:
     return rt;
   }
 
-protected:
+public:
   ExprData *_exprLeft;
   ExprData *_exprRight;
 };

@@ -29,7 +29,7 @@ public:
     }
   }
 
-protected:
+public:
   // The position for this expr in expr array, the position in the value array
   // too
   int _index;
@@ -52,7 +52,7 @@ public:
     }
   }
 
-protected:
+public:
   int _index;
   int _colPos;
 };
@@ -68,7 +68,7 @@ public:
     }
   }
 
-protected:
+public:
   int _index;
   int _colPos;
 };
@@ -85,7 +85,7 @@ public:
     }
   }
 
-protected:
+public:
   int _index;
   int _colPos;
 };
@@ -105,7 +105,7 @@ public:
     }
   }
 
-protected:
+public:
   int _index;
   int _colPos;
   int _countPos;

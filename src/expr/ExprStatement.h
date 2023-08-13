@@ -23,12 +23,6 @@ enum class TableType {
 
 enum class JoinType { INNER_JOIN, LEFT_JOIN, RIGHT_JOIN, OUTTER_JOIN };
 
-// The column order by
-struct OrderCol {
-  int colPos; // The position of column for order
-  bool bAsc;  // True: asc; False desc
-};
-
 // To query physical table, point out which index will be used. Only one index
 // can be selected.
 struct SelIndex {
@@ -40,6 +34,53 @@ struct SelIndex {
   int _indexPos;
 };
 
+template <ExprType ET> class ExprCondition : public BaseExpr {
+public:
+  ExprCondition(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
+  ~ExprCondition() { delete _exprLogic; }
+  ExprType GetDataType() const { return ET; }
+
+  TriBool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
+    if (_exprLogic == nullptr)
+      return TriBool::True;
+    return _exprLogic->Calc(vdPara, vdRow);
+  }
+
+public:
+  ExprLogic *_exprLogic;
+};
+
+typedef ExprCondition<ExprType::EXPR_WHERE> ExprWhere;
+typedef ExprCondition<ExprType::EXPR_WHERE> ExprOn;
+typedef ExprCondition<ExprType::EXPR_WHERE> ExprHaving;
+
+struct GroupItem {
+  MString _colName; // The column name, from sql statement
+  int _pos;         // The position of column in result set
+};
+
+class ExprGroupBy : public BaseExpr {
+public:
+  ExprGroupBy(vector<GroupItem> vct) { _vctItem.swap(vct); }
+
+public:
+  vector<GroupItem> _vctItem;
+};
+
+struct OrderTerm {
+  MString _colName;
+  bool _direct; // True: ASC; False: DESC
+  int _pos;
+};
+
+class ExprOrderBy : public BaseExpr {
+public:
+  ExprOrderBy(vector<OrderTerm> &vct) { _vctItem.swap(vct); }
+
+public:
+  vector<OrderTerm> _vctItem;
+};
+
 // Base class for all statement
 class ExprStatement : public BaseExpr {
 public:
@@ -48,7 +89,7 @@ public:
   const VectorDataValue *GetParaTemplate() const { return _paraTmpl; }
   bool Preprocess() = 0;
 
-protected:
+public:
   // The template for paramters, only need by top statement
   VectorDataValue *_paraTmpl;
 };
@@ -79,7 +120,7 @@ public:
 
   ExprStatement *GetParent() { return _parent; }
 
-protected:
+public:
   // Parent statement for this select statement
   ExprStatement *_parent;
   ExprTable *_destTable; // The columns of selected result
@@ -95,6 +136,33 @@ protected:
   // If cache result for future query, only valid for top select result.
   bool _bCacheResult;
 };
+
+class ExprCreateDatabase : public BaseExpr {
+public:
+  ExprCreateDatabase(MString name, bool ifNotExist)
+      : _dbName(name), _ifNotExist(ifNotExist) {}
+  ExprType GetType() { return ExprType::EXPR_CREATE_DATABASE; }
+
+public:
+  MString _dbName;
+  bool _ifNotExist;
+}
+
+class ExprDropDatabase : public BaseExpr {
+public:
+  ExprDropDatabase(MString name, bool ifNotExist)
+      : _dbName(name), _ifNotExist(ifNotExist) {}
+  ExprType GetType() { return ExprType::EXPR_DROP_DATABASE; }
+
+public:
+  MString _dbName;
+  bool _ifNotExist;
+}
+
+class ExprCreateTable : public BaseExpr {
+public:
+public:
+}
 
 class ExprTableSelect : public ExprSelect {
 public:
@@ -116,7 +184,7 @@ public:
   PhysTable *GetSourTable() const { return _physTable; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 
-protected:
+public:
   // The source table information.
   PhysTable *_physTable;
   // Which index used to search. Null means traverse all table.
@@ -146,7 +214,7 @@ public:
 
   bool IsUpsert() { return _bUpsert; }
 
-protected:
+public:
   // The destion physical table information
   PhysTable *_physTable;
   // The expression that how to calc values from input or select
@@ -178,7 +246,7 @@ public:
   const ExprLogic *GetWhere() { return _where; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 
-protected:
+public:
   // The destion physical table information
   PhysTable *_physTable;
   // The expression that how to calc values
@@ -208,7 +276,7 @@ public:
   const ExprLogic *GetWhere() { return _where; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 
-protected:
+public:
   // The destion persistent table information
   PhysTable *_physTable;
   // Where condition
