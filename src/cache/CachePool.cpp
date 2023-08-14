@@ -1,9 +1,7 @@
 ﻿#include "CachePool.h"
 #include "../config/Configure.h"
 #include "../config/ErrorID.h"
-#include "../utils/ErrorMsg.h"
-#include "../utils/Log.h"
-#include "../utils/StackTrace.h"
+#include "StackTrace.h"
 #include <iostream>
 
 namespace storage {

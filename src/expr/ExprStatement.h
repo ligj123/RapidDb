@@ -51,8 +51,8 @@ public:
 };
 
 typedef ExprCondition<ExprType::EXPR_WHERE> ExprWhere;
-typedef ExprCondition<ExprType::EXPR_WHERE> ExprOn;
-typedef ExprCondition<ExprType::EXPR_WHERE> ExprHaving;
+typedef ExprCondition<ExprType::EXPR_ON> ExprOn;
+typedef ExprCondition<ExprType::EXPR_HAVING> ExprHaving;
 
 struct GroupItem {
   MString _colName; // The column name, from sql statement
@@ -136,33 +136,6 @@ public:
   // If cache result for future query, only valid for top select result.
   bool _bCacheResult;
 };
-
-class ExprCreateDatabase : public BaseExpr {
-public:
-  ExprCreateDatabase(MString name, bool ifNotExist)
-      : _dbName(name), _ifNotExist(ifNotExist) {}
-  ExprType GetType() { return ExprType::EXPR_CREATE_DATABASE; }
-
-public:
-  MString _dbName;
-  bool _ifNotExist;
-}
-
-class ExprDropDatabase : public BaseExpr {
-public:
-  ExprDropDatabase(MString name, bool ifNotExist)
-      : _dbName(name), _ifNotExist(ifNotExist) {}
-  ExprType GetType() { return ExprType::EXPR_DROP_DATABASE; }
-
-public:
-  MString _dbName;
-  bool _ifNotExist;
-}
-
-class ExprCreateTable : public BaseExpr {
-public:
-public:
-}
 
 class ExprTableSelect : public ExprSelect {
 public:

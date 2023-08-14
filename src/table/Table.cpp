@@ -38,12 +38,12 @@ uint32_t IndexProp::Write(Byte *bys) {
 }
 
 uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
-                         const MHashMap<string, uint32_t> &mapColumnPos) {
+                         const MHashMap<MString, uint32_t> &mapColumnPos) {
   _position = pos;
   Byte *tmp = bys;
   uint16_t sz = *(uint16_t *)bys;
   bys += UI16_LEN;
-  _name = string((char *)bys, sz);
+  _name = MString((char *)bys, sz);
   bys += sz;
   _type = (IndexType) * (int8_t *)bys;
   bys++;
@@ -55,7 +55,7 @@ uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
     uint16_t len = *(uint16_t *)bys;
     bys += UI16_LEN;
 
-    col.colName = string((char *)bys, len);
+    col.colName = MString((char *)bys, len);
     bys += len;
 
     col.colPos = mapColumnPos.find(col.colName)->second;
@@ -65,8 +65,8 @@ uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
   return uint32_t(bys - tmp);
 }
 
-bool PhysTable::AddColumn(const string &columnName, DataType dataType,
-                          bool nullable, uint32_t maxLen, const string &comment,
+bool PhysTable::AddColumn(const MString &columnName, DataType dataType,
+                          bool nullable, uint32_t maxLen, const MString &comment,
                           Charsets charset, const any &valDefault) {
   assert(_vctIndex.size() == 0);
 
@@ -88,15 +88,15 @@ bool PhysTable::AddColumn(const string &columnName, DataType dataType,
     dvDefault = DataValueFactory(dataType, maxLen, valDefault);
   }
 
-  _mapColumnPos.insert(pair<string, int>(columnName, (int)_vctColumn.size()));
+  _mapColumnPos.insert(pair<MString, int>(columnName, (int)_vctColumn.size()));
   _vctColumn.emplace_back(columnName, (uint32_t)_vctColumn.size(), dataType,
                           comment, nullable, maxLen, -1, -1, Charsets::UTF8,
                           dvDefault);
   return true;
 }
 
-bool PhysTable::AddColumn(const string &columnName, DataType dataType,
-                          const string &comment, int64_t initVal,
+bool PhysTable::AddColumn(const MString &columnName, DataType dataType,
+                          const MString &comment, int64_t initVal,
                           int64_t incStep) {
   assert(_vctIndex.size() == 0);
   assert(_vctColumn.size() == 0);
@@ -106,20 +106,20 @@ bool PhysTable::AddColumn(const string &columnName, DataType dataType,
     return false;
   }
 
-  _mapColumnPos.insert(pair<string, int>(columnName, 0));
+  _mapColumnPos.insert(pair<MString, int>(columnName, 0));
   _vctColumn.emplace_back(columnName, 0, dataType, comment, false, -1, initVal,
                           incStep, Charsets::UTF8, nullptr);
   return true;
 }
 
-bool PhysTable::AddIndex(IndexType indexType, const string &indexName,
-                         const MVector<string> &colNames) {
+bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
+                         const MVector<MString> &colNames) {
   if (colNames.size() == 0 && indexType != IndexType::HIDE_PRIMARY) {
     _threadErrorMsg.reset(new ErrorMsg(TB_INDEX_EMPTY_COLUMN, {indexName}));
     return false;
   }
 
-  string iname = (indexType == IndexType::PRIMARY ? PRIMARY_KEY : indexName);
+  MString iname = (indexType == IndexType::PRIMARY ? PRIMARY_KEY : indexName);
 
   for (auto iter = _mapIndexNamePos.begin(); iter != _mapIndexNamePos.end();
        iter++) {
@@ -142,8 +142,8 @@ bool PhysTable::AddIndex(IndexType indexType, const string &indexName,
   }
 
   MVector<IndexColumn> vctCol;
-  MHashSet<string> mset;
-  for (const string &cname : colNames) {
+  MHashSet<MString> mset;
+  for (const MString &cname : colNames) {
     if (mset.contains(cname)) {
       _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {cname}));
       return false;
@@ -275,7 +275,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
 
   uint32_t len = *(uint16_t *)buf;
   buf += UI16_LEN;
-  _fullName = string((char *)buf, len);
+  _fullName = MString((char *)buf, len);
   buf += len;
   size_t pos = _fullName.find(".");
   _name = _fullName.substr(pos + 1);
@@ -283,7 +283,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
 
   len = *(uint16_t *)buf;
   buf += UI16_LEN;
-  _desc = string((char *)buf, len);
+  _desc = MString((char *)buf, len);
   buf += len;
 
   _dtCreate = *(uint64_t *)buf;
@@ -333,7 +333,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
 bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   assert(idx >= 0 && idx < _vctIndex.size());
   IndexProp &prop = _vctIndex[idx];
-  string path = Configure::GetDbRootPath() + "/" + _dbName + "/" + _name + "/" +
+  MString path = Configure::GetDbRootPath() + "/" + _dbName + "/" + _name + "/" +
                 _vctIndex[idx]._name + ".idx";
 
   VectorDataValue dvKey;

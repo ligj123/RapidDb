@@ -69,7 +69,7 @@ uint32_t PhysColumn::ReadData(Byte *pBuf) {
   Byte *p = pBuf;
   uint16_t len = *((uint16_t *)p);
   p += UI16_LEN;
-  _name = string((char *)p, len);
+  _name = MString((char *)p, len);
   p += len;
 
   _dataType = (DataType) * ((uint32_t *)p);
@@ -92,7 +92,7 @@ uint32_t PhysColumn::ReadData(Byte *pBuf) {
 
   len = *((uint16_t *)p);
   p += UI16_LEN;
-  _comments = string((char *)p, len);
+  _comments = MString((char *)p, len);
   p += len;
 
   len = *((uint16_t *)p);

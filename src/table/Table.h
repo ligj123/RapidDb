@@ -30,15 +30,15 @@ enum class TableStatus : uint8_t {
 
 struct IndexColumn {
   IndexColumn() {}
-  IndexColumn(const string &name, uint32_t pos) : colName(name), colPos(pos) {}
+  IndexColumn(const MString &name, uint32_t pos) : colName(name), colPos(pos) {}
 
-  string colName;
+  MString colName;
   uint32_t colPos = 0;
 };
 
 struct IndexProp {
   IndexProp() : _position(UINT32_MAX), _type(IndexType::UNKNOWN) {}
-  IndexProp(const string &name, uint32_t pos, IndexType type,
+  IndexProp(const MString &name, uint32_t pos, IndexType type,
             MVector<IndexColumn> &vctCol)
       : _name(name), _position(pos), _type(type) {
     _vctCol.swap(vctCol);
@@ -46,7 +46,7 @@ struct IndexProp {
 
   uint32_t Write(Byte *bys);
   uint32_t Read(Byte *bys, uint32_t pos,
-                const MHashMap<string, uint32_t> &mapColumnPos);
+                const MHashMap<MString, uint32_t> &mapColumnPos);
   /** @brief To calculate the length to save this index
    * 1) 2 + n bytes: index name length + contents
    * 2) 1 byte: Index type
@@ -56,7 +56,7 @@ struct IndexProp {
   uint32_t CalcSize();
 
   // Index name
-  string _name;
+  MString _name;
   // The position of this index, start from 0 and primary key must be 0. Table
   // id + this position will be the file id in IndxTree.
   uint32_t _position;
@@ -78,7 +78,7 @@ public:
   }
 
 public:
-  PhysTable(const string &dbName, const string &tableName, const string &desc,
+  PhysTable(const MString &dbName, const MString &tableName, const MString &desc,
             uint32_t tid, DT_MilliSec dtCreate)
       : _dbName(dbName), _name(tableName), _fullName(_dbName + "." + tableName),
         _desc(desc), _tid(tid), _dtCreate(dtCreate) {
@@ -88,22 +88,22 @@ public:
       : _dbName(), _name(), _fullName(), _desc(), _tid(0), _dtCreate(0){};
   ~PhysTable() { Clear(); }
 
-  const string &GetTableName() const { return _name; }
-  const string &GetDescription() const { return _desc; }
-  const string &GetDbName() const { return _dbName; }
-  const string &GetFullName() const { return _fullName; }
+  const MString &GetTableName() const { return _name; }
+  const MString &GetDescription() const { return _desc; }
+  const MString &GetDbName() const { return _dbName; }
+  const MString &GetFullName() const { return _fullName; }
   uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   const IndexProp &GetPrimaryKey() const { return _vctIndex[0]; }
   const MVector<IndexProp> &GetVectorIndex() const { return _vctIndex; }
-  IndexType GetIndexType(const string &indexName) const {
+  IndexType GetIndexType(const MString &indexName) const {
     auto iter = _mapIndexNamePos.find(indexName);
     if (iter == _mapIndexNamePos.end())
       return IndexType::UNKNOWN;
     return _vctIndex[iter->second]._type;
   }
   const MVector<PhysColumn> &GetColumnArray() const { return _vctColumn; }
-  const PhysColumn *GetColumn(const string &fieldName) const {
+  const PhysColumn *GetColumn(const MString &fieldName) const {
     auto iter = _mapColumnPos.find(fieldName);
     if (iter == _mapColumnPos.end()) {
       return nullptr;
@@ -118,22 +118,22 @@ public:
       return &_vctColumn[pos];
     }
   }
-  const MHashMap<string, uint32_t> GetMapColumnPos() { return _mapColumnPos; }
+  const MHashMap<MString, uint32_t> GetMapColumnPos() { return _mapColumnPos; }
   // const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
   //   return _mapIndexFirstField;
   // }
 
   // Add normal column
-  bool AddColumn(const string &columnName, DataType dataType, bool nullable,
-                 uint32_t maxLen, const string &comment, Charsets charset,
+  bool AddColumn(const MString &columnName, DataType dataType, bool nullable,
+                 uint32_t maxLen, const MString &comment, Charsets charset,
                  const any &valDefault);
   // Add auto increment column. In this version, only one auto increment column
   // in a table and must be first column and as primary key, maybe update in
   // future.
-  bool AddColumn(const string &columnName, DataType dataType,
-                 const string &comment, int64_t initVal, int64_t incStep);
-  bool AddIndex(IndexType indexType, const string &indexName,
-                const MVector<string> &colNames);
+  bool AddColumn(const MString &columnName, DataType dataType,
+                 const MString &comment, int64_t initVal, int64_t incStep);
+  bool AddIndex(IndexType indexType, const MString &indexName,
+                const MVector<MString> &colNames);
   /**
    * @brief Load this table information from the byte array.
    * @param bys The byte array saved the information.
@@ -211,7 +211,7 @@ public:
   inline TableStatus GetTableStatus() { return _tableStatus; }
 
 protected:
-  inline bool IsExistedColumn(string name) {
+  inline bool IsExistedColumn(MString &name) {
     return _mapColumnPos.find(name) != _mapColumnPos.end();
   }
   inline void Clear() {
@@ -224,13 +224,13 @@ protected:
 
 protected:
   /** The database name this table belong to*/
-  string _dbName;
+  MString _dbName;
   /**Table name*/
-  string _name;
+  MString _name;
   /**db name + '.' + table name*/
-  string _fullName;
+  MString _fullName;
   /**Table describer*/
-  string _desc;
+  MString _desc;
   // How much time that this instance has been referenced.
   atomic_int32_t _refCount{0};
   // Auto increment id, every time add 256.
@@ -245,11 +245,11 @@ protected:
    * the table.*/
   MVector<PhysColumn> _vctColumn;
   /** The map for column name and their position in column list */
-  MHashMap<string, uint32_t> _mapColumnPos;
+  MHashMap<MString, uint32_t> _mapColumnPos;
   /**All index, the primary key must be the first.*/
   MVector<IndexProp> _vctIndex;
   // The map for index with index name and position
-  MHashMap<string, uint32_t> _mapIndexNamePos;
+  MHashMap<MString, uint32_t> _mapIndexNamePos;
   /**The map for index with first column's position in _vctColumn and index
    * position in _vctIndex*/
   // MHashMap<uint32_t, uint32_t> _mapIndexFirstField;

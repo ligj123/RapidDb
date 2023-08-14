@@ -17,8 +17,8 @@ public:
       : _name(), _index(index), _dataType(DataType::UNKNOWN), _bNullable(false),
         _comments(), _maxLength(-1), _initVal(-1), _incStep(-1),
         _charset(Charsets::UNKNOWN), _pDefaultVal(nullptr) {}
-  PhysColumn(const string &name, int32_t index, DataType dataType,
-             const string &comments, bool bNullable, int32_t maxLen,
+  PhysColumn(const MString &name, int32_t index, DataType dataType,
+             const MString &comments, bool bNullable, int32_t maxLen,
              int64_t initVal, int64_t incStep, Charsets charset,
              IDataValue *defaultVal = nullptr)
       : _name(name), _index(index), _dataType(dataType), _bNullable(bNullable),
@@ -44,7 +44,7 @@ public:
   PhysColumn(const PhysColumn &rhs) = delete;
   PhysColumn &operator=(const PhysColumn &rhs) = delete;
 
-  const string &GetName() const { return _name; }
+  const MString &GetName() const { return _name; }
   int32_t GetIndex() const { return _index; }
   DataType GetDataType() const { return _dataType; }
   bool IsNullable() const { return _bNullable; }
@@ -53,7 +53,7 @@ public:
   int64_t GetIncStep() const { return _incStep; }
   Charsets GetCharset() const { return _charset; }
   const IDataValue *GetDefaultVal() const { return _pDefaultVal; }
-  const string &GetComments() const { return _comments; }
+  const MString &GetComments() const { return _comments; }
 
   uint32_t ReadData(Byte *pBuf);
   uint32_t WriteData(Byte *pBuf);
@@ -72,7 +72,7 @@ public:
   uint32_t CalcSize();
 
 protected:
-  string _name;       // The column's name
+  MString _name;       // The column's name
   int32_t _index;     // The index in table start from 0
   DataType _dataType; // Which data type for this column
   bool _bNullable;    // Can be null or not for this column
@@ -81,7 +81,7 @@ protected:
   // The initalize value for auto-increment column, the default is 0
   int64_t _initVal;
   int64_t _incStep; // The step between two neighbor value, the default is 1
-  string _comments; // Comments for this column
+  MString _comments; // Comments for this column
   IDataValue *_pDefaultVal; // If the default value has or null
 };
 
