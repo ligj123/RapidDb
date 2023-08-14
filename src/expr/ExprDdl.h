@@ -44,6 +44,8 @@ struct ColumnInfo {
   MString _colName;
   DataType _dataType;
   int _length;
+  int _incStart;
+  int _incStep;
   bool _nullable;
   unique_ptr<IDataValue> _defaultVal;
   bool _autoInc;
@@ -53,11 +55,38 @@ struct ColumnInfo {
 
 class ExprCreateTable : public BaseExpr {
 public:
+  ExprCreateTable(MString &tname, bool ifNotExist, MVector<ColumnInfo> &vctCol)
+      : _tName(move(tname)), _ifNotExist(ifNotExist), _vctCol(vctCol) {}
+
 public:
   MString _tName;
   bool _ifNotExist;
   MVector<ColumnInfo> _vctCol;
-  int64_t _incStep;
+};
+
+class ExprDropTable : public BaseExpr {
+public:
+  ExprDropTable(MString &tname, bool ifNotExist)
+      : _tName(move(tname)), _ifNotExist(ifNotExist) {}
+
+public:
+  MString _tName;
+  bool _ifNotExist;
+};
+
+class ExprShowTable : public BaseExpr {
+public:
+  ExprShowTable(MString dbName) : _dbName(move(dbName)) {}
+
+public:
+  MString _dbName;
+};
+
+enum class AlterAction { ADD, CHANGE, ALTER, MODIFY, DROP, RENAME };
+class ExprAlterTable : public BaseExpr {
+public:
+public:
+  AlterAction _action;
 };
 
 } // namespace storage

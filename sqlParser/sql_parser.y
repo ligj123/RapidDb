@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-  using namespace hsql;
+  using namespace storage;
 
   int yyerror(YYLTYPE * llocp, SQLParserResult * result, yyscan_t scanner, const char* msg) {
     result->setIsValid(false);
@@ -66,7 +66,7 @@
 %define api.pure full
 
 // Prefix the parser
-%define api.prefix {hsql_}
+%define api.prefix {db_}
 %define api.token.prefix {SQL_}
 
 %define parse.error verbose
