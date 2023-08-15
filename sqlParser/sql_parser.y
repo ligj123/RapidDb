@@ -37,6 +37,11 @@
 
 #include "../expr/BaseExpr.h"
 #include "../expr/ExprAggr.h"
+#include "../expr/ExprDate.h"
+#include "../expr/ExprDdl.h"
+#include "../expr/ExprFunc.h"
+#include "../expr/ExprLogic.h"
+#include "../expr/ExprStatement.h"
 #include "parser_typedef.h"
 
 // Auto update column and line number
@@ -59,6 +64,7 @@
 // %output  "bison_parser.cpp"
 // %defines "bison_parser.h"
 
+%define api.namespace {storage}
 // Tell bison to create a reentrant parser
 %define api.pure full
 
@@ -99,9 +105,14 @@
   uintmax_t uval;
 
   // statements
-  hsql::AlterStatement* alter_stmt;
-  hsql::CreateStatement* create_stmt;
-  hsql::DeleteStatement* delete_stmt;
+  ExprCreateDatabase *create_db;
+  ExprDropDatabase *drop_db;
+  ExprShowDatabases *show_db;
+  ExprUseDatabase *use_db;
+  ExprCreateTable *create_table;
+  
+
+
   hsql::DropStatement* drop_stmt;
   hsql::ExecuteStatement* exec_stmt;
   hsql::ExportStatement* export_stmt;
