@@ -2,18 +2,15 @@
 %{
   // clang-format on
   /**
- * bison_parser.y
- * defines bison_parser.h
- * outputs bison_parser.c
- *
- * Grammar File Spec: http://dinosaur.compilertools.net/bison/bison_6.html
- *
+ * sql_parser.y
+ * defines sql_parser.h
+ * outputs sql_parser.cpp
  */
   /*********************************
  ** Section 1: C Declarations
  *********************************/
 
-#include "bison_parser.h"
+#include "sql_parser.h"
 #include "flex_lexer.h"
 
 #include <stdio.h>
@@ -30,7 +27,7 @@
 %}
 // clang-format on
 /*********************************
- ** Section 2: Bison Parser Declarations
+ ** Section 2: SQL Parser Declarations
  *********************************/
 
 // Specify code that is included in the generated .h and .c files
@@ -38,8 +35,8 @@
 %code requires {
 // %code requires block
 
-#include "../SQLParserResult.h"
-#include "../sql/statements.h"
+#include "../expr/BaseExpr.h"
+#include "../expr/ExprAggr.h"
 #include "parser_typedef.h"
 
 // Auto update column and line number
