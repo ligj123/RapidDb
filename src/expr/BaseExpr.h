@@ -171,27 +171,6 @@ public:
       _setVal;
 };
 
-class ExprTable : public BaseExpr {
-public:
-  ExprTable(string &dbName, string &name, string &alias)
-      : _dbName(move(dbName)), _tName(move(name)), _tAlias(alias) {
-    if (_tAlias.size() == 0)
-      _tAlias = _tName;
-  }
-  ~ExprTable() {}
-  ExprType GetType() { return ExprType::EXPR_TABLE; }
-
-  const string &GetDbName() const { return _dbName; }
-  const string &GetTableName() const { return _tName; }
-  const string &GetTableAlias() const { return _tAlias; }
-  void SetDbName(string &dbName) { _dbName = move(dbName); }
-
-public:
-  string _dbName;
-  string _tName;
-  string _tAlias;
-};
-
 /**
  * @brief The column information for insert or update. Here will use this to
  * get the data value from exist row data or parameters, then save it into row

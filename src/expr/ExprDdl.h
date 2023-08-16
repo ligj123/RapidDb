@@ -40,7 +40,7 @@ public:
   MString _dbName;
 };
 
-struct ColumnInfo {
+struct ExprColumnInfo {
   MString _colName;
   DataType _dataType;
   int _length;
@@ -55,13 +55,13 @@ struct ColumnInfo {
 
 class ExprCreateTable : public BaseExpr {
 public:
-  ExprCreateTable(MString &tname, bool ifNotExist, MVector<ColumnInfo> &vctCol)
+  ExprCreateTable(MString &tname, bool ifNotExist, MVector<ExprColumnInfo> &vctCol)
       : _tName(move(tname)), _ifNotExist(ifNotExist), _vctCol(vctCol) {}
 
 public:
   MString _tName;
   bool _ifNotExist;
-  MVector<ColumnInfo> _vctCol;
+  MVector<ExprColumnInfo> _vctCol;
 };
 
 class ExprDropTable : public BaseExpr {
