@@ -37,6 +37,11 @@
 
 #include "../expr/BaseExpr.h"
 #include "../expr/ExprAggr.h"
+#include "../expr/ExprDate.h"
+#include "../expr/ExprDdl.h"
+#include "../expr/ExprFunc.h"
+#include "../expr/ExprLogic.h"
+#include "../expr/ExprStatement.h"
 #include "parser_typedef.h"
 
 // Auto update column and line number
@@ -59,6 +64,7 @@
 // %output  "bison_parser.cpp"
 // %defines "bison_parser.h"
 
+%define api.namespace {storage}
 // Tell bison to create a reentrant parser
 %define api.pure full
 
@@ -99,9 +105,56 @@
   uintmax_t uval;
 
   // statements
-  hsql::AlterStatement* alter_stmt;
-  hsql::CreateStatement* create_stmt;
-  hsql::DeleteStatement* delete_stmt;
+  ExprCreateDatabase *expr_create_db;
+  ExprDropDatabase *expr_drop_db;
+  ExprShowDatabases *expr_show_db;
+  ExprUseDatabase *expr_use_db;
+  CExpr_olumnInfo expr_column_info;
+  ExprCreateTable *expr_create_table;
+  ExprDropTable *expr_drop_table;
+  ExprShowTable *expr_show_table;
+
+  ExprData *expr_data;
+  ExprConst *expr_const;
+  ExprField *expr_field;
+  ExprParameter *expr_param;
+  ExprAdd *expr_add;
+  ExprSub *expr_sub;
+  ExprMul *expr_mul;
+  ExprDiv *expr_div;
+
+  ExprAggr *expr_agr;
+  ExprCount *expr_count;
+  ExprSum *expr_sum;
+  ExprMax *expr_max;
+  ExprMin *expr_min;
+  ExprAvg *expr_avg;
+
+  ExprLogic *expr_logic;
+  ExprComp *expr_cmp;
+  ExprInNot *expr_in_not;
+  ExprIsNullNot *expr_is_null_not;
+  ExprBetween *expr_between;
+  ExprLike *expr_like;
+  ExprNot *expr_not;
+  ExprAnd *expr_and;
+  ExprOr * expr_or;
+
+  ExprArray *expr_array;
+  ExprTable *expr_table;
+  ExprColumn *expr_column;
+  ExprResColumn *expr_res_column;
+
+  ExprWhere *expr_where;
+  ExprOn *expr_on;
+  ExprHaving *expr_having;
+  
+  ExprGroupItem expr_group_item;
+  ExprGroupBy *expr_group_by;
+  ExprOrderTerm expr_order_item;
+  ExprOrderBy *expr_order_by;
+
+
   hsql::DropStatement* drop_stmt;
   hsql::ExecuteStatement* exec_stmt;
   hsql::ExportStatement* export_stmt;

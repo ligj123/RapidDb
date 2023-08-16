@@ -15,12 +15,6 @@
 
 using namespace std;
 namespace storage {
-enum class TableType {
-  PersistTable, // From physical table
-  CacheTable,   // The result saved in temp block table
-  HashTable     // The result saved in hash table
-};
-
 enum class JoinType { INNER_JOIN, LEFT_JOIN, RIGHT_JOIN, OUTTER_JOIN };
 
 // To query physical table, point out which index will be used. Only one index
@@ -54,20 +48,20 @@ typedef ExprCondition<ExprType::EXPR_WHERE> ExprWhere;
 typedef ExprCondition<ExprType::EXPR_ON> ExprOn;
 typedef ExprCondition<ExprType::EXPR_HAVING> ExprHaving;
 
-struct GroupItem {
+struct ExprGroupItem {
   MString _colName; // The column name, from sql statement
   int _pos;         // The position of column in result set
 };
 
 class ExprGroupBy : public BaseExpr {
 public:
-  ExprGroupBy(vector<GroupItem> vct) { _vctItem.swap(vct); }
+  ExprGroupBy(vector<ExprGroupItem> vct) { _vctItem.swap(vct); }
 
 public:
-  vector<GroupItem> _vctItem;
+  vector<ExprGroupItem> _vctItem;
 };
 
-struct OrderTerm {
+struct ExprOrderTerm {
   MString _colName;
   bool _direct; // True: ASC; False: DESC
   int _pos;
@@ -75,10 +69,10 @@ struct OrderTerm {
 
 class ExprOrderBy : public BaseExpr {
 public:
-  ExprOrderBy(vector<OrderTerm> &vct) { _vctItem.swap(vct); }
+  ExprOrderBy(vector<ExprOrderTerm> &vct) { _vctItem.swap(vct); }
 
 public:
-  vector<OrderTerm> _vctItem;
+  vector<ExprOrderTerm> _vctItem;
 };
 
 // Base class for all statement
@@ -90,8 +84,7 @@ public:
   bool Preprocess() = 0;
 
 public:
-  // The template for paramters, only need by top statement
-  VectorDataValue *_paraTmpl;
+  int _paramNum; // The numbe of parameters in this statement
 };
 
 // Base class for all select
@@ -135,33 +128,6 @@ public:
   bool _bDistinct; // If remove repeated rows
   // If cache result for future query, only valid for top select result.
   bool _bCacheResult;
-};
-
-class ExprTableSelect : public ExprSelect {
-public:
-  ExprTableSelect(PhysTable *physTable, ExprTable *destTable, ExprLogic *where,
-                  SelIndex *selIndex, MVector<OrderCol> *vctOrder,
-                  bool bDistinct, int offset, int rowCount, bool bCacheResult,
-                  VectorDataValue *paraTmpl, ExprStatement *parent)
-      : ExprSelect(destTable, where, vctOrder, bDistinct, offset, rowCount,
-                   bCacheResult, paraTmpl, parent),
-        _physTable(physTable), _selIndex(selIndex) {
-    _physTable->IncRef();
-  }
-  ~ExprTableSelect() {
-    _physTable->DecRef();
-    delete _selIndex;
-  }
-
-  ExprType GetType() { return ExprType::EXPR_TABLE_SELECT; }
-  PhysTable *GetSourTable() const { return _physTable; }
-  const SelIndex *GetSelIndex() const { return _selIndex; }
-
-public:
-  // The source table information.
-  PhysTable *_physTable;
-  // Which index used to search. Null means traverse all table.
-  SelIndex *_selIndex;
 };
 
 class ExprInsert : public ExprStatement {
