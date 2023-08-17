@@ -17,7 +17,7 @@ using namespace std;
 namespace storage {
 template <ExprType ET> class ExprCondition : public BaseExpr {
 public:
-  ExprCondition(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
+  ExprCondition() {}
   ~ExprCondition() { delete _exprLogic; }
   ExprType GetDataType() const { return ET; }
 
@@ -28,12 +28,28 @@ public:
   }
 
 public:
-  ExprLogic *_exprLogic;
+  ExprLogic *_exprLogic{nullptr};
 };
 
-typedef ExprCondition<ExprType::EXPR_WHERE> ExprWhere;
 typedef ExprCondition<ExprType::EXPR_ON> ExprOn;
 typedef ExprCondition<ExprType::EXPR_HAVING> ExprHaving;
+
+// To query physical table, point out which index will be used. Only one index
+// can be selected.
+struct UseIndex {
+  // If the primary or secondary index can be used to query, copy the query
+  // conditions to here. Only one index can be used. Only valid for physical
+  // table select
+  ExprLogic *_indexExpr;
+  // which index used, The position of index that start from 0(primary key)
+  int _indexPos;
+};
+
+class ExprWhere : public ExprCondition<ExprType::EXPR_WHERE> {
+public:
+  // This variable will be set when preprocess
+  UseIndex *_useIndex{nullptr};
+}
 
 struct ExprGroupItem {
   MString _colName; // The column name, from sql statement
@@ -185,7 +201,7 @@ public:
   ExprSelect *_exprSelect{nullptr};
   // True, update if the primary key has exist
   bool _bUpsert;
-  // The physical table will insert into. Filled wehn preprocess
+  // The physical table will insert into. Filled when preprocess
   PhysTable *_physTable{nullptr};
 };
 
@@ -194,108 +210,62 @@ public:
   ExprUpdate() {}
 
   ~ExprUpdate() {
-    _physTable->DecRef();
+    if (_physTable != nullptr) {
+      _physTable->DecRef();
+    }
+    for (ExprColumn *col : _vctCol) {
+      delete col;
+    }
+
     delete _exprTable;
     delete _where;
+    delete _exprOrderBy;
   }
 
   ExprType GetType() { return ExprType::EXPR_UPDATE; }
+  bool Preprocess() {
+    // TO DO
+  }
 
 public:
   // The destion table information
   ExprTable *_exprTable;
   // The update columns and their values, have saved in ExprColumn
-  MVector<ExprColumn> _vctCol;
+  MVector<ExprColumn *> _vctCol;
   // Where condition
   ExprWhere *_exprWhere;
+
+  ExprOrderBy *_exprOrderBy;
+  // The number of rows to delete from top
+  int _rowCount{-1};
+  // The physical table will update. Filled when preprocess
+  PhysTable *_physTable{nullptr};
 };
 
 class ExprDelete : public ExprStatement {
 public:
-  ExprDelete(PhysTable *physTable, ExprLogic *where, SelIndex *selIndex,
-             VectorDataValue *paraTmpl)
-      : ExprStatement(paraTmpl), _physTable(physTable), _where(where),
-        _selIndex(selIndex) {
-    _physTable->IncRef();
-  }
+  ExprDelete() {}
   ~ExprDelete() {
-    _physTable->DecRef();
+    if (_physTable != nullptr) {
+      _physTable->DecRef();
+    }
+
     delete _where;
-    delete _paraTmpl;
+    delete _exprOrderBy;
   }
 
   ExprType GetType() { return ExprType::EXPR_DELETE; }
-  PhysTable *GetSourTable() const { return _physTable; }
-  const ExprLogic *GetWhere() { return _where; }
-  const SelIndex *GetSelIndex() const { return _selIndex; }
+  bool Preprocess() {
+    // TO DO
+  }
 
 public:
-  // The destion persistent table information
-  PhysTable *_physTable;
   // Where condition
-  ExprLogic *_where;
-  // Which index used to search. Null means traverse all table.
-  SelIndex *_selIndex;
+  ExprWhere *_where;
+  ExprOrderBy *_exprOrderBy;
+  // The number of rows to delete from top
+  int _rowCount{-1};
+  // The physical table will update. Filled when preprocess
+  PhysTable *_physTable{nullptr};
 };
-
-// class ExprJoin : public ExprSelect {
-// public:
-//   ExprJoin(BaseTable *sourTable, BaseTable *destTable,
-//            ExprValueArrayOut *exprVAout, ExprCondition *where,
-//            MVector<OrderCol> &vctOrder, bool bDistinct, bool
-//            bCacheResult, BaseTable *rightTable, ExprOn *exprOn, JoinType
-//            jType, VectorDataValue &vctPara)
-//       : ExprSelect(sourTable, destTable, exprVAout, where, vctOrder,
-//       bDistinct,
-//                    bCacheResult, vctPara),
-//         _rightTable(rightTable), _exprOn(exprOn), _joinType(jType) {}
-//   ~ExprJoin() {
-//     delete _rightTable;
-//     delete _exprOn;
-//   }
-
-//   ExprType GetType() { return ExprType::EXPR_JOIN; }
-//   const BaseTable *GetRightTable() const { return _rightTable; }
-//   const ExprOn *GetExprOn() const { return _exprOn; }
-//   JoinType GetJoinType() { return _joinType; }
-
-// protected:
-//   // The right source table information for join
-//   BaseTable *_rightTable;
-//   // On condition for join
-//   ExprOn *_exprOn;
-//   // Join type
-//   JoinType _joinType;
-// };
-
-// class ExprGroupBy : public ExprSelect {
-// public:
-//   ExprGroupBy(BaseTable *sourTable, BaseTable *destTable,
-//               MVector<ExprAggr *> &vctAggr, ExprCondition *where,
-//               MVector<OrderCol> &vctOrder, bool bDistinct,
-//               bool bCacheResult, ExprCondition *having,
-//               VectorDataValue &vctPara)
-//       : ExprSelect(sourTable, destTable, nullptr, where, vctOrder,
-//       bDistinct,
-//                    bCacheResult, vctPara),
-//         _having(having) {
-//     _vctChild.swap(vctAggr);
-//   }
-//   ~ExprGroupBy() {
-//     for (auto child : _vctChild)
-//       delete child;
-
-//     _vctChild.clear();
-//     delete _having;
-//   }
-
-//   ExprType GetType() { return ExprType::EXPR_GROUP_BY; }
-//   MVector<ExprAggr *> GetVctChild() { return _vctChild; }
-//   ExprCondition *GetHaving() { return _having; }
-
-// protected:
-//   // This variable will replace _exprVAout to calc the values.
-//   MVector<ExprAggr *> _vctChild;
-//   ExprCondition *_having;
-// };
 } // namespace storage

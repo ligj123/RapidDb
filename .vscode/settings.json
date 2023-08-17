@@ -68,7 +68,8 @@
         "shared_mutex": "cpp",
         "forward_list": "cpp",
         "iterator": "cpp",
-        "xstring": "cpp"
+        "xstring": "cpp",
+        "filesystem": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "boost-test-adapter.cwd": "/home/lgj/mydb/RapidDb",
@@ -85,7 +86,7 @@
             "cwd": "${workspaceFolder}"
         }
     ],
-    "boost-test-adapter-feher.tests":  [
+    "boost-test-adapter-feher.tests": [
         {
             "testExecutables": [
                 {
