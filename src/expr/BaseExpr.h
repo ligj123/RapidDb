@@ -49,6 +49,8 @@ enum class ExprType {
   EXPR_WHERE,
   EXPR_ON,
   EXPR_HAVING,
+  EXPR_JOIN,
+  EXPR_GROUP_BY,
 
   // DDL
   EXPR_CREATE_DATABASE,
@@ -62,11 +64,11 @@ enum class ExprType {
   EXPR_COLUMN,
   EXPR_RESULT_COLUMN,
   EXPR_TABLE,
+  EXPR_JOIN_TABLE,
 
   // Select
+  EXPR_SELECT,
   EXPR_TABLE_SELECT,
-  EXPR_JOIN,
-  EXPR_GROUP_BY,
 
   EXPR_INSERT,
   EXPR_UPDATE,
@@ -201,7 +203,7 @@ public:
 
 public:
   string _name;        // column name
-  int _pos;            // The position in table columns
+  int _pos;            // The position in source table columns
   ExprData *_exprData; // The expression to get data value from source
 };
 

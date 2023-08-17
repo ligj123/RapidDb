@@ -43,6 +43,7 @@ struct ExprGroupItem {
 class ExprGroupBy : public BaseExpr {
 public:
   ExprGroupBy(vector<ExprGroupItem> vct) { _vctItem.swap(vct); }
+  ExprType GetType() { return ExprType::EXPR_GROUP_BY; }
 
 public:
   vector<ExprGroupItem> _vctItem;
@@ -57,6 +58,7 @@ struct ExprOrderTerm {
 class ExprOrderBy : public BaseExpr {
 public:
   ExprOrderBy(vector<ExprOrderTerm> &vct) { _vctItem.swap(vct); }
+  ExprType GetType() { return ExprType::EXPR_ORDER_BY; }
 
 public:
   vector<ExprOrderTerm> _vctItem;
@@ -84,6 +86,7 @@ class ExprJoinTable : public ExprTable {
 public:
   ExprJoinTable(JoinType joinType, string &dbName, string &name, string &alias)
       : ExprTable(dbName, name, alias), _joinType(joinType) {}
+  ExprType GetType() { return ExprType::EXPR_JOIN_TABLE; }
 
 public:
   JoinType _joinType;
@@ -100,91 +103,95 @@ public:
   int _paramNum; // The numbe of parameters in this statement
 };
 
-// Base class for all select
+enum class LockType { NO_LOCK, SHARE_LOCK, WRITE_LOCK };
+
+// This select class is only for parse, it will convert into a series of
+// statement in preprocess.
 class ExprSelect : public ExprStatement {
 public:
-  ExprSelect(ExprTable *destTable, ExprLogic *where,
-             MVector<OrderCol> *vctOrder, bool bDistinct, int offset,
-             int rowCount, bool bCacheResult, VectorDataValue *paraTmpl,
-             ExprStatement *parent)
-      : ExprStatement(paraTmpl), _destTable(destTable), _where(where),
-        _vctOrder(vctOrder), _offset(offset), _rowCount(rowCount),
-        _bDistinct(bDistinct), _bCacheResult(bCacheResult), _parent(parent) {}
+  ExprSelect() {}
   ~ExprSelect() {
-    delete _destTable;
-    delete _where;
-    delete _vctOrder;
+    for (ExprResColumn *rc : _vctCol) {
+      delete rc;
+    }
+    for (ExprTable *t : _vctTable) {
+      delete t;
+    }
+    delete _exprWhere;
+    delete _exprGroupBy;
+    delete _exprHaving;
+    delete _exprOrderBy
+  }
+  ExprType GetType() { return ExprType::EXPR_SELECT; }
+  bool Preprocess() {
+    // TO DO
   }
 
-  ExprTable *GetDestTable() { return _destTable; }
-  ExprLogic *GetWhere() { return _where; }
-  MVector<OrderCol> *GetVctOrder() { return _vctOrder; }
-  int GetOffset() { return _offset; }
-  int GetRowCount() { return _rowCount; }
-  bool IsDistinct() { return _bDistinct; }
-  bool IsCacheResult() { return _bCacheResult; }
-
-  ExprStatement *GetParent() { return _parent; }
-
 public:
-  // Parent statement for this select statement
-  ExprStatement *_parent;
-  ExprTable *_destTable; // The columns of selected result
-  ExprLogic *_where;     // The where conditions
-  // The columns idx and order type for order by, NO order with nullptr
-  MVector<OrderCol> *_vctOrder;
+  // Remove repeated rows or not
+  bool _bDistinct{false};
+  // The selected columns
+  MVector<ExprResColumn *> _vctCol;
+  // The source tables, first table is ExprTable, the following tables are
+  // ExprJoinTable if have.
+  MVector<ExprTable *> _vctTable;
+  // Where condition
+  ExprWhere *_exprWhere{nullptr};
+
+  ExprGroupBy *_exprGroupBy{nullptr};
+  ExprHaving *_exprHaving{nullptr};
+  ExprOrderBy *_exprOrderBy{nullptr};
+
   // offset for return rows, default 0. Only valid for top select result.
-  int _offset;
+  int _offset{-1};
   // The max rows to return, -1 means return all. Only valid for top select
   // result.
-  int _rowCount;
-  bool _bDistinct; // If remove repeated rows
-  // If cache result for future query, only valid for top select result.
-  bool _bCacheResult;
+  int _rowCount{-1};
+
+  LockType _lockType{LockType::NO_LOCK};
 };
 
 class ExprInsert : public ExprStatement {
 public:
-  ExprInsert(PhysTable *physTable, ExprTable *exprTable,
-             VectorDataValue *paraTmpl, ExprSelect *exprSelect = nullptr,
-             bool bUpsert = false)
-      : ExprStatement(paraTmpl), _physTable(physTable), _exprTable(exprTable),
-        _exprSelect(exprSelect), _bUpsert(bUpsert) {
-    _physTable->IncRef();
-  }
+  ExprInsert() {}
 
   ~ExprInsert() {
-    _physTable->DecRef();
     delete _exprTable;
     delete _exprSelect;
+    for (ExprColumn *col : _vctCol)
+      delete col;
+    for (ExprData *data _vctData)
+      delete data;
+
+    if (_physTable != nullptr)
+      _physTable->DecRef();
   }
 
   ExprType GetType() { return ExprType::EXPR_INSERT; }
-  PhysTable *GetSourTable() const { return _physTable; }
-  const ExprTable *GetExprTable() { return _exprTable; }
-  const ExprSelect *GetExprSelect() { return _exprSelect; }
-
-  bool IsUpsert() { return _bUpsert; }
+  bool Preprocess() {
+    // TO DO
+  }
 
 public:
-  // The destion physical table information
-  PhysTable *_physTable;
-  // The expression that how to calc values from input or select
-  ExprTable *_exprTable;
-  // Used for insert into TABLE A select from TABLE B
-  ExprSelect *_exprSelect;
-  // True, update if the key has exist
+  // The destion table
+  ExprTable *_exprTable{nullptr};
+  // The columns that assign values; if empty, it will be filled with all
+  // table's columns
+  MVector<ExprColumn *> _vctCol;
+  // The values that will be inserted.
+  MVector<ExprData *> _vctData;
+  // The source data that selected from other table and will be inserted into
+  // this table
+  ExprSelect *_exprSelect{nullptr};
+  // True, update if the primary key has exist
   bool _bUpsert;
+  // The physical table will insert into. Filled wehn preprocess
+  PhysTable *_physTable{nullptr};
 };
 
 class ExprUpdate : public ExprStatement {
 public:
-  ExprUpdate(PhysTable *physTable, ExprTable *exprTable, ExprLogic *where,
-             SelIndex *selIndex, VectorDataValue *paraTmpl)
-      : ExprStatement(paraTmpl), _physTable(physTable), _exprTable(exprTable),
-        _where(where), _selIndex(selIndex) {
-    _physTable->IncRef();
-  }
+  ExprUpdate() {}
 
   ~ExprUpdate() {
     _physTable->DecRef();
@@ -193,20 +200,14 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_UPDATE; }
-  PhysTable *GetSourTable() const { return _physTable; }
-  const ExprTable *GetExprTable() { return _exprTable; }
-  const ExprLogic *GetWhere() { return _where; }
-  const SelIndex *GetSelIndex() const { return _selIndex; }
 
 public:
-  // The destion physical table information
-  PhysTable *_physTable;
-  // The expression that how to calc values
+  // The destion table information
   ExprTable *_exprTable;
+  // The update columns and their values, have saved in ExprColumn
+  MVector<ExprColumn> _vctCol;
   // Where condition
-  ExprLogic *_where;
-  // Which index used to search. Null means traverse all table.
-  SelIndex *_selIndex;
+  ExprWhere *_exprWhere;
 };
 
 class ExprDelete : public ExprStatement {
@@ -274,7 +275,8 @@ public:
 //               MVector<OrderCol> &vctOrder, bool bDistinct,
 //               bool bCacheResult, ExprCondition *having,
 //               VectorDataValue &vctPara)
-//       : ExprSelect(sourTable, destTable, nullptr, where, vctOrder, bDistinct,
+//       : ExprSelect(sourTable, destTable, nullptr, where, vctOrder,
+//       bDistinct,
 //                    bCacheResult, vctPara),
 //         _having(having) {
 //     _vctChild.swap(vctAggr);
