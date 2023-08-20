@@ -108,17 +108,6 @@ public:
   JoinType _joinType;
 };
 
-// Base class for all statement
-class ExprStatement : public BaseExpr {
-public:
-  ExprStatement() {}
-  ~ExprStatement() {}
-  bool Preprocess() = 0;
-
-public:
-  int _paramNum; // The numbe of parameters in this statement
-};
-
 enum class LockType { NO_LOCK, SHARE_LOCK, WRITE_LOCK };
 
 // This select class is only for parse, it will convert into a series of

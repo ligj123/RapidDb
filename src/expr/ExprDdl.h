@@ -4,7 +4,7 @@
 using namespace std;
 namespace storage {
 
-class ExprCreateDatabase : public BaseExpr {
+class ExprCreateDatabase : public ExprStatement {
 public:
   ExprCreateDatabase(MString name, bool ifNotExist)
       : _dbName(name), _ifNotExist(ifNotExist) {}
@@ -15,7 +15,7 @@ public:
   bool _ifNotExist;
 };
 
-class ExprDropDatabase : public BaseExpr {
+class ExprDropDatabase : public ExprStatement {
 public:
   ExprDropDatabase(MString name, bool ifNotExist)
       : _dbName(name), _ifNotExist(ifNotExist) {}
@@ -26,12 +26,12 @@ public:
   bool _ifNotExist;
 };
 
-class ExprShowDatabases : public BaseExpr {
+class ExprShowDatabases : public ExprStatement {
 public:
   ExprType GetType() { return ExprType::EXPR_SHOW_DATABASES; }
 };
 
-class ExprUseDatabase : public BaseExpr {
+class ExprUseDatabase : public ExprStatement {
 public:
   ExprUseDatabase(MString name) : _dbName(name) {}
   ExprType GetType() { return ExprType::EXPR_USE_DATABASE; }
@@ -53,9 +53,10 @@ struct ExprColumnInfo {
   MString _comment;
 };
 
-class ExprCreateTable : public BaseExpr {
+class ExprCreateTable : public ExprStatement {
 public:
-  ExprCreateTable(MString &tname, bool ifNotExist, MVector<ExprColumnInfo> &vctCol)
+  ExprCreateTable(MString &tname, bool ifNotExist,
+                  MVector<ExprColumnInfo> &vctCol)
       : _tName(move(tname)), _ifNotExist(ifNotExist), _vctCol(vctCol) {}
 
 public:
@@ -64,7 +65,7 @@ public:
   MVector<ExprColumnInfo> _vctCol;
 };
 
-class ExprDropTable : public BaseExpr {
+class ExprDropTable : public ExprStatement {
 public:
   ExprDropTable(MString &tname, bool ifNotExist)
       : _tName(move(tname)), _ifNotExist(ifNotExist) {}
@@ -74,7 +75,7 @@ public:
   bool _ifNotExist;
 };
 
-class ExprShowTable : public BaseExpr {
+class ExprShowTable : public ExprStatement {
 public:
   ExprShowTable(MString dbName) : _dbName(move(dbName)) {}
 
@@ -82,11 +83,16 @@ public:
   MString _dbName;
 };
 
+enum class TranType { BEGIN, COMMIT, ABORT };
+class ExprTransaction : public ExprStatement {
+public:
+  TranType _tranType;
+};
+
 enum class AlterAction { ADD, CHANGE, ALTER, MODIFY, DROP, RENAME };
-class ExprAlterTable : public BaseExpr {
+class ExprAlterTable : public ExprStatement {
 public:
 public:
   AlterAction _action;
 };
-
 } // namespace storage

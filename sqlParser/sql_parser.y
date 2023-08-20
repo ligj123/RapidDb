@@ -35,6 +35,7 @@
 %code requires {
 // %code requires block
 
+#include "../cache/Mallocator.h"
 #include "../expr/BaseExpr.h"
 #include "../expr/ExprAggr.h"
 #include "../expr/ExprDate.h"
@@ -64,7 +65,6 @@
 // %output  "bison_parser.cpp"
 // %defines "bison_parser.h"
 
-%define api.namespace {storage}
 // Tell bison to create a reentrant parser
 %define api.pure full
 
@@ -99,7 +99,7 @@
 %union {
   // clang-format on
   bool bval;
-  char* sval;
+  storage::MString sval;
   double fval;
   int64_t ival;
   uintmax_t uval;
@@ -144,6 +144,7 @@
   ExprTable *expr_table;
   ExprColumn *expr_column;
   ExprResColumn *expr_res_column;
+  ExprJoinTable *expr_join_table;
 
   ExprWhere *expr_where;
   ExprOn *expr_on;
@@ -154,81 +155,18 @@
   ExprOrderTerm expr_order_item;
   ExprOrderBy *expr_order_by;
 
-
-  hsql::DropStatement* drop_stmt;
-  hsql::ExecuteStatement* exec_stmt;
-  hsql::ExportStatement* export_stmt;
-  hsql::ImportStatement* import_stmt;
-  hsql::InsertStatement* insert_stmt;
-  hsql::PrepareStatement* prep_stmt;
-  hsql::SelectStatement* select_stmt;
-  hsql::ShowStatement* show_stmt;
-  hsql::SQLStatement* statement;
-  hsql::TransactionStatement* transaction_stmt;
-  hsql::UpdateStatement* update_stmt;
-
-  hsql::Alias* alias_t;
-  hsql::AlterAction* alter_action_t;
-  hsql::ColumnDefinition* column_t;
-  hsql::ColumnType column_type_t;
-  hsql::ConstraintType column_constraint_t;
-  hsql::DatetimeField datetime_field;
-  hsql::DropColumnAction* drop_action_t;
-  hsql::Expr* expr;
-  hsql::FrameBound* frame_bound;
-  hsql::FrameDescription* frame_description;
-  hsql::FrameType frame_type;
-  hsql::GroupByDescription* group_t;
-  hsql::ImportType import_type_t;
-  hsql::JoinType join_type;
-  hsql::LimitDescription* limit;
-  hsql::LockingClause* locking_t;
-  hsql::OrderDescription* order;
-  hsql::OrderType order_type;
-  hsql::SetOperation* set_operator_t;
-  hsql::TableConstraint* table_constraint_t;
-  hsql::TableElement* table_element_t;
-  hsql::TableName table_name;
-  hsql::TableRef* table;
-  hsql::UpdateClause* update_t;
-  hsql::WindowDescription* window_description;
-  hsql::WithDescription* with_description_t;
-
-  std::vector<char*>* str_vec;
-  std::unordered_set<hsql::ConstraintType>* column_constraint_set;
-  std::vector<hsql::Expr*>* expr_vec;
-  std::vector<hsql::OrderDescription*>* order_vec;
-  std::vector<hsql::SQLStatement*>* stmt_vec;
-  std::vector<hsql::TableElement*>* table_element_vec;
-  std::vector<hsql::TableRef*>* table_vec;
-  std::vector<hsql::UpdateClause*>* update_vec;
-  std::vector<hsql::WithDescription*>* with_description_vec;
-  std::vector<hsql::LockingClause*>* locking_clause_vec;
-
-  std::pair<int64_t, int64_t>* ival_pair;
-
-  hsql::RowLockMode lock_mode_t;
-  hsql::RowLockWaitPolicy lock_wait_policy_t;
+  ExprStatement *expr_statement;
+  ExprSelect *expr_select;
+  ExprInsert *expr_insert;
+  ExprUpdate *expr_update;
+  ExprDelete *expr_delete;
 }
 
     /*********************************
      ** Destructor symbols
      *********************************/
     // clang-format off
-    %destructor { } <fval> <ival> <bval> <join_type> <order_type> <datetime_field> <column_type_t> <column_constraint_t> <import_type_t> <column_constraint_set> <lock_mode_t> <lock_wait_policy_t> <frame_type>
-    %destructor {
-      free( ($$.name) );
-      free( ($$.schema) );
-    } <table_name>
-    %destructor {
-      if ($$) {
-        for (auto ptr : *($$)) {
-          free(ptr);
-        }
-      }
-      delete ($$);
-    } <str_vec>
-    %destructor { free( ($$) ); } <sval>
+    %destructor { } <fval> <ival> <bval> <sval>
     %destructor {
       if ($$) {
         for (auto ptr : *($$)) {
@@ -236,7 +174,7 @@
         }
       }
       delete ($$);
-    } <table_vec> <table_element_vec> <update_vec> <expr_vec> <order_vec> <stmt_vec>
+    }
     %destructor { delete ($$); } <*>
 
 
@@ -268,76 +206,6 @@
     %token TRANSACTION BEGIN COMMIT ROLLBACK
     %token NOWAIT SKIP LOCKED SHARE
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
-
-    /*********************************
-     ** Non-Terminal types (http://www.gnu.org/software/bison/manual/html_node/Type-Decl.html)
-     *********************************/
-    %type <stmt_vec>               statement_list
-    %type <statement>              statement preparable_statement
-    %type <exec_stmt>              execute_statement
-    %type <transaction_stmt>       transaction_statement
-    %type <prep_stmt>              prepare_statement
-    %type <select_stmt>            select_statement select_with_paren select_no_paren select_clause select_within_set_operation select_within_set_operation_no_parentheses
-    %type <import_stmt>            import_statement
-    %type <export_stmt>            export_statement
-    %type <create_stmt>            create_statement
-    %type <insert_stmt>            insert_statement
-    %type <delete_stmt>            delete_statement truncate_statement
-    %type <update_stmt>            update_statement
-    %type <drop_stmt>              drop_statement
-    %type <alter_stmt>             alter_statement
-    %type <show_stmt>              show_statement
-    %type <table_name>             table_name
-    %type <sval>                   opt_index_name
-    %type <sval>                   file_path prepare_target_query
-    %type <frame_description>      opt_frame_clause
-    %type <frame_bound>            frame_bound
-    %type <frame_type>             frame_type
-    %type <window_description>     opt_window
-    %type <bval>                   opt_not_exists opt_exists opt_distinct opt_all
-    %type <ival_pair>              opt_decimal_specification
-    %type <ival>                   opt_time_precision
-    %type <join_type>              opt_join_type
-    %type <table>                  opt_from_clause from_clause table_ref table_ref_atomic table_ref_name nonjoin_table_ref_atomic
-    %type <table>                  join_clause table_ref_name_no_alias
-    %type <expr>                   expr operand scalar_expr unary_expr binary_expr logic_expr exists_expr extract_expr cast_expr
-    %type <expr>                   function_expr between_expr expr_alias param_expr
-    %type <expr>                   column_name literal int_literal num_literal string_literal bool_literal date_literal interval_literal
-    %type <expr>                   comp_expr opt_where join_condition opt_having case_expr case_list in_expr hint
-    %type <expr>                   array_expr array_index null_literal
-    %type <limit>                  opt_limit opt_top
-    %type <order>                  order_desc
-    %type <order_type>             opt_order_type
-    %type <datetime_field>         datetime_field datetime_field_plural duration_field
-    %type <column_t>               column_def
-    %type <table_element_t>        table_elem
-    %type <column_type_t>          column_type
-    %type <table_constraint_t>     table_constraint
-    %type <update_t>               update_clause
-    %type <locking_t>              locking_clause
-    %type <group_t>                opt_group
-    %type <alias_t>                opt_table_alias table_alias opt_alias alias
-    %type <with_description_t>     with_description
-    %type <set_operator_t>         set_operator set_type
-    %type <column_constraint_t>    column_constraint
-    %type <column_constraint_set>  opt_column_constraints
-    %type <column_constraint_set>  column_constraint_set
-    %type <alter_action_t>         alter_action
-    %type <drop_action_t>          drop_action
-    %type <lock_wait_policy_t>     opt_row_lock_policy
-    %type <lock_mode_t>            row_lock_mode
-
-    // ImportType is used for compatibility reasons
-    %type <import_type_t>          opt_file_type file_type
-
-    %type <str_vec>                ident_commalist opt_column_list
-    %type <expr_vec>               expr_list select_list opt_literal_list literal_list hint_list opt_hints opt_partition
-    %type <table_vec>              table_ref_commalist
-    %type <order_vec>              opt_order order_list
-    %type <with_description_vec>   opt_with_clause with_clause with_description_list
-    %type <update_vec>             update_clause_commalist
-    %type <table_element_vec>      table_elem_commalist
-    %type <locking_clause_vec>     opt_locking_clause_list opt_locking_clause
 
     /******************************
      ** Token Precedence and Associativity

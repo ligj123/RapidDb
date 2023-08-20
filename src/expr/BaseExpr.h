@@ -239,4 +239,15 @@ public:
   string _alias; // alias name
 };
 
+// Base class for all statement
+class ExprStatement : public BaseExpr {
+public:
+  ExprStatement() {}
+  ~ExprStatement() {}
+  bool Preprocess() = 0;
+
+public:
+  int _paramNum; // The numbe of parameters in this statement
+};
+
 } // namespace storage

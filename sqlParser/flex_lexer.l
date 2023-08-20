@@ -10,7 +10,7 @@
  ***************************/
 %{
 
-#include "../sql/Expr.h"
+#include "../cache/Mallocator.h"
 #include "bison_parser.h"
 #include <climits>
 #include <stdio.h>
@@ -267,19 +267,19 @@ CHARACTER[ \t\n]+VARYING TOKEN(CHARACTER_VARYING)
 
 \"[^\"\n]+\" {
   // Crop the leading and trailing quote char
-  yylval->sval = hsql::substr(yytext, 1, strlen(yytext)-1);
-  return SQL_IDENTIFIER;
+  yylval->sval = storage::MString(yytext + 1, strlen(yytext)-1);
+  return SQL_STRING;
 }
 
 [A-Za-z][A-Za-z0-9_]* {
-  yylval->sval = strdup(yytext);
+  yylval->sval = storage::MString(yytext);
   return SQL_IDENTIFIER;
 }
 
 \'                          { BEGIN singlequotedstring; strbuf.clear(); strbuf.str(""); }  // Clear strbuf manually, see #170
 <singlequotedstring>\'\'    { strbuf << '\''; }
 <singlequotedstring>[^']*   { strbuf << yytext; }
-<singlequotedstring>\'      { BEGIN 0; yylval->sval = strdup(strbuf.str().c_str()); return SQL_STRING; }
+<singlequotedstring>\'      { BEGIN 0; yylval->sval = storage::MString(strbuf.str().c_str()); return SQL_STRING; }
 <singlequotedstring><<EOF>> { fprintf(stderr, "[SQL-Lexer-Error] Unterminated string\n"); return 0; }
 
 . { fprintf(stderr, "[SQL-Lexer-Error] Unknown Character: %c\n", yytext[0]); return 0; }

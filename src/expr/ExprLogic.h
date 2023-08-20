@@ -106,7 +106,7 @@ public:
 
 class ExprBetween : public ExprLogic {
 public:
-  ExprBetween(ExprData *child, ExprConst *left, ExprConst *right)
+  ExprBetween(ExprData *child, ExprData *left, ExprData *right)
       : _child(child), _exprLeft(left), _exprRight(right) {}
   ~ExprBetween() {
     delete _child;
@@ -127,8 +127,8 @@ public:
 
 public:
   ExprData *_child;
-  ExprConst *_exprLeft;
-  ExprConst *_exprRight;
+  ExprData *_exprLeft;
+  ExprData *_exprRight;
 };
 
 class ExprLike : public ExprLogic {
