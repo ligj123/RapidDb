@@ -83,7 +83,15 @@ public:
   MString _dbName;
 };
 
-enum class TranType { BEGIN, COMMIT, ABORT };
+class ExprTrunTable : public ExprStatement {
+public:
+  ExprTrunTable(MString dbName) : _dbName(move(dbName)) {}
+
+public:
+  MString _dbName;
+};
+
+enum class TranType { BEGIN, COMMIT, ROLLBACK };
 class ExprTransaction : public ExprStatement {
 public:
   TranType _tranType;

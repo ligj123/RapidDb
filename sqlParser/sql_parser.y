@@ -109,10 +109,12 @@
   ExprDropDatabase *expr_drop_db;
   ExprShowDatabases *expr_show_db;
   ExprUseDatabase *expr_use_db;
-  CExpr_olumnInfo expr_column_info;
+  CExprColumnInfo* expr_column_info;
   ExprCreateTable *expr_create_table;
   ExprDropTable *expr_drop_table;
   ExprShowTable *expr_show_table;
+  ExprTrunTable *expr_trun_table;
+  ExprTransaction *expr_transaction;
 
   ExprData *expr_data;
   ExprConst *expr_const;
@@ -150,9 +152,9 @@
   ExprOn *expr_on;
   ExprHaving *expr_having;
   
-  ExprGroupItem expr_group_item;
+  ExprGroupItem *expr_group_item;
   ExprGroupBy *expr_group_by;
-  ExprOrderTerm expr_order_item;
+  ExprOrderTerm *expr_order_item;
   ExprOrderBy *expr_order_by;
 
   ExprStatement *expr_statement;
@@ -160,6 +162,11 @@
   ExprInsert *expr_insert;
   ExprUpdate *expr_update;
   ExprDelete *expr_delete;
+
+  MVector<ExprColumnInfo*> *vct_col_info;
+  MVector<ExprLogic*> *vct_logic;
+  MVector<ExprGroupItem*> *vct_group_item
+  MVector<ExprOrderTerm*> *vct_order_item
 }
 
     /*********************************
@@ -174,7 +181,7 @@
         }
       }
       delete ($$);
-    }
+    } <vct_col_info>
     %destructor { delete ($$); } <*>
 
 
@@ -184,6 +191,7 @@
     %token <sval> IDENTIFIER STRING
     %token <fval> FLOATVAL
     %token <ival> INTVAL
+    %type <bval>  opt_not_exists opt_exists
 
     /* SQL Keywords */
     %token DEALLOCATE PARAMETERS INTERSECT TEMPORARY TIMESTAMP
@@ -203,9 +211,23 @@
     %token ARRAY CONCAT ILIKE SECOND MINUTE HOUR DAY MONTH YEAR
     %token SECONDS MINUTES HOURS DAYS MONTHS YEARS INTERVAL
     %token TRUE FALSE BOOLEAN
-    %token TRANSACTION BEGIN COMMIT ROLLBACK
+    %token TRANSACTION BEGIN COMMIT ROLLBACK START
     %token NOWAIT SKIP LOCKED SHARE
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
+
+    %type <expr_statement> expr_statement
+    %type <expr_create_db> expr_create_db
+    %type <expr_drop_db> expr_drop_db
+    %type <expr_show_db> expr_show_db
+    %type <expr_use_db> expr_use_db
+    %type <expr_create_table> expr_create_table
+    %type <expr_drop_table> expr_drop_table
+    %type <expr_show_table> expr_show_table
+    %type <expr_trun_table> expr_trun_table
+    %type <expr_select> expr_select
+    %type <expr_insert> expr_insert
+    %type <expr_update> expr_update
+    %type <expr_delete> expr_delete
 
     /******************************
      ** Token Precedence and Associativity
@@ -217,8 +239,7 @@
     %nonassoc '=' EQUALS NOTEQUALS LIKE ILIKE
     %nonassoc '<' '>' LESS GREATER LESSEQ GREATEREQ
 
-    %nonassoc NOTNULL
-    %nonassoc ISNULL
+    %nonassoc NULL
     %nonassoc IS        /* sets precedence for IS NULL, etc */
     %left     '+' '-'
     %left     '*' '/' '%'
@@ -237,181 +258,42 @@
 *********************************/
 
 // Defines our general input.
-input : statement_list opt_semicolon {
-  for (SQLStatement* stmt : *$1) {
-    // Transfers ownership of the statement.
-    result->addStatement(stmt);
-  }
-
-  unsigned param_id = 0;
-  for (void* param : yyloc.param_list) {
-    if (param) {
-      Expr* expr = (Expr*)param;
-      expr->ival = param_id;
-      result->addParameter(expr);
-      ++param_id;
-    }
-  }
-    delete $1;
-  };
-
-// clang-format on
-statement_list : statement {
-  $1->stringLength = yylloc.string_length;
-  yylloc.string_length = 0;
-  $$ = new std::vector<SQLStatement*>();
-  $$->push_back($1);
-}
-| statement_list ';' statement {
-  $3->stringLength = yylloc.string_length;
-  yylloc.string_length = 0;
-  $1->push_back($3);
-  $$ = $1;
-};
-
-statement : prepare_statement opt_hints {
-  $$ = $1;
-  $$->hints = $2;
-}
-| preparable_statement opt_hints {
-  $$ = $1;
-  $$->hints = $2;
-}
-| show_statement { $$ = $1; }
-| import_statement { $$ = $1; }
-| export_statement { $$ = $1; };
-
-preparable_statement : select_statement { $$ = $1; }
-| create_statement { $$ = $1; }
-| insert_statement { $$ = $1; }
-| delete_statement { $$ = $1; }
-| truncate_statement { $$ = $1; }
-| update_statement { $$ = $1; }
-| drop_statement { $$ = $1; }
-| alter_statement { $$ = $1; }
-| execute_statement { $$ = $1; }
-| transaction_statement { $$ = $1; };
-
-/******************************
- * Hints
- ******************************/
-
-opt_hints : WITH HINT '(' hint_list ')' { $$ = $4; }
-| /* empty */ { $$ = nullptr; };
-
-hint_list : hint {
-  $$ = new std::vector<Expr*>();
-  $$->push_back($1);
-}
-| hint_list ',' hint {
-  $1->push_back($3);
-  $$ = $1;
-};
-
-hint : IDENTIFIER {
-  $$ = Expr::make(kExprHint);
-  $$->name = $1;
-}
-| IDENTIFIER '(' literal_list ')' {
-  $$ = Expr::make(kExprHint);
-  $$->name = $1;
-  $$->exprList = $3;
-};
+statement : expr_create_db { $$ = $1; }
+| expr_drop_db { $$ = $1; }
+| expr_show_db { $$ = $1; }
+| expr_use_db { $$ = $1; }
+| expr_create_table { $$ = $1; }
+| expr_drop_table { $$ = $1; }
+| expr_show_table { $$ = $1; }
+| expr_trun_table { $$ = $1; }
+| expr_select { $$ = $1; }
+| expr_insert { $$ = $1; }
+| expr_update { $$ = $1; }
+| expr_delete { $$ = $1; }
+| expr_transaction { $$ = $1; }
 
 /******************************
  * Transaction Statement
  ******************************/
 
-transaction_statement : BEGIN opt_transaction_keyword { $$ = new TransactionStatement(kBeginTransaction); }
-| ROLLBACK opt_transaction_keyword { $$ = new TransactionStatement(kRollbackTransaction); }
-| COMMIT opt_transaction_keyword { $$ = new TransactionStatement(kCommitTransaction); };
+expr_transaction : BEGIN { $$ = new ExprTransaction(TranType::BEGIN); }
+| START TRANSACTION { $$ = new ExprTransaction(TranType::BEGIN); }
+| ROLLBACK { $$ = new ExprTransaction(TranType::ROLLBACK); }
+| COMMIT { $$ = new ExprTransaction(TranType::COMMIT); };
 
-opt_transaction_keyword : TRANSACTION | /* empty */
-    ;
-
-/******************************
- * Prepared Statement
- ******************************/
-prepare_statement : PREPARE IDENTIFIER FROM prepare_target_query {
-  $$ = new PrepareStatement();
-  $$->name = $2;
-  $$->query = $4;
-};
-
-prepare_target_query : STRING
-
-                           execute_statement : EXECUTE IDENTIFIER {
-  $$ = new ExecuteStatement();
-  $$->name = $2;
+expr_create_db : CREATE DATABASE opt_not_exists IDENTIFIER {
+  $$ = new ExprCreateDatabase($4, $3);
 }
-| EXECUTE IDENTIFIER '(' opt_literal_list ')' {
-  $$ = new ExecuteStatement();
-  $$->name = $2;
-  $$->parameters = $4;
+| CREATE SCHEMA opt_not_exists IDENTIFIER {
+  $$ = new ExprCreateDatabase($4, $3);
 };
 
-/******************************
- * Import Statement
- * IMPORT FROM TBL FILE 'test/students.tbl' INTO students
- * COPY students FROM 'test/students.tbl' [WITH FORMAT TBL]
- ******************************/
-import_statement : IMPORT FROM file_type FILE file_path INTO table_name {
-  $$ = new ImportStatement($3);
-  $$->filePath = $5;
-  $$->schema = $7.schema;
-  $$->tableName = $7.name;
+expr_drop_db : DROP DATABASE opt_exists IDENTIFIER {
+  $$ = new ExprDropDatabase($4, $3);
 }
-| COPY table_name FROM file_path opt_file_type opt_where {
-  $$ = new ImportStatement($5);
-  $$->filePath = $4;
-  $$->schema = $2.schema;
-  $$->tableName = $2.name;
-  $$->whereClause = $6;
+| DROP SCHEMA opt_exists IDENTIFIER {
+  $$ = new ExprDropDatabase($4, $3);
 };
-
-file_type : IDENTIFIER {
-  if (strcasecmp($1, "csv") == 0) {
-    $$ = kImportCSV;
-  } else if (strcasecmp($1, "tbl") == 0) {
-    $$ = kImportTbl;
-  } else if (strcasecmp($1, "binary") == 0 || strcasecmp($1, "bin") == 0) {
-    $$ = kImportBinary;
-  } else {
-    free($1);
-    yyerror(&yyloc, result, scanner, "File type is unknown.");
-    YYERROR;
-  }
-  free($1);
-};
-
-file_path : string_literal {
-  $$ = strdup($1->name);
-  delete $1;
-};
-
-opt_file_type : WITH FORMAT file_type { $$ = $3; }
-| /* empty */ { $$ = kImportAuto; };
-
-/******************************
- * Export Statement
- * COPY students TO 'test/students.tbl' (WITH FORMAT TBL)
- ******************************/
-export_statement : COPY table_name TO file_path opt_file_type {
-  $$ = new ExportStatement($5);
-  $$->filePath = $4;
-  $$->schema = $2.schema;
-  $$->tableName = $2.name;
-}
-| COPY select_with_paren TO file_path opt_file_type {
-  $$ = new ExportStatement($5);
-  $$->filePath = $4;
-  $$->select = $2;
-};
-
-/******************************
- * Show Statement
- * SHOW TABLES;
- ******************************/
 
 show_statement : SHOW TABLES { $$ = new ShowStatement(kShowTables); }
 | SHOW COLUMNS table_name {
