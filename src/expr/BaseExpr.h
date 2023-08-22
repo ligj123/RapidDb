@@ -180,7 +180,7 @@ public:
  */
 class ExprColumn : public BaseExpr {
 public:
-  ExprColumn(string &name) : _name(move(name)), _pos(-1), _exprData(nullptr) {}
+  ExprColumn(MString &name) : _name(move(name)), _pos(-1), _exprData(nullptr) {}
   ~ExprColumn() { delete _exprData; }
   ExprType GetType() { return ExprType::EXPR_COLUMN; }
   void Preprocess(int pos, ExprData *exprData) {
@@ -202,7 +202,7 @@ public:
   }
 
 public:
-  string _name;        // column name
+  MString _name;       // column name
   int _pos;            // The position in source table columns
   ExprData *_exprData; // The expression to get data value from source
 };
@@ -210,7 +210,7 @@ public:
 // The column in temp table for select result.
 class ExprResColumn : public ExprColumn {
 public:
-  ExprResColumn(string &tname, string &name, string &alias)
+  ExprResColumn(MString &tname, MString &name, MString &alias)
       : ExprColumn(name), _tName(move(tname)), _alias(move(alias)) {}
   ~ExprResColumn() {}
   ExprType GetDataType() const { return ExprType::EXPR_RESULT_COLUMN; }
@@ -235,8 +235,24 @@ public:
   }
 
 public:
-  string _tName; // table name
-  string _alias; // alias name
+  MString _tName; // table name
+  MString _alias; // alias name
+};
+
+class ExprTable : public BaseExpr {
+public:
+  ExprTable(MString &dbName, MString &name, MString &alias)
+      : _dbName(move(dbName)), _tName(move(name)), _tAlias(alias) {
+    if (_tAlias.size() == 0)
+      _tAlias = _tName;
+  }
+  ~ExprTable() {}
+  ExprType GetType() { return ExprType::EXPR_TABLE; }
+
+public:
+  MString _dbName;
+  MString _tName;
+  MString _tAlias;
 };
 
 // Base class for all statement

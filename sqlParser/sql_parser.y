@@ -214,6 +214,7 @@
     %token TRANSACTION BEGIN COMMIT ROLLBACK START
     %token NOWAIT SKIP LOCKED SHARE
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
+    %token DATABASE DATABASES
 
     %type <expr_statement> expr_statement
     %type <expr_create_db> expr_create_db
@@ -228,7 +229,8 @@
     %type <expr_insert> expr_insert
     %type <expr_update> expr_update
     %type <expr_delete> expr_delete
-
+ 
+    %type <table_name> table_name
     /******************************
      ** Token Precedence and Associativity
      ** Precedence: lowest to highest
@@ -295,17 +297,28 @@ expr_drop_db : DROP DATABASE opt_exists IDENTIFIER {
   $$ = new ExprDropDatabase($4, $3);
 };
 
-show_statement : SHOW TABLES { $$ = new ShowStatement(kShowTables); }
-| SHOW COLUMNS table_name {
-  $$ = new ShowStatement(kShowColumns);
-  $$->schema = $3.schema;
-  $$->name = $3.name;
+expr_show_db : SHOW DATABASES { $$ = new ExprShowDatabases(); };
+expr_use_db : USE IDENTIFIER { $$ = new ExprUseDatabase($2);}
+
+expr_create_table : CREATE TABLE opt_not_exists table_name '(' table_elem_commalist ')'
+
+
+
+
+
+table_name : IDENTIFIER {
+  $$ = new ExprTable(str_null, $1, str_null);
 }
-| DESCRIBE table_name {
-  $$ = new ShowStatement(kShowColumns);
-  $$->schema = $2.schema;
-  $$->name = $2.name;
+| IDENTIFIER AS IDENTIFIER {
+  $$ = new ExprTable(str_null, $1, $3);
+}
+| IDENTIFIER '.' IDENTIFIER {
+  $$ = new ExprTable($1, $3, str_null);
+}
+| IDENTIFIER '.' IDENTIFIER AS IDENTIFIER {
+  $$ = new ExprTable($1, $3, $5);
 };
+
 
 /******************************
  * Create Statement

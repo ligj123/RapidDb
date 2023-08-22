@@ -80,22 +80,6 @@ public:
   vector<ExprOrderTerm> _vctItem;
 };
 
-class ExprTable : public BaseExpr {
-public:
-  ExprTable(string &dbName, string &name, string &alias)
-      : _dbName(move(dbName)), _tName(move(name)), _tAlias(alias) {
-    if (_tAlias.size() == 0)
-      _tAlias = _tName;
-  }
-  ~ExprTable() {}
-  ExprType GetType() { return ExprType::EXPR_TABLE; }
-
-public:
-  string _dbName;
-  string _tName;
-  string _tAlias;
-};
-
 enum class JoinType { INNER_JOIN, LEFT_JOIN, RIGHT_JOIN, OUTTER_JOIN };
 
 class ExprJoinTable : public ExprTable {
