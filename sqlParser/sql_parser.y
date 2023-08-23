@@ -109,7 +109,8 @@
   ExprDropDatabase *expr_drop_db;
   ExprShowDatabases *expr_show_db;
   ExprUseDatabase *expr_use_db;
-  CExprColumnInfo* expr_column_info;
+  ExprColumnInfo *expr_column_info;
+  ExprConstraint *expr_constraint;
   ExprCreateTable *expr_create_table;
   ExprDropTable *expr_drop_table;
   ExprShowTable *expr_show_table;
@@ -167,6 +168,7 @@
   MVector<ExprLogic*> *vct_logic;
   MVector<ExprGroupItem*> *vct_group_item
   MVector<ExprOrderTerm*> *vct_order_item
+  MVector<ExprConstraint*> *vct_constraint;
 }
 
     /*********************************
@@ -191,7 +193,6 @@
     %token <sval> IDENTIFIER STRING
     %token <fval> FLOATVAL
     %token <ival> INTVAL
-    %type <bval>  opt_not_exists opt_exists
 
     /* SQL Keywords */
     %token DEALLOCATE PARAMETERS INTERSECT TEMPORARY TIMESTAMP
@@ -216,11 +217,14 @@
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
     %token DATABASE DATABASES
 
+    %type <bval>  opt_not_exists opt_exists
     %type <expr_statement> expr_statement
     %type <expr_create_db> expr_create_db
     %type <expr_drop_db> expr_drop_db
     %type <expr_show_db> expr_show_db
     %type <expr_use_db> expr_use_db
+    %type <expr_column_info> expr_column_info
+    %type <ExprConstraint> expr_constraint
     %type <expr_create_table> expr_create_table
     %type <expr_drop_table> expr_drop_table
     %type <expr_show_table> expr_show_table
@@ -231,6 +235,8 @@
     %type <expr_delete> expr_delete
  
     %type <table_name> table_name
+
+    %type <vct_col_info> vct_col_info
     /******************************
      ** Token Precedence and Associativity
      ** Precedence: lowest to highest
@@ -300,7 +306,7 @@ expr_drop_db : DROP DATABASE opt_exists IDENTIFIER {
 expr_show_db : SHOW DATABASES { $$ = new ExprShowDatabases(); };
 expr_use_db : USE IDENTIFIER { $$ = new ExprUseDatabase($2);}
 
-expr_create_table : CREATE TABLE opt_not_exists table_name '(' table_elem_commalist ')'
+expr_create_table : CREATE TABLE opt_not_exists table_name '(' vct_col_info ')'
 
 
 
@@ -318,6 +324,54 @@ table_name : IDENTIFIER {
 | IDENTIFIER '.' IDENTIFIER AS IDENTIFIER {
   $$ = new ExprTable($1, $3, $5);
 };
+
+opt_not_exists : IF NOT EXISTS { $$ = true; }
+| /* empty */ { $$ = false; };
+
+opt_exists : IF EXISTS { $$ = true; }
+| /* empty */ { $$ = false; };
+
+vct_col_info : table_elem {
+  $$ = new std::vector<TableElement*>();
+  $$->push_back($1);
+}
+| table_elem_commalist ',' table_elem {
+  $1->push_back($3);
+  $$ = $1;
+};
+
+table_elem : column_def { $$ = $1; }
+| table_constraint { $$ = $1; };
+
+column_def : IDENTIFIER column_type opt_column_constraints {
+  $$ = new ColumnDefinition($1, $2, $3);
+  if (!$$->trySetNullableExplicit()) {
+    yyerror(&yyloc, result, scanner, ("Conflicting nullability constraints for " + std::string{$1}).c_str());
+  }
+};
+
+column_type : BIGINT { $$ = ColumnType{DataType::BIGINT}; }
+| BOOLEAN { $$ = ColumnType{DataType::BOOLEAN}; }
+| CHAR '(' INTVAL ')' { $$ = ColumnType{DataType::CHAR, $3}; }
+| CHARACTER_VARYING '(' INTVAL ')' { $$ = ColumnType{DataType::VARCHAR, $3}; }
+| DATE { $$ = ColumnType{DataType::DATE}; };
+| DATETIME { $$ = ColumnType{DataType::DATETIME}; }
+| DECIMAL opt_decimal_specification {
+  $$ = ColumnType{DataType::DECIMAL, 0, $2->first, $2->second};
+  delete $2;
+}
+| DOUBLE { $$ = ColumnType{DataType::DOUBLE}; }
+| FLOAT { $$ = ColumnType{DataType::FLOAT}; }
+| INT { $$ = ColumnType{DataType::INT}; }
+| INTEGER { $$ = ColumnType{DataType::INT}; }
+| LONG { $$ = ColumnType{DataType::LONG}; }
+| REAL { $$ = ColumnType{DataType::REAL}; }
+| SMALLINT { $$ = ColumnType{DataType::SMALLINT}; }
+| TEXT { $$ = ColumnType{DataType::TEXT}; }
+| TIME opt_time_precision { $$ = ColumnType{DataType::TIME, 0, $2}; }
+| TIMESTAMP { $$ = ColumnType{DataType::DATETIME}; }
+| VARCHAR '(' INTVAL ')' { $$ = ColumnType{DataType::VARCHAR, $3}; }
+
 
 
 /******************************
@@ -372,50 +426,6 @@ create_statement : CREATE TABLE opt_not_exists table_name FROM IDENTIFIER FILE f
   $$->viewColumns = $5;
   $$->select = $7;
 };
-
-opt_not_exists : IF NOT EXISTS { $$ = true; }
-| /* empty */ { $$ = false; };
-
-table_elem_commalist : table_elem {
-  $$ = new std::vector<TableElement*>();
-  $$->push_back($1);
-}
-| table_elem_commalist ',' table_elem {
-  $1->push_back($3);
-  $$ = $1;
-};
-
-table_elem : column_def { $$ = $1; }
-| table_constraint { $$ = $1; };
-
-column_def : IDENTIFIER column_type opt_column_constraints {
-  $$ = new ColumnDefinition($1, $2, $3);
-  if (!$$->trySetNullableExplicit()) {
-    yyerror(&yyloc, result, scanner, ("Conflicting nullability constraints for " + std::string{$1}).c_str());
-  }
-};
-
-column_type : BIGINT { $$ = ColumnType{DataType::BIGINT}; }
-| BOOLEAN { $$ = ColumnType{DataType::BOOLEAN}; }
-| CHAR '(' INTVAL ')' { $$ = ColumnType{DataType::CHAR, $3}; }
-| CHARACTER_VARYING '(' INTVAL ')' { $$ = ColumnType{DataType::VARCHAR, $3}; }
-| DATE { $$ = ColumnType{DataType::DATE}; };
-| DATETIME { $$ = ColumnType{DataType::DATETIME}; }
-| DECIMAL opt_decimal_specification {
-  $$ = ColumnType{DataType::DECIMAL, 0, $2->first, $2->second};
-  delete $2;
-}
-| DOUBLE { $$ = ColumnType{DataType::DOUBLE}; }
-| FLOAT { $$ = ColumnType{DataType::FLOAT}; }
-| INT { $$ = ColumnType{DataType::INT}; }
-| INTEGER { $$ = ColumnType{DataType::INT}; }
-| LONG { $$ = ColumnType{DataType::LONG}; }
-| REAL { $$ = ColumnType{DataType::REAL}; }
-| SMALLINT { $$ = ColumnType{DataType::SMALLINT}; }
-| TEXT { $$ = ColumnType{DataType::TEXT}; }
-| TIME opt_time_precision { $$ = ColumnType{DataType::TIME, 0, $2}; }
-| TIMESTAMP { $$ = ColumnType{DataType::DATETIME}; }
-| VARCHAR '(' INTVAL ')' { $$ = ColumnType{DataType::VARCHAR, $3}; }
 
 opt_time_precision : '(' INTVAL ')' { $$ = $2; }
 | /* empty */ { $$ = 0; };
@@ -473,9 +483,6 @@ drop_statement : DROP TABLE opt_exists table_name {
   $$->ifExists = $3;
   $$->indexName = $4;
 };
-
-opt_exists : IF EXISTS { $$ = true; }
-| /* empty */ { $$ = false; };
 
 /******************************
  * ALTER Statement

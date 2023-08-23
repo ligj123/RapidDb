@@ -1,4 +1,6 @@
 #pragma once
+#include "../cache/Mallocator.h"
+#include "../core/IndexType.h"
 #include "BaseExpr.h"
 
 using namespace std;
@@ -40,7 +42,11 @@ public:
   MString _dbName;
 };
 
-struct ExprColumnInfo {
+class ExprColumnInfo : public BaseExpr {
+public:
+  ExprType GetType() { return ExprType::EXPR_COLUMN_INFO; }
+
+public:
   MString _colName;
   DataType _dataType;
   int _length;
@@ -53,22 +59,38 @@ struct ExprColumnInfo {
   MString _comment;
 };
 
+class ExprConstraint : public BaseExpr {
+public:
+  ExprType GetType() { return ExprType::EXPR_CONSTRAINT; }
+
+public:
+  MString _idxName;
+  IndexType _idxType;
+  // In this version here does only support to include entire columns, and the
+  // total length of columns can not exceed the index max length defined in
+  // config. In following version, maybe to support more complex content.
+  MVector<MString> _vctCol;
+};
+
 class ExprCreateTable : public ExprStatement {
 public:
   ExprCreateTable(MString &tname, bool ifNotExist,
                   MVector<ExprColumnInfo> &vctCol)
       : _tName(move(tname)), _ifNotExist(ifNotExist), _vctCol(vctCol) {}
+  ExprType GetType() { return ExprType::EXPR_CREATE_TABLE; }
 
 public:
   MString _tName;
   bool _ifNotExist;
-  MVector<ExprColumnInfo> _vctCol;
+  MVector<ExprColumnInfo *> _vctCol;
+  MVector<ExprConstaint *> _vctConst;
 };
 
 class ExprDropTable : public ExprStatement {
 public:
   ExprDropTable(MString &tname, bool ifNotExist)
       : _tName(move(tname)), _ifNotExist(ifNotExist) {}
+  ExprType GetType() { return ExprType::EXPR_DROP_TABLE; }
 
 public:
   MString _tName;
@@ -78,6 +100,7 @@ public:
 class ExprShowTable : public ExprStatement {
 public:
   ExprShowTable(MString dbName) : _dbName(move(dbName)) {}
+  ExprType GetType() { return ExprType::EXPR_SHOW_TABLE; }
 
 public:
   MString _dbName;
@@ -86,6 +109,7 @@ public:
 class ExprTrunTable : public ExprStatement {
 public:
   ExprTrunTable(MString dbName) : _dbName(move(dbName)) {}
+  ExprType GetType() { return ExprType::EXPR_TRUN_TABLE; }
 
 public:
   MString _dbName;
