@@ -42,7 +42,9 @@ public:
   MString _dbName;
 };
 
-class ExprColumnInfo : public BaseExpr {
+class ExprTableElem : public BaseExpr {};
+
+class ExprColumnInfo : public ExprTableElem {
 public:
   ExprType GetType() { return ExprType::EXPR_COLUMN_INFO; }
 
@@ -59,7 +61,7 @@ public:
   MString _comment;
 };
 
-class ExprConstraint : public BaseExpr {
+class ExprConstraint : public ExprTableElem {
 public:
   ExprType GetType() { return ExprType::EXPR_CONSTRAINT; }
 

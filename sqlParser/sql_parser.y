@@ -109,6 +109,7 @@
   ExprDropDatabase *expr_drop_db;
   ExprShowDatabases *expr_show_db;
   ExprUseDatabase *expr_use_db;
+  ExprTableElem *expr_table_elem;
   ExprColumnInfo *expr_column_info;
   ExprConstraint *expr_constraint;
   ExprCreateTable *expr_create_table;
