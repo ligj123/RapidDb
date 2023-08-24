@@ -80,10 +80,14 @@ public:
                   MVector<ExprColumnInfo> &vctCol)
       : _tName(move(tname)), _ifNotExist(ifNotExist), _vctCol(vctCol) {}
   ExprType GetType() { return ExprType::EXPR_CREATE_TABLE; }
+  bool Preprocess() {
+    // TO DO
+  }
 
 public:
   MString _tName;
   bool _ifNotExist;
+  MVector<ExprTableElem *> _vctElem;
   MVector<ExprColumnInfo *> _vctCol;
   MVector<ExprConstaint *> _vctConst;
 };
@@ -93,6 +97,9 @@ public:
   ExprDropTable(MString &tname, bool ifNotExist)
       : _tName(move(tname)), _ifNotExist(ifNotExist) {}
   ExprType GetType() { return ExprType::EXPR_DROP_TABLE; }
+  bool Preprocess() {
+    // TO DO
+  }
 
 public:
   MString _tName;
@@ -103,6 +110,9 @@ class ExprShowTable : public ExprStatement {
 public:
   ExprShowTable(MString dbName) : _dbName(move(dbName)) {}
   ExprType GetType() { return ExprType::EXPR_SHOW_TABLE; }
+  bool Preprocess() {
+    // TO DO
+  }
 
 public:
   MString _dbName;
@@ -112,6 +122,9 @@ class ExprTrunTable : public ExprStatement {
 public:
   ExprTrunTable(MString dbName) : _dbName(move(dbName)) {}
   ExprType GetType() { return ExprType::EXPR_TRUN_TABLE; }
+  bool Preprocess() {
+    // TO DO
+  }
 
 public:
   MString _dbName;
@@ -126,6 +139,10 @@ public:
 enum class AlterAction { ADD, CHANGE, ALTER, MODIFY, DROP, RENAME };
 class ExprAlterTable : public ExprStatement {
 public:
+  bool Preprocess() {
+    // TO DO
+  }
+
 public:
   AlterAction _action;
 };

@@ -104,13 +104,15 @@
   int64_t ival;
   uintmax_t uval;
 
+  DataType data_type;
+
   // statements
   ExprCreateDatabase *expr_create_db;
   ExprDropDatabase *expr_drop_db;
   ExprShowDatabases *expr_show_db;
   ExprUseDatabase *expr_use_db;
   ExprTableElem *expr_table_elem;
-  ExprColumnInfo *expr_column_info;
+  ExprColumnInfo *expr_col_info;
   ExprConstraint *expr_constraint;
   ExprCreateTable *expr_create_table;
   ExprDropTable *expr_drop_table;
@@ -169,14 +171,14 @@
   MVector<ExprLogic*> *vct_logic;
   MVector<ExprGroupItem*> *vct_group_item
   MVector<ExprOrderTerm*> *vct_order_item
-  MVector<ExprConstraint*> *vct_constraint;
+  MVector<ExprTableElem*> *vct_table_elem;
 }
 
     /*********************************
      ** Destructor symbols
      *********************************/
     // clang-format off
-    %destructor { } <fval> <ival> <bval> <sval>
+    %destructor { } <fval> <ival> <bval> <sval> <data_type>
     %destructor {
       if ($$) {
         for (auto ptr : *($$)) {
@@ -218,14 +220,16 @@
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
     %token DATABASE DATABASES
 
+    %type <data_type> data_type
     %type <bval>  opt_not_exists opt_exists
     %type <expr_statement> expr_statement
     %type <expr_create_db> expr_create_db
     %type <expr_drop_db> expr_drop_db
     %type <expr_show_db> expr_show_db
     %type <expr_use_db> expr_use_db
-    %type <expr_column_info> expr_column_info
-    %type <ExprConstraint> expr_constraint
+    %type <expr_table_elem> expr_table_elem
+    %type <expr_col_info> expr_col_info
+    %type <expr_constraint> expr_constraint
     %type <expr_create_table> expr_create_table
     %type <expr_drop_table> expr_drop_table
     %type <expr_show_table> expr_show_table
@@ -237,7 +241,7 @@
  
     %type <table_name> table_name
 
-    %type <vct_col_info> vct_col_info
+    %type <vct_table_elem> vct_table_elem
     /******************************
      ** Token Precedence and Associativity
      ** Precedence: lowest to highest
@@ -332,19 +336,19 @@ opt_not_exists : IF NOT EXISTS { $$ = true; }
 opt_exists : IF EXISTS { $$ = true; }
 | /* empty */ { $$ = false; };
 
-vct_col_info : table_elem {
-  $$ = new std::vector<TableElement*>();
+vct_table_elem : expr_table_elem {
+  $$ = new MVector<ExprTableElem*>();
   $$->push_back($1);
 }
-| table_elem_commalist ',' table_elem {
+| vct_table_elem ',' expr_table_elem {
   $1->push_back($3);
   $$ = $1;
 };
 
-table_elem : column_def { $$ = $1; }
-| table_constraint { $$ = $1; };
+expr_table_elem : expr_col_info { $$ = $1; }
+| expr_constraint { $$ = $1; };
 
-column_def : IDENTIFIER column_type opt_column_constraints {
+expr_col_info : IDENTIFIER column_type opt_column_constraints {
   $$ = new ColumnDefinition($1, $2, $3);
   if (!$$->trySetNullableExplicit()) {
     yyerror(&yyloc, result, scanner, ("Conflicting nullability constraints for " + std::string{$1}).c_str());
