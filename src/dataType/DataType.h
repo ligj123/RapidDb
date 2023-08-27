@@ -32,6 +32,7 @@ enum class DataType : uint32_t {
   BLOB = ARRAY_TYPE + 14,
   BOOL = FIX_LEN + 15,
 
+  VAL_NULL = 127,
   LAST = 127 // Now only can support 127 max data types
 };
 

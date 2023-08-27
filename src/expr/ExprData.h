@@ -231,4 +231,32 @@ public:
   ExprData *_exprLeft;
   ExprData *_exprRight;
 };
+
+class ExprMinus : public ExprData {
+
+public:
+  ExprMinus(ExprData *data) : _exprData(data) {}
+  ~ExprMinus() { delete _exprData; }
+
+  ExprType GetType() { return ExprType::EXPR_DATA; }
+  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
+    IDataValue *data = _exprLeft->Calc(vdLeft, vdRight);
+    IDataValue *rt = nullptr;
+
+    if (data->IsAutoPrimaryKey()) {
+      rt = new DataValueLong(data->GetLong());
+    } else if (left->IsDigital() && right->IsDigital()) {
+      double r = data->GetDouble();
+      if (r != 0)
+        rt = new DataValueDouble(data->GetDouble());
+    }
+
+    if (!data->IsReuse())
+      delete data;
+    return rt;
+  }
+
+public:
+  ExprData *_exprData;
+}
 } // namespace storage

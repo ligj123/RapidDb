@@ -63,6 +63,7 @@ enum class ExprType {
   EXPR_TRUN_TABLE,
   EXPR_COLUMN_INFO,
   EXPR_CONSTRAINT,
+  EXPR_COLUMN_TYPE,
 
   // Input or oupt value and table
   EXPR_COLUMN,

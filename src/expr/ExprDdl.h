@@ -44,14 +44,22 @@ public:
 
 class ExprTableElem : public BaseExpr {};
 
+class ExprColumnType : public BaseExpr {
+public:
+  ExprColumnType(DataType dt, int len = -1) : _dataType(dt), _length(len) {}
+  ExprType GetType() { return ExprType::EXPR_COLUMN_TYPE; }
+
+public:
+  DataType _dataType;
+  int _length;
+};
+
 class ExprColumnInfo : public ExprTableElem {
 public:
   ExprType GetType() { return ExprType::EXPR_COLUMN_INFO; }
 
 public:
   MString _colName;
-  DataType _dataType;
-  int _length;
   int _incStart;
   int _incStep;
   bool _nullable;

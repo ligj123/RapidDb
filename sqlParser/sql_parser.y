@@ -104,15 +104,16 @@
   int64_t ival;
   uintmax_t uval;
 
-  DataType data_type;
-
   // statements
   ExprCreateDatabase *expr_create_db;
   ExprDropDatabase *expr_drop_db;
   ExprShowDatabases *expr_show_db;
   ExprUseDatabase *expr_use_db;
   ExprTableElem *expr_table_elem;
+  ExprColumnType expr_col_type;
+  IDataValue *expr_data_val;
   ExprColumnInfo *expr_col_info;
+  IndexType index_type;
   ExprConstraint *expr_constraint;
   ExprCreateTable *expr_create_table;
   ExprDropTable *expr_drop_table;
@@ -178,7 +179,7 @@
      ** Destructor symbols
      *********************************/
     // clang-format off
-    %destructor { } <fval> <ival> <bval> <sval> <data_type>
+    %destructor { } <fval> <ival> <bval> <sval> <data_type> <expr_col_type>
     %destructor {
       if ($$) {
         for (auto ptr : *($$)) {
@@ -218,16 +219,19 @@
     %token TRANSACTION BEGIN COMMIT ROLLBACK START
     %token NOWAIT SKIP LOCKED SHARE
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
-    %token DATABASE DATABASES
+    %token DATABASE DATABASES AUTO_INCREMENT COMMENT
 
     %type <data_type> data_type
-    %type <bval>  opt_not_exists opt_exists
+    %type <bval> opt_not_exists opt_exists col_nullable auto_increment
+    %type <sval> table_comment
     %type <expr_statement> expr_statement
     %type <expr_create_db> expr_create_db
     %type <expr_drop_db> expr_drop_db
     %type <expr_show_db> expr_show_db
     %type <expr_use_db> expr_use_db
     %type <expr_table_elem> expr_table_elem
+    %type <expr_col_default> expr_col_default
+    %type <expr_col_type> expr_col_type
     %type <expr_col_info> expr_col_info
     %type <expr_constraint> expr_constraint
     %type <expr_create_table> expr_create_table
@@ -238,7 +242,14 @@
     %type <expr_insert> expr_insert
     %type <expr_update> expr_update
     %type <expr_delete> expr_delete
+    %type <index_type> index_type
  
+    %type <expr_data_val> const_dv const_int const_double const_string const_bool const_null
+    %type <expr_data> expr_data
+    %type <expr_const> expr_const
+    %type <expr_field> expr_field
+    %type <expr_param> expr_param
+
     %type <table_name> table_name
 
     %type <vct_table_elem> vct_table_elem
@@ -249,8 +260,8 @@
     %left     OR
     %left     AND
     %right    NOT
-    %nonassoc '=' EQUALS NOTEQUALS LIKE ILIKE
-    %nonassoc '<' '>' LESS GREATER LESSEQ GREATEREQ
+    %nonassoc '=' EQ NE LIKE ILIKE
+    %nonassoc '<' '>' LE GE
 
     %nonassoc NULL
     %nonassoc IS        /* sets precedence for IS NULL, etc */
@@ -348,34 +359,67 @@ vct_table_elem : expr_table_elem {
 expr_table_elem : expr_col_info { $$ = $1; }
 | expr_constraint { $$ = $1; };
 
-expr_col_info : IDENTIFIER column_type opt_column_constraints {
+expr_col_info : IDENTIFIER expr_col_type col_nullable expr_col_default auto_increment index_type table_comment {
   $$ = new ColumnDefinition($1, $2, $3);
   if (!$$->trySetNullableExplicit()) {
     yyerror(&yyloc, result, scanner, ("Conflicting nullability constraints for " + std::string{$1}).c_str());
   }
 };
 
-column_type : BIGINT { $$ = ColumnType{DataType::BIGINT}; }
-| BOOLEAN { $$ = ColumnType{DataType::BOOLEAN}; }
-| CHAR '(' INTVAL ')' { $$ = ColumnType{DataType::CHAR, $3}; }
-| CHARACTER_VARYING '(' INTVAL ')' { $$ = ColumnType{DataType::VARCHAR, $3}; }
-| DATE { $$ = ColumnType{DataType::DATE}; };
-| DATETIME { $$ = ColumnType{DataType::DATETIME}; }
-| DECIMAL opt_decimal_specification {
-  $$ = ColumnType{DataType::DECIMAL, 0, $2->first, $2->second};
-  delete $2;
-}
-| DOUBLE { $$ = ColumnType{DataType::DOUBLE}; }
-| FLOAT { $$ = ColumnType{DataType::FLOAT}; }
-| INT { $$ = ColumnType{DataType::INT}; }
-| INTEGER { $$ = ColumnType{DataType::INT}; }
-| LONG { $$ = ColumnType{DataType::LONG}; }
-| REAL { $$ = ColumnType{DataType::REAL}; }
-| SMALLINT { $$ = ColumnType{DataType::SMALLINT}; }
-| TEXT { $$ = ColumnType{DataType::TEXT}; }
-| TIME opt_time_precision { $$ = ColumnType{DataType::TIME, 0, $2}; }
-| TIMESTAMP { $$ = ColumnType{DataType::DATETIME}; }
-| VARCHAR '(' INTVAL ')' { $$ = ColumnType{DataType::VARCHAR, $3}; }
+expr_col_type : BIGINT { $$ = ExprColumnType(DataType::LONG); }
+| BOOLEAN { $$ = ExprColumnType(DataType::BOOL); }
+| CHAR '(' INTVAL ')' { $$ = ExprColumnType(DataType::FIXCHAR, $3); }
+| DOUBLE { $$ = ExprColumnType(DataType::DOUBLE); }
+| FLOAT { $$ = ExprColumnType(DataType::FLOAT); }
+| INT { $$ = ExprColumnType(DataType::INT); }
+| INTEGER { $$ = ExprColumnType(DataType::INT); }
+| LONG { $$ = ExprColumnType(DataType::LONG); }
+| REAL { $$ = ExprColumnType(DataType::DOUBLE); }
+| SMALLINT { $$ = ExprColumnType(DataType::SHORT); }
+| VARCHAR '(' INTVAL ')' { $$ = ExprColumnType(DataType::VARCHAR, $3); }
+
+col_nullable : NULL { $$ = true; }
+| NOT NULL { $$ = false; }
+| /* empty */ { $$ = true; };
+
+expr_col_default : DEFAULT const_dv { $$ = $2; }
+| /* empty */ { $$ = DataValueNull(); }
+
+const_dv : const_int | const_double | const_string | const_bool | const_null;
+const_string : STRING { $$ = new DataValueVarChar($1, strlen($1)); };
+const_bool : TRUE { $$ = new DataValueBool(true); }
+| FALSE { $$ = new DataValueBool(false); };
+const_double : FLOATVAL { $$ = new DataValueDouble($1); }
+const_int : INTVAL { $$ = DataValueLong($1); };
+const_null : NULL { $$ = DataValueNull(); };
+
+auto_increment : AUTO_INCREMENT { $$ = true; }
+|  /* empty */ { $$ = false; };
+
+index_type : PRIMARY KEY { $$ = IndexType::PRIMARY; }
+| PRIMARY { $$ = IndexType::PRIMARY; }
+| UNIQUE KEY { $$ = IndexType::UNIQUE; }
+| UNIQUE { $$ = IndexType::UNIQUE; }
+| KEY { $$ = IndexType::NON_UNIQUE; }
+| /* empty */ { $$ = IndexType::UNKNOWN; };
+
+table_comment | COMMENT STRING { $$ = $2; }
+|  /* empty */ { $$ = MString(); };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
