@@ -84,16 +84,16 @@ public:
 
 class ExprCreateTable : public ExprStatement {
 public:
-  ExprCreateTable(MString &tname, bool ifNotExist,
-                  MVector<ExprColumnInfo> &vctCol)
-      : _tName(move(tname)), _ifNotExist(ifNotExist), _vctCol(vctCol) {}
+  ExprCreateTable(ExprTable &tname, bool ifNotExist,
+                  MVector<ExprTableElem *> &vctElem)
+      : _tName(move(tname)), _ifNotExist(ifNotExist), _vctElem(vctElem) {}
   ExprType GetType() { return ExprType::EXPR_CREATE_TABLE; }
   bool Preprocess() {
     // TO DO
   }
 
 public:
-  MString _tName;
+  ExprTable _tName;
   bool _ifNotExist;
   MVector<ExprTableElem *> _vctElem;
   MVector<ExprColumnInfo *> _vctCol;
@@ -102,7 +102,7 @@ public:
 
 class ExprDropTable : public ExprStatement {
 public:
-  ExprDropTable(MString &tname, bool ifNotExist)
+  ExprDropTable(ExprTable &tname, bool ifNotExist)
       : _tName(move(tname)), _ifNotExist(ifNotExist) {}
   ExprType GetType() { return ExprType::EXPR_DROP_TABLE; }
   bool Preprocess() {
@@ -110,32 +110,32 @@ public:
   }
 
 public:
-  MString _tName;
+  ExprTable _tName;
   bool _ifNotExist;
 };
 
 class ExprShowTable : public ExprStatement {
 public:
-  ExprShowTable(MString dbName) : _dbName(move(dbName)) {}
+  ExprShowTable(ExprTable dbName) : _dbName(move(dbName)) {}
   ExprType GetType() { return ExprType::EXPR_SHOW_TABLE; }
   bool Preprocess() {
     // TO DO
   }
 
 public:
-  MString _dbName;
+  ExprTable _dbName;
 };
 
 class ExprTrunTable : public ExprStatement {
 public:
-  ExprTrunTable(MString dbName) : _dbName(move(dbName)) {}
+  ExprTrunTable(ExprTable dbName) : _dbName(move(dbName)) {}
   ExprType GetType() { return ExprType::EXPR_TRUN_TABLE; }
   bool Preprocess() {
     // TO DO
   }
 
 public:
-  MString _dbName;
+  ExprTable _dbName;
 };
 
 enum class TranType { BEGIN, COMMIT, ROLLBACK };

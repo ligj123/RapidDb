@@ -173,6 +173,7 @@
   MVector<ExprGroupItem*> *vct_group_item
   MVector<ExprOrderTerm*> *vct_order_item
   MVector<ExprTableElem*> *vct_table_elem;
+  MVector<MString> *vct_str;
 }
 
     /*********************************
@@ -222,6 +223,7 @@
     %token DATABASE DATABASES AUTO_INCREMENT COMMENT
 
     %type <data_type> data_type
+    %type <vct_str> vct_col_name
     %type <bval> opt_not_exists opt_exists col_nullable auto_increment
     %type <sval> table_comment
     %type <expr_statement> expr_statement
@@ -322,10 +324,13 @@ expr_drop_db : DROP DATABASE opt_exists IDENTIFIER {
 expr_show_db : SHOW DATABASES { $$ = new ExprShowDatabases(); };
 expr_use_db : USE IDENTIFIER { $$ = new ExprUseDatabase($2);}
 
-expr_create_table : CREATE TABLE opt_not_exists table_name '(' vct_col_info ')'
+expr_create_table : CREATE TABLE opt_not_exists table_name '(' vct_table_elem ')' {
+  $$ = new ExprCreateTable($4, $3, $6);
+};
 
-
-
+expr_drop_table : DROP TABLE opt_exists table_name {
+  $$ = new ExprDropTable($4, D3);
+};
 
 
 table_name : IDENTIFIER {
@@ -407,6 +412,26 @@ table_comment | COMMENT STRING { $$ = $2; }
 |  /* empty */ { $$ = MString(); };
 
 
+expr_constraint : INDEX IDENTIFIER IndexType '(' vct_col_name ')' {
+  $$ = new ExprConstraint();
+  $$->_idxName = $2;
+  $$->_idxType = $3;
+  $$->_vctCol = $5;
+}
+| PRIMARY KEY '(' vct_col_name ')' {
+  $$ = new ExprConstraint();
+  $$->_idxType = IndexType::PRIMARY;
+  $$->_vctCol = $4;
+};
+
+vct_col_name : IDENTIFIER {
+  $$ = new MVector<MString>();
+  $$->push_back($1);
+}
+| vct_col_name ',' IDENTIFIER {
+  $1->push_back($3);
+  $$ = $1;
+};
 
 
 
