@@ -116,7 +116,7 @@
   IndexType index_type;
   ExprConstraint *expr_constraint;
   ExprCreateTable *expr_create_table;
-  ExprDropTable *expr_drop_table;
+  ExprDropTables *expr_drop_tables;
   ExprShowTable *expr_show_table;
   ExprTrunTable *expr_trun_table;
   ExprTransaction *expr_transaction;
@@ -174,6 +174,8 @@
   MVector<ExprOrderTerm*> *vct_order_item
   MVector<ExprTableElem*> *vct_table_elem;
   MVector<MString> *vct_str;
+  MVector<ExprData*> *_data_row;
+  MVector<MVector<ExprData*>*> *_vct_data_row;
 }
 
     /*********************************
@@ -238,7 +240,7 @@
     %type <expr_constraint> expr_constraint
     %type <expr_create_table> expr_create_table
     %type <expr_drop_table> expr_drop_table
-    %type <expr_show_table> expr_show_table
+    %type <expr_show_tables> expr_show_tables
     %type <expr_trun_table> expr_trun_table
     %type <expr_select> expr_select
     %type <expr_insert> expr_insert
@@ -290,7 +292,7 @@ statement : expr_create_db { $$ = $1; }
 | expr_use_db { $$ = $1; }
 | expr_create_table { $$ = $1; }
 | expr_drop_table { $$ = $1; }
-| expr_show_table { $$ = $1; }
+| expr_show_tables { $$ = $1; }
 | expr_trun_table { $$ = $1; }
 | expr_select { $$ = $1; }
 | expr_insert { $$ = $1; }
@@ -331,6 +333,22 @@ expr_create_table : CREATE TABLE opt_not_exists table_name '(' vct_table_elem ')
 expr_drop_table : DROP TABLE opt_exists table_name {
   $$ = new ExprDropTable($4, D3);
 };
+
+expr_show_tables : SHOW TABLES FROM IDENTIFIER {
+  $$ = new ExprShowTables($4);
+}
+| SHOW TABLES { $$ = new ExprShowTables(str_null); }
+
+expr_trun_table : TRUNCATE TABLE table_name {
+  $$ = new ExprTrunTable($3);
+}
+
+expr_insert : INSERT INTO table_name '(' vct_table_elem ')'  {
+
+}
+
+
+
 
 
 table_name : IDENTIFIER {

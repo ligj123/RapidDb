@@ -114,28 +114,28 @@ public:
   bool _ifNotExist;
 };
 
-class ExprShowTable : public ExprStatement {
+class ExprShowTables : public ExprStatement {
 public:
-  ExprShowTable(ExprTable dbName) : _dbName(move(dbName)) {}
-  ExprType GetType() { return ExprType::EXPR_SHOW_TABLE; }
+  ExprShowTables(MString &dbName) : _dbName(move(dbName)) {}
+  ExprType GetType() { return ExprType::EXPR_SHOW_TABLES; }
   bool Preprocess() {
     // TO DO
   }
 
 public:
-  ExprTable _dbName;
+  MString _dbName;
 };
 
 class ExprTrunTable : public ExprStatement {
 public:
-  ExprTrunTable(ExprTable dbName) : _dbName(move(dbName)) {}
+  ExprTrunTable(ExprTable tName) : _tableName(move(tName)) {}
   ExprType GetType() { return ExprType::EXPR_TRUN_TABLE; }
   bool Preprocess() {
     // TO DO
   }
 
 public:
-  ExprTable _dbName;
+  ExprTable _tableName;
 };
 
 enum class TranType { BEGIN, COMMIT, ROLLBACK };
