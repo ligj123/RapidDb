@@ -168,14 +168,14 @@
   ExprUpdate *expr_update;
   ExprDelete *expr_delete;
 
-  MVector<ExprColumnInfo*> *vct_col_info;
-  MVector<ExprLogic*> *vct_logic;
-  MVector<ExprGroupItem*> *vct_group_item
-  MVector<ExprOrderTerm*> *vct_order_item
-  MVector<ExprTableElem*> *vct_table_elem;
-  MVector<MString> *vct_str;
-  MVector<ExprData*> *_data_row;
-  MVector<MVector<ExprData*>*> *_vct_data_row;
+  MVectorPtr<ExprColumnInfo*> *vct_col_info;
+  MVectorPtr<ExprLogic*> *vct_logic;
+  MVectorPtr<ExprGroupItem*> *vct_group_item
+  MVectorPtr<ExprOrderTerm*> *vct_order_item
+  MVectorPtr<ExprTableElem*> *vct_table_elem;
+  MVectorPtr<MString> *vct_str;
+  MVectorPtr<ExprData*> *expr_data_row;
+  MVectorPtr<MVectorPtr<ExprData*>*> *expr_vct_data_row;
 }
 
     /*********************************
@@ -249,11 +249,10 @@
     %type <index_type> index_type
  
     %type <expr_data_val> const_dv const_int const_double const_string const_bool const_null
-    %type <expr_data> expr_data
-    %type <expr_const> expr_const
-    %type <expr_field> expr_field
-    %type <expr_param> expr_param
+    %type <expr_data> expr_data expr_const expr_field expr_param expr_add expr_sub expr_mul expr_div expr_minus
 
+    %type <expr_data_row> expr_data_row
+    %type <expr_vct_data_row> expr_vct_data_row
     %type <table_name> table_name
 
     %type <vct_table_elem> vct_table_elem
@@ -343,12 +342,38 @@ expr_trun_table : TRUNCATE TABLE table_name {
   $$ = new ExprTrunTable($3);
 }
 
-expr_insert : INSERT INTO table_name '(' vct_table_elem ')'  {
+expr_insert : INSERT INTO table_name '(' vct_col_name ')' VALUES expr_vct_data_row {
 
 }
 
+expr_vct_data_row : '(' expr_data_row ')' {
+  $$ = new MVectorPtr<MVectorPtr<ExprData*>*>();
+  $$->push_back($2);
+}
+| expr_vct_data_row ',' '(' expr_data_row ')' {
+  $1->push_back($4);
+  $$ = $1;
+};
 
+expr_data_row : expr_data {
+  $$ = new MVectorPtr<ExprData*>();
+  $$->push_back($1);
+}
+| expr_data_row ',' expr_data {
+  $1->push_back($3);
+  $$ = $1;
+};
 
+expr_data : expr_const | expr_field | expr_param | expr_add | expr_sub | expr_mul | expr_div | expr_minus;
+expr_const : const_dv { $$ = new ExprConst($1); }
+expr_field : IDENTIFIER { $$ = new ExprField(str_null, $1); }
+| IDENTIFIER '.' IDENTIFIER {$$ = new ExprField($1, $3);};
+expr_param : '?' { $$ =  new ExprParameter(); };
+expr_add : expr_data '+' expr_data { $$ = new ExprAdd($1, $3); };
+expr_sub : expr_data '-' expr_data { $$ = new ExprSub($1, $3); };
+expr_mul : expr_data '*' expr_data { $$ = new ExprMul($1, $3); };
+expr_div : expr_data '/' expr_data { $$ = new ExprDiv($1, $3); };
+expr_minus : '-' expr_data { $$ = new ExprMinus($2); };
 
 
 table_name : IDENTIFIER {
@@ -371,7 +396,7 @@ opt_exists : IF EXISTS { $$ = true; }
 | /* empty */ { $$ = false; };
 
 vct_table_elem : expr_table_elem {
-  $$ = new MVector<ExprTableElem*>();
+  $$ = new MVectorPtr<ExprTableElem*>();
   $$->push_back($1);
 }
 | vct_table_elem ',' expr_table_elem {
@@ -443,7 +468,7 @@ expr_constraint : INDEX IDENTIFIER IndexType '(' vct_col_name ')' {
 };
 
 vct_col_name : IDENTIFIER {
-  $$ = new MVector<MString>();
+  $$ = new MVectorPtr<MString>();
   $$->push_back($1);
 }
 | vct_col_name ',' IDENTIFIER {

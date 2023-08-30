@@ -35,6 +35,14 @@ inline bool operator!=(const Mallocator<T> &, const Mallocator<U> &) {
 }
 
 template <class V> using MVector = std::vector<V, Mallocator<V>>;
+template <class V> class MVectorPtr : public MVector<V> {
+  using vector::vector;
+  ~MVectorPtr() {
+    for (auto iter = begin(); iter != end(); iter++) {
+      delete *iter;
+    }
+  }
+};
 
 template <class Key, class T>
 using MHashMap = std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,

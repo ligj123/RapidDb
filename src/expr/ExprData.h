@@ -51,8 +51,8 @@ public:
  */
 class ExprField : public ExprData {
 public:
-  ExprField(string &tName, string &name)
-      : _tName(move(tName)), _name(move(name)) {}
+  ExprField(MString &tableName, MString &colName)
+      : _tableName(move(tableName)), _colName(move(colName)) {}
 
   ExprType GetType() { return ExprType::EXPR_FIELD; }
   void Preprocess(int rowPos) { _rowPos = rowPos; }
@@ -62,9 +62,9 @@ public:
   }
 
 public:
-  string _tName; // The table name this field belong to
-  string _name;  // The field name (The related column)
-  int _rowPos;   // The position in the table.
+  string _tableName; // The table name this field belong to
+  string _colName;   // The field name (The related column)
+  int _rowPos;       // The position in the table.
 };
 
 /*
@@ -72,7 +72,7 @@ public:
  */
 class ExprParameter : public ExprData {
 public:
-  ExprParameter(int paraPos) : _paraPos(paraPos) {}
+  ExprParameter() : _paraPos(-1) {}
 
   ExprType GetType() { return ExprType::EXPR_PARAMETER; }
   IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
