@@ -226,7 +226,7 @@
 
     %type <data_type> data_type
     %type <vct_str> vct_col_name
-    %type <bval> opt_not_exists opt_exists col_nullable auto_increment
+    %type <bval> opt_not_exists opt_exists col_nullable auto_increment opt_distinct
     %type <sval> table_comment
     %type <expr_statement> expr_statement
     %type <expr_create_db> expr_create_db
@@ -343,8 +343,18 @@ expr_trun_table : TRUNCATE TABLE table_name {
 }
 
 expr_insert : INSERT INTO table_name '(' vct_col_name ')' VALUES expr_vct_data_row {
+ $$ = new ExprInsert();
+ $$->_exprTable = $3;
+ $$->_vctCol = $5;
+ $$->_vctRowData = $8;
+};
 
-}
+expr_select : SELECT opt_distinct
+
+
+
+opt_distinct : DISTINCT { $$ = true; }
+| /* empty */ { $$ = false; };
 
 expr_vct_data_row : '(' expr_data_row ')' {
   $$ = new MVectorPtr<MVectorPtr<ExprData*>*>();
@@ -364,7 +374,8 @@ expr_data_row : expr_data {
   $$ = $1;
 };
 
-expr_data : expr_const | expr_field | expr_param | expr_add | expr_sub | expr_mul | expr_div | expr_minus;
+expr_data : expr_const | expr_field | expr_param | expr_add | expr_sub | expr_mul | expr_div | expr_minus
+| '(' expr_data ')' { $$ = $2; };
 expr_const : const_dv { $$ = new ExprConst($1); }
 expr_field : IDENTIFIER { $$ = new ExprField(str_null, $1); }
 | IDENTIFIER '.' IDENTIFIER {$$ = new ExprField($1, $3);};

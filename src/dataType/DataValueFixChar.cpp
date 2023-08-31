@@ -27,12 +27,6 @@ DataValueFixChar::DataValueFixChar(const DataValueFixChar &src)
   }
 }
 
-DataValueFixChar::~DataValueFixChar() {
-  if (valType_ == ValueType::SOLE_VALUE) {
-    CachePool::Release(bysValue_, maxLength_);
-  }
-}
-
 bool DataValueFixChar::SetValue(const char *val, uint32_t len) {
   if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(

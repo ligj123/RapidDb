@@ -147,10 +147,8 @@ public:
   ~ExprInsert() {
     delete _exprTable;
     delete _exprSelect;
-    for (ExprColumn *col : _vctCol)
-      delete col;
-    for (ExprData *data _vctData)
-      delete data;
+    delete _vctCol;
+   delete _vctRowData;
 
     if (_physTable != nullptr)
       _physTable->DecRef();
@@ -166,9 +164,9 @@ public:
   ExprTable *_exprTable{nullptr};
   // The columns that assign values; if empty, it will be filled with all
   // table's columns
-  MVector<ExprColumn *> _vctCol;
+  MVectorPtr<ExprColumn *> *_vctCol;
   // The values that will be inserted.
-  MVector<ExprData *> _vctData;
+  MVectorPtr<MVectorPtr<ExprData *>*> *_vctRowData;
   // The source data that selected from other table and will be inserted into
   // this table
   ExprSelect *_exprSelect{nullptr};

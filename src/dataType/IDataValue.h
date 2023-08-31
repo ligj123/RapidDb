@@ -65,16 +65,22 @@ public:
   }
 
   IDataValue(const IDataValue &dv)
-      : dataType_(dv.dataType_), valType_(dv.valType_), bReuse_(false) {}
+      : dataType_(dv.dataType_), valType_(dv.valType_), refCount(1) {}
   IDataValue(DataType dataType, ValueType valType)
-      : dataType_(dataType), valType_(valType), bReuse_(false) {}
-  virtual ~IDataValue() {}
+      : dataType_(dataType), valType_(valType), refCount(1) {}
   // return the data type for this data value
   inline DataType GetDataType() const { return dataType_; }
   inline ValueType GetValueType() const { return valType_; }
   inline bool IsNull() const { return valType_ == ValueType::NULL_VALUE; }
-  inline bool IsReuse() const { return bReuse_; }
-  inline void SetReuse(bool b) { bReuse_ = b; }
+  inline IDataValue *AddRef() const {
+    ++refCount_;
+    return this;
+  }
+  inline void DecRef() {
+    --refCount_;
+    if (refCount_ == 0)
+      delete this;
+  }
   // Only copy value from the dv, not include maxlength, bKey. If bMove=true,
   // array type will move byte pointer to this and source dv will set to null.
   // They are maybe not same data type. All digital type will convert each other
@@ -141,11 +147,15 @@ public:
   }
 
 protected:
+  virtual ~IDataValue() {}
+
+protected:
   DataType dataType_;
   ValueType valType_;
-  // If true, the instance will be used in multi place, use it to ensure this dv
-  // will be deleted once.
-  bool bReuse_;
+  // The reference count for this DataValue. If it decrease to 0, it will be
+  // deleted. When add one reference, it will increase 1.
+  // WARNING: here do not consider thread safe and the user to resolve it.
+  uint16_t refCount_;
 };
 
 class VectorDataValue : public MVector<IDataValue *> {
@@ -155,65 +165,33 @@ public:
   VectorDataValue(VectorDataValue &&src) noexcept { swap(src); }
 
   ~VectorDataValue() {
-    if (bRef) {
-      clear();
-      return;
-    }
-
-    for (auto iter = begin(); iter != end(); iter++) {
-      if (bDelAll_ || !(*iter)->IsReuse())
-        delete *iter;
-    }
-
     clear();
   }
 
   VectorDataValue &operator=(VectorDataValue &&other) noexcept {
-    RemoveAll();
+    clear();
     swap(other);
     return *this;
   }
 
-  void RemoveAll() {
-    if (bRef) {
-      clear();
-      return;
-    }
-
+  void clear() {
     for (auto iter = begin(); iter != end(); iter++) {
-      if (bDelAll_ || !(*iter)->IsReuse())
-        delete *iter;
+      (*iter)->DecRef();
     }
-
-    clear();
   }
-  void SetDelAll(bool b) { bDelAll_ = b; }
-  bool IsDelAll() const { return bDelAll_; }
-  void SetRef(bool b) { bRef = b; }
-  bool IsRef() { return bRef; }
-
-protected:
-  // If delete reused elements.
-  bool bDelAll_ = false;
-  // If the elements are referenced from other vector and NOT delete elements.
-  bool bRef = false;
 };
 
 class VectorRow : public MVector<VectorDataValue *> {
 public:
   using vector::vector;
   ~VectorRow() {
-    for (auto iter = begin(); iter != end(); iter++) {
-      delete *iter;
-    }
+    clear();
   }
 
-  void RemoveAll() {
+  void clear() {
     for (auto iter = begin(); iter != end(); iter++) {
       delete *iter;
     }
-
-    clear();
   }
 };
 

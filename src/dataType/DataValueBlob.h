@@ -41,12 +41,6 @@ public:
       break;
     }
   }
-  ~DataValueBlob() {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, soleLength_);
-      valType_ = ValueType::NULL_VALUE;
-    }
-  }
 
 public:
   DataValueBlob *Clone(bool incVal = false) override {
@@ -129,6 +123,14 @@ public:
   bool LT(const IDataValue &dv) const override { abort(); }
 
   friend std::ostream &operator<<(std::ostream &os, const DataValueBlob &dv);
+
+protected:
+  ~DataValueBlob() {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::Release(bysValue_, soleLength_);
+      valType_ = ValueType::NULL_VALUE;
+    }
+  }
 
 protected:
   uint32_t maxLength_;

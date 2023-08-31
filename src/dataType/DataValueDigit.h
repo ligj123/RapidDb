@@ -14,7 +14,6 @@ public:
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
     _value = src._value;
   }
-  ~DataValueDigit() {}
 
   bool SetValue(T val) {
     _value = val;
@@ -346,6 +345,9 @@ public:
     _value /= (T)(V)dv;
     return this;
   }
+
+protected:
+  ~DataValueDigit() {}
 
 protected:
   T _value;
