@@ -51,6 +51,7 @@ enum class ExprType {
   EXPR_HAVING,
   EXPR_JOIN,
   EXPR_GROUP_BY,
+  EXPR_LIMIT,
 
   // DDL
   EXPR_CREATE_DATABASE,
@@ -159,10 +160,7 @@ public:
  */
 class ExprArray : public BaseExpr {
 public:
-  ExprArray(VectorDataValue &vctVal) {
-    _setVal.insert(vctVal.begin(), vctVal.end());
-    vctVal.clear();
-  }
+  ExprArray() {}
   ~ExprArray() {
     for (IDataValue *pdv : _setVal) {
       delete pdv;
@@ -171,6 +169,7 @@ public:
 
   ExprType GetType() { return ExprType::EXPR_ARRAY; }
   bool Exist(IDataValue *pdv) { return (_setVal.find(pdv) != _setVal.end()); }
+  void AddElem(IDataValue *dv) { _setVal.insert(dv); }
 
 public:
   unordered_set<IDataValue *, DataValueHash, DataValueEqual,
@@ -213,10 +212,10 @@ public:
 };
 
 // The column in temp table for select result.
-class ExprResColumn : public ExprColumn {
+class ExprResColumn : public BaseExpr {
 public:
-  ExprResColumn(MString &tname, MString &name, MString &alias)
-      : ExprColumn(name), _tName(move(tname)), _alias(move(alias)) {}
+  ExprResColumn(ExprData *data, MString &alias)
+      : _exprData(data), _alias(move(alias)) {}
   ~ExprResColumn() {}
   ExprType GetDataType() const { return ExprType::EXPR_RESULT_COLUMN; }
   /**
@@ -240,14 +239,24 @@ public:
   }
 
 public:
-  MString _tName; // table name
-  MString _alias; // alias name
+  ExprData *_exprData; //
+  MString _colName;    // column name
+  MString _alias;      // column alias name
+};
+
+enum class JoinType {
+  JOIN_NULL,
+  INNER_JOIN,
+  LEFT_JOIN,
+  RIGHT_JOIN,
+  OUTTER_JOIN
 };
 
 class ExprTable : public BaseExpr {
 public:
   ExprTable(MString &dbName, MString &name, MString &alias)
-      : _dbName(move(dbName)), _tName(move(name)), _tAlias(alias) {
+      : _dbName(move(dbName)), _tName(move(name)), _tAlias(alias),
+        _joinType(JOIN_NULL) {
     if (_tAlias.size() == 0)
       _tAlias = _tName;
   }
@@ -258,6 +267,7 @@ public:
   MString _dbName;
   MString _tName;
   MString _tAlias;
+  JoinType _joinType;
 };
 
 // Base class for all statement

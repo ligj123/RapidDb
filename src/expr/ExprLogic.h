@@ -62,16 +62,16 @@ public:
 
 class ExprInNot : public ExprLogic {
 public:
-  ExprInNot(ExprField *exprField, ExprArray *exprArray, bool bIn = true)
-      : _exprField(exprField), _exprArray(exprArray) {}
+  ExprInNot(ExprData *exprData, ExprArray *exprArray, bool bIn = true)
+      : _exprData(exprData), _exprArray(exprArray) {}
   ~ExprInNot() {
-    delete _exprField;
+    delete _exprData;
     delete _exprArray;
   }
 
   ExprType GetType() { return ExprType::EXPR_IN_OR_NOT; }
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    IDataValue *pdv = _exprField->Calc(vdPara, vdRow);
+    IDataValue *pdv = _exprData->Calc(vdPara, vdRow);
     bool b = _exprArray->Exist(pdv);
     if (!pdv->IsReuse())
       delete pdv;
@@ -80,7 +80,7 @@ public:
   }
 
 protected:
-  ExprField *_exprField;
+  ExprData *_exprData;
   ExprArray *_exprArray;
   bool _bIn;
 };

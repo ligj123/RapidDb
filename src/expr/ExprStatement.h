@@ -80,16 +80,16 @@ public:
   vector<ExprOrderTerm> _vctItem;
 };
 
-enum class JoinType { INNER_JOIN, LEFT_JOIN, RIGHT_JOIN, OUTTER_JOIN };
-
-class ExprJoinTable : public ExprTable {
+class ExprLimit : public BaseExpr {
 public:
-  ExprJoinTable(JoinType joinType, string &dbName, string &name, string &alias)
-      : ExprTable(dbName, name, alias), _joinType(joinType) {}
-  ExprType GetType() { return ExprType::EXPR_JOIN_TABLE; }
+  ExprType GetType() { return ExprType::EXPR_LIMIT; }
 
 public:
-  JoinType _joinType;
+  // Offset for return rows, default 0. Only valid for root select result.
+  int _rowOffset{0};
+  // The max rows to return, -1 means return all. Only valid for root select
+  // result.
+  int _rowCount{-1};
 };
 
 enum class LockType { NO_LOCK, SHARE_LOCK, WRITE_LOCK };
@@ -130,13 +130,7 @@ public:
   ExprGroupBy *_exprGroupBy{nullptr};
   ExprHaving *_exprHaving{nullptr};
   ExprOrderBy *_exprOrderBy{nullptr};
-
-  // offset for return rows, default 0. Only valid for top select result.
-  int _offset{-1};
-  // The max rows to return, -1 means return all. Only valid for top select
-  // result.
-  int _rowCount{-1};
-
+  ExprLimit *_exprLimit(nullptr);
   LockType _lockType{LockType::NO_LOCK};
 };
 
@@ -148,7 +142,7 @@ public:
     delete _exprTable;
     delete _exprSelect;
     delete _vctCol;
-   delete _vctRowData;
+    delete _vctRowData;
 
     if (_physTable != nullptr)
       _physTable->DecRef();
@@ -166,7 +160,7 @@ public:
   // table's columns
   MVectorPtr<ExprColumn *> *_vctCol;
   // The values that will be inserted.
-  MVectorPtr<MVectorPtr<ExprData *>*> *_vctRowData;
+  MVectorPtr<MVectorPtr<ExprData *> *> *_vctRowData;
   // The source data that selected from other table and will be inserted into
   // this table
   ExprSelect *_exprSelect{nullptr};
