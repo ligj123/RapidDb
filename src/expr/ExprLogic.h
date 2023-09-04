@@ -133,8 +133,8 @@ public:
 
 class ExprLike : public ExprLogic {
 public:
-  ExprLike(ExprData *exprData, ExprConst *exprPatten)
-      : _child(exprData), _exprPatten(exprPatten) {
+  ExprLike(ExprData *exprData, ExprConst *exprPatten, bool blike)
+      : _child(exprData), _exprPatten(exprPatten), _bLike(blike) {
     assert(exprPatten->GetValue()->IsStringType());
   }
   ~ExprLike() {
@@ -151,6 +151,7 @@ public:
 public:
   ExprData *_child;
   ExprConst *_exprPatten;
+  bool _bLike;
 };
 
 class ExprNot : public ExprLogic {

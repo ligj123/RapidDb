@@ -414,9 +414,16 @@ expr_in_not : expr_field IN expr_array {
   $$ = new ExprInNot($1, $3, false);
 };
 
+expr_is_null_not : expr_data IS NULL { $$ = new ExprIsNullNot($1, true); }
+| expr_data IS NOT NULL { $$ = new ExprIsNullNot($1, false); };
+
+
 expr_between : expr_data BETWEEN expr_data AND expr_data {
   $$ = new ExprBetween($1, $3, $5);
-}
+};
+
+expr_like : expr_data LIKE const_string { $$ = new ExprLike($1, $3, true); }
+| expr_data NOT LIKE const_string { $$ = new ExprLike($1, $4, false); };
 
 opt_expr_vct_table : table_name {
   $$ = new MVectorPtr<ExprTable>();
