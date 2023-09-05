@@ -47,6 +47,9 @@ struct UseIndex {
 
 class ExprWhere : public ExprCondition<ExprType::EXPR_WHERE> {
 public:
+  ~ExprWhere() { delete _useIndex; }
+
+public:
   // This variable will be set when preprocess
   UseIndex *_useIndex{nullptr};
 }
@@ -58,11 +61,14 @@ struct ExprGroupItem {
 
 class ExprGroupBy : public BaseExpr {
 public:
-  ExprGroupBy(vector<ExprGroupItem> vct) { _vctItem.swap(vct); }
+  ExprGroupBy(MVector<MString> vctColName) { _vctItemName.swap(vctColName); }
+  ~ExprGroupBy() { delete _exprHaving; }
   ExprType GetType() { return ExprType::EXPR_GROUP_BY; }
 
 public:
-  vector<ExprGroupItem> _vctItem;
+  MVector<MString> _vctColName;
+  MVector<int> _vctColPos;
+  ExprHaving *_exprHaving{nullptr};
 };
 
 struct ExprOrderTerm {
@@ -109,7 +115,7 @@ public:
     delete _exprWhere;
     delete _exprGroupBy;
     delete _exprHaving;
-    delete _exprOrderBy
+    delete _exprOrderBy delete _exprLimit;
   }
   ExprType GetType() { return ExprType::EXPR_SELECT; }
   bool Preprocess() {

@@ -170,7 +170,7 @@ public:
 
 class ExprAnd : public ExprLogic {
 public:
-  ExprAnd(MVector<ExprLogic *> &vctChild) { _vctChild.swap(vctChild); }
+  ExprAnd() {}
   ~ExprAnd() {
     for (auto ele : _vctChild) {
       delete ele;
@@ -193,7 +193,7 @@ public:
 
 class ExprOr : public ExprLogic {
 public:
-  ExprOr(MVector<ExprLogic *> vctChild) { _vctChild.swap(vctChild); }
+  ExprOr() {}
   ~ExprOr() {
     for (auto ele : _vctChild) {
       delete ele;

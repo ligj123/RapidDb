@@ -376,14 +376,48 @@ expr_insert : INSERT INTO table_name '(' vct_col_name ')' VALUES expr_vct_data_r
  $$->_vctRowData = $8;
 };
 
-expr_select : SELECT opt_distinct vct_res_col opt_expr_vct_table opt_expr_where opt_expr_group_by opt_expt_having opt_expr_limit opt_lock_type
-
+expr_select : SELECT opt_distinct vct_res_col opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by expr_order_by opt_expr_limit opt_lock_type {
+  $$ = new ExprSelect();
+};
 
 opt_expr_where : WHERE expr_logic {
   $$ = new ExprWhere();
   $$->_exprLogic = $2;
 }
 | /* empty */ { $$ = nullptr;};
+
+opt_expr_on : ON expr_logic {
+  $$ = new ExprOn();
+  $$->_exprLogic = $2;
+}
+| /* empty */ { $$ = nullptr; };
+
+opt_expr_group_by : GROUP BY vct_col_name opt_expt_having {
+  $$ = new ExprGroupBy($3);
+  $$->_exprHaving = $4;
+}
+| /* empty */ { $$ = nullptr; };
+
+opt_expt_having : HAVING expr_logic {
+  $$ = new ExprHaving();
+  $$->_exprLogic = $2;
+}
+| /* empty */ { $$ = nullptr; };
+
+opt_expr_limit : LIMIT INTVAL {
+  $$ = new ExprLimit();
+  $$->_rowCount = $1;
+}
+| LIMIT INTVAL ',' INTVAL {
+  $$ = new ExprLimit();
+  $$->_rowOffset = $2
+  $$->_rowCount = $4;
+}
+| /* empty */ { $$ = nullptr; };
+
+opt_lock_type : FOR SHARE { $$ = LockType::SHARE_LOCK; }
+| FOR UPDATE { $$ = LockType::WRITE_LOCK; }
+| /* empty */ { $$ = LockType::NO_LOCK; };
 
 expr_logic : expr_cmp | expr_in_not | expr_is_null_not | expr_between | expr_like | expr_not | expr_and | expr_or
 | '(' expr_logic ')' { $$ = $2; };
@@ -417,7 +451,6 @@ expr_in_not : expr_field IN expr_array {
 expr_is_null_not : expr_data IS NULL { $$ = new ExprIsNullNot($1, true); }
 | expr_data IS NOT NULL { $$ = new ExprIsNullNot($1, false); };
 
-
 expr_between : expr_data BETWEEN expr_data AND expr_data {
   $$ = new ExprBetween($1, $3, $5);
 };
@@ -425,12 +458,34 @@ expr_between : expr_data BETWEEN expr_data AND expr_data {
 expr_like : expr_data LIKE const_string { $$ = new ExprLike($1, $3, true); }
 | expr_data NOT LIKE const_string { $$ = new ExprLike($1, $4, false); };
 
+expr_not : NOT expr_logic { $$ = new ExprNot($$2); };
+expr_and : expr_logic AND expr_logic {
+  $$ = new ExprAnd();
+  $$->_vctChild.push_back($1);
+  $$->_vctChild.push_back($3);
+}
+| expr_and AND expr_logic {
+  $$ = $1;
+  $$->_vctChild.push_back($3);
+};
+
+expr_or : expr_logic OR expr_logic {
+  $$ = new ExprOr();
+  $$->_vctChild.push_back($1);
+  $$->_vctChild.push_back($3);
+}
+| expr_or OR expr_logic {
+  $$ = $1;
+  $$->_vctChild.push_back($3);
+};
+
 opt_expr_vct_table : table_name {
   $$ = new MVectorPtr<ExprTable>();
   $$->push_back($1);
 }
 | opt_expr_vct_table join_type table_name {
   $3->join_type = $2;
+  $$ = $1;
   $$->push_back($3);
 };
 
