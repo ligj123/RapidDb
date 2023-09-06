@@ -184,14 +184,9 @@ public:
  */
 class ExprColumn : public BaseExpr {
 public:
-  ExprColumn(MString &name) : _name(move(name)), _pos(-1), _exprData(nullptr) {}
   ~ExprColumn() { delete _exprData; }
   ExprType GetType() { return ExprType::EXPR_COLUMN; }
-  void Preprocess(int pos, ExprData *exprData) {
-    _pos = pos;
-    _exprData = exprData;
-  }
-
+ 
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     IDataValue *dv = _exprData->Calc(vdPara, vdRow);
     if (dv == nullptr)
@@ -207,7 +202,7 @@ public:
 
 public:
   MString _name;       // column name
-  int _pos;            // The position in source table columns
+  int _pos;            // The column position in source table columns
   ExprData *_exprData; // The expression to get data value from source
 };
 

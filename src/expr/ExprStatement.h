@@ -71,7 +71,7 @@ public:
   ExprHaving *_exprHaving{nullptr};
 };
 
-struct ExprOrderTerm {
+struct ExprOrderItem {
   MString _colName;
   bool _direct; // True: ASC; False: DESC
   int _pos;
@@ -79,11 +79,12 @@ struct ExprOrderTerm {
 
 class ExprOrderBy : public BaseExpr {
 public:
-  ExprOrderBy(vector<ExprOrderTerm> &vct) { _vctItem.swap(vct); }
+  ExprOrderBy(MVectorPtr<ExprOrderTerm *> *vct) : _vctItem(vct) {}
+  ~ExprOrderBy() { delete _vctItem; }
   ExprType GetType() { return ExprType::EXPR_ORDER_BY; }
 
 public:
-  vector<ExprOrderTerm> _vctItem;
+  MVectorPtr<ExprOrderTerm *> *_vctItem;
 };
 
 class ExprLimit : public BaseExpr {
@@ -106,12 +107,8 @@ class ExprSelect : public ExprStatement {
 public:
   ExprSelect() {}
   ~ExprSelect() {
-    for (ExprResColumn *rc : _vctCol) {
-      delete rc;
-    }
-    for (ExprTable *t : _vctTable) {
-      delete t;
-    }
+    delete _vctCol;
+    delete _vctTable;
     delete _exprWhere;
     delete _exprGroupBy;
     delete _exprHaving;
@@ -126,15 +123,15 @@ public:
   // Remove repeated rows or not
   bool _bDistinct{false};
   // The selected columns
-  MVector<ExprResColumn *> _vctCol;
+  MVectorPtr<ExprResColumn *> *_vctCol{nullptr};
   // The source tables, first table is ExprTable, the following tables are
   // ExprJoinTable if have.
-  MVector<ExprTable *> _vctTable;
+  MVectorPtr<ExprTable *> *_vctTable{nullptr};
   // Where condition
   ExprWhere *_exprWhere{nullptr};
+  ExprOn *_exprOn(nullptr);
 
   ExprGroupBy *_exprGroupBy{nullptr};
-  ExprHaving *_exprHaving{nullptr};
   ExprOrderBy *_exprOrderBy{nullptr};
   ExprLimit *_exprLimit(nullptr);
   LockType _lockType{LockType::NO_LOCK};
@@ -200,17 +197,13 @@ public:
 
 public:
   // The destion table information
-  ExprTable *_exprTable;
+  ExprTable *_exprTable(nullptr);
   // The update columns and their values, have saved in ExprColumn
-  MVector<ExprColumn *> _vctCol;
+  MVector<ExprColumn *> *_vctCol{nullptr};
   // Where condition
-  ExprWhere *_exprWhere;
-
-  ExprOrderBy *_exprOrderBy;
-  // The number of rows to delete from top
-  int _rowCount{-1};
-  // The physical table will update. Filled when preprocess
-  PhysTable *_physTable{nullptr};
+  ExprWhere *_exprWhere{nullptr};
+  ExprOrderBy *_exprOrderBy{nullptr};
+  ExprLimit *_exprLimit{nullptr};
 };
 
 class ExprDelete : public ExprStatement {

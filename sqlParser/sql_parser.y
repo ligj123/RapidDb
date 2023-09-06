@@ -163,7 +163,7 @@
   
   ExprGroupItem *expr_group_item;
   ExprGroupBy *expr_group_by;
-  ExprOrderTerm *expr_order_item;
+  ExprOrderItem *expr_order_item;
   ExprOrderBy *expr_order_by;
 
   ExprStatement *expr_statement;
@@ -175,13 +175,14 @@
   MVectorPtr<ExprColumnInfo*> *expr_vct_col_info;
   MVectorPtr<ExprLogic*> *expr_vct_logic;
   MVectorPtr<ExprGroupItem*> *expr_vct_group_item
-  MVectorPtr<ExprOrderTerm*> *expr_vct_order_item
+  MVectorPtr<ExprOrderItem*> *expr_vct_order_item
   MVectorPtr<ExprTableElem*> *expr_vct_table_elem;
   MVectorPtr<MString> *vct_str;
   MVectorPtr<ExprData*> *expr_data_row;
   MVectorPtr<MVectorPtr<ExprData*>*> *expr_vct_data_row;
   MVectorPtr<ExprResColumn*> *expr_vct_res_col;
   MVectorPtr<ExprTable*> *opt_expr_vct_table;
+  MVectorPtr<ExprColumn*> *expr_vct_column;
 }
 
     /*********************************
@@ -232,7 +233,7 @@
 
     %type <data_type> data_type
     %type <vct_str> vct_col_name
-    %type <bval> opt_not_exists opt_exists col_nullable auto_increment opt_distinct
+    %type <bval> opt_not_exists opt_exists col_nullable auto_increment opt_distinct opt_order_direction
     %type <sval> table_comment
     %type <join_type> join_type
 
@@ -259,9 +260,13 @@
     %type <expr_on> opt_expr_on
     %type <expr_group_by> opt_expr_group_by
     %type <expr_Having> opt_expr_having
+    %type <expr_order_item> expr_order_item
+    %type <expr_order_by> opt_expr_order_by
+    %type <expr_vct_order_item
     %type <expr_limit> opt_expr_limit
     %type <lock_type> opt_lock_type
     %type <comp_type> comp_type
+    %type <expr_column> expr_column
 
     %type <expr_logic> expr_logic
     %type <expr_cmp> expr_cmp
@@ -274,6 +279,8 @@
     %type <expr_or> expr_or
     %type <expr_array> expr_array
     %type <expr_vct_const> expr_vct_const
+    %type <expr_vct_order_item> expr_vct_order_item
+    %type <expr_vct_column> expr_vct_column
 
     %type <expr_data_val> const_dv const_int const_double const_string const_bool const_null
     %type <expr_data> expr_data expr_const expr_field expr_param expr_add expr_sub expr_mul expr_div expr_minus
@@ -376,8 +383,30 @@ expr_insert : INSERT INTO table_name '(' vct_col_name ')' VALUES expr_vct_data_r
  $$->_vctRowData = $8;
 };
 
+expr_update : UPDATE table_name SET expr_vct_column opt_expr_where opt_expr_limit {
+
+};
+
+expr_vct_column : expr_column {
+  $$ = new  MVectorPtr<ExprColumn*>();
+  $$->push_back($1);
+}
+| expr_vct_column ',' expr_column {
+  $1->push_back($3);
+  $$ = $1;
+};
+
 expr_select : SELECT opt_distinct vct_res_col opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by expr_order_by opt_expr_limit opt_lock_type {
   $$ = new ExprSelect();
+  $$->_bDistinct = $2;
+  $$->_vctCol = $3;
+  $$->_vctTable = $4;
+  $$->_exprWhere = $5;
+  $$->_exprOn = $6;
+  $$->_exprGroupBy = $7;
+  $$->_exprOrderBy = $8;
+  $$->_exprLimit = $9;
+  $$->_lockType = $10;
 };
 
 opt_expr_where : WHERE expr_logic {
@@ -403,6 +432,30 @@ opt_expt_having : HAVING expr_logic {
   $$->_exprLogic = $2;
 }
 | /* empty */ { $$ = nullptr; };
+
+expr_order_by : ORDER BY expr_vct_order_item {
+  $$ = new ExprOrderBy($3);
+}
+| /* empty */ { $$ = nullptr; };
+
+expr_vct_order_item : expr_order_item {
+  $$ = new MVectorPtr<ExprOrderItem*>();
+  $$->push_back($1);
+}
+| expr_vct_order_item ',' expr_order_item {
+  $$ = $1;
+  $$->push_back($1);
+};
+
+expr_order_item : IDENTIFIER opt_order_direction {
+  $$ = new ExprOrderItem();
+  $$->_colName = $1;
+  $$->_direct = $2;
+};
+
+opt_order_direction : ASC { $$ = true; }
+| DESC { $$ = false; }
+| /* empty */ { $$ = true; };
 
 opt_expr_limit : LIMIT INTVAL {
   $$ = new ExprLimit();
