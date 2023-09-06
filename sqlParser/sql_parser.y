@@ -383,8 +383,21 @@ expr_insert : INSERT INTO table_name '(' vct_col_name ')' VALUES expr_vct_data_r
  $$->_vctRowData = $8;
 };
 
-expr_update : UPDATE table_name SET expr_vct_column opt_expr_where opt_expr_limit {
+expr_delete : DELETE FROM table_name opt_expr_where opt_expr_order_by opt_expr_limit {
+  $$ = new ExprDelete();
+  $$->_exprTable = $3;
+  $$->_exprWhere = $4;
+  $$->_exprOrderBy = $5;
+  $$->_exprLimit = $6;
+};
 
+expr_update : UPDATE table_name SET expr_vct_column opt_expr_where opt_expr_order_by opt_expr_limit {
+  $$ = new ExprUpdate();
+  $$->_exprTable = $2;
+  $$->_vctCol = $3;
+  $$->_exprWhere = $4;
+  $$->_exprOrderBy = $5;
+  $$->_exprLimit = $6;
 };
 
 expr_vct_column : expr_column {
@@ -394,6 +407,12 @@ expr_vct_column : expr_column {
 | expr_vct_column ',' expr_column {
   $1->push_back($3);
   $$ = $1;
+};
+
+expr_column : IDENTIFIER '=' expr_data {
+  $$ = new ExprColumn();
+  $$->_name = $1;
+  $$->_exprData = $3;
 };
 
 expr_select : SELECT opt_distinct vct_res_col opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by expr_order_by opt_expr_limit opt_lock_type {
@@ -490,9 +509,12 @@ expr_cmp : expr_data comp_type expr_data {
 expr_array : '(' expr_vct_const ')' { $$ = $2; }
 expr_vct_const : const_dv {
   $$ = new ExprArray();
-  $$->push_back($1);
+  $$->AddElem($1);
 };
-| expr_vct_const ',' const_dv { $$->push_back($3); }
+| expr_vct_const ',' const_dv {
+   $1->AddElem($3);
+   $$ = $1;
+}
 
 expr_in_not : expr_field IN expr_array {
   $$ = new ExprInNot($1, $3, true);

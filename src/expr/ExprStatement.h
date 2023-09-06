@@ -178,13 +178,6 @@ public:
   ExprUpdate() {}
 
   ~ExprUpdate() {
-    if (_physTable != nullptr) {
-      _physTable->DecRef();
-    }
-    for (ExprColumn *col : _vctCol) {
-      delete col;
-    }
-
     delete _exprTable;
     delete _where;
     delete _exprOrderBy;
@@ -199,7 +192,7 @@ public:
   // The destion table information
   ExprTable *_exprTable(nullptr);
   // The update columns and their values, have saved in ExprColumn
-  MVector<ExprColumn *> *_vctCol{nullptr};
+  MVectorPtr<ExprColumn *> *_vctCol{nullptr};
   // Where condition
   ExprWhere *_exprWhere{nullptr};
   ExprOrderBy *_exprOrderBy{nullptr};
