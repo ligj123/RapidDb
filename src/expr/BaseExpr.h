@@ -14,11 +14,12 @@ using namespace std;
 namespace storage {
 enum class ExprType {
   EXPR_BASE,
+
   // const type
   EXPR_ARRAY,
-  EXPR_CONST,
 
-  // return data value
+  // data value type
+  EXPR_CONST,
   EXPR_PARAMETER,
   EXPR_FIELD,
   EXPR_ADD,
@@ -34,7 +35,7 @@ enum class ExprType {
   EXPR_MIN,
   EXPR_AVG,
 
-  // return bool
+  // bool value type
   EXPR_COMP,
   EXPR_IN_OR_NOT,
   EXPR_IS_NULL_NOT,
@@ -46,12 +47,19 @@ enum class ExprType {
   EXPR_OR,
   EXPR_NOT,
 
+  // Statement part
   EXPR_WHERE,
   EXPR_ON,
   EXPR_HAVING,
   EXPR_JOIN,
   EXPR_GROUP_BY,
   EXPR_LIMIT,
+
+  // Input or oupt value and table
+  EXPR_COLUMN,
+  EXPR_RESULT_COLUMN,
+  EXPR_TABLE,
+  EXPR_JOIN_TABLE,
 
   // DDL
   EXPR_CREATE_DATABASE,
@@ -66,16 +74,9 @@ enum class ExprType {
   EXPR_CONSTRAINT,
   EXPR_COLUMN_TYPE,
 
-  // Input or oupt value and table
-  EXPR_COLUMN,
-  EXPR_RESULT_COLUMN,
-  EXPR_TABLE,
-  EXPR_JOIN_TABLE,
-
-  // Select
+  // Statement
   EXPR_SELECT,
   EXPR_TABLE_SELECT,
-
   EXPR_INSERT,
   EXPR_UPDATE,
   EXPR_DELETE,
@@ -100,10 +101,14 @@ public:
   }
 };
 
+//
+class ExprElem : public BaseExpr {
+
+}
 /**
  * @brief Base class for all expression to get, calc data value and return it.
  */
-class ExprData : public BaseExpr {
+class ExprData : public ExprElem {
 public:
   using BaseExpr::BaseExpr;
   /**
@@ -124,7 +129,7 @@ public:
 /**
  * @brief Base class for all aggressive expression, for example count,max,min
  */
-class ExprAggr : public BaseExpr {
+class ExprAggr : public ExprElem {
 public:
   using BaseExpr::BaseExpr;
   /**
@@ -142,7 +147,7 @@ enum class TriBool { Error = -1, False = 0, True };
 /**
  * @brief Base class for all logic expression, for example and,or
  */
-class ExprLogic : public BaseExpr {
+class ExprLogic : public ExprElem {
 public:
   using BaseExpr::BaseExpr;
   /**
@@ -186,7 +191,7 @@ class ExprColumn : public BaseExpr {
 public:
   ~ExprColumn() { delete _exprData; }
   ExprType GetType() { return ExprType::EXPR_COLUMN; }
- 
+
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     IDataValue *dv = _exprData->Calc(vdPara, vdRow);
     if (dv == nullptr)
