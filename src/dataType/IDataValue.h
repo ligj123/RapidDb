@@ -73,13 +73,22 @@ public:
   inline ValueType GetValueType() const { return valType_; }
   inline bool IsNull() const { return valType_ == ValueType::NULL_VALUE; }
   inline IDataValue *AddRef() const {
-    ++refCount_;
+    if (refCount_ != UINT16_MAX)
+      ++refCount_;
     return this;
   }
   inline void DecRef() {
-    --refCount_;
-    if (refCount_ == 0)
-      delete this;
+    if (refCount_ != UINT16_MAX) {
+      --refCount_;
+      if (refCount_ == 0)
+        delete this;
+    }
+  }
+  inline uint16_t GetRef() { return refCount_; }
+  inline void SetConstRef() { refCount_ = UINT16_MAX; }
+  inline void Free() {
+    assert(refCount_ == UINT16_MAX);
+    delete this;
   }
   // Only copy value from the dv, not include maxlength, bKey. If bMove=true,
   // array type will move byte pointer to this and source dv will set to null.
@@ -164,9 +173,7 @@ public:
 
   VectorDataValue(VectorDataValue &&src) noexcept { swap(src); }
 
-  ~VectorDataValue() {
-    clear();
-  }
+  ~VectorDataValue() { clear(); }
 
   VectorDataValue &operator=(VectorDataValue &&other) noexcept {
     clear();
@@ -184,9 +191,7 @@ public:
 class VectorRow : public MVector<VectorDataValue *> {
 public:
   using vector::vector;
-  ~VectorRow() {
-    clear();
-  }
+  ~VectorRow() { clear(); }
 
   void clear() {
     for (auto iter = begin(); iter != end(); iter++) {

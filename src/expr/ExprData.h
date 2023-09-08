@@ -3,6 +3,7 @@
 #include "../config/ErrorID.h"
 #include "../dataType/DataValueDigit.h"
 #include "../dataType/DataValueFixChar.h"
+#include "../dataType/DataValueNull.h"
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
 #include "../utils/ErrorMsg.h"
@@ -16,31 +17,34 @@ namespace storage {
  */
 class ExprConst : public ExprData {
 public:
-  ExprConst(IDataValue *val) : _val(val) { _val->SetReuse(true); }
+  ExprConst(IDataValue *val) : _val(val) { _val->SetConstRef(); }
   ExprConst(int64_t ival) {
     _val = new DataValueLong(ival);
-    _val->SetReuse(true);
+    _val->SetConstRef();
   }
   ExprConst(double dval) {
     _val = new DataValueDouble(dval);
-    _val->SetReuse(true);
+    _val->SetConstRef();
   }
-  ExprConst(char *sval) {
-    _val = new DataValueVarChar(sval, strlen(sval));
-    _val->SetReuse(true);
+  ExprConst(const MString &sval) {
+    _val = new DataValueVarChar(sval.c_str(), sval.size());
+    _val->SetConstRef();
   }
   ExprConst(bool bval) {
     _val = new DataValueBool(bval);
-    _val->SetReuse(true);
+    _val->SetConstRef();
   }
-  ExprConst() { _val = nullptr; }
+  ExprConst() {
+    _val = new DataValueNull();
+    _val->SetConstRef();
+  }
   ~ExprConst() { delete _val; }
   ExprType GetType() { return ExprType::EXPR_CONST; }
-  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
+  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return _val;
   }
   IDataValue *GetValue() { return _val; }
-  bool IsNull() { return _val == nullptr; }
+  bool IsNull() { return _val->GetDataType() == DataType::VAL_NULL; }
 
 public:
   IDataValue *_val;
@@ -55,9 +59,7 @@ public:
       : _tableName(move(tableName)), _colName(move(colName)) {}
 
   ExprType GetType() { return ExprType::EXPR_FIELD; }
-  void Preprocess(int rowPos) { _rowPos = rowPos; }
-
-  IDataValue *Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
+  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return vdRow[_rowPos];
   }
 
@@ -75,8 +77,8 @@ public:
   ExprParameter() : _paraPos(-1) {}
 
   ExprType GetType() { return ExprType::EXPR_PARAMETER; }
-  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
-    return vdLeft[_paraPos];
+  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    return vdParas[_paraPos];
   }
 
 public:
@@ -93,9 +95,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_ADD; }
-  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
-    IDataValue *left = _exprLeft->Calc(vdLeft, vdRight);
-    IDataValue *right = _exprRight->Calc(vdLeft, vdRight);
+  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
+    IDataValue *right = _exprRight->Calc(vdParas, vdRow);
     IDataValue *rt = nullptr;
 
     if (left->IsStringType() || right->IsStringType()) {
@@ -110,10 +112,8 @@ public:
     } else {
       rt = left->Clone();
     }
-    if (!left->IsReuse())
-      delete left;
-    if (!right->IsReuse())
-      delete right;
+    left->DecRef();
+    right->DecRef();
     return rt;
   }
 
@@ -132,9 +132,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_SUB; }
-  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
-    IDataValue *left = _exprLeft->Calc(vdLeft, vdRight);
-    IDataValue *right = _exprRight->Calc(vdLeft, vdRight);
+  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
+    IDataValue *right = _exprRight->Calc(vdParas, vdRow);
     IDataValue *rt = nullptr;
 
     if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
@@ -145,10 +145,8 @@ public:
       rt = left->Clone();
     }
 
-    if (!left->IsReuse())
-      delete left;
-    if (!right->IsReuse())
-      delete right;
+    left->DecRef();
+    right->DecRef();
     return rt;
   }
 
@@ -167,9 +165,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_MUL; }
-  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
-    IDataValue *left = _exprLeft->Calc(vdLeft, vdRight);
-    IDataValue *right = _exprRight->Calc(vdLeft, vdRight);
+  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
+    IDataValue *right = _exprRight->Calc(vdParas, vdRow);
     IDataValue *rt = nullptr;
 
     if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
@@ -180,10 +178,8 @@ public:
       rt = left->Clone();
     }
 
-    if (!left->IsReuse())
-      delete left;
-    if (!right->IsReuse())
-      delete right;
+    left->DecRef();
+    right->DecRef();
     return rt;
   }
 
@@ -202,9 +198,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_DIV; }
-  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
-    IDataValue *left = _exprLeft->Calc(vdLeft, vdRight);
-    IDataValue *right = _exprRight->Calc(vdLeft, vdRight);
+  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
+    IDataValue *right = _exprRight->Calc(vdParas, vdRow);
     IDataValue *rt = nullptr;
 
     if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
@@ -220,10 +216,8 @@ public:
       rt = left->Clone();
     }
 
-    if (!left->IsReuse())
-      delete left;
-    if (!right->IsReuse())
-      delete right;
+    left->DecRef();
+    right->DecRef();
     return rt;
   }
 
@@ -239,8 +233,8 @@ public:
   ~ExprMinus() { delete _exprData; }
 
   ExprType GetType() { return ExprType::EXPR_DATA; }
-  IDataValue *Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight) override {
-    IDataValue *data = _exprLeft->Calc(vdLeft, vdRight);
+  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    IDataValue *data = _exprLeft->Calc(vdParas, vdRow);
     IDataValue *rt = nullptr;
 
     if (data->IsAutoPrimaryKey()) {
@@ -251,12 +245,11 @@ public:
         rt = new DataValueDouble(data->GetDouble());
     }
 
-    if (!data->IsReuse())
-      delete data;
+    data->DecRef();
     return rt;
   }
 
 public:
   ExprData *_exprData;
-}
+};
 } // namespace storage

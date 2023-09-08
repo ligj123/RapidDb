@@ -236,6 +236,7 @@
     %type <bval> opt_not_exists opt_exists col_nullable auto_increment opt_distinct opt_order_direction
     %type <sval> table_comment
     %type <join_type> join_type
+    %type <comp_type> comp_type
 
     %type <expr_statement> expr_statement
     %type <expr_create_db> expr_create_db
@@ -265,7 +266,6 @@
     %type <expr_vct_order_item
     %type <expr_limit> opt_expr_limit
     %type <lock_type> opt_lock_type
-    %type <comp_type> comp_type
     %type <expr_column> expr_column
 
     %type <expr_logic> expr_logic

@@ -40,8 +40,12 @@ public:
   double GetDouble() const override { return 0; }
   Byte *GetBuff() const override { return nullptr; }
 
-  bool EQ(const IDataValue &dv) const override { abort(); }
-  bool GT(const IDataValue &dv) const override { abort(); };
-  bool LT(const IDataValue &dv) const override { abort(); };
+  bool EQ(const IDataValue &dv) const override {
+    return dv.GetDataType() == DataType::VAL_NULL;
+  }
+  bool GT(const IDataValue &dv) const override { return false; };
+  bool LT(const IDataValue &dv) const override {
+    return dv.GetDataType() != DataType::VAL_NULL && !dv.IsNull();
+  };
 };
 } // namespace storage

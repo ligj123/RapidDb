@@ -25,9 +25,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_COMP; }
-  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    IDataValue *left = _exprLeft->Calc(vdPara, vdRow);
-    IDataValue *right = _exprRight->Calc(vdPara, vdRow);
+  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
+    IDataValue *right = _exprRight->Calc(vdParas, vdRow);
 
     bool b = false;
     switch (_compType) {
@@ -47,10 +47,8 @@ public:
       abort();
     }
 
-    if (!left->IsReuse())
-      delete left;
-    if (!right->IsReuse())
-      delete right;
+    left->DecRef();
+    right->DecRef();
     return b;
   }
 
@@ -70,12 +68,10 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_IN_OR_NOT; }
-  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    IDataValue *pdv = _exprData->Calc(vdPara, vdRow);
+  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    IDataValue *pdv = _exprData->Calc(vdParas, vdRow);
     bool b = _exprArray->Exist(pdv);
-    if (!pdv->IsReuse())
-      delete pdv;
-
+    pdv->DecRef();
     return (_bIn ? b : !b);
   }
 
@@ -91,11 +87,10 @@ public:
   ~ExprIsNullNot() { delete _child; }
 
   ExprType GetType() { return ExprType::EXPR_IS_NULL_NOT; }
-  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    IDataValue *pdv = _child->Calc(vdPara, vdRow);
-    bool b = pdv->IsNull();
-    if (!pdv->IsReuse())
-      delete pdv;
+  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    IDataValue *pdv = _child->Calc(vdParas, vdRow);
+    bool b = pdv->GetDataType() == DataType::VAL_NULL || pdv->IsNull();
+    pdv->DecRef();
     return (_bNull ? b : !b);
   }
 
@@ -115,13 +110,15 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_BETWEEN; }
-  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    IDataValue *pdv = _child->Calc(vdPara, vdRow);
-    bool b =
-        (*pdv >= *_exprLeft->GetValue() && *pdv <= *_exprRight->GetValue());
+  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    IDataValue *pdv = _child->Calc(vdParas, vdRow);
+    IDataValue *left = _exprLeft->GetValue();
+    IDataValue *right = _exprRight->GetValue();
+    bool b = (*pdv >= *left && *pdv <= *right);
 
-    if (!pdv->IsReuse())
-      delete pdv;
+    pdv->DecRef();
+    left->DecRef();
+    right->DecRef();
     return b;
   }
 
@@ -143,7 +140,7 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_LIKE; }
-  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
+  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     // TO DO
     return true;
   }
@@ -160,8 +157,8 @@ public:
   ~ExprNot() { delete _child; }
 
   ExprType GetType() { return ExprType::EXPR_NOT; }
-  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
-    return !_child->Calc(vdPara, vdRow);
+  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    return !_child->Calc(vdParas, vdRow);
   }
 
 public:
@@ -178,9 +175,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_AND; }
-  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
+  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     for (ExprLogic *expr : _vctChild) {
-      if (!expr->Calc(vdPara, vdRow))
+      if (!expr->Calc(vdParas, vdRow))
         return false;
     }
 
@@ -201,9 +198,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_OR; }
-  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) override {
+  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     for (ExprLogic *expr : _vctChild) {
-      if (expr->Calc(vdPara, vdRow))
+      if (expr->Calc(vdParas, vdRow))
         return true;
     }
     return false;

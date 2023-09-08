@@ -81,7 +81,8 @@ enum class ExprType {
   EXPR_UPDATE,
   EXPR_DELETE,
 
-  // Internal function fro SQL
+  // Internal function fro SQL. In this version, all function input ExprData*
+  // and output ExprData*
   EXPR_FUNCTION
 };
 
@@ -114,36 +115,34 @@ public:
   /**
    * @brief Get data value from vdLeft or vdRight, then calc them and return the
    * result.
-   * @param vdLeft The data value array that are inputed from client or left
-   * table (join table).
-   * @param vdRight The data value array from table or right table (join table).
-   * @return If the result is directly from vdLeft or vdRight, it will be marked
-   * as resued and does not need to free. If it is calculated result, it will
-   * need to free it. If return nullptr, it has error in internal and the error
-   * is saved in _threadErrorMsg.
+   * @param vdParas The data value array that are inputed from client.
+   * @param vdRow The data value array from source table.
+   * @return If passed to calc, return the result of data value. If has error,
+   * it will return nullptr, the error messagewill be saved in _threadErrorMsg.
+   * It will return DataValueNull if the value is null.
    */
-  virtual IDataValue *Calc(VectorDataValue &vdLeft,
-                           VectorDataValue &vdRight) = 0;
+  virtual IDataValue *Calc(VectorDataValue &vdParas,
+                           VectorDataValue &vdRow) = 0;
 };
 
 /**
- * @brief Base class for all aggressive expression, for example count,max,min
+ * @brief Base class for all aggressive functions, for example count,max,min
  */
 class ExprAggr : public ExprElem {
 public:
   using BaseExpr::BaseExpr;
   /**
-   * @brief Load data value from vdSrc and calc the result, then save it into
-   * vdDst
-   * @param vdSrc The row data value array from source table.
+   * @brief Calc the aggressive value
+   * @param vdParas The row data value array from source table.
    * @param vdDst the raw data value array to save calculated result
    * @return If return false, it has error in internal,and the error
    * is saved in _threadErrorMsg.
    */
-  virtual bool Calc(VectorDataValue &vdSrc, VectorDataValue &vdDst) = 0;
+  virtual bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
+                    IDataValue &dv) = 0;
 };
 
-enum class TriBool { Error = -1, False = 0, True };
+enum class TriBool : uint8_t { Error = -1, False = 0, True = 1 };
 /**
  * @brief Base class for all logic expression, for example and,or
  */
@@ -154,8 +153,8 @@ public:
    * @brief To calc the bool result from child expr and return.
    * @param vdSrc The row data value array from source table.
    * @param vdDst the raw data value array to save calculated result
-   * @return TriBool:Error it has error in internal,and the error
-   * is saved in _threadErrorMsg.
+   * @return TriBool: Error it has error in internal, and the error
+   * will be saved in _threadErrorMsg.
    */
   virtual TriBool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
 };
@@ -209,38 +208,6 @@ public:
   MString _name;       // column name
   int _pos;            // The column position in source table columns
   ExprData *_exprData; // The expression to get data value from source
-};
-
-// The column in temp table for select result.
-class ExprResColumn : public BaseExpr {
-public:
-  ExprResColumn(ExprData *data, MString &alias)
-      : _exprData(data), _alias(move(alias)) {}
-  ~ExprResColumn() {}
-  ExprType GetDataType() const { return ExprType::EXPR_RESULT_COLUMN; }
-  /**
-   * @brief Load data value from left or right source table, and calculate and
-   * get the last result, then save it into dest table
-   * @param vdLeft The vector of data values from left source table
-   * @param vdRight The vector of data values from right source table
-   * @param vdDest The vector of data value for destion table
-   */
-  bool Calc(VectorDataValue &vdLeft, VectorDataValue &vdRight,
-            VectorDataValue &vdDest) {
-    IDataValue *dv = _exprData->Calc(vdLeft, vdRight);
-    if (dv == nullptr)
-      return false;
-
-    vdDest[_pos]->Copy(*dv, !dv->IsReuse());
-    if (!dv->IsReuse()) {
-      delete dv;
-    }
-    return false;
-  }
-
-public:
-  ExprData *_exprData; //
-  MString _colName;    // column name
   MString _alias;      // column alias name
 };
 
