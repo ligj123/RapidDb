@@ -306,19 +306,8 @@ public:
     return _value == dv._value;
   }
   bool operator!=(const DataValueDigit &dv) const { return !(*this == dv); }
-  bool Add(IDataValue &dv) override {
-    if (dv.IsDigital()) {
-      Case_Add<DT>::Add(_value, dv);
-    } else if (dv.IsStringType()) {
-      Bool_Add<T>::Add(_value, (char *)dv.GetBuff());
-    } else {
-      _threadErrorMsg.reset(
-          new ErrorMsg(DT_UNSUPPORT_CONVERT,
-                       {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)}));
-      return false;
-    }
-    return true;
-  }
+  void Add(int64_t val) override { _value += (T)val; }
+  void Add(double val) override { _value += (T)val; }
 
   template <class V, DataType DTV>
   DataValueDigit *operator+(const DataValueDigit<V, DTV> &dv) {

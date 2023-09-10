@@ -13,101 +13,111 @@ using namespace std;
 namespace storage {
 class ExprCount : public ExprAggr {
 public:
-  ExprCount(int index, int colPos)
-      : _index(index), _colPos(colPos), _bAsterisk(false) {}
-  ExprCount(int index, bool bAsterisk)
-      : _index(index), _colPos(-1), _bAsterisk(bAsterisk) {}
+  ~ExprCount() {
+    delete _exprData;
+    delete _exprStart;
+  }
 
   ExprType GetType() { return ExprType::EXPR_COUNT; }
-  void Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    DataValueLong dv;
-    dv.SetValue(1L);
-    if (_bAsterisk) {
-      vdRow[_index]->Add(dv);
-    } else if (!vdParas[_colPos]->IsNull()) {
-      vdRow[_index]->Add(dv);
+  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
+            IDataValue &dv) override {
+    if (_bStar) {
+      dv.Add(1);
+      return true;
+    } else {
+      IDataValue *val = _exprData->Calc(vdParas, vdRow);
+      if (val == nullptr)
+        return false;
+
+      if (!val->IsNull())
+        dv.Add(1);
+      return true;
     }
-  }
 
-public:
-  // The position for this expr in expr array, the position in the value array
-  // too
-  int _index;
-  // If _bAsterisk == false, it will the position in source row data.
-  // If _bAsterisk == true, it will not be used.
-  int _colPos;
-  // If true, it will be count(*)
-  bool _bAsterisk;
-};
+  public:
+    ExprData *_exprData{nullptr};
+    bool _bStar{false};
+  };
 
-class ExprSum : public ExprAggr {
-public:
-  ExprSum(int index, int colPos) : _index(index), _colPos(colPos) {}
+  class ExprSum : public ExprAggr {
+  public:
+    ~ExprSum() { delete _exprData; }
+    ExprType GetType() { return ExprType::EXPR_SUM; }
+    bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
+              IDataValue &dv) override {
+      IDataValue *val = _exprData->Calc(vdParas, vdRow);
+      if (val == nullptr)
+        return false;
 
-  ExprType GetType() { return ExprType::EXPR_SUM; }
-  void Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    IDataValue *pdv = vdParas[_colPos];
-    if (!pdv->IsNull()) {
-      vdRow[_index]->Add(*pdv);
+      if (!val->IsNull())
+        dv.Add(val->GetDouble());
+      return true;
     }
-  }
 
-public:
-  int _index;
-  int _colPos;
-};
+  public:
+    ExprData *_exprData{nullptr};
+  };
 
-class ExprMax : public ExprAggr {
-public:
-  ExprMax(int index, int colPos) : _index(index), _colPos(colPos) {}
+  class ExprMax : public ExprAggr {
+  public:
+    ~ExprMax() { delete _exprData; }
 
-  ExprType GetType() { return ExprType::EXPR_MAX; }
-  void Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    if (!vdParas[_colPos]->IsNull() && *vdRow[_index] < *vdParas[_colPos]) {
-      vdRow[_index]->Copy(*vdParas[_colPos]);
+    ExprType GetType() { return ExprType::EXPR_MAX; }
+    bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
+              IDataValue &dv) override {
+      IDataValue *val = _exprData->Calc(vdParas, vdRow);
+      if (val == nullptr)
+        return false;
+      if (*val > dv) {
+        dv.Copy(*val);
+      }
+      val->DecRef();
+      return true;
     }
-  }
 
-public:
-  int _index;
-  int _colPos;
-};
+  public:
+    ExprData *_exprData{nullptr};
+  };
 
-class ExprMin : public ExprAggr {
-public:
-  ExprMin(int index, int colPos, int countPos)
-      : _index(index), _colPos(colPos) {}
+  class ExprMin : public ExprAggr {
+  public:
+    ~ExprMin() { delete _exprData; }
 
-  ExprType GetType() { return ExprType::EXPR_MIN; }
-  void Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    if (!vdParas[_colPos]->IsNull() && *vdRow[_index] > *vdParas[_colPos]) {
-      vdRow[_index]->Copy(*vdParas[_colPos]);
+    ExprType GetType() { return ExprType::EXPR_MIN; }
+    void Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
+              IDataValue &dv) override {
+      IDataValue *val = _exprData->Calc(vdParas, vdRow);
+      if (val == nullptr)
+        return false;
+      if (*val < dv) {
+        dv.Copy(*val);
+      }
+
+      val->DecRef();
+      return true;
     }
-  }
 
-public:
-  int _index;
-  int _colPos;
-};
+  public:
+    ExprData *_exprData{nullptr};
+  };
 
-class ExprAvg : public ExprAggr {
-public:
-  ExprAvg(int index, int colPos, int countPos)
-      : _index(index), _colPos(colPos), _countPos(countPos) {}
+  class ExprAvg : public ExprAggr {
+  public:
+    ~ExprAvg() { delete _exprData; }
 
-  ExprType GetType() { return ExprType::EXPR_AVG; }
-  void Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    if (!vdParas[_colPos]->IsNull()) {
-      vdRow[_index]->Add(*vdParas[_colPos]);
-      DataValueLong dv;
-      dv.SetValue(1L);
-      vdRow[vdDst.size() - 1]->Add(dv);
+    ExprType GetType() { return ExprType::EXPR_AVG; }
+    void Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
+              IDataValue &dv) override {
+      IDataValue *val = _exprData->Calc(vdParas, vdRow);
+      if (val == nullptr)
+        return false;
+
+      if (!val->IsNull())
+        dv.Add(val->GetDouble());
+      return true;
     }
-  }
 
-public:
-  int _index;
-  int _colPos;
-  int _countPos;
-};
+  public:
+    ExprData *_exprData{nullptr};
+  };
 } // namespace storage

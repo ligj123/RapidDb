@@ -17,7 +17,6 @@ using namespace std;
 namespace storage {
 template <ExprType ET> class ExprCondition : public BaseExpr {
 public:
-  ExprCondition() {}
   ~ExprCondition() { delete _exprLogic; }
   ExprType GetDataType() const { return ET; }
 
@@ -54,11 +53,6 @@ public:
   UseIndex *_useIndex{nullptr};
 }
 
-struct ExprGroupItem {
-  MString _colName; // The column name, from sql statement
-  int _pos;         // The position of column in result set
-};
-
 class ExprGroupBy : public BaseExpr {
 public:
   ExprGroupBy(MVector<MString> vctColName) { _vctItemName.swap(vctColName); }
@@ -79,12 +73,11 @@ struct ExprOrderItem {
 
 class ExprOrderBy : public BaseExpr {
 public:
-  ExprOrderBy(MVectorPtr<ExprOrderTerm *> *vct) : _vctItem(vct) {}
   ~ExprOrderBy() { delete _vctItem; }
   ExprType GetType() { return ExprType::EXPR_ORDER_BY; }
 
 public:
-  MVectorPtr<ExprOrderTerm *> *_vctItem;
+  MVectorPtr<ExprOrderItem *> *_vctItem;
 };
 
 class ExprLimit : public BaseExpr {

@@ -14,9 +14,10 @@ using namespace std;
 namespace storage {
 enum class ExprType {
   EXPR_BASE,
+  EXPR_STAR
 
-  // const type
-  EXPR_ARRAY,
+      // const type
+      EXPR_ARRAY,
 
   // data value type
   EXPR_CONST,
@@ -72,7 +73,6 @@ enum class ExprType {
   EXPR_TRUN_TABLE,
   EXPR_COLUMN_INFO,
   EXPR_CONSTRAINT,
-  EXPR_COLUMN_TYPE,
 
   // Statement
   EXPR_SELECT,
@@ -103,9 +103,7 @@ public:
 };
 
 //
-class ExprElem : public BaseExpr {
-
-}
+class ExprElem : public BaseExpr {};
 /**
  * @brief Base class for all expression to get, calc data value and return it.
  */

@@ -133,7 +133,8 @@ public:
   }
   // Only used for array data type
   virtual Byte *GetBuff() const { abort(); }
-  virtual bool Add(IDataValue &dv) { abort(); }
+  virtual void Add(int64_t val) {}
+  virtual void Add(double val) {}
 
   virtual bool EQ(const IDataValue &dv) const = 0;
   virtual bool GT(const IDataValue &dv) const = 0;

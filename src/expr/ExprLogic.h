@@ -25,9 +25,14 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_COMP; }
-  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+  TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
     IDataValue *right = _exprRight->Calc(vdParas, vdRow);
+    if (left == nullptr || right == nullptr) {
+      left->DecRef();
+      right->DecRef();
+      return TriBool::Error;
+    }
 
     bool b = false;
     switch (_compType) {
@@ -49,7 +54,7 @@ public:
 
     left->DecRef();
     right->DecRef();
-    return b;
+    return b ? TriBool::True : TriBool::False;
   }
 
 public:
@@ -68,11 +73,14 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_IN_OR_NOT; }
-  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+  TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *pdv = _exprData->Calc(vdParas, vdRow);
+    if (pdv == nullptr)
+      return TriBool::Error;
+
     bool b = _exprArray->Exist(pdv);
     pdv->DecRef();
-    return (_bIn ? b : !b);
+    return (_bIn ^ b) ? TriBool::True : TriBool::False;
   }
 
 protected:
@@ -87,11 +95,14 @@ public:
   ~ExprIsNullNot() { delete _child; }
 
   ExprType GetType() { return ExprType::EXPR_IS_NULL_NOT; }
-  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+  TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *pdv = _child->Calc(vdParas, vdRow);
-    bool b = pdv->GetDataType() == DataType::VAL_NULL || pdv->IsNull();
+    if (pdv == nullptr)
+      return TriBool::Error;
+
+    bool b = pdv->IsNull();
     pdv->DecRef();
-    return (_bNull ? b : !b);
+    return (_bNull ^ b) ? TriBool::True : TriBool::False;
   }
 
 public:
@@ -110,16 +121,23 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_BETWEEN; }
-  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+  TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *pdv = _child->Calc(vdParas, vdRow);
     IDataValue *left = _exprLeft->GetValue();
     IDataValue *right = _exprRight->GetValue();
+    if (pdv == nullptr || left == nullptr || right == nullptr) {
+      pdv->DecRef();
+      left->DecRef();
+      right->DecRef();
+      return TriBool::Error;
+    }
+
     bool b = (*pdv >= *left && *pdv <= *right);
 
     pdv->DecRef();
     left->DecRef();
     right->DecRef();
-    return b;
+    return b ? TriBool::True : TriBool::False;
   }
 
 public:
@@ -140,9 +158,9 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_LIKE; }
-  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+  TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     // TO DO
-    return true;
+    return TriBool::True;
   }
 
 public:
@@ -157,8 +175,11 @@ public:
   ~ExprNot() { delete _child; }
 
   ExprType GetType() { return ExprType::EXPR_NOT; }
-  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    return !_child->Calc(vdParas, vdRow);
+  TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    TriBool tb = _child->Calc(vdParas, vdRow);
+    if (tb == TriBool::Error)
+      return tb;
+    return tb == TriBool::True ? TriBool::False : TriBool::True;
   }
 
 public:
@@ -175,13 +196,16 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_AND; }
-  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+  TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     for (ExprLogic *expr : _vctChild) {
-      if (!expr->Calc(vdParas, vdRow))
-        return false;
+      TriBool tb = expr->Calc(vdParas, vdRow);
+      if (tb == TriBool::Error)
+        return tb;
+      if (tb == TriBool::False)
+        tb;
     }
 
-    return true;
+    return TriBool::True;
   }
 
 public:
@@ -198,12 +222,16 @@ public:
   }
 
   ExprType GetType() { return ExprType::EXPR_OR; }
-  bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+  TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     for (ExprLogic *expr : _vctChild) {
-      if (expr->Calc(vdParas, vdRow))
-        return true;
+      TriBool tb = expr->Calc(vdParas, vdRow);
+
+      if (tb == TriBool::Error)
+        return tb;
+      if (tb == TriBool::True)
+        tb;
     }
-    return false;
+    return TriBool::False;
   }
 
 public:
