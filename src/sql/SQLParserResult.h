@@ -1,94 +1,80 @@
 #ifndef SQLPARSER_SQLPARSER_RESULT_H
 #define SQLPARSER_SQLPARSER_RESULT_H
 
-#include "sql/SQLStatement.h"
+#include "../cache/Mallocator.h"
+#include "../expr/ExprStatement.h"
 
 namespace storage {
 // Represents the result of the SQLParser.
-// If parsing was successful it contains a list of SQLStatement.
+// If parsing was successful it contains a list of ExprStatement.
 class SQLParserResult {
- public:
+public:
   // Initialize with empty statement list.
   SQLParserResult();
 
   // Initialize with a single statement.
   // Takes ownership of the statement.
-  SQLParserResult(SQLStatement* stmt);
+  SQLParserResult(ExprStatement *stmt);
 
   // Move constructor.
-  SQLParserResult(SQLParserResult&& moved);
-  SQLParserResult& operator=(SQLParserResult&& moved);
+  SQLParserResult(SQLParserResult &&moved);
+  SQLParserResult &operator=(SQLParserResult &&moved);
 
   // Deletes all statements in the result.
   virtual ~SQLParserResult();
 
   // Set whether parsing was successful.
-  void setIsValid(bool isValid);
+  void SetIsValid(bool isValid);
 
   // Returns true if parsing was successful.
-  bool isValid() const;
+  bool IsValid() const;
 
   // Returns the number of statements in the result.
-  size_t size() const;
+  size_t Size() const;
 
   // Set the details of the error, if available.
   // Takes ownership of errorMsg.
-  void setErrorDetails(char* errorMsg, int errorLine, int errorColumn);
+  void SetErrorDetails(MString &errorMsg, int errorLine, int errorColumn);
 
   // Returns the error message, if an error occurred.
-  const char* errorMsg() const;
+  const MString &ErrorMsg() const;
 
   // Returns the line number of the occurrance of the error in the query.
-  int errorLine() const;
+  int ErrorLine() const;
 
   // Returns the column number of the occurrance of the error in the query.
-  int errorColumn() const;
+  int ErrorColumn() const;
 
   // Adds a statement to the result list of statements.
   // SQLParserResult takes ownership of the statement.
-  void addStatement(SQLStatement* stmt);
+  void AddStatement(ExprStatement *stmt);
 
   // Gets the SQL statement with the given index.
-  const SQLStatement* getStatement(size_t index) const;
-
-  // Gets the non const SQL statement with the given index.
-  SQLStatement* getMutableStatement(size_t index);
+  const ExprStatement *GetStatement(size_t index) const;
 
   // Get the list of all statements.
-  const std::vector<SQLStatement*>& getStatements() const;
-
-  // Returns a copy of the list of all statements in this result.
-  // Removes them from this result.
-  std::vector<SQLStatement*> releaseStatements();
+  const MVectorPtr<ExprStatement *> &GetStatements() const;
 
   // Deletes all statements and other data within the result.
-  void reset();
+  void Reset();
 
-  // Does NOT take ownership.
-  void addParameter(Expr* parameter);
-
-  const std::vector<Expr*>& parameters();
-
- private:
-  // List of statements within the result.
-  std::vector<SQLStatement*> statements_;
+private:
+  // List of statements within the result. In this version only one statement
+  MVectorPtr<ExprStatement *> _vctStatement;
 
   // Flag indicating the parsing was successful.
-  bool isValid_;
+  bool _isValid{true};
 
   // Error message, if an error occurred.
-  char* errorMsg_;
+  MString _errorMsg;
 
   // Line number of the occurrance of the error in the query.
-  int errorLine_;
+  int _errorLine{-1};
 
   // Column number of the occurrance of the error in the query.
-  int errorColumn_;
-
-  // Does NOT have ownership.
-  std::vector<Expr*> parameters_;
+  int _errorColumn{-1};
 };
 
-}  // namespace hsql
+} // namespace storage
 
-#endif  // SQLPARSER_SQLPARSER_RESULT_H
+#endif // SQLPARSER_SQLPARSER_RESULT_H

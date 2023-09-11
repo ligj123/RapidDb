@@ -2,81 +2,66 @@
 #include "SQLParserResult.h"
 #include <algorithm>
 
-namespace hsql {
+namespace storage {
 
-SQLParserResult::SQLParserResult() : isValid_(false), errorMsg_(nullptr){};
+SQLParserResult::SQLParserResult(){};
 
-SQLParserResult::SQLParserResult(SQLStatement* stmt) : isValid_(false), errorMsg_(nullptr) { addStatement(stmt); };
+SQLParserResult::SQLParserResult(ExprStatement *stmt) {
+  _vctStatement.push_back(stmt);
+};
 
 // Move constructor.
-SQLParserResult::SQLParserResult(SQLParserResult&& moved) { *this = std::forward<SQLParserResult>(moved); }
+SQLParserResult::SQLParserResult(SQLParserResult &&src) { *this = move(src); }
 
-SQLParserResult& SQLParserResult::operator=(SQLParserResult&& moved) {
-  isValid_ = moved.isValid_;
-  errorMsg_ = moved.errorMsg_;
-  statements_ = std::move(moved.statements_);
+SQLParserResult &SQLParserResult::operator=(SQLParserResult &&src) {
+  _isValid = src._isValid;
+  _errorMsg = move(src._errorMsg);
+  _vctStatement = move(src._vctStatement);
+  _errorLine = src._errorLine;
+  _errorColumn = src._errorColumn;
 
-  moved.errorMsg_ = nullptr;
-  moved.reset();
+  src.Reset();
   return *this;
 }
 
-SQLParserResult::~SQLParserResult() { reset(); }
+SQLParserResult::~SQLParserResult() { Reset(); }
 
-void SQLParserResult::addStatement(SQLStatement* stmt) { statements_.push_back(stmt); }
-
-const SQLStatement* SQLParserResult::getStatement(size_t index) const { return statements_[index]; }
-
-SQLStatement* SQLParserResult::getMutableStatement(size_t index) { return statements_[index]; }
-
-size_t SQLParserResult::size() const { return statements_.size(); }
-
-bool SQLParserResult::isValid() const { return isValid_; }
-
-const char* SQLParserResult::errorMsg() const { return errorMsg_; }
-
-int SQLParserResult::errorLine() const { return errorLine_; }
-
-int SQLParserResult::errorColumn() const { return errorColumn_; }
-
-void SQLParserResult::setIsValid(bool isValid) { isValid_ = isValid; }
-
-void SQLParserResult::setErrorDetails(char* errorMsg, int errorLine, int errorColumn) {
-  errorMsg_ = errorMsg;
-  errorLine_ = errorLine;
-  errorColumn_ = errorColumn;
+void SQLParserResult::AddStatement(ExprStatement *stmt) {
+  _vctStatement.push_back(stmt);
 }
 
-const std::vector<SQLStatement*>& SQLParserResult::getStatements() const { return statements_; }
+const ExprStatement *SQLParserResult::GetStatement(size_t index) const {
+  return _vctStatement[index];
+}
 
-std::vector<SQLStatement*> SQLParserResult::releaseStatements() {
-  std::vector<SQLStatement*> copy = statements_;
+size_t SQLParserResult::Size() const { return _vctStatement.size(); }
 
-  statements_.clear();
+bool SQLParserResult::IsValid() const { return _isValid; }
 
-  return copy;
+const MString &SQLParserResult::ErrorMsg() const { return _errorMsg; }
+
+int SQLParserResult::ErrorLine() const { return _errorLine; }
+
+int SQLParserResult::ErrorColumn() const { return _errorColumn; }
+
+void SQLParserResult::SetIsValid(bool isValid) { _isValid = isValid; }
+
+void SQLParserResult::SetErrorDetails(MString &&errorMsg, int errorLine,
+                                      int errorColumn) {
+  _errorMsg = move(errorMsg);
+  _errorLine = errorLine;
+  _errorColumn = errorColumn;
+}
+
+const MVectorPtr<ExprStatement *> &SQLParserResult::GetStatements() const {
+  return _vctStatement;
 }
 
 void SQLParserResult::reset() {
-  for (SQLStatement* statement : statements_) {
-    delete statement;
-  }
-  statements_.clear();
-
-  isValid_ = false;
-
-  free(errorMsg_);
-  errorMsg_ = nullptr;
-  errorLine_ = -1;
-  errorColumn_ = -1;
+  _vctStatement.clear();
+  _isValid = false;
+  _errorMsg.clear();
+  _errorLine_ = -1;
+  _errorColumn_ = -1;
 }
-
-// Does NOT take ownership.
-void SQLParserResult::addParameter(Expr* parameter) {
-  parameters_.push_back(parameter);
-  std::sort(parameters_.begin(), parameters_.end(), [](const Expr* a, const Expr* b) { return a->ival < b->ival; });
-}
-
-const std::vector<Expr*>& SQLParserResult::parameters() { return parameters_; }
-
-}  // namespace hsql
+} // namespace storage
