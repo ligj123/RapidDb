@@ -90,7 +90,7 @@
 %lex-param   { yyscan_t scanner }
 
 // Define additional parameters for yyparse
-%parse-param { hsql::SQLParserResult* result }
+%parse-param { storage::SQLParserResult* result }
 %parse-param { yyscan_t scanner }
 
 /*********************************

@@ -10,8 +10,6 @@ namespace storage {
 
 class ExprCreateDatabase : public ExprStatement {
 public:
-  ExprCreateDatabase(MString name, bool ifNotExist)
-      : _dbName(name), _ifNotExist(ifNotExist) {}
   ExprType GetType() { return ExprType::EXPR_CREATE_DATABASE; }
 
 public:
@@ -21,8 +19,6 @@ public:
 
 class ExprDropDatabase : public ExprStatement {
 public:
-  ExprDropDatabase(MString name, bool ifNotExist)
-      : _dbName(name), _ifNotExist(ifNotExist) {}
   ExprType GetType() { return ExprType::EXPR_DROP_DATABASE; }
 
 public:
@@ -37,7 +33,6 @@ public:
 
 class ExprUseDatabase : public ExprStatement {
 public:
-  ExprUseDatabase(MString name) : _dbName(name) {}
   ExprType GetType() { return ExprType::EXPR_USE_DATABASE; }
 
 public:
@@ -76,9 +71,11 @@ public:
 
 class ExprCreateTable : public ExprStatement {
 public:
-  ExprCreateTable(ExprTable &tname, bool ifNotExist,
-                  MVector<ExprTableElem *> &vctElem)
-      : _tName(move(tname)), _ifNotExist(ifNotExist), _vctElem(vctElem) {}
+  ~ExprCreateTable() {
+    delete _vctElem;
+    delete _vctColumn;
+    delete _vctConstraint
+  }
   ExprType GetType() { return ExprType::EXPR_CREATE_TABLE; }
   bool Preprocess() {
     // TO DO
@@ -87,17 +84,15 @@ public:
 public:
   ExprTable _tName;
   bool _ifNotExist;
-  MVector<ExprTableElem *> _vctElem;
+  MVector<ExprTableElem *> *_vctElem{nullptr};
   // Split from _vctElem when preprocess
-  MVector<ExprColumnInfo *> _vctCol;
+  MVector<ExprColumnInfo *> *_vctColumn{nullptr};
   // Split from _vctElem when preprocess
-  MVector<ExprConstaint *> _vctConst;
+  MVector<ExprConstaint *> *_vctConstraint{nullptr};
 };
 
 class ExprDropTable : public ExprStatement {
 public:
-  ExprDropTable(ExprTable &tname, bool ifNotExist)
-      : _tName(move(tname)), _ifNotExist(ifNotExist) {}
   ExprType GetType() { return ExprType::EXPR_DROP_TABLE; }
   bool Preprocess() {
     // TO DO
@@ -105,12 +100,11 @@ public:
 
 public:
   ExprTable _tName;
-  bool _ifNotExist;
+  bool _ifExist;
 };
 
 class ExprShowTables : public ExprStatement {
 public:
-  ExprShowTables(MString &dbName) : _dbName(move(dbName)) {}
   ExprType GetType() { return ExprType::EXPR_SHOW_TABLES; }
   bool Preprocess() {
     // TO DO
@@ -122,14 +116,14 @@ public:
 
 class ExprTrunTable : public ExprStatement {
 public:
-  ExprTrunTable(ExprTable tName) : _tableName(move(tName)) {}
+  ~ExprTrunTable() { delete _tableName; }
   ExprType GetType() { return ExprType::EXPR_TRUN_TABLE; }
   bool Preprocess() {
     // TO DO
   }
 
 public:
-  ExprTable _tableName;
+  ExprTable *_tableName;
 };
 
 enum class TranType { BEGIN, COMMIT, ROLLBACK };

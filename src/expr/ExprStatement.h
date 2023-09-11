@@ -55,7 +55,6 @@ public:
 
 class ExprGroupBy : public BaseExpr {
 public:
-  ExprGroupBy(MVector<MString> vctColName) { _vctItemName.swap(vctColName); }
   ~ExprGroupBy() { delete _exprHaving; }
   ExprType GetType() { return ExprType::EXPR_GROUP_BY; }
 
@@ -98,14 +97,14 @@ enum class LockType { NO_LOCK, SHARE_LOCK, WRITE_LOCK };
 // statement in preprocess.
 class ExprSelect : public ExprStatement {
 public:
-  ExprSelect() {}
   ~ExprSelect() {
     delete _vctCol;
     delete _vctTable;
     delete _exprWhere;
+    delete _exprOn;
     delete _exprGroupBy;
-    delete _exprHaving;
-    delete _exprOrderBy delete _exprLimit;
+    delete _exprOrderBy;
+    delete _exprLimit;
   }
   ExprType GetType() { return ExprType::EXPR_SELECT; }
   bool Preprocess() {
@@ -132,13 +131,12 @@ public:
 
 class ExprInsert : public ExprStatement {
 public:
-  ExprInsert() {}
-
   ~ExprInsert() {
     delete _exprTable;
-    delete _exprSelect;
     delete _vctCol;
+    delete _rowData;
     delete _vctRowData;
+    delete _exprSelect;
 
     if (_physTable != nullptr)
       _physTable->DecRef();
@@ -154,9 +152,11 @@ public:
   ExprTable *_exprTable{nullptr};
   // The columns that assign values; if empty, it will be filled with all
   // table's columns
-  MVectorPtr<ExprColumn *> *_vctCol;
-  // The values that will be inserted.
-  MVectorPtr<MVectorPtr<ExprData *> *> *_vctRowData;
+  MVectorPtr<ExprColumn *> *_vctCol{nullptr};
+  // One row data to insert
+  MVectorPtr<ExprData *> *_rowData{nullptr};
+  // The multi row data that will be inserted.
+  MVectorPtr<MVectorPtr<ExprData *> *> *_vctRowData{nullptr};
   // The source data that selected from other table and will be inserted into
   // this table
   ExprSelect *_exprSelect{nullptr};
@@ -172,8 +172,13 @@ public:
 
   ~ExprUpdate() {
     delete _exprTable;
-    delete _where;
+    delete _vctCol;
+    delete _exprWhere;
     delete _exprOrderBy;
+    delete _exprLimit;
+
+    if (_physTable != nullptr)
+      _physTable->DecRef();
   }
 
   ExprType GetType() { return ExprType::EXPR_UPDATE; }
@@ -190,18 +195,20 @@ public:
   ExprWhere *_exprWhere{nullptr};
   ExprOrderBy *_exprOrderBy{nullptr};
   ExprLimit *_exprLimit{nullptr};
+  // The physical table will insert into. Filled when preprocess
+  PhysTable *_physTable{nullptr};
 };
 
 class ExprDelete : public ExprStatement {
 public:
-  ExprDelete() {}
   ~ExprDelete() {
-    if (_physTable != nullptr) {
-      _physTable->DecRef();
-    }
-
-    delete _where;
+    delete _exprTable;
+    delete _exprWhere;
     delete _exprOrderBy;
+    delete _exprLimit;
+
+    if (_physTable != nullptr)
+      _physTable->DecRef();
   }
 
   ExprType GetType() { return ExprType::EXPR_DELETE; }
@@ -210,11 +217,12 @@ public:
   }
 
 public:
+  // The destion table information
+  ExprTable *_exprTable{nullptr};
   // Where condition
-  ExprWhere *_where;
-  ExprOrderBy *_exprOrderBy;
-  // The number of rows to delete from top
-  int _rowCount{-1};
+  ExprWhere *_exprWhere{nullptr};
+  ExprOrderBy *_exprOrderBy{nullptr};
+  ExprLimit *_exprLimit{nullptr};
   // The physical table will update. Filled when preprocess
   PhysTable *_physTable{nullptr};
 };
