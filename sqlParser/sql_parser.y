@@ -90,7 +90,7 @@
 %lex-param   { yyscan_t scanner }
 
 // Define additional parameters for yyparse
-%parse-param { storage::SQLParserResult* result }
+%parse-param { SQLParserResult* result }
 %parse-param { yyscan_t scanner }
 
 /*********************************
@@ -99,29 +99,16 @@
 %union {
   // clang-format on
   bool bval;
-  storage::MString sval;
+  MString sval;
   double fval;
   int64_t ival;
   uintmax_t uval;
   JoinType join_type;
-
-  // statements
-  ExprCreateDatabase *expr_create_db;
-  ExprDropDatabase *expr_drop_db;
-  ExprShowDatabases *expr_show_db;
-  ExprUseDatabase *expr_use_db;
-  ExprTableElem *expr_table_elem;
-  ExprColumnType expr_col_type;
-  IDataValue *expr_data_val;
-  ExprColumnInfo *expr_col_info;
   IndexType index_type;
-  ExprConstraint *expr_constraint;
-  ExprCreateTable *expr_create_table;
-  ExprDropTables *expr_drop_tables;
-  ExprShowTable *expr_show_table;
-  ExprTrunTable *expr_trun_table;
-  ExprTransaction *expr_transaction;
-
+  
+  IDataValue *expr_data_val;
+  
+  // ExprData
   ExprData *expr_data;
   ExprConst *expr_const;
   ExprField *expr_field;
@@ -131,13 +118,7 @@
   ExprMul *expr_mul;
   ExprDiv *expr_div;
 
-  ExprAggr *expr_agr;
-  ExprCount *expr_count;
-  ExprSum *expr_sum;
-  ExprMax *expr_max;
-  ExprMin *expr_min;
-  ExprAvg *expr_avg;
-
+  // ExprLogic
   ExprLogic *expr_logic;
   ExprComp *expr_cmp;
   ExprInNot *expr_in_not;
@@ -148,11 +129,42 @@
   ExprAnd *expr_and;
   ExprOr * expr_or;
 
+  // ExprAggr
+  ExprAggr *expr_agr;
+  ExprCount *expr_count;
+  ExprSum *expr_sum;
+  ExprMax *expr_max;
+  ExprMin *expr_min;
+  ExprAvg *expr_avg;
+
+  // Other elem
   ExprArray *expr_array;
   ExprTable *expr_table;
   ExprColumn *expr_column;
-  ExprResColumn *expr_res_column;
-  ExprJoinTable *expr_join_table;
+  
+  // statements
+  ExprCreateDatabase *expr_create_db;
+  ExprDropDatabase *expr_drop_db;
+  ExprShowDatabases *expr_show_db;
+  ExprUseDatabase *expr_use_db;
+  ExprCreateTable *expr_create_table;
+  ExprDropTables *expr_drop_tables;
+  ExprShowTable *expr_show_table;
+  ExprTrunTable *expr_trun_table;
+  ExprTransaction *expr_transaction;
+  
+  ExprTableElem *expr_table_elem;
+  ExprColumnType expr_col_type;
+  ExprColumnInfo *expr_col_info;
+  
+  ExprConstraint *expr_constraint;
+
+
+
+
+
+
+
 
   ExprWhere *expr_where;
   ExprOn *expr_on;
@@ -190,14 +202,6 @@
      *********************************/
     // clang-format off
     %destructor { } <fval> <ival> <bval> <sval> <data_type> <expr_col_type>
-    %destructor {
-      if ($$) {
-        for (auto ptr : *($$)) {
-          delete ptr;
-        }
-      }
-      delete ($$);
-    }
     %destructor { delete ($$); } <*>
 
 

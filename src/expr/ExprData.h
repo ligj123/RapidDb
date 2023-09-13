@@ -74,15 +74,13 @@ public:
  */
 class ExprParameter : public ExprData {
 public:
-  ExprParameter() : _paraPos(-1) {}
-
   ExprType GetType() { return ExprType::EXPR_PARAMETER; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return vdParas[_paraPos];
   }
 
 public:
-  int _paraPos; // The position in parameter array.
+  int _paraPos{-1}; // The position in parameter array.
 };
 
 class ExprAdd : public ExprData {

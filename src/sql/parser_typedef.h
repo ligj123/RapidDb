@@ -1,6 +1,8 @@
 #ifndef __PARSER_TYPEDEF_H__
 #define __PARSER_TYPEDEF_H__
 
+#include "../cache/Mallocator.h"
+#include "../expr/ExprData.h"
 #include <vector>
 
 #ifndef YYtypeDEF_YY_SCANNER_T
@@ -8,8 +10,8 @@
 typedef void *yyscan_t;
 #endif
 
-#define YYSTYPE HSQL_STYPE
-#define YYLTYPE HSQL_LTYPE
+#define YYSTYPE DB_STYPE
+#define YYLTYPE DB_LTYPE
 
 struct DB_CUST_LTYPE {
   int first_line;
@@ -24,10 +26,10 @@ struct DB_CUST_LTYPE {
 
   // Parameters.
   // int param_id;
-  std::vector<void *> param_list;
+  MVector<ExprParameter *> param_list;
 };
 
-#define DB_LTYPE HSQL_CUST_LTYPE
+#define DB_LTYPE DB_CUST_LTYPE
 #define DB_LTYPE_IS_DECLARED 1
 
 #endif

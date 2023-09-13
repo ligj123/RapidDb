@@ -160,7 +160,7 @@ public:
 /**
  * @brief To save array const values, to be used in SQL operator IN.
  */
-class ExprArray : public BaseExpr {
+class ExprArray : public BaseElem {
 public:
   ExprArray() {}
   ~ExprArray() {
@@ -220,8 +220,7 @@ enum class JoinType {
 class ExprTable : public BaseExpr {
 public:
   ExprTable(MString &dbName, MString &name, MString &alias)
-      : _dbName(move(dbName)), _tName(move(name)), _tAlias(alias),
-        _joinType(JOIN_NULL) {
+      : _dbName(move(dbName)), _tName(move(name)), _tAlias(alias) {
     if (_tAlias.size() == 0)
       _tAlias = _tName;
   }
@@ -232,18 +231,16 @@ public:
   MString _dbName;
   MString _tName;
   MString _tAlias;
-  JoinType _joinType;
+  JoinType _joinType{JOIN_NULL};
 };
 
 // Base class for all statement
 class ExprStatement : public BaseExpr {
 public:
-  ExprStatement() {}
-  ~ExprStatement() {}
   bool Preprocess() = 0;
 
 public:
-  int _paramNum; // The numbe of parameters in this statement
+  int _paramNum{0}; // The numbe of parameters in this statement
 };
 
 } // namespace storage
