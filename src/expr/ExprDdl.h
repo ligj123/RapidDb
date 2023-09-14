@@ -23,7 +23,7 @@ public:
 
 public:
   MString _dbName;
-  bool _ifNotExist;
+  bool _ifExist;
 };
 
 class ExprShowDatabases : public ExprStatement {
@@ -59,6 +59,7 @@ public:
 
 class ExprConstraint : public ExprTableElem {
 public:
+  ~ExprConstraint() { delete _vctCol; }
   ExprType GetType() { return ExprType::EXPR_CONSTRAINT; }
 
 public:
@@ -67,12 +68,13 @@ public:
   // In this version here does only support to include entire columns, and the
   // total length of columns can not exceed the index max length defined in
   // config. In following version, maybe to support more complex content.
-  MVector<MString> _vctCol;
+  MVector<MString> *_vctCol;
 };
 
 class ExprCreateTable : public ExprStatement {
 public:
   ~ExprCreateTable() {
+    delete _tName;
     delete _vctElem;
     delete _vctColumn;
     delete _vctConstraint
@@ -83,7 +85,7 @@ public:
   }
 
 public:
-  ExprTable _tName;
+  ExprTable *_tName;
   bool _ifNotExist;
   MVector<ExprTableElem *> *_vctElem{nullptr};
   // Split from _vctElem when preprocess
@@ -94,13 +96,14 @@ public:
 
 class ExprDropTable : public ExprStatement {
 public:
+  ~ExprDropTable() { delete _tName; }
   ExprType GetType() { return ExprType::EXPR_DROP_TABLE; }
   bool Preprocess() {
     // TO DO
   }
 
 public:
-  ExprTable _tName;
+  ExprTable *_tName;
   bool _ifExist;
 };
 
@@ -129,6 +132,10 @@ public:
 
 enum class TranType { BEGIN, COMMIT, ROLLBACK };
 class ExprTransaction : public ExprStatement {
+public:
+  ExprTransaction(TranType tranType) : _tranType(tranType) {}
+  ExprType GetType() { return ExprType::EXPR_TRANSACTION; }
+
 public:
   TranType _tranType;
 };

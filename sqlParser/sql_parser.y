@@ -180,6 +180,8 @@
 
   //Expr vector
   MVectorPtr<ExprStatement*> * expr_vct_statement;
+
+
   MVectorPtr<ExprGroupItem*> *expr_vct_group_item;
   MVectorPtr<ExprOrderItem*> *expr_vct_order_item;
   MVectorPtr<ExprTableElem*> *expr_vct_table_elem;
@@ -327,14 +329,12 @@ input : statement_list opt_semicolon {
   delete $1;
 };
 
-
 statement_list : statement {
   yylloc.string_length = 0;
   $$ = new MVectorPtr<ExprStatement*>();
   $$->push_back($1);
 }
 | statement_list ';' statement {
-  $3->stringLength = yylloc.string_length;
   yylloc.string_length = 0;
   $1->push_back($3);
   $$ = $1;
@@ -352,50 +352,68 @@ statement : expr_create_db { $$ = $1; }
 | expr_insert { $$ = $1; }
 | expr_update { $$ = $1; }
 | expr_delete { $$ = $1; }
-| expr_transaction { $$ = $1; }
+| expr_transaction { $$ = $1; };
 
 /******************************
  * Transaction Statement
  ******************************/
 
+expr_create_db : CREATE DATABASE opt_not_exists IDENTIFIER {
+  $$ = new ExprCreateDatabase();
+  $$->_dbName = $4;
+  $$->_ifNotExist = $3;
+}
+| CREATE SCHEMA opt_not_exists IDENTIFIER {
+  $$ = new ExprCreateDatabase();
+  $$->_dbName = $4;
+  $$->_ifNotExist = $3;
+};
+
+expr_drop_db : DROP DATABASE opt_exists IDENTIFIER {
+  $$ = new ExprDropDatabase();
+  $$->_dbName = $4;
+  $$->_ifExist = $3;
+}
+| DROP SCHEMA opt_exists IDENTIFIER {
+  $$ = new ExprDropDatabase();
+  $$->_dbName = $4;
+  $$->_ifExist = $3;
+};
+
+expr_show_db : SHOW DATABASES { $$ = new ExprShowDatabases(); };
+expr_use_db : USE IDENTIFIER {
+  $$ = new ExprUseDatabase();
+  $$->_dbName = $2;
+}
+
+expr_create_table : CREATE TABLE opt_not_exists table_name '(' vct_table_elem ')' {
+  $$ = new ExprCreateTable();
+  $$->_tName = $4;
+  $$->_ifNotExist = $3;
+  $$->_vctElem = $6;
+};
+
+expr_drop_table : DROP TABLE opt_exists table_name {
+  $$ = new ExprDropTable();
+  $$->_tName = $4;
+  $$->_ifExist = $3;
+};
+
+expr_show_tables : SHOW TABLES FROM IDENTIFIER {
+  $$ = new ExprShowTables();
+  $->_dbName = $4;
+}
+| SHOW TABLES { $$ = new ExprShowTables(); }
+
+expr_trun_table : TRUNCATE TABLE table_name {
+  $$ = new ExprTrunTable();
+  $$->_tableName = $3;
+}
+
 expr_transaction : BEGIN { $$ = new ExprTransaction(TranType::BEGIN); }
 | START TRANSACTION { $$ = new ExprTransaction(TranType::BEGIN); }
 | ROLLBACK { $$ = new ExprTransaction(TranType::ROLLBACK); }
 | COMMIT { $$ = new ExprTransaction(TranType::COMMIT); };
-
-expr_create_db : CREATE DATABASE opt_not_exists IDENTIFIER {
-  $$ = new ExprCreateDatabase($4, $3);
-}
-| CREATE SCHEMA opt_not_exists IDENTIFIER {
-  $$ = new ExprCreateDatabase($4, $3);
-};
-
-expr_drop_db : DROP DATABASE opt_exists IDENTIFIER {
-  $$ = new ExprDropDatabase($4, $3);
-}
-| DROP SCHEMA opt_exists IDENTIFIER {
-  $$ = new ExprDropDatabase($4, $3);
-};
-
-expr_show_db : SHOW DATABASES { $$ = new ExprShowDatabases(); };
-expr_use_db : USE IDENTIFIER { $$ = new ExprUseDatabase($2);}
-
-expr_create_table : CREATE TABLE opt_not_exists table_name '(' vct_table_elem ')' {
-  $$ = new ExprCreateTable($4, $3, $6);
-};
-
-expr_drop_table : DROP TABLE opt_exists table_name {
-  $$ = new ExprDropTable($4, D3);
-};
-
-expr_show_tables : SHOW TABLES FROM IDENTIFIER {
-  $$ = new ExprShowTables($4);
-}
-| SHOW TABLES { $$ = new ExprShowTables(str_null); }
-
-expr_trun_table : TRUNCATE TABLE table_name {
-  $$ = new ExprTrunTable($3);
-}
 
 expr_insert : INSERT INTO table_name '(' vct_col_name ')' VALUES expr_vct_data_row {
  $$ = new ExprInsert();
