@@ -97,15 +97,18 @@
  ** Define all data-types (http://www.gnu.org/software/bison/manual/html_node/Union-Decl.html)
  *********************************/
 %union {
-  // clang-format on
+  // basic type
   bool bval;
   MString sval;
   double fval;
   int64_t ival;
   uintmax_t uval;
+  DataType data_type;
   JoinType join_type;
   IndexType index_type;
-  
+  LockType lock_type;
+  CompType comp_type;
+
   IDataValue *expr_data_val;
   
   // ExprData
@@ -141,8 +144,25 @@
   ExprArray *expr_array;
   ExprTable *expr_table;
   ExprColumn *expr_column;
-  
+
+  // Table elem
+  ExprTableElem *expr_table_elem;
+  ExprColumnInfo *expr_col_info;
+  ExprConstraint *expr_constraint;
+
+  // Expr part
+  ExprWhere *expr_where;
+  ExprOn *expr_on;
+  ExprHaving *expr_having;
+  ExprLimit *expr_limit;
+  ExprGroupItem *expr_group_item;
+  ExprGroupBy *expr_group_by;
+  ExprOrderItem *expr_order_item;
+  ExprOrderBy *expr_order_by;
+
   // statements
+  ExprStatement *expr_statement;
+  //Expr DDL
   ExprCreateDatabase *expr_create_db;
   ExprDropDatabase *expr_drop_db;
   ExprShowDatabases *expr_show_db;
@@ -152,44 +172,18 @@
   ExprShowTable *expr_show_table;
   ExprTrunTable *expr_trun_table;
   ExprTransaction *expr_transaction;
-  
-  ExprTableElem *expr_table_elem;
-  ExprColumnType expr_col_type;
-  ExprColumnInfo *expr_col_info;
-  
-  ExprConstraint *expr_constraint;
-
-
-
-
-
-
-
-
-  ExprWhere *expr_where;
-  ExprOn *expr_on;
-  ExprHaving *expr_having;
-  ExprLimit *expr_limit;
-  LockType lock_type;
-  CompType comp_type;
-  
-  ExprGroupItem *expr_group_item;
-  ExprGroupBy *expr_group_by;
-  ExprOrderItem *expr_order_item;
-  ExprOrderBy *expr_order_by;
-
-  ExprStatement *expr_statement;
+  //Expr DML
   ExprSelect *expr_select;
   ExprInsert *expr_insert;
   ExprUpdate *expr_update;
   ExprDelete *expr_delete;
 
-  MVectorPtr<ExprColumnInfo*> *expr_vct_col_info;
-  MVectorPtr<ExprLogic*> *expr_vct_logic;
-  MVectorPtr<ExprGroupItem*> *expr_vct_group_item
-  MVectorPtr<ExprOrderItem*> *expr_vct_order_item
+  //Expr vector
+  MVectorPtr<ExprStatement*> * expr_vct_statement;
+  MVectorPtr<ExprGroupItem*> *expr_vct_group_item;
+  MVectorPtr<ExprOrderItem*> *expr_vct_order_item;
   MVectorPtr<ExprTableElem*> *expr_vct_table_elem;
-  MVectorPtr<MString> *vct_str;
+  MVectorPtr<MString> *expr_vct_str;
   MVectorPtr<ExprData*> *expr_data_row;
   MVectorPtr<MVectorPtr<ExprData*>*> *expr_vct_data_row;
   MVectorPtr<ExprResColumn*> *expr_vct_res_col;
@@ -201,7 +195,7 @@
      ** Destructor symbols
      *********************************/
     // clang-format off
-    %destructor { } <fval> <ival> <bval> <sval> <data_type> <expr_col_type>
+    %destructor { } <fval> <ival> <bval> <sval> <uval> <data_type> <join_type> <index_type> <lock_type> <comp_type>
     %destructor { delete ($$); } <*>
 
 
@@ -235,6 +229,7 @@
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
     %token DATABASE DATABASES AUTO_INCREMENT COMMENT
 
+
     %type <data_type> data_type
     %type <vct_str> vct_col_name
     %type <bval> opt_not_exists opt_exists col_nullable auto_increment opt_distinct opt_order_direction
@@ -249,7 +244,6 @@
     %type <expr_use_db> expr_use_db
     %type <expr_table_elem> expr_table_elem
     %type <expr_col_default> expr_col_default
-    %type <expr_col_type> expr_col_type
     %type <expr_col_info> expr_col_info
     %type <expr_constraint> expr_constraint
     %type <expr_create_table> expr_create_table
@@ -292,8 +286,10 @@
     %type <expr_data_row> expr_data_row
     %type <expr_vct_data_row> expr_vct_data_row
     %type <table_name> table_name join_table_name
-
     %type <vct_table_elem> vct_table_elem
+
+    // expr vector
+    %type <expr_vct_statement> statement_list
     /******************************
      ** Token Precedence and Associativity
      ** Precedence: lowest to highest
@@ -323,6 +319,27 @@
 *********************************/
 
 // Defines our general input.
+
+input : statement_list opt_semicolon {
+  result->AddStatements(*($1));
+  result->AddParameters(yyloc.param_list);
+
+  delete $1;
+};
+
+
+statement_list : statement {
+  yylloc.string_length = 0;
+  $$ = new MVectorPtr<ExprStatement*>();
+  $$->push_back($1);
+}
+| statement_list ';' statement {
+  $3->stringLength = yylloc.string_length;
+  yylloc.string_length = 0;
+  $1->push_back($3);
+  $$ = $1;
+};
+
 statement : expr_create_db { $$ = $1; }
 | expr_drop_db { $$ = $1; }
 | expr_show_db { $$ = $1; }
@@ -644,14 +661,14 @@ expr_vct_table_elem : expr_table_elem {
 expr_table_elem : expr_col_info { $$ = $1; }
 | expr_constraint { $$ = $1; };
 
-expr_col_info : IDENTIFIER expr_col_type col_nullable expr_col_default auto_increment index_type table_comment {
+expr_col_info : IDENTIFIER data_type col_nullable expr_col_default auto_increment index_type table_comment {
   $$ = new ColumnDefinition($1, $2, $3);
   if (!$$->trySetNullableExplicit()) {
     yyerror(&yyloc, result, scanner, ("Conflicting nullability constraints for " + std::string{$1}).c_str());
   }
 };
 
-expr_col_type : BIGINT { $$ = ExprColumnType(DataType::LONG); }
+data_type : BIGINT { $$ = ExprColumnType(DataType::LONG); }
 | BOOLEAN { $$ = ExprColumnType(DataType::BOOL); }
 | CHAR '(' INTVAL ')' { $$ = ExprColumnType(DataType::FIXCHAR, $3); }
 | DOUBLE { $$ = ExprColumnType(DataType::DOUBLE); }
@@ -713,7 +730,8 @@ vct_col_name : IDENTIFIER {
   $$ = $1;
 };
 
-
+opt_semicolon : ';' | /* empty */
+    ;
 
 // clang-format off
 %%

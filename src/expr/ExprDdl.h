@@ -47,6 +47,7 @@ public:
 
 public:
   MString _colName;
+  DataType _dataType;
   int _incStart;
   int _incStep;
   bool _nullable;
