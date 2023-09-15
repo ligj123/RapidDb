@@ -39,9 +39,7 @@ public:
   MString _dbName;
 };
 
-class ExprTableElem : public BaseExpr {};
-
-class ExprColumnInfo : public ExprTableElem {
+class ExprColumnItem : public BaseExpr {
 public:
   ExprType GetType() { return ExprType::EXPR_COLUMN_INFO; }
 
@@ -57,9 +55,9 @@ public:
   MString _comment;
 };
 
-class ExprConstraint : public ExprTableElem {
+class ExprTableConstraint : public BaseExpr {
 public:
-  ~ExprConstraint() { delete _vctCol; }
+  ~ExprConstraint() { delete _vctColName; }
   ExprType GetType() { return ExprType::EXPR_CONSTRAINT; }
 
 public:
@@ -68,14 +66,13 @@ public:
   // In this version here does only support to include entire columns, and the
   // total length of columns can not exceed the index max length defined in
   // config. In following version, maybe to support more complex content.
-  MVector<MString> *_vctCol;
+  MVector<MString> *_vctColName;
 };
 
 class ExprCreateTable : public ExprStatement {
 public:
   ~ExprCreateTable() {
     delete _tName;
-    delete _vctElem;
     delete _vctColumn;
     delete _vctConstraint
   }
@@ -87,11 +84,10 @@ public:
 public:
   ExprTable *_tName;
   bool _ifNotExist;
-  MVector<ExprTableElem *> *_vctElem{nullptr};
   // Split from _vctElem when preprocess
-  MVector<ExprColumnInfo *> *_vctColumn{nullptr};
+  MVectorPtr<ExprColumnItem *> *_vctColumn{nullptr};
   // Split from _vctElem when preprocess
-  MVector<ExprConstaint *> *_vctConstraint{nullptr};
+  MVectorPtr<ExprTableConstraint *> *_vctConstraint{nullptr};
 };
 
 class ExprDropTable : public ExprStatement {

@@ -206,7 +206,7 @@ public:
 public:
   MString _name;       // column name
   int _pos;            // The column position in source table columns
-  ExprData *_exprData; // The expression to get data value from source
+  ExprElem *_exprElem; // The expression to get data value from source
   MString _alias;      // column alias name
 };
 
@@ -220,12 +220,6 @@ enum class JoinType {
 
 class ExprTable : public BaseExpr {
 public:
-  ExprTable(MString &dbName, MString &name, MString &alias)
-      : _dbName(move(dbName)), _tName(move(name)), _tAlias(alias) {
-    if (_tAlias.size() == 0)
-      _tAlias = _tName;
-  }
-  ~ExprTable() {}
   ExprType GetType() { return ExprType::EXPR_TABLE; }
 
 public:

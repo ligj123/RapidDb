@@ -115,7 +115,7 @@ public:
   // Remove repeated rows or not
   bool _bDistinct{false};
   // The selected columns
-  MVectorPtr<ExprResColumn *> *_vctCol{nullptr};
+  MVectorPtr<ExprColumn *> *_vctCol{nullptr};
   // The source tables, first table is ExprTable, the following tables are
   // ExprTable with join type if have.
   MVectorPtr<ExprTable *> *_vctTable{nullptr};

@@ -110,7 +110,10 @@
   CompType comp_type;
 
   IDataValue *expr_data_val;
-  
+
+  // parent for ExprData, ExprLogic and ExprAggr
+  ExprElem *expr_elem;
+
   // ExprData
   ExprData *expr_data;
   ExprConst *expr_const;
@@ -142,11 +145,10 @@
 
   // Other elem
   ExprArray *expr_array;
-  ExprTable *expr_table;
   ExprColumn *expr_column;
 
   // Table elem
-  ExprTableElem *expr_table_elem;
+  ExprTable *expr_table;
   ExprColumnInfo *expr_col_info;
   ExprConstraint *expr_constraint;
 
@@ -179,18 +181,17 @@
   ExprDelete *expr_delete;
 
   //Expr vector
+  MVector<MString> *expr_vct_str;
+  MVectorPtr<ExprColumn*> *expr_vct_column;
+  MVectorPtr<ExprTable*> *opt_expr_vct_table;
   MVectorPtr<ExprStatement*> * expr_vct_statement;
-
 
   MVectorPtr<ExprGroupItem*> *expr_vct_group_item;
   MVectorPtr<ExprOrderItem*> *expr_vct_order_item;
-  MVectorPtr<ExprTableElem*> *expr_vct_table_elem;
-  MVectorPtr<MString> *expr_vct_str;
+
   MVectorPtr<ExprData*> *expr_data_row;
   MVectorPtr<MVectorPtr<ExprData*>*> *expr_vct_data_row;
-  MVectorPtr<ExprResColumn*> *expr_vct_res_col;
-  MVectorPtr<ExprTable*> *opt_expr_vct_table;
-  MVectorPtr<ExprColumn*> *expr_vct_column;
+ 
 }
 
     /*********************************
@@ -233,9 +234,9 @@
 
 
     %type <data_type> data_type
-    %type <vct_str> vct_col_name
+    %type <expr_vct_str> vct_col_name
     %type <bval> opt_not_exists opt_exists col_nullable auto_increment opt_distinct opt_order_direction
-    %type <sval> table_comment
+    %type <sval> table_comment col_alias
     %type <join_type> join_type
     %type <comp_type> comp_type
 
@@ -266,8 +267,9 @@
     %type <expr_vct_order_item
     %type <expr_limit> opt_expr_limit
     %type <lock_type> opt_lock_type
-    %type <expr_column> expr_column
+    %type <expr_column> expr_data_column expr_col_column expr_sel_column
 
+    %type <expr_elem> expr_elem
     %type <expr_logic> expr_logic
     %type <expr_cmp> expr_cmp
     %type <expr_in_not> expr_in_not
@@ -280,18 +282,19 @@
     %type <expr_array> expr_array
     %type <expr_vct_const> expr_vct_const
     %type <expr_vct_order_item> expr_vct_order_item
-    %type <expr_vct_column> expr_vct_column
 
     %type <expr_data_val> const_dv const_int const_double const_string const_bool const_null
     %type <expr_data> expr_data expr_const expr_field expr_param expr_add expr_sub expr_mul expr_div expr_minus
 
     %type <expr_data_row> expr_data_row
     %type <expr_vct_data_row> expr_vct_data_row
-    %type <table_name> table_name join_table_name
-    %type <vct_table_elem> vct_table_elem
+    %type <expr_table> expr_table expr_join_table
 
     // expr vector
     %type <expr_vct_statement> statement_list
+    %type <vct_table_elem> vct_table_elem 
+    %type <expr_vct_column> expr_vct_data_column expr_vct_col_column expr_vct_sel_column
+
     /******************************
      ** Token Precedence and Associativity
      ** Precedence: lowest to highest
@@ -380,20 +383,23 @@ expr_drop_db : DROP DATABASE opt_exists IDENTIFIER {
   $$->_ifExist = $3;
 };
 
-expr_show_db : SHOW DATABASES { $$ = new ExprShowDatabases(); };
+expr_show_db : SHOW DATABASES {
+  $$ = new ExprShowDatabases();
+};
+
 expr_use_db : USE IDENTIFIER {
   $$ = new ExprUseDatabase();
   $$->_dbName = $2;
-}
+};
 
-expr_create_table : CREATE TABLE opt_not_exists table_name '(' vct_table_elem ')' {
+expr_create_table : CREATE TABLE opt_not_exists expr_table '(' vct_table_elem ')' {
   $$ = new ExprCreateTable();
   $$->_tName = $4;
   $$->_ifNotExist = $3;
   $$->_vctElem = $6;
 };
 
-expr_drop_table : DROP TABLE opt_exists table_name {
+expr_drop_table : DROP TABLE opt_exists expr_table {
   $$ = new ExprDropTable();
   $$->_tName = $4;
   $$->_ifExist = $3;
@@ -405,7 +411,7 @@ expr_show_tables : SHOW TABLES FROM IDENTIFIER {
 }
 | SHOW TABLES { $$ = new ExprShowTables(); }
 
-expr_trun_table : TRUNCATE TABLE table_name {
+expr_trun_table : TRUNCATE TABLE expr_table {
   $$ = new ExprTrunTable();
   $$->_tableName = $3;
 }
@@ -415,14 +421,20 @@ expr_transaction : BEGIN { $$ = new ExprTransaction(TranType::BEGIN); }
 | ROLLBACK { $$ = new ExprTransaction(TranType::ROLLBACK); }
 | COMMIT { $$ = new ExprTransaction(TranType::COMMIT); };
 
-expr_insert : INSERT INTO table_name '(' vct_col_name ')' VALUES expr_vct_data_row {
+expr_insert : INSERT INTO expr_table '(' expr_vct_col_name ')' VALUES expr_data_row {
+ $$ = new ExprInsert();
+ $$->_exprTable = $3;
+ $$->_vctCol = $5;
+ $$->_rowData = $8;
+}
+| INSERT INTO expr_table '(' expr_vct_col_name ')' VALUES expr_vct_data_row {
  $$ = new ExprInsert();
  $$->_exprTable = $3;
  $$->_vctCol = $5;
  $$->_vctRowData = $8;
 };
 
-expr_delete : DELETE FROM table_name opt_expr_where opt_expr_order_by opt_expr_limit {
+expr_delete : DELETE FROM expr_table opt_expr_where opt_expr_order_by opt_expr_limit {
   $$ = new ExprDelete();
   $$->_exprTable = $3;
   $$->_exprWhere = $4;
@@ -430,7 +442,7 @@ expr_delete : DELETE FROM table_name opt_expr_where opt_expr_order_by opt_expr_l
   $$->_exprLimit = $6;
 };
 
-expr_update : UPDATE table_name SET expr_vct_column opt_expr_where opt_expr_order_by opt_expr_limit {
+expr_update : UPDATE expr_table SET expr_vct_data_column opt_expr_where opt_expr_order_by opt_expr_limit {
   $$ = new ExprUpdate();
   $$->_exprTable = $2;
   $$->_vctCol = $3;
@@ -439,22 +451,7 @@ expr_update : UPDATE table_name SET expr_vct_column opt_expr_where opt_expr_orde
   $$->_exprLimit = $6;
 };
 
-expr_vct_column : expr_column {
-  $$ = new  MVectorPtr<ExprColumn*>();
-  $$->push_back($1);
-}
-| expr_vct_column ',' expr_column {
-  $1->push_back($3);
-  $$ = $1;
-};
-
-expr_column : IDENTIFIER '=' expr_data {
-  $$ = new ExprColumn();
-  $$->_name = $1;
-  $$->_exprData = $3;
-};
-
-expr_select : SELECT opt_distinct vct_res_col opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by expr_order_by opt_expr_limit opt_lock_type {
+expr_select : SELECT opt_distinct expr_vct_sel_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by expr_order_by opt_expr_limit opt_lock_type {
   $$ = new ExprSelect();
   $$->_bDistinct = $2;
   $$->_vctCol = $3;
@@ -466,6 +463,107 @@ expr_select : SELECT opt_distinct vct_res_col opt_expr_vct_table opt_expr_where 
   $$->_exprLimit = $9;
   $$->_lockType = $10;
 };
+
+expr_vct_sel_column : expr_sel_column {
+  $$ = new  MVectorPtr<ExprColumn*>();
+  $$->push_back($1);
+}
+| expr_vct_sel_column ',' expr_sel_column {
+  $1->push_back($3);
+  $$ = $1;
+};
+
+expr_sel_column : expr_elem col_alias {
+  $$ = new ExprColumn();
+  $$->_exprElem = $1;
+  $$->_alias = $2;
+};
+
+col_alias : AS IDENTIFIER {
+  $$ = $1;
+}
+| /* empty */ { $$ = MString(); };
+
+expr_vct_col_name : expr_col_column {
+  $$ = new  MVectorPtr<ExprColumn*>();
+  $$->push_back($1);
+}
+| expr_vct_col_column ',' expr_col_column {
+  $1->push_back($3);
+  $$ = $1;
+};
+
+expr_col_column : IDENTIFIER {
+  $$ = new ExprColumn();
+  $$->_name = $1;
+};
+
+expr_vct_data_column : expr_data_column {
+  $$ = new  MVectorPtr<ExprColumn*>();
+  $$->push_back($1);
+}
+| expr_vct_data_column ',' expr_data_column {
+  $1->push_back($3);
+  $$ = $1;
+};
+
+expr_data_column : IDENTIFIER '=' expr_data {
+  $$ = new ExprColumn();
+  $$->_name = $1;
+  $$->_exprElem = $3;
+};
+
+expr_table : IDENTIFIER {
+  $$ = new ExprTable();
+  $$->_tName = $1;
+}
+| IDENTIFIER AS IDENTIFIER {
+  $$ = new ExprTable();
+  $$->_tName = $1;
+  $$->_tAlias = $3;
+}
+| IDENTIFIER '.' IDENTIFIER {
+  $$ = new ExprTable();
+  $$->_dbName = $1;
+  $$->_tName = $3;
+}
+| IDENTIFIER '.' IDENTIFIER AS IDENTIFIER {
+  $$ = new ExprTable();
+  $$->_dbName = $1;
+  $$->_tName = $3;
+  $$->_tAlias = $5;
+};
+
+opt_not_exists : IF NOT EXISTS { $$ = true; }
+| /* empty */ { $$ = false; };
+
+opt_exists : IF EXISTS { $$ = true; }
+| /* empty */ { $$ = false; };
+
+opt_expr_vct_table : table_name {
+  $$ = new MVectorPtr<ExprTable>();
+  $$->push_back($1);
+}
+| opt_expr_vct_table join_type table_name {
+  $3->join_type = $2;
+  $$ = $1;
+  $$->push_back($3);
+}
+| /* empty */ { $$ = nullptr; };;
+
+join_type : INNER { $$ = INNER_JOIN; }
+| LEFT OUTER { $$ = LEFT_JOIN; }
+| LEFT { $$ = LEFT_JOIN; }
+| RIGHT OUTER { $$ = RIGHT_JOIN; }
+| RIGHT { $$ = RIGHT_JOIN; }
+| FULL OUTER { $$ = OUTTER_JOIN; }
+| OUTER { $$ = OUTTER_JOIN; }
+| FULL { $$ = OUTTER_JOIN; }
+| CROSS { $$ = INNER_JOIN; }
+| ',' { $$ = INNER_JOIN; };
+
+
+
 
 opt_expr_where : WHERE expr_logic {
   $$ = new ExprWhere();
@@ -593,26 +691,7 @@ expr_or : expr_logic OR expr_logic {
   $$->_vctChild.push_back($3);
 };
 
-opt_expr_vct_table : table_name {
-  $$ = new MVectorPtr<ExprTable>();
-  $$->push_back($1);
-}
-| opt_expr_vct_table join_type table_name {
-  $3->join_type = $2;
-  $$ = $1;
-  $$->push_back($3);
-};
 
-join_type : INNER { $$ = INNER_JOIN; }
-| LEFT OUTER { $$ = LEFT_JOIN; }
-| LEFT { $$ = LEFT_JOIN; }
-| RIGHT OUTER { $$ = RIGHT_JOIN; }
-| RIGHT { $$ = RIGHT_JOIN; }
-| FULL OUTER { $$ = OUTTER_JOIN; }
-| OUTER { $$ = OUTTER_JOIN; }
-| FULL { $$ = OUTTER_JOIN; }
-| CROSS { $$ = INNER_JOIN; }
-| ',' { $$ = INNER_JOIN; };
 
 opt_distinct : DISTINCT { $$ = true; }
 | /* empty */ { $$ = false; };
@@ -648,30 +727,12 @@ expr_div : expr_data '/' expr_data { $$ = new ExprDiv($1, $3); };
 expr_minus : '-' expr_data { $$ = new ExprMinus($2); };
 
 
-table_name : IDENTIFIER {
-  $$ = new ExprTable(str_null, $1, str_null);
-}
-| IDENTIFIER AS IDENTIFIER {
-  $$ = new ExprTable(str_null, $1, $3);
-}
-| IDENTIFIER '.' IDENTIFIER {
-  $$ = new ExprTable($1, $3, str_null);
-}
-| IDENTIFIER '.' IDENTIFIER AS IDENTIFIER {
-  $$ = new ExprTable($1, $3, $5);
-};
 
-opt_not_exists : IF NOT EXISTS { $$ = true; }
-| /* empty */ { $$ = false; };
-
-opt_exists : IF EXISTS { $$ = true; }
-| /* empty */ { $$ = false; };
-
-expr_vct_table_elem : expr_table_elem {
-  $$ = new MVectorPtr<ExprTableElem*>();
+expr_vct_table : expr_table {
+  $$ = new MVectorPtr<ExprTable*>();
   $$->push_back($1);
 }
-| expr_vct_table_elem ',' expr_table_elem {
+| expr_vct_table ',' expr_table {
   $1->push_back($3);
   $$ = $1;
 };
