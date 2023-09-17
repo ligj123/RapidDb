@@ -13,7 +13,11 @@ using namespace std;
 namespace storage {
 class ExprCount : public ExprAggr {
 public:
-  ~ExprCount() {
+  ExprCount(ExprData *exprData, bool bStar = false)
+      : _exprData(exprData), _bStar(bStart) {
+    assert(exprData != nullptr ^ bStart);
+  }
+  ExprCount() ~ExprCount() {
     delete _exprData;
     delete _exprStart;
   }
@@ -35,12 +39,13 @@ public:
     }
 
   public:
-    ExprData *_exprData{nullptr};
-    bool _bStar{false};
+    ExprData *_exprData;
+    bool _bStar;
   };
 
   class ExprSum : public ExprAggr {
   public:
+    ExprSum(ExprData *exprData) : _exprData(exprData) {}
     ~ExprSum() { delete _exprData; }
     ExprType GetType() { return ExprType::EXPR_SUM; }
     bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
@@ -55,11 +60,12 @@ public:
     }
 
   public:
-    ExprData *_exprData{nullptr};
+    ExprData *_exprData;
   };
 
   class ExprMax : public ExprAggr {
   public:
+    ExprMax(ExprData *exprData) : _exprData(exprData) {}
     ~ExprMax() { delete _exprData; }
 
     ExprType GetType() { return ExprType::EXPR_MAX; }
@@ -76,11 +82,12 @@ public:
     }
 
   public:
-    ExprData *_exprData{nullptr};
+    ExprData *_exprData;
   };
 
   class ExprMin : public ExprAggr {
   public:
+    ExprMin(ExprData *exprData) : _exprData(exprData) {}
     ~ExprMin() { delete _exprData; }
 
     ExprType GetType() { return ExprType::EXPR_MIN; }
@@ -98,11 +105,12 @@ public:
     }
 
   public:
-    ExprData *_exprData{nullptr};
+    ExprData *_exprData;
   };
 
   class ExprAvg : public ExprAggr {
   public:
+    ExprAvg(ExprData *exprData) : _exprData(exprData) {}
     ~ExprAvg() { delete _exprData; }
 
     ExprType GetType() { return ExprType::EXPR_AVG; }
@@ -118,6 +126,6 @@ public:
     }
 
   public:
-    ExprData *_exprData{nullptr};
+    ExprData *_exprData;
   };
 } // namespace storage

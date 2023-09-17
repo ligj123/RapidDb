@@ -72,6 +72,8 @@ ARRAY       TOKEN(ARRAY)
 AS          TOKEN(AS)
 ASC         TOKEN(ASC)
 AUTO_INCREMENT TOKEN(AUTO_INCREMENT)
+AVG         TOKEN(AVERAGE)
+AVERAGE     TOKEN(AVERAGE)
 BEFORE      TOKEN(BEFORE)
 BEGIN       TOKEN(BEGIN)
 BETWEEN     TOKEN(BETWEEN)
@@ -89,6 +91,7 @@ COMMIT      TOKEN(COMMIT)
 COMMENT     TOKEN(COMMENT)
 CONTROL     TOKEN(CONTROL)
 COPY        TOKEN(COPY)
+COUNT       TKEN(COUNT)
 CREATE      TOKEN(CREATE)
 CROSS       TOKEN(CROSS)
 DATABASE    TOKEN(DATABASE)
@@ -155,7 +158,9 @@ LOAD        TOKEN(LOAD)
 LOCAL       TOKEN(LOCAL)
 LOCKED      TOKEN(LOCKED)
 LONG        TOKEN(LONG)
+MAX         TOKEN(MAX)
 MERGE       TOKEN(MERGE)
+MIN         TOKEN(MIN)
 MINUS       TOKEN(MINUS)
 MINUTE      TOKEN(MINUTE)
 MINUTES     TOKEN(MINUTES)
@@ -201,6 +206,7 @@ SMALLINT    TOKEN(SMALLINT)
 SORTED      TOKEN(SORTED)
 SPATIAL     TOKEN(SPATIAL)
 START       TOKEN(START)
+SUM         TKKEN(SUM)
 TABLE       TOKEN(TABLE)
 TABLES      TOKEN(TABLES)
 TEMPORARY   TOKEN(TEMPORARY)
@@ -271,19 +277,19 @@ CHARACTER[ \t\n]+VARYING TOKEN(CHARACTER_VARYING)
 
 \"[^\"\n]+\" {
   // Crop the leading and trailing quote char
-  yylval->sval = storage::MString(yytext + 1, strlen(yytext)-1);
+  yylval->sval = new storage::MString(yytext + 1, strlen(yytext)-1);
   return SQL_STRING;
 }
 
 [A-Za-z][A-Za-z0-9_]* {
-  yylval->sval = storage::MString(yytext);
+  yylval->sval = new storage::MString(yytext);
   return SQL_IDENTIFIER;
 }
 
 \'                          { BEGIN singlequotedstring; strbuf.clear(); strbuf.str(""); }  // Clear strbuf manually, see #170
 <singlequotedstring>\'\'    { strbuf << '\''; }
 <singlequotedstring>[^']*   { strbuf << yytext; }
-<singlequotedstring>\'      { BEGIN 0; yylval->sval = storage::MString(strbuf.str().c_str()); return SQL_STRING; }
+<singlequotedstring>\'      { BEGIN 0; yylval->sval = new storage::MString(strbuf.str().c_str()); return SQL_STRING; }
 <singlequotedstring><<EOF>> { fprintf(stderr, "[SQL-Lexer-Error] Unterminated string\n"); return 0; }
 
 . { fprintf(stderr, "[SQL-Lexer-Error] Unknown Character: %c\n", yytext[0]); return 0; }

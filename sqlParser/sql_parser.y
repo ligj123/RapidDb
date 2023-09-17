@@ -99,17 +99,16 @@
 %union {
   // basic type
   bool bval;
-  MString sval;
   double fval;
   int64_t ival;
   uintmax_t uval;
-  DataType data_type;
   JoinType join_type;
   IndexType index_type;
   LockType lock_type;
   CompType comp_type;
 
-  IDataValue *expr_data_val;
+  MString *sval;
+  IDataValue *data_value;
 
   // parent for ExprData, ExprLogic and ExprAggr
   ExprElem *expr_elem;
@@ -136,7 +135,7 @@
   ExprOr * expr_or;
 
   // ExprAggr
-  ExprAggr *expr_agr;
+  ExprAggr *expr_aggr;
   ExprCount *expr_count;
   ExprSum *expr_sum;
   ExprMax *expr_max;
@@ -149,15 +148,14 @@
 
   // Table elem
   ExprTable *expr_table;
-  ExprColumnInfo *expr_col_info;
-  ExprConstraint *expr_constraint;
+  ExprCreateTableItem *expr_create_table_item;
+  ExprDataType * expr_data_type;
 
   // Expr part
   ExprWhere *expr_where;
   ExprOn *expr_on;
   ExprHaving *expr_having;
   ExprLimit *expr_limit;
-  ExprGroupItem *expr_group_item;
   ExprGroupBy *expr_group_by;
   ExprOrderItem *expr_order_item;
   ExprOrderBy *expr_order_by;
@@ -181,24 +179,22 @@
   ExprDelete *expr_delete;
 
   //Expr vector
-  MVector<MString> *expr_vct_str;
+  MVectorPtr<MString*> *expr_vct_str;
   MVectorPtr<ExprColumn*> *expr_vct_column;
   MVectorPtr<ExprTable*> *opt_expr_vct_table;
   MVectorPtr<ExprStatement*> * expr_vct_statement;
-
-  MVectorPtr<ExprGroupItem*> *expr_vct_group_item;
+  MVectorPtr<ExprCreateTableItem*> expr_vct_create_table_item;
   MVectorPtr<ExprOrderItem*> *expr_vct_order_item;
-
-  MVectorPtr<ExprData*> *expr_data_row;
-  MVectorPtr<MVectorPtr<ExprData*>*> *expr_vct_data_row;
- 
+  MVectorPtr<ExprElem*> *expr_elem_row;
+  MVectorPtr<MVectorPtr<ExprElem*>*> *expr_vct_elem_row;
+  MVectorPtr<ExprData*> *expr_vct_data;
 }
 
     /*********************************
      ** Destructor symbols
      *********************************/
     // clang-format off
-    %destructor { } <fval> <ival> <bval> <sval> <uval> <data_type> <join_type> <index_type> <lock_type> <comp_type>
+    %destructor { } <fval> <ival> <bval> <uval> <join_type> <index_type> <lock_type> <comp_type>
     %destructor { delete ($$); } <*>
 
 
@@ -231,69 +227,65 @@
     %token NOWAIT SKIP LOCKED SHARE
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
     %token DATABASE DATABASES AUTO_INCREMENT COMMENT
+    %token AVERAGE COUN MIN MAX SUM
 
-
-    %type <data_type> data_type
-    %type <expr_vct_str> vct_col_name
+    // Basic data type
+    %type <expr_data_type> expr_data_type
+    %type <expr_vct_str> expr_vct_col_name
     %type <bval> opt_not_exists opt_exists col_nullable auto_increment opt_distinct opt_order_direction
     %type <sval> table_comment col_alias
     %type <join_type> join_type
     %type <comp_type> comp_type
-
+    %type <index_type> index_type
+    %type <lock_type> opt_lock_type
+    
+    // DDL
     %type <expr_statement> expr_statement
     %type <expr_create_db> expr_create_db
     %type <expr_drop_db> expr_drop_db
     %type <expr_show_db> expr_show_db
     %type <expr_use_db> expr_use_db
-    %type <expr_table_elem> expr_table_elem
-    %type <expr_col_default> expr_col_default
-    %type <expr_col_info> expr_col_info
-    %type <expr_constraint> expr_constraint
     %type <expr_create_table> expr_create_table
     %type <expr_drop_table> expr_drop_table
     %type <expr_show_tables> expr_show_tables
     %type <expr_trun_table> expr_trun_table
+
+    // DML
     %type <expr_select> expr_select
     %type <expr_insert> expr_insert
     %type <expr_update> expr_update
     %type <expr_delete> expr_delete
-    %type <index_type> index_type
+
+    // DDL Item
+    %type <expr_create_table_item> expr_create_table_item
+
+    //DML Item
     %type <expr_where> opt_expr_where
     %type <expr_on> opt_expr_on
     %type <expr_group_by> opt_expr_group_by
-    %type <expr_Having> opt_expr_having
+    %type <expr_having> opt_expr_having
     %type <expr_order_item> expr_order_item
     %type <expr_order_by> opt_expr_order_by
-    %type <expr_vct_order_item
     %type <expr_limit> opt_expr_limit
-    %type <lock_type> opt_lock_type
-    %type <expr_column> expr_data_column expr_col_column expr_sel_column
+    %type <expr_column> expr_update_column expr_insert_column expr_select_column
 
+    // Elem Type
+    %type <data_value> const_dv const_int const_double const_string const_bool const_null default_col_dv
     %type <expr_elem> expr_elem
-    %type <expr_logic> expr_logic
-    %type <expr_cmp> expr_cmp
-    %type <expr_in_not> expr_in_not
-    %type <expr_is_null_not> expr_is_null_not
-    %type <expr_between> expr_between
-    %type <expr_like> expr_like
-    %type <expr_not> expr_not
-    %type <expr_and> expr_and
-    %type <expr_or> expr_or
-    %type <expr_array> expr_array
-    %type <expr_vct_const> expr_vct_const
-    %type <expr_vct_order_item> expr_vct_order_item
-
-    %type <expr_data_val> const_dv const_int const_double const_string const_bool const_null
-    %type <expr_data> expr_data expr_const expr_field expr_param expr_add expr_sub expr_mul expr_div expr_minus
-
+    %type <expr_data> expr_data expr_const expr_field expr_param expr_add expr_sub expr_mul expr_div expr_minus expr_func
+    %type <expr_logic> expr_logic expr_cmp expr_in_not expr_is_null_not expr_between expr_like expr_not expr_and expr_or
+    %type <expr_array> expr_array expr_vct_const
+    %type <expr_aggr> expr_aggr expr_count expr_sum expr_max expr_min expr_avg
+    %type <expr_table> expr_table  
+    
+    // expr vector
     %type <expr_data_row> expr_data_row
     %type <expr_vct_data_row> expr_vct_data_row
-    %type <expr_table> expr_table expr_join_table
-
-    // expr vector
     %type <expr_vct_statement> statement_list
-    %type <vct_table_elem> vct_table_elem 
-    %type <expr_vct_column> expr_vct_data_column expr_vct_col_column expr_vct_sel_column
+    %type <expr_vct_column> expr_vct_update_column expr_vct_insert_column expr_vct_select_column
+    %type <expr_vct_order_item> expr_vct_order_item
+    %type <opt_expr_vct_table> opt_expr_vct_table
+    %type <expr_vct_data> opt_expr_vct_data
 
     /******************************
      ** Token Precedence and Associativity
@@ -326,10 +318,8 @@
 // Defines our general input.
 
 input : statement_list opt_semicolon {
-  result->AddStatements(*($1));
+  result->AddStatements($1);
   result->AddParameters(yyloc.param_list);
-
-  delete $1;
 };
 
 statement_list : statement {
@@ -362,25 +352,17 @@ statement : expr_create_db { $$ = $1; }
  ******************************/
 
 expr_create_db : CREATE DATABASE opt_not_exists IDENTIFIER {
-  $$ = new ExprCreateDatabase();
-  $$->_dbName = $4;
-  $$->_ifNotExist = $3;
+  $$ = new ExprCreateDatabase($4, $3);
 }
 | CREATE SCHEMA opt_not_exists IDENTIFIER {
-  $$ = new ExprCreateDatabase();
-  $$->_dbName = $4;
-  $$->_ifNotExist = $3;
+  $$ = new ExprCreateDatabase($4, $3);
 };
 
 expr_drop_db : DROP DATABASE opt_exists IDENTIFIER {
-  $$ = new ExprDropDatabase();
-  $$->_dbName = $4;
-  $$->_ifExist = $3;
+  $$ = new ExprDropDatabase($4, $3);
 }
 | DROP SCHEMA opt_exists IDENTIFIER {
-  $$ = new ExprDropDatabase();
-  $$->_dbName = $4;
-  $$->_ifExist = $3;
+  $$ = new ExprDropDatabase($4, $3);
 };
 
 expr_show_db : SHOW DATABASES {
@@ -388,32 +370,24 @@ expr_show_db : SHOW DATABASES {
 };
 
 expr_use_db : USE IDENTIFIER {
-  $$ = new ExprUseDatabase();
-  $$->_dbName = $2;
+  $$ = new ExprUseDatabase($2);
 };
 
-expr_create_table : CREATE TABLE opt_not_exists expr_table '(' vct_table_elem ')' {
-  $$ = new ExprCreateTable();
-  $$->_tName = $4;
-  $$->_ifNotExist = $3;
-  $$->_vctElem = $6;
+expr_create_table : CREATE TABLE opt_not_exists expr_table '(' expr_vct_create_table_item ')' {
+  $$ = new ExprCreateTable($4, $3, $6);
 };
 
 expr_drop_table : DROP TABLE opt_exists expr_table {
-  $$ = new ExprDropTable();
-  $$->_tName = $4;
-  $$->_ifExist = $3;
+  $$ = new ExprDropTable($4, $3);
 };
 
 expr_show_tables : SHOW TABLES FROM IDENTIFIER {
-  $$ = new ExprShowTables();
-  $->_dbName = $4;
+  $$ = new ExprShowTables($4);
 }
-| SHOW TABLES { $$ = new ExprShowTables(); }
+| SHOW TABLES { $$ = new ExprShowTables(nullptr); }
 
 expr_trun_table : TRUNCATE TABLE expr_table {
-  $$ = new ExprTrunTable();
-  $$->_tableName = $3;
+  $$ = new ExprTrunTable($3);
 }
 
 expr_transaction : BEGIN { $$ = new ExprTransaction(TranType::BEGIN); }
@@ -421,17 +395,23 @@ expr_transaction : BEGIN { $$ = new ExprTransaction(TranType::BEGIN); }
 | ROLLBACK { $$ = new ExprTransaction(TranType::ROLLBACK); }
 | COMMIT { $$ = new ExprTransaction(TranType::COMMIT); };
 
-expr_insert : INSERT INTO expr_table '(' expr_vct_col_name ')' VALUES expr_data_row {
- $$ = new ExprInsert();
- $$->_exprTable = $3;
- $$->_vctCol = $5;
- $$->_rowData = $8;
+expr_insert : INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES '(' expr_elem_row ')' {
+  $$ = new ExprInsert();
+  $$->_exprTable = $3;
+  $$->_vctCol = $5;
+  $$->_rowData = $9;
 }
-| INSERT INTO expr_table '(' expr_vct_col_name ')' VALUES expr_vct_data_row {
- $$ = new ExprInsert();
- $$->_exprTable = $3;
- $$->_vctCol = $5;
- $$->_vctRowData = $8;
+| INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row {
+  $$ = new ExprInsert();
+  $$->_exprTable = $3;
+  $$->_vctCol = $5;
+  $$->_vctRowData = $8;
+}
+| INSERT INTO expr_table '(' expr_vct_insert_column ')' expr_select {
+  $$ = new ExprInsert();
+  $$->_exprTable = $3;
+  $$->_vctCol = $5;
+  $$->_exprSelect = $7;
 };
 
 expr_delete : DELETE FROM expr_table opt_expr_where opt_expr_order_by opt_expr_limit {
@@ -442,7 +422,7 @@ expr_delete : DELETE FROM expr_table opt_expr_where opt_expr_order_by opt_expr_l
   $$->_exprLimit = $6;
 };
 
-expr_update : UPDATE expr_table SET expr_vct_data_column opt_expr_where opt_expr_order_by opt_expr_limit {
+expr_update : UPDATE expr_table SET expr_vct_update_column opt_expr_where opt_expr_order_by opt_expr_limit {
   $$ = new ExprUpdate();
   $$->_exprTable = $2;
   $$->_vctCol = $3;
@@ -451,7 +431,7 @@ expr_update : UPDATE expr_table SET expr_vct_data_column opt_expr_where opt_expr
   $$->_exprLimit = $6;
 };
 
-expr_select : SELECT opt_distinct expr_vct_sel_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by expr_order_by opt_expr_limit opt_lock_type {
+expr_select : SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by expr_order_by opt_expr_limit opt_lock_type {
   $$ = new ExprSelect();
   $$->_bDistinct = $2;
   $$->_vctCol = $3;
@@ -464,74 +444,61 @@ expr_select : SELECT opt_distinct expr_vct_sel_column opt_expr_vct_table opt_exp
   $$->_lockType = $10;
 };
 
-expr_vct_sel_column : expr_sel_column {
+expr_vct_select_column : expr_select_column {
   $$ = new  MVectorPtr<ExprColumn*>();
   $$->push_back($1);
 }
-| expr_vct_sel_column ',' expr_sel_column {
+| expr_vct_select_column ',' expr_select_column {
   $1->push_back($3);
   $$ = $1;
 };
 
-expr_sel_column : expr_elem col_alias {
-  $$ = new ExprColumn();
-  $$->_exprElem = $1;
-  $$->_alias = $2;
+expr_select_column : expr_elem col_alias {
+  $$ = new ExprColumn(nullptr, $1, $2);
 };
 
 col_alias : AS IDENTIFIER {
   $$ = $1;
 }
-| /* empty */ { $$ = MString(); };
+| /* empty */ { $$ = nullptr; };
 
-expr_vct_col_name : expr_col_column {
+expr_vct_insert_column : expr_insert_column {
   $$ = new  MVectorPtr<ExprColumn*>();
   $$->push_back($1);
 }
-| expr_vct_col_column ',' expr_col_column {
+| expr_vct_insert_column ',' expr_insert_column {
   $1->push_back($3);
   $$ = $1;
 };
 
-expr_col_column : IDENTIFIER {
-  $$ = new ExprColumn();
-  $$->_name = $1;
+expr_insert_column : IDENTIFIER {
+  $$ = new ExprColumn($1, nullptr, nullptr);
 };
 
-expr_vct_data_column : expr_data_column {
+expr_vct_update_column : expr_update_column {
   $$ = new  MVectorPtr<ExprColumn*>();
   $$->push_back($1);
 }
-| expr_vct_data_column ',' expr_data_column {
+| expr_vct_update_column ',' expr_update_column {
   $1->push_back($3);
   $$ = $1;
 };
 
-expr_data_column : IDENTIFIER '=' expr_data {
-  $$ = new ExprColumn();
-  $$->_name = $1;
-  $$->_exprElem = $3;
+expr_update_column : IDENTIFIER '=' expr_elem {
+  $$ = new ExprColumn($1, $3, nullptr);
 };
 
 expr_table : IDENTIFIER {
-  $$ = new ExprTable();
-  $$->_tName = $1;
+  $$ = new ExprTable(nullptr, $1, nullptr);
 }
 | IDENTIFIER AS IDENTIFIER {
-  $$ = new ExprTable();
-  $$->_tName = $1;
-  $$->_tAlias = $3;
+  $$ = new ExprTable(nullptr, $1, $3);
 }
 | IDENTIFIER '.' IDENTIFIER {
-  $$ = new ExprTable();
-  $$->_dbName = $1;
-  $$->_tName = $3;
+  $$ = new ExprTable($1, $3, nullptr);
 }
 | IDENTIFIER '.' IDENTIFIER AS IDENTIFIER {
-  $$ = new ExprTable();
-  $$->_dbName = $1;
-  $$->_tName = $3;
-  $$->_tAlias = $5;
+  $$ = new ExprTable($1, $3, $5);
 };
 
 opt_not_exists : IF NOT EXISTS { $$ = true; }
@@ -546,8 +513,8 @@ opt_expr_vct_table : table_name {
 }
 | opt_expr_vct_table join_type table_name {
   $3->join_type = $2;
-  $$ = $1;
   $$->push_back($3);
+  $$ = $1;
 }
 | /* empty */ { $$ = nullptr; };;
 
@@ -562,30 +529,103 @@ join_type : INNER { $$ = INNER_JOIN; }
 | CROSS { $$ = INNER_JOIN; }
 | ',' { $$ = INNER_JOIN; };
 
+expr_vct_col_name : IDENTIFIER {
+  $$ = new MVectorPtr<MString*>();
+  $$->push_back($1);
+}
+| expr_vct_col_name ',' IDENTIFIER {
+  $1->push_back($3);
+  $$ = $1;
+};
 
+opt_semicolon : ';'
+| /* empty */  ;
 
+expr_vct_create_table_item : expr_create_table_item {
+  $$ = new MVectorPtr<ExprCreateTableItem*>();
+  $$->push_back($1);
+}
+| expr_vct_create_table_item ',' expr_create_table_item {
+  $1->push_back($3);
+  $$ = $1;
+};
+
+expr_create_table_item : IDENTIFIER expr_data_type col_nullable default_col_dv auto_increment index_type table_comment {
+  $$ = new ExprColumnItem();
+  $$->_colName = $1;
+  $$->_dataType = $2->_dataType;
+  $$->_maxLength = $2->_maxLen;
+  delete $2;
+  $$->_nullable = $3;
+  $$->_defaultVal = $4;
+  $$->_autoInc = $5;
+  $$->_indexType = $6;
+  $$->_comment = $7;
+}
+| INDEX IDENTIFIER IndexType '(' expr_vct_col_name ')' {
+  $$ = new ExprTableConstraint($2, $3, $5);
+}
+| PRIMARY KEY '(' expr_vct_col_name ')' {
+  $$ = new ExprTableConstraint(nullptr, IndexType::PRIMARY, $4);
+};
+
+expr_data_type : BIGINT { $$ = new ExprDataType(DataType::LONG); }
+| BOOLEAN { $$ = new ExprDataType(DataType::BOOL); }
+| CHAR '(' INTVAL ')' { $$ = new ExprDataType(DataType::FIXCHAR, $3); }
+| DOUBLE { $$ = new ExprDataType(DataType::DOUBLE); }
+| FLOAT { $$ = new ExprDataType(DataType::FLOAT); }
+| INT { $$ = new ExprDataType(DataType::INT); }
+| INTEGER { $$ = new ExprDataType(DataType::INT); }
+| LONG { $$ = new ExprDataType(DataType::LONG); }
+| REAL { $$ = new ExprDataType(DataType::DOUBLE); }
+| SMALLINT { $$ = new ExprDataType(DataType::SHORT); }
+| VARCHAR '(' INTVAL ')' { $$ = new ExprDataType(DataType::VARCHAR, $3); }
+
+col_nullable : NULL { $$ = true; }
+| NOT NULL { $$ = false; }
+| /* empty */ { $$ = true; };
+
+default_col_dv : DEFAULT const_dv { $$ = $2; }
+| /* empty */ { $$ = nullptr; }
+
+auto_increment : AUTO_INCREMENT { $$ = true; }
+|  /* empty */ { $$ = false; };
+
+index_type : PRIMARY KEY { $$ = IndexType::PRIMARY; }
+| PRIMARY { $$ = IndexType::PRIMARY; }
+| UNIQUE KEY { $$ = IndexType::UNIQUE; }
+| UNIQUE { $$ = IndexType::UNIQUE; }
+| KEY { $$ = IndexType::NON_UNIQUE; }
+| /* empty */ { $$ = IndexType::UNKNOWN; };
+
+table_comment | COMMENT STRING { $$ = $2; }
+|  /* empty */ { $$ = nullptr; };
+
+expr_vct_elem_row : '(' expr_elem_row ')' {
+  $$ = new MVectorPtr<MVectorPtr<ExprElem*>*>();
+  $$->push_back($2);
+}
+| expr_vct_elem_row ',' '(' expr_elem_row ')' {
+  $1->push_back($4);
+  $$ = $1;
+};
+
+expr_elem_row : expr_elem {
+  $$ = new MVectorPtr<ExprElem*>();
+  $$->push_back($1);
+}
+| expr_elem_row ',' expr_elem {
+  $1->push_back($3);
+  $$ = $1;
+};
 
 opt_expr_where : WHERE expr_logic {
-  $$ = new ExprWhere();
-  $$->_exprLogic = $2;
+  $$ = new ExprWhere($2);
 }
 | /* empty */ { $$ = nullptr;};
 
 opt_expr_on : ON expr_logic {
-  $$ = new ExprOn();
-  $$->_exprLogic = $2;
-}
-| /* empty */ { $$ = nullptr; };
-
-opt_expr_group_by : GROUP BY vct_col_name opt_expt_having {
-  $$ = new ExprGroupBy($3);
-  $$->_exprHaving = $4;
-}
-| /* empty */ { $$ = nullptr; };
-
-opt_expt_having : HAVING expr_logic {
-  $$ = new ExprHaving();
-  $$->_exprLogic = $2;
+  $$ = new ExprOn($2);
 }
 | /* empty */ { $$ = nullptr; };
 
@@ -599,14 +639,12 @@ expr_vct_order_item : expr_order_item {
   $$->push_back($1);
 }
 | expr_vct_order_item ',' expr_order_item {
+  $1->push_back($3);
   $$ = $1;
-  $$->push_back($1);
 };
 
 expr_order_item : IDENTIFIER opt_order_direction {
-  $$ = new ExprOrderItem();
-  $$->_colName = $1;
-  $$->_direct = $2;
+  $$ = new ExprOrderItem($1, $2);
 };
 
 opt_order_direction : ASC { $$ = true; }
@@ -614,34 +652,29 @@ opt_order_direction : ASC { $$ = true; }
 | /* empty */ { $$ = true; };
 
 opt_expr_limit : LIMIT INTVAL {
-  $$ = new ExprLimit();
-  $$->_rowCount = $1;
+  $$ = new ExprLimit(0, $1);
 }
 | LIMIT INTVAL ',' INTVAL {
-  $$ = new ExprLimit();
-  $$->_rowOffset = $2
-  $$->_rowCount = $4;
+  $$ = new ExprLimit($2, $4);
 }
 | /* empty */ { $$ = nullptr; };
+
+opt_expr_group_by : GROUP BY expr_vct_col_name opt_expr_having {
+  $$ = new ExprGroupBy($3, $4);
+}
+| /* empty */ { $$ = nullptr; };
+
+opt_expr_having : HAVING expr_logic {
+  $$ = new ExprHaving($2);
+}
+| /* empty */ { $$ = nullptr; };
+
+opt_distinct : DISTINCT { $$ = true; }
+| /* empty */ { $$ = false; };
 
 opt_lock_type : FOR SHARE { $$ = LockType::SHARE_LOCK; }
 | FOR UPDATE { $$ = LockType::WRITE_LOCK; }
 | /* empty */ { $$ = LockType::NO_LOCK; };
-
-expr_logic : expr_cmp | expr_in_not | expr_is_null_not | expr_between | expr_like | expr_not | expr_and | expr_or
-| '(' expr_logic ')' { $$ = $2; };
-
-comp_type : '=' { $$ = CompType::EQ; }
-| '>' { $$ = CompType::GT; }
-| '<' { $$ = CompType::LT; }
-| GE { $$ = CompType::GE; }
-| LE { $$ = CompType::LE; }
-| NE { $$ = CompType::NE; }
-| EQ { $$ = CompType::EQ; }; 
-
-expr_cmp : expr_data comp_type expr_data {
-  $$ = new ExprComp($2, $1, $3);
-};
 
 expr_array : '(' expr_vct_const ')' { $$ = $2; }
 expr_vct_const : const_dv {
@@ -652,6 +685,72 @@ expr_vct_const : const_dv {
    $1->AddElem($3);
    $$ = $1;
 }
+
+expr_elem : expr_logic | expr_data | expr_aggr;
+
+expr_data : expr_const | expr_field | expr_param | expr_add | expr_sub | expr_mul | expr_div | expr_minus | expr_func
+| '(' expr_data ')' { $$ = $2; };
+
+expr_const : const_dv { $$ = new ExprConst($1); };
+
+expr_field : IDENTIFIER { $$ = new ExprField(str_null, $1); }
+| IDENTIFIER '.' IDENTIFIER {$$ = new ExprField($1, $3);};
+
+expr_param : '?' { $$ =  new ExprParameter(); };
+
+expr_add : expr_data '+' expr_data { $$ = new ExprAdd($1, $3); };
+
+expr_sub : expr_data '-' expr_data { $$ = new ExprSub($1, $3); };
+
+expr_mul : expr_data '*' expr_data { $$ = new ExprMul($1, $3); };
+
+expr_div : expr_data '/' expr_data { $$ = new ExprDiv($1, $3); };
+
+expr_minus : '-' expr_data { $$ = new ExprMinus($2); };
+
+expr_func : IDENTIFIER '(' opt_expr_vct_data ')' {
+  $$ = ExprFunc($1, $3);
+};
+
+opt_expr_vct_data : expr_data {
+  $$ = new  MVectorPtr<ExprData*>();
+  $$->push_back($1);
+}
+| opt_expr_vct_data ',' expr_data {
+  $1->push_back($3);
+  $$ = $1;
+}
+| /* empty */ { $$ = new  MVectorPtr<ExprData*>(); };
+
+const_dv : const_int | const_double | const_string | const_bool | const_null;
+const_string : STRING {
+  $$ = new DataValueVarChar($1->c_str(), $1->size());
+  delete $1;
+};
+
+const_bool : TRUE { $$ = new DataValueBool(true); }
+| FALSE { $$ = new DataValueBool(false); };
+
+const_double : FLOATVAL { $$ = new DataValueDouble($1); }
+
+const_int : INTVAL { $$ = DataValueLong($1); };
+
+const_null : NULL { $$ = DataValueNull(); };
+
+expr_logic : expr_cmp | expr_in_not | expr_is_null_not | expr_between | expr_like | expr_not | expr_and | expr_or
+| '(' expr_logic ')' { $$ = $2; };
+
+expr_cmp : expr_data comp_type expr_data {
+  $$ = new ExprComp($2, $1, $3);
+};
+
+comp_type : '=' { $$ = CompType::EQ; }
+| '>' { $$ = CompType::GT; }
+| '<' { $$ = CompType::LT; }
+| GE { $$ = CompType::GE; }
+| LE { $$ = CompType::LE; }
+| NE { $$ = CompType::NE; }
+| EQ { $$ = CompType::EQ; }; 
 
 expr_in_not : expr_field IN expr_array {
   $$ = new ExprInNot($1, $3, true);
@@ -671,14 +770,15 @@ expr_like : expr_data LIKE const_string { $$ = new ExprLike($1, $3, true); }
 | expr_data NOT LIKE const_string { $$ = new ExprLike($1, $4, false); };
 
 expr_not : NOT expr_logic { $$ = new ExprNot($$2); };
+
 expr_and : expr_logic AND expr_logic {
   $$ = new ExprAnd();
   $$->_vctChild.push_back($1);
   $$->_vctChild.push_back($3);
 }
 | expr_and AND expr_logic {
+  $1->_vctChild.push_back($3);
   $$ = $1;
-  $$->_vctChild.push_back($3);
 };
 
 expr_or : expr_logic OR expr_logic {
@@ -687,130 +787,35 @@ expr_or : expr_logic OR expr_logic {
   $$->_vctChild.push_back($3);
 }
 | expr_or OR expr_logic {
-  $$ = $1;
-  $$->_vctChild.push_back($3);
-};
-
-
-
-opt_distinct : DISTINCT { $$ = true; }
-| /* empty */ { $$ = false; };
-
-expr_vct_data_row : '(' expr_data_row ')' {
-  $$ = new MVectorPtr<MVectorPtr<ExprData*>*>();
-  $$->push_back($2);
-}
-| expr_vct_data_row ',' '(' expr_data_row ')' {
-  $1->push_back($4);
+  $1->_vctChild.push_back($3);
   $$ = $1;
 };
 
-expr_data_row : expr_data {
-  $$ = new MVectorPtr<ExprData*>();
-  $$->push_back($1);
+expr_aggr : expr_count | expr_sum | expr_max | expr_min | expr_avg 
+| '(' expr_aggr ')' { $$ = $2; };
+
+expr_count : COUNT '(' expr_data ')' {
+  $$ = new ExprCount($3, false);
 }
-| expr_data_row ',' expr_data {
-  $1->push_back($3);
-  $$ = $1;
+| COUNT '(' '*' ')' {
+  $$ = new ExprCount(nullptr, true);
 };
 
-expr_data : expr_const | expr_field | expr_param | expr_add | expr_sub | expr_mul | expr_div | expr_minus
-| '(' expr_data ')' { $$ = $2; };
-expr_const : const_dv { $$ = new ExprConst($1); }
-expr_field : IDENTIFIER { $$ = new ExprField(str_null, $1); }
-| IDENTIFIER '.' IDENTIFIER {$$ = new ExprField($1, $3);};
-expr_param : '?' { $$ =  new ExprParameter(); };
-expr_add : expr_data '+' expr_data { $$ = new ExprAdd($1, $3); };
-expr_sub : expr_data '-' expr_data { $$ = new ExprSub($1, $3); };
-expr_mul : expr_data '*' expr_data { $$ = new ExprMul($1, $3); };
-expr_div : expr_data '/' expr_data { $$ = new ExprDiv($1, $3); };
-expr_minus : '-' expr_data { $$ = new ExprMinus($2); };
-
-
-
-expr_vct_table : expr_table {
-  $$ = new MVectorPtr<ExprTable*>();
-  $$->push_back($1);
-}
-| expr_vct_table ',' expr_table {
-  $1->push_back($3);
-  $$ = $1;
+expr_sum : SUM '(' expr_data ')' {
+  $$ = new ExprSum($3);
 };
 
-expr_table_elem : expr_col_info { $$ = $1; }
-| expr_constraint { $$ = $1; };
-
-expr_col_info : IDENTIFIER data_type col_nullable expr_col_default auto_increment index_type table_comment {
-  $$ = new ColumnDefinition($1, $2, $3);
-  if (!$$->trySetNullableExplicit()) {
-    yyerror(&yyloc, result, scanner, ("Conflicting nullability constraints for " + std::string{$1}).c_str());
-  }
+expr_max : MAX '(' expr_data ')' {
+  $$ = new ExprMax($3);
 };
 
-data_type : BIGINT { $$ = ExprColumnType(DataType::LONG); }
-| BOOLEAN { $$ = ExprColumnType(DataType::BOOL); }
-| CHAR '(' INTVAL ')' { $$ = ExprColumnType(DataType::FIXCHAR, $3); }
-| DOUBLE { $$ = ExprColumnType(DataType::DOUBLE); }
-| FLOAT { $$ = ExprColumnType(DataType::FLOAT); }
-| INT { $$ = ExprColumnType(DataType::INT); }
-| INTEGER { $$ = ExprColumnType(DataType::INT); }
-| LONG { $$ = ExprColumnType(DataType::LONG); }
-| REAL { $$ = ExprColumnType(DataType::DOUBLE); }
-| SMALLINT { $$ = ExprColumnType(DataType::SHORT); }
-| VARCHAR '(' INTVAL ')' { $$ = ExprColumnType(DataType::VARCHAR, $3); }
-
-col_nullable : NULL { $$ = true; }
-| NOT NULL { $$ = false; }
-| /* empty */ { $$ = true; };
-
-expr_col_default : DEFAULT const_dv { $$ = $2; }
-| /* empty */ { $$ = DataValueNull(); }
-
-const_dv : const_int | const_double | const_string | const_bool | const_null;
-const_string : STRING { $$ = new DataValueVarChar($1, strlen($1)); };
-const_bool : TRUE { $$ = new DataValueBool(true); }
-| FALSE { $$ = new DataValueBool(false); };
-const_double : FLOATVAL { $$ = new DataValueDouble($1); }
-const_int : INTVAL { $$ = DataValueLong($1); };
-const_null : NULL { $$ = DataValueNull(); };
-
-auto_increment : AUTO_INCREMENT { $$ = true; }
-|  /* empty */ { $$ = false; };
-
-index_type : PRIMARY KEY { $$ = IndexType::PRIMARY; }
-| PRIMARY { $$ = IndexType::PRIMARY; }
-| UNIQUE KEY { $$ = IndexType::UNIQUE; }
-| UNIQUE { $$ = IndexType::UNIQUE; }
-| KEY { $$ = IndexType::NON_UNIQUE; }
-| /* empty */ { $$ = IndexType::UNKNOWN; };
-
-table_comment | COMMENT STRING { $$ = $2; }
-|  /* empty */ { $$ = MString(); };
-
-
-expr_constraint : INDEX IDENTIFIER IndexType '(' vct_col_name ')' {
-  $$ = new ExprConstraint();
-  $$->_idxName = $2;
-  $$->_idxType = $3;
-  $$->_vctCol = $5;
-}
-| PRIMARY KEY '(' vct_col_name ')' {
-  $$ = new ExprConstraint();
-  $$->_idxType = IndexType::PRIMARY;
-  $$->_vctCol = $4;
+expr_min : MIN '(' expr_data ')' {
+  $$ = new ExprMin($3);
 };
 
-vct_col_name : IDENTIFIER {
-  $$ = new MVectorPtr<MString>();
-  $$->push_back($1);
-}
-| vct_col_name ',' IDENTIFIER {
-  $1->push_back($3);
-  $$ = $1;
+expr_avg : AVERG '(' expr_data ')' {
+  $$ = new ExprAvg($3);
 };
-
-opt_semicolon : ';' | /* empty */
-    ;
 
 // clang-format off
 %%

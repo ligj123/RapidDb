@@ -55,6 +55,8 @@ enum class ExprType {
   EXPR_JOIN,
   EXPR_GROUP_BY,
   EXPR_LIMIT,
+  EXPR_ORDER_ITEM,
+  EXPR_ORDER_BY,
 
   // Input or oupt value and table
   EXPR_COLUMN,
@@ -187,7 +189,14 @@ public:
  */
 class ExprColumn : public BaseExpr {
 public:
-  ~ExprColumn() { delete _exprData; }
+  ExprColumn(MString *name, ExprElem *exprElem, MString *alias)
+      : _name(name), _exprElem(exprElem), _alias(alias) {}
+  ~ExprColumn() {
+    delete _exprElem;
+    delete *_name;
+    delete *_alias;
+  }
+
   ExprType GetType() { return ExprType::EXPR_COLUMN; }
 
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
@@ -204,10 +213,10 @@ public:
   }
 
 public:
-  MString _name;       // column name
+  MString *_name;      // column name
   int _pos;            // The column position in source table columns
   ExprElem *_exprElem; // The expression to get data value from source
-  MString _alias;      // column alias name
+  MString *_alias;     // column alias name
 };
 
 enum class JoinType {
@@ -220,12 +229,20 @@ enum class JoinType {
 
 class ExprTable : public BaseExpr {
 public:
+  ExprTable(MString *dbName, MString *tName, MString *_tAlias = nullptr)
+      : _dbName(dbName), _tName(tName), _tAlias(_tAlias) {}
+  ~ExprTable() {
+    delete _dbName;
+    delete _tName;
+    delete _tAlias;
+  }
+
   ExprType GetType() { return ExprType::EXPR_TABLE; }
 
 public:
-  MString _dbName;
-  MString _tName;
-  MString _tAlias;
+  MString *_dbName;
+  MString *_tName;
+  MString *_tAlias;
   JoinType _joinType{JOIN_NULL};
 };
 
@@ -235,7 +252,7 @@ public:
   bool Preprocess() = 0;
 
 public:
-  int _paramNum{0}; // The numbe of parameters in this statement
+  // int _paramNum{0}; // The numbe of parameters in this statement
 };
 
 } // namespace storage

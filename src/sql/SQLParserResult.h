@@ -38,16 +38,16 @@ public:
   int ErrorLine() const;
   int ErrorColumn() const;
 
-  void AddStatements(MVectorPtr<ExprStatement *> &vct_stmt) {
-    for (ExprStatement *stmt : vct_stmt) {
-      _vctStatement.push_back(stmt);
-    }
-    vct_stmt.clear();
+  void AddStatements(MVectorPtr<ExprStatement *> *vct_stmt) {
+    if (_vctStatement != nullptr)
+      delete _vctStatement;
+
+    _vctStatement = vct_stmt;
   }
   const MVectorPtr<ExprStatement *> &GetStatements() const {
     return _vctStatement;
   }
-  void AddParameters(MVectorPtr<ExprParameter *> &&vct_para) {
+  void AddParameters(MVectorPtr<ExprParameter *> &vct_para) {
     size_t ii = _vctPara.size();
     for (ExprParameter *para : vct_para) {
       para->_paraPos = ii;

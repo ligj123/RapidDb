@@ -17,6 +17,7 @@ using namespace std;
 namespace storage {
 template <ExprType ET> class ExprCondition : public BaseExpr {
 public:
+  ExprCondition(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
   ~ExprCondition() { delete _exprLogic; }
   ExprType GetDataType() const { return ET; }
 
@@ -36,16 +37,18 @@ typedef ExprCondition<ExprType::EXPR_HAVING> ExprHaving;
 // To query physical table, point out which index will be used. Only one index
 // can be selected.
 struct UseIndex {
+  ~UseIndex { delete _indexExpr; }
   // If the primary or secondary index can be used to query, copy the query
   // conditions to here. Only one index can be used. Only valid for physical
   // table select
-  ExprLogic *_indexExpr;
+  ExprLogic *_indexExpr{nullptr};
   // which index used, The position of index that start from 0(primary key)
-  int _indexPos;
+  int _indexPos{-1};
 };
 
 class ExprWhere : public ExprCondition<ExprType::EXPR_WHERE> {
 public:
+  ExprWhere(ExprLogic *exprLogic) : ExprCondition(exprLogic) {}
   ~ExprWhere() { delete _useIndex; }
 
 public:
@@ -55,23 +58,36 @@ public:
 
 class ExprGroupBy : public BaseExpr {
 public:
-  ~ExprGroupBy() { delete _exprHaving; }
+  ExprGroupBy(MVectorPtr<MString *> *vctColName, ExprHaving *exprHaving)
+      : _vctColName(vctColName), _exprHaving(exprHaving) {}
+  ~ExprGroupBy() {
+    delete _vctColName;
+    delete _exprHaving;
+  }
   ExprType GetType() { return ExprType::EXPR_GROUP_BY; }
 
 public:
-  MVector<MString> _vctColName;
+  MVectorPtr<MString *> *_vctColName;
   MVector<int> _vctColPos;
   ExprHaving *_exprHaving{nullptr};
 };
 
-struct ExprOrderItem {
-  MString _colName;
+class ExprOrderItem : BaseExpr {
+public:
+  ExprOrderItem(MString *colName, bool direct)
+      : _colName(colName), _direct(direct) {}
+  ExprType GetType() { return ExprType::EXPR_ORDER_ITEM; }
+  ~ExprOrderItem() { delete _colName; }
+
+public:
+  MString *_colName;
   bool _direct; // True: ASC; False: DESC
-  int _pos;
+  int _pos{-1};
 };
 
 class ExprOrderBy : public BaseExpr {
 public:
+  ExprOrderBy(MVectorPtr<ExprOrderItem *> *vctItem) : _vctItem(vctItem) {}
   ~ExprOrderBy() { delete _vctItem; }
   ExprType GetType() { return ExprType::EXPR_ORDER_BY; }
 
@@ -81,14 +97,16 @@ public:
 
 class ExprLimit : public BaseExpr {
 public:
+  ExprLimit(int rowOffset, int rowCount)
+      : _rowOffset(rowOffset), _rowCount(rowCount) {}
   ExprType GetType() { return ExprType::EXPR_LIMIT; }
 
 public:
   // Offset for return rows, default 0. Only valid for root select result.
-  int _rowOffset{0};
+  int _rowOffset;
   // The max rows to return, -1 means return all. Only valid for root select
   // result.
-  int _rowCount{-1};
+  int _rowCount;
 };
 
 enum class LockType { NO_LOCK, SHARE_LOCK, WRITE_LOCK };
@@ -161,7 +179,7 @@ public:
   // this table
   ExprSelect *_exprSelect{nullptr};
   // True, update if the primary key has exist
-  bool _bUpsert;
+  bool _bUpsert{false};
   // The physical table will insert into. Filled when preprocess
   PhysTable *_physTable{nullptr};
 };

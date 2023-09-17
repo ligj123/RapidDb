@@ -26,8 +26,8 @@ public:
     _val = new DataValueDouble(dval);
     _val->SetConstRef();
   }
-  ExprConst(const MString &sval) {
-    _val = new DataValueVarChar(sval.c_str(), sval.size());
+  ExprConst(MString *sval) {
+    _val = new DataValueVarChar(sval->c_str(), sval->size());
     _val->SetConstRef();
   }
   ExprConst(bool bval) {
@@ -55,8 +55,12 @@ public:
  */
 class ExprField : public ExprData {
 public:
-  ExprField(MString &tableName, MString &colName)
-      : _tableName(move(tableName)), _colName(move(colName)) {}
+  ExprField(MString *tableName, MString *colName)
+      : _tableName(tableName), _colName(colName) {}
+  ~ExprField() {
+    delete _tableName;
+    delete _colName;
+  }
 
   ExprType GetType() { return ExprType::EXPR_FIELD; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
@@ -64,9 +68,9 @@ public:
   }
 
 public:
-  string _tableName; // The table name this field belong to
-  string _colName;   // The field name (The related column)
-  int _rowPos;       // The position in the table.
+  MString *_tableName; // The table name this field belong to
+  MString *_colName;   // The field name (The related column)
+  int _rowPos;         // The position in the table.
 };
 
 /*
@@ -249,5 +253,29 @@ public:
 
 public:
   ExprData *_exprData;
+};
+
+/*
+ * @brief The function expression.
+ */
+class ExprFunc : public ExprData {
+public:
+  ExprFunc(MString *funcName, MVectorPtr<ExprData *> paras)
+      : _funcName(funcName), _vctPara(paras) {}
+  ~ExprFunc() {
+    delete _funcName;
+    delete _vctPara;
+  }
+
+  ExprType GetType() { return ExprType::EXPR_FUNCTION; }
+  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    return nullptr;
+  }
+
+protected:
+  // The function name, must convert to upper case
+  MString _funcName;
+  // The parameters for this function
+  MVector<ExprData *> _vctPara;
 };
 } // namespace storage
