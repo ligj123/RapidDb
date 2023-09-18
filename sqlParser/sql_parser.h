@@ -371,7 +371,7 @@ union DB_STYPE
   //Expr vector
   MVectorPtr<MString*> *expr_vct_str;
   MVectorPtr<ExprColumn*> *expr_vct_column;
-  MVectorPtr<ExprTable*> *opt_expr_vct_table;
+  MVectorPtr<ExprTable*> *expr_vct_table;
   MVectorPtr<ExprStatement*> * expr_vct_statement;
   MVectorPtr<ExprCreateTableItem*> expr_vct_create_table_item;
   MVectorPtr<ExprOrderItem*> *expr_vct_order_item;

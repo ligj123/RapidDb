@@ -181,7 +181,7 @@
   //Expr vector
   MVectorPtr<MString*> *expr_vct_str;
   MVectorPtr<ExprColumn*> *expr_vct_column;
-  MVectorPtr<ExprTable*> *opt_expr_vct_table;
+  MVectorPtr<ExprTable*> *expr_vct_table;
   MVectorPtr<ExprStatement*> * expr_vct_statement;
   MVectorPtr<ExprCreateTableItem*> expr_vct_create_table_item;
   MVectorPtr<ExprOrderItem*> *expr_vct_order_item;
@@ -274,7 +274,9 @@
     %type <data_value> const_dv const_int const_double const_string const_bool const_null default_col_dv
     %type <expr_elem> expr_elem
     %type <expr_data> expr_data expr_const expr_field expr_param expr_add expr_sub expr_mul expr_div expr_minus expr_func
-    %type <expr_logic> expr_logic expr_cmp expr_in_not expr_is_null_not expr_between expr_like expr_not expr_and expr_or
+    %type <expr_logic> expr_logic expr_cmp expr_in_not expr_is_null_not expr_between expr_like expr_not
+    %type <expr_and> expr_and
+    %type <expr_or> expr_or
     %type <expr_array> expr_array expr_vct_const
     %type <expr_aggr> expr_aggr expr_count expr_sum expr_max expr_min expr_avg
     %type <expr_table> expr_table  
@@ -285,7 +287,7 @@
     %type <expr_vct_statement> statement_list
     %type <expr_vct_column> expr_vct_update_column expr_vct_insert_column expr_vct_select_column
     %type <expr_vct_order_item> expr_vct_order_item
-    %type <opt_expr_vct_table> opt_expr_vct_table
+    %type <expr_vct_table> opt_expr_vct_table expr_vct_table
     %type <expr_vct_data> opt_expr_vct_data
     %type <expr_vct_create_table_item> expr_vct_create_table_item
 
@@ -397,13 +399,7 @@ expr_transaction : BEGIN { $$ = new ExprTransaction(TranType::BEGIN); }
 | ROLLBACK { $$ = new ExprTransaction(TranType::ROLLBACK); }
 | COMMIT { $$ = new ExprTransaction(TranType::COMMIT); };
 
-expr_insert : INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES '(' expr_elem_row ')' {
-  $$ = new ExprInsert();
-  $$->_exprTable = $3;
-  $$->_vctCol = $5;
-  $$->_rowData = $9;
-}
-| INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row {
+expr_insert : INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row {
   $$ = new ExprInsert();
   $$->_exprTable = $3;
   $$->_vctCol = $5;
@@ -509,16 +505,20 @@ opt_not_exists : IF NOT EXISTS { $$ = true; }
 opt_exists : IF EXISTS { $$ = true; }
 | /* empty */ { $$ = false; };
 
-opt_expr_vct_table : expr_table {
+opt_expr_vct_table : FROM expr_vct_table {
+  $$ = $2;
+}
+| /* empty */ { $$ = nullptr; };
+
+expr_vct_table : expr_table {
   $$ = new MVectorPtr<ExprTable>();
   $$->push_back($1);
 }
 | opt_expr_vct_table join_type expr_table {
   $3->join_type = $2;
-  $$->push_back($3);
+  $1->push_back($3);
   $$ = $1;
-}
-| /* empty */ { $$ = nullptr; };;
+};
 
 join_type : INNER { $$ = INNER_JOIN; }
 | LEFT OUTER { $$ = LEFT_JOIN; }
@@ -700,7 +700,11 @@ expr_const : const_dv { $$ = new ExprConst($1); };
 expr_field : IDENTIFIER { $$ = new ExprField(str_null, $1); }
 | IDENTIFIER '.' IDENTIFIER {$$ = new ExprField($1, $3);};
 
-expr_param : '?' { $$ =  new ExprParameter(); };
+expr_param : '?' {
+  $$ =  new ExprParameter();
+  $$->_paraPos = yyloc.param_list.size();
+  yyloc.param_list.push_back($$);
+};
 
 expr_add : expr_data '+' expr_data { $$ = new ExprAdd($1, $3); };
 
@@ -741,7 +745,9 @@ const_int : INTVAL { $$ = DataValueLong($1); };
 
 const_null : NULL { $$ = DataValueNull(); };
 
-expr_logic : expr_cmp | expr_in_not | expr_is_null_not | expr_between | expr_like | expr_not | expr_and | expr_or
+expr_logic : expr_cmp | expr_in_not | expr_is_null_not | expr_between | expr_like | expr_not
+| expr_and { $$ = $1; }
+| expr_or { $$ = $1; }
 | '(' expr_logic ')' { $$ = $2; };
 
 expr_cmp : expr_data comp_type expr_data {
@@ -756,10 +762,10 @@ comp_type : '=' { $$ = CompType::EQ; }
 | NE { $$ = CompType::NE; }
 | EQ { $$ = CompType::EQ; }; 
 
-expr_in_not : expr_field IN expr_array {
+expr_in_not : expr_data IN expr_array {
   $$ = new ExprInNot($1, $3, true);
 }
-| expr_field NOT IN expr_array {
+| expr_data NOT IN expr_array {
   $$ = new ExprInNot($1, $4, false);
 };
 
@@ -776,23 +782,25 @@ expr_like : expr_data LIKE const_string { $$ = new ExprLike($1, $3, true); }
 expr_not : NOT expr_logic { $$ = new ExprNot($2); };
 
 expr_and : expr_logic AND expr_logic {
-  $$ = new ExprAnd();
-  $$->_vctChild.push_back($1);
-  $$->_vctChild.push_back($3);
-}
-| expr_and AND expr_logic {
-  $1->_vctChild.push_back($3);
-  $$ = $1;
+  if ($1->GetType()== ExprType::EXPR_AND) {
+    $1->_vctChild.push_back($3);
+    $$ = $1;
+  } else {
+    $$ = new ExprAnd();
+    $$->_vctChild.push_back($1);
+    $$->_vctChild.push_back($3);
+  }
 };
 
 expr_or : expr_logic OR expr_logic {
-  $$ = new ExprOr();
-  $$->_vctChild.push_back($1);
-  $$->_vctChild.push_back($3);
-}
-| expr_or OR expr_logic {
-  $1->_vctChild.push_back($3);
-  $$ = $1;
+  if ($1->GetType()== ExprType::EXPR_OR) {
+    $1->_vctChild.push_back($3);
+    $$ = $1;
+  } else {
+    $$ = new ExprOr();
+    $$->_vctChild.push_back($1);
+    $$->_vctChild.push_back($3);
+  }
 };
 
 expr_aggr : expr_count | expr_sum | expr_max | expr_min | expr_avg 

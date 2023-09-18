@@ -26,7 +26,7 @@ endif
 all: sql_parser.cpp flex_lexer.cpp
 
 sql_parser.cpp: sql_parser.y
-	$(BISON) sql_parser.y --output=sql_parser.cpp --defines=sql_parser.h --verbose
+	$(BISON) sql_parser.y --output=sql_parser.cpp --defines=sql_parser.h --verbose -Wcounterexamples
 
 flex_lexer.cpp: flex_lexer.l
 	! $(FLEX) flex_lexer.l 2>&1 | grep "warning"
