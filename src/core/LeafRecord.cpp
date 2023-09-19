@@ -372,7 +372,7 @@ int LeafRecord::GetListValue(const MVector<int> &vctPos,
   }
 
   ver--;
-  vctVal.RemoveAll();
+  vctVal.clear();
   if (recStru._arrValLen[ver] == 0) {
     return 1;
   }

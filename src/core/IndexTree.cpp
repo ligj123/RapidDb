@@ -193,7 +193,7 @@ void IndexTree ::Close(function<void()> funcDestory) {
 }
 
 void IndexTree::CloneKeys(VectorDataValue &vct) {
-  vct.RemoveAll();
+  vct.clear();
   vct.reserve(_vctKey.size());
   for (IDataValue *dv : _vctKey) {
     vct.push_back(dv->Clone(false));
@@ -201,7 +201,7 @@ void IndexTree::CloneKeys(VectorDataValue &vct) {
 }
 
 void IndexTree::CloneValues(VectorDataValue &vct) {
-  vct.RemoveAll();
+  vct.clear();
   vct.reserve(_vctValue.size());
   for (IDataValue *dv : _vctValue) {
     vct.push_back(dv->Clone(false));

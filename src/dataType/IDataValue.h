@@ -65,14 +65,14 @@ public:
   }
 
   IDataValue(const IDataValue &dv)
-      : dataType_(dv.dataType_), valType_(dv.valType_), refCount(1) {}
+      : dataType_(dv.dataType_), valType_(dv.valType_), refCount_(1) {}
   IDataValue(DataType dataType, ValueType valType)
-      : dataType_(dataType), valType_(valType), refCount(1) {}
+      : dataType_(dataType), valType_(valType), refCount_(1) {}
   // return the data type for this data value
   inline DataType GetDataType() const { return dataType_; }
   inline ValueType GetValueType() const { return valType_; }
   inline bool IsNull() const { return valType_ == ValueType::NULL_VALUE; }
-  inline IDataValue *AddRef() const {
+  inline IDataValue *AddRef() {
     if (refCount_ != UINT16_MAX)
       ++refCount_;
     return this;

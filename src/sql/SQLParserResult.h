@@ -61,8 +61,8 @@ public:
     _vctPara.clear();
     _isValid = true;
     _errorMsg.clear();
-    _errorLine_ = -1;
-    _errorColumn_ = -1;
+    _errorLine = -1;
+    _errorColumn = -1;
   }
 
 private:

@@ -13,7 +13,7 @@ extern thread_local unique_ptr<ErrorMsg> _threadErrorMsg;
 class ErrorMsg : public exception {
 public:
   ErrorMsg() {}
-  ErrorMsg(int id, MVector<z> &&paras = {}) {
+  ErrorMsg(int id, MVector<string> &&paras = {}) {
     SetMsg(id, move(paras));
   }
 

@@ -1,0 +1,5032 @@
+Terminals unused in grammar
+
+    DEALLOCATE
+    PARAMETERS
+    INTERSECT
+    TEMPORARY
+    TIMESTAMP
+    NVARCHAR
+    RESTRICT
+    ANALYZE
+    CASCADE
+    COLUMNS
+    CONTROL
+    EXECUTE
+    EXPLAIN
+    NATURAL
+    PREPARE
+    SCHEMAS
+    CHARACTER_VARYING
+    DECIMAL
+    SPATIAL
+    VIRTUAL
+    DESCRIBE
+    BEFORE
+    COLUMN
+    DIRECT
+    ESCAPE
+    EXCEPT
+    EXTRACT
+    CAST
+    FORMAT
+    GLOBAL
+    IMPORT
+    ISNULL
+    OFFSET
+    RENAME
+    SORTED
+    UNLOAD
+    AFTER
+    ALTER
+    DELTA
+    LOCAL
+    MERGE
+    MINUS
+    OVER
+    UNION
+    USING
+    CALL
+    CASE
+    COPY
+    DATE
+    DATETIME
+    ELSE
+    FILE
+    HASH
+    HINT
+    JOIN
+    LOAD
+    PARTITION
+    PLAN
+    TEXT
+    THEN
+    TIME
+    VIEW
+    WHEN
+    WITH
+    ADD
+    ALL
+    END
+    OFF
+    TOP
+    OF
+    TO
+    NO
+    ARRAY
+    CONCAT
+    ILIKE
+    SECOND
+    MINUTE
+    HOUR
+    DAY
+    MONTH
+    YEAR
+    SECONDS
+    MINUTES
+    HOURS
+    DAYS
+    MONTHS
+    YEARS
+    INTERVAL
+    NOWAIT
+    SKIP
+    LOCKED
+    RANGE
+    ROWS
+    GROUPS
+    UNBOUNDED
+    FOLLOWING
+    PRECEDING
+    CURRENT_ROW
+    '%'
+    '^'
+    UMINUS
+    '['
+    ']'
+
+
+Grammar
+
+    0 $accept: input $end
+
+    1 input: statement_list opt_semicolon
+
+    2 statement_list: expr_statement
+    3               | statement_list ';' expr_statement
+
+    4 expr_statement: expr_create_db
+    5               | expr_drop_db
+    6               | expr_show_db
+    7               | expr_use_db
+    8               | expr_create_table
+    9               | expr_drop_table
+   10               | expr_show_tables
+   11               | expr_trun_table
+   12               | expr_select
+   13               | expr_insert
+   14               | expr_update
+   15               | expr_delete
+   16               | expr_transaction
+
+   17 expr_create_db: CREATE DATABASE opt_not_exists IDENTIFIER
+   18               | CREATE SCHEMA opt_not_exists IDENTIFIER
+
+   19 expr_drop_db: DROP DATABASE opt_exists IDENTIFIER
+   20             | DROP SCHEMA opt_exists IDENTIFIER
+
+   21 expr_show_db: SHOW DATABASES
+
+   22 expr_use_db: USE IDENTIFIER
+
+   23 expr_create_table: CREATE TABLE opt_not_exists expr_table '(' expr_vct_create_table_item ')'
+
+   24 expr_drop_table: DROP TABLE opt_exists expr_table
+
+   25 expr_show_tables: SHOW TABLES FROM IDENTIFIER
+   26                 | SHOW TABLES
+
+   27 expr_trun_table: TRUNCATE TABLE expr_table
+
+   28 expr_transaction: BEGIN
+   29                 | START TRANSACTION
+   30                 | ROLLBACK
+   31                 | COMMIT
+
+   32 expr_insert: INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row
+   33            | INSERT INTO expr_table '(' expr_vct_insert_column ')' expr_select
+
+   34 expr_delete: DELETE FROM expr_table opt_expr_where opt_expr_order_by opt_expr_limit
+
+   35 expr_update: UPDATE expr_table SET expr_vct_update_column opt_expr_where opt_expr_order_by opt_expr_limit
+
+   36 expr_select: SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type
+
+   37 expr_vct_select_column: expr_select_column
+   38                       | expr_vct_select_column ',' expr_select_column
+
+   39 expr_select_column: expr_elem col_alias
+
+   40 col_alias: AS IDENTIFIER
+   41          | ε
+
+   42 expr_vct_insert_column: expr_insert_column
+   43                       | expr_vct_insert_column ',' expr_insert_column
+
+   44 expr_insert_column: IDENTIFIER
+
+   45 expr_vct_update_column: expr_update_column
+   46                       | expr_vct_update_column ',' expr_update_column
+
+   47 expr_update_column: IDENTIFIER '=' expr_elem
+
+   48 expr_table: IDENTIFIER
+   49           | IDENTIFIER AS IDENTIFIER
+   50           | IDENTIFIER '.' IDENTIFIER
+   51           | IDENTIFIER '.' IDENTIFIER AS IDENTIFIER
+
+   52 opt_not_exists: IF NOT EXISTS
+   53               | ε
+
+   54 opt_exists: IF EXISTS
+   55           | ε
+
+   56 opt_expr_vct_table: FROM expr_vct_table
+   57                   | ε
+
+   58 expr_vct_table: expr_table
+   59               | opt_expr_vct_table join_type expr_table
+
+   60 join_type: INNER
+   61          | LEFT OUTER
+   62          | LEFT
+   63          | RIGHT OUTER
+   64          | RIGHT
+   65          | FULL OUTER
+   66          | OUTER
+   67          | FULL
+   68          | CROSS
+   69          | ','
+
+   70 expr_vct_col_name: IDENTIFIER
+   71                  | expr_vct_col_name ',' IDENTIFIER
+
+   72 opt_semicolon: ';'
+   73              | ε
+
+   74 expr_vct_create_table_item: expr_create_table_item
+   75                           | expr_vct_create_table_item ',' expr_create_table_item
+
+   76 expr_create_table_item: IDENTIFIER expr_data_type col_nullable default_col_dv auto_increment index_type table_comment
+   77                       | INDEX IDENTIFIER index_type '(' expr_vct_col_name ')'
+   78                       | PRIMARY KEY '(' expr_vct_col_name ')'
+
+   79 expr_data_type: BIGINT
+   80               | BOOLEAN
+   81               | CHAR '(' INTVAL ')'
+   82               | DOUBLE
+   83               | FLOAT
+   84               | INT
+   85               | INTEGER
+   86               | LONG
+   87               | REAL
+   88               | SMALLINT
+   89               | VARCHAR '(' INTVAL ')'
+
+   90 col_nullable: NULL
+   91             | NOT NULL
+   92             | ε
+
+   93 default_col_dv: DEFAULT const_dv
+   94               | ε
+
+   95 auto_increment: AUTO_INCREMENT
+   96               | ε
+
+   97 index_type: PRIMARY KEY
+   98           | PRIMARY
+   99           | UNIQUE KEY
+  100           | UNIQUE
+  101           | KEY
+  102           | ε
+
+  103 table_comment: COMMENT STRING
+  104              | ε
+
+  105 expr_vct_elem_row: '(' expr_elem_row ')'
+  106                  | expr_vct_elem_row ',' '(' expr_elem_row ')'
+
+  107 expr_elem_row: expr_elem
+  108              | expr_elem_row ',' expr_elem
+
+  109 opt_expr_where: WHERE expr_logic
+  110               | ε
+
+  111 opt_expr_on: ON expr_logic
+  112            | ε
+
+  113 opt_expr_order_by: ORDER BY expr_vct_order_item
+  114                  | ε
+
+  115 expr_vct_order_item: expr_order_item
+  116                    | expr_vct_order_item ',' expr_order_item
+
+  117 expr_order_item: IDENTIFIER opt_order_direction
+
+  118 opt_order_direction: ASC
+  119                    | DESC
+  120                    | ε
+
+  121 opt_expr_limit: LIMIT INTVAL
+  122               | LIMIT INTVAL ',' INTVAL
+  123               | ε
+
+  124 opt_expr_group_by: GROUP BY expr_vct_col_name opt_expr_having
+  125                  | ε
+
+  126 opt_expr_having: HAVING expr_logic
+  127                | ε
+
+  128 opt_distinct: DISTINCT
+  129             | ε
+
+  130 opt_lock_type: FOR SHARE
+  131              | FOR UPDATE
+  132              | ε
+
+  133 expr_array: '(' expr_vct_const ')'
+
+  134 expr_vct_const: const_dv
+  135               | expr_vct_const ',' const_dv
+
+  136 expr_elem: expr_logic
+  137          | expr_data
+  138          | expr_aggr
+
+  139 expr_data: expr_const
+  140          | expr_field
+  141          | expr_param
+  142          | expr_add
+  143          | expr_sub
+  144          | expr_mul
+  145          | expr_div
+  146          | expr_minus
+  147          | expr_func
+  148          | '(' expr_data ')'
+
+  149 expr_const: const_dv
+
+  150 expr_field: IDENTIFIER
+  151           | IDENTIFIER '.' IDENTIFIER
+
+  152 expr_param: '?'
+
+  153 expr_add: expr_data '+' expr_data
+
+  154 expr_sub: expr_data '-' expr_data
+
+  155 expr_mul: expr_data '*' expr_data
+
+  156 expr_div: expr_data '/' expr_data
+
+  157 expr_minus: '-' expr_data
+
+  158 expr_func: IDENTIFIER '(' opt_expr_vct_data ')'
+
+  159 opt_expr_vct_data: expr_data
+  160                  | opt_expr_vct_data ',' expr_data
+  161                  | ε
+
+  162 const_dv: const_int
+  163         | const_double
+  164         | const_string
+  165         | const_bool
+  166         | const_null
+
+  167 const_string: STRING
+
+  168 const_bool: TRUE
+  169           | FALSE
+
+  170 const_double: FLOATVAL
+
+  171 const_int: INTVAL
+
+  172 const_null: NULL
+
+  173 expr_logic: expr_cmp
+  174           | expr_in_not
+  175           | expr_is_null_not
+  176           | expr_between
+  177           | expr_like
+  178           | expr_not
+  179           | expr_and
+  180           | expr_or
+  181           | '(' expr_logic ')'
+
+  182 expr_cmp: expr_data comp_type expr_data
+
+  183 comp_type: '='
+  184          | '>'
+  185          | '<'
+  186          | GE
+  187          | LE
+  188          | NE
+  189          | EQ
+
+  190 expr_in_not: expr_data IN expr_array
+  191            | expr_data NOT IN expr_array
+
+  192 expr_is_null_not: expr_data IS NULL
+  193                 | expr_data IS NOT NULL
+
+  194 expr_between: expr_data BETWEEN expr_data AND expr_data
+
+  195 expr_like: expr_data LIKE const_string
+  196          | expr_data NOT LIKE const_string
+
+  197 expr_not: NOT expr_logic
+
+  198 expr_and: expr_logic AND expr_logic
+
+  199 expr_or: expr_logic OR expr_logic
+
+  200 expr_aggr: expr_count
+  201          | expr_sum
+  202          | expr_max
+  203          | expr_min
+  204          | expr_avg
+  205          | '(' expr_aggr ')'
+
+  206 expr_count: COUNT '(' expr_data ')'
+  207           | COUNT '(' '*' ')'
+
+  208 expr_sum: SUM '(' expr_data ')'
+
+  209 expr_max: MAX '(' expr_data ')'
+
+  210 expr_min: MIN '(' expr_data ')'
+
+  211 expr_avg: AVERAGE '(' expr_data ')'
+
+
+Terminals, with rules where they appear
+
+    $end (0) 0
+    '%' (37)
+    '(' (40) 23 32 33 77 78 81 89 105 106 133 148 158 181 205 206 207 208 209 210 211
+    ')' (41) 23 32 33 77 78 81 89 105 106 133 148 158 181 205 206 207 208 209 210 211
+    '*' (42) 155 207
+    '+' (43) 153
+    ',' (44) 38 43 46 69 71 75 106 108 116 122 135 160
+    '-' (45) 154 157
+    '.' (46) 50 51 151
+    '/' (47) 156
+    ';' (59) 3 72
+    '<' (60) 185
+    '=' (61) 47 183
+    '>' (62) 184
+    '?' (63) 152
+    '[' (91)
+    ']' (93)
+    '^' (94)
+    error (256)
+    IDENTIFIER <sval> (258) 17 18 19 20 22 25 40 44 47 48 49 50 51 70 71 76 77 117 150 151 158
+    STRING <sval> (259) 103 167
+    FLOATVAL <fval> (260) 170
+    INTVAL <ival> (261) 81 89 121 122 171
+    DEALLOCATE (262)
+    PARAMETERS (263)
+    INTERSECT (264)
+    TEMPORARY (265)
+    TIMESTAMP (266)
+    DISTINCT (267) 128
+    NVARCHAR (268)
+    RESTRICT (269)
+    TRUNCATE (270) 27
+    ANALYZE (271)
+    BETWEEN (272) 194
+    CASCADE (273)
+    COLUMNS (274)
+    CONTROL (275)
+    DEFAULT (276) 93
+    EXECUTE (277)
+    EXPLAIN (278)
+    INTEGER (279) 85
+    NATURAL (280)
+    PREPARE (281)
+    PRIMARY (282) 78 97 98
+    SCHEMAS (283)
+    CHARACTER_VARYING (284)
+    REAL (285) 87
+    DECIMAL (286)
+    SMALLINT (287) 88
+    BIGINT (288) 79
+    SPATIAL (289)
+    VARCHAR (290) 89
+    VIRTUAL (291)
+    DESCRIBE (292)
+    BEFORE (293)
+    COLUMN (294)
+    CREATE (295) 17 18 23
+    DELETE (296) 34
+    DIRECT (297)
+    DOUBLE (298) 82
+    ESCAPE (299)
+    EXCEPT (300)
+    EXISTS (301) 52 54
+    EXTRACT (302)
+    CAST (303)
+    FORMAT (304)
+    GLOBAL (305)
+    HAVING (306) 126
+    IMPORT (307)
+    INSERT (308) 32 33
+    ISNULL (309)
+    OFFSET (310)
+    RENAME (311)
+    SCHEMA (312) 18 20
+    SELECT (313) 36
+    SORTED (314)
+    TABLES (315) 25 26
+    UNIQUE (316) 99 100
+    UNLOAD (317)
+    UPDATE (318) 35 131
+    VALUES (319) 32
+    AFTER (320)
+    ALTER (321)
+    CROSS (322) 68
+    DELTA (323)
+    FLOAT (324) 83
+    GROUP (325) 124
+    INDEX (326) 77
+    INNER (327) 60
+    LIMIT (328) 121 122
+    LOCAL (329)
+    MERGE (330)
+    MINUS (331)
+    ORDER (332) 113
+    OVER (333)
+    OUTER (334) 61 63 65 66
+    RIGHT (335) 63 64
+    TABLE (336) 23 24 27
+    UNION (337)
+    USING (338)
+    WHERE (339) 109
+    CALL (340)
+    CASE (341)
+    CHAR (342) 81
+    COPY (343)
+    DATE (344)
+    DATETIME (345)
+    DESC (346) 119
+    DROP (347) 19 20 24
+    ELSE (348)
+    FILE (349)
+    FROM (350) 25 34 56
+    FULL (351) 65 67
+    HASH (352)
+    HINT (353)
+    INTO (354) 32 33
+    JOIN (355)
+    LEFT (356) 61 62
+    LIKE (357) 195 196
+    LOAD (358)
+    LONG (359) 86
+    NULL (360) 90 91 172 192 193
+    PARTITION (361)
+    PLAN (362)
+    SHOW (363) 21 25 26
+    TEXT (364)
+    THEN (365)
+    TIME (366)
+    VIEW (367)
+    WHEN (368)
+    WITH (369)
+    ADD (370)
+    ALL (371)
+    AND (372) 194 198
+    ASC (373) 118
+    END (374)
+    FOR (375) 130 131
+    INT (376) 84
+    KEY (377) 78 97 99 101
+    NOT (378) 52 91 191 193 196 197
+    OFF (379)
+    SET (380) 35
+    TOP (381)
+    AS (382) 40 49 51
+    BY (383) 113 124
+    IF (384) 52 54
+    IN (385) 190 191
+    IS (386) 192 193
+    OF (387)
+    ON (388) 111
+    OR (389) 199
+    TO (390)
+    NO (391)
+    ARRAY (392)
+    CONCAT (393)
+    ILIKE (394)
+    SECOND (395)
+    MINUTE (396)
+    HOUR (397)
+    DAY (398)
+    MONTH (399)
+    YEAR (400)
+    SECONDS (401)
+    MINUTES (402)
+    HOURS (403)
+    DAYS (404)
+    MONTHS (405)
+    YEARS (406)
+    INTERVAL (407)
+    TRUE (408) 168
+    FALSE (409) 169
+    BOOLEAN (410) 80
+    TRANSACTION (411) 29
+    BEGIN (412) 28
+    COMMIT (413) 31
+    ROLLBACK (414) 30
+    START (415) 29
+    NOWAIT (416)
+    SKIP (417)
+    LOCKED (418)
+    SHARE (419) 130
+    RANGE (420)
+    ROWS (421)
+    GROUPS (422)
+    UNBOUNDED (423)
+    FOLLOWING (424)
+    PRECEDING (425)
+    CURRENT_ROW (426)
+    DATABASE (427) 17 19
+    DATABASES (428) 21
+    AUTO_INCREMENT (429) 95
+    COMMENT (430) 103
+    AVERAGE (431) 211
+    COUNT (432) 206 207
+    MIN (433) 210
+    MAX (434) 209
+    SUM (435) 208
+    USE (436) 22
+    EQ (437) 189
+    NE (438) 188
+    LE (439) 187
+    GE (440) 186
+    UMINUS (441)
+
+
+Nonterminals, with rules where they appear
+
+    $accept (204)
+        on left: 0
+    input (205)
+        on left: 1
+        on right: 0
+    statement_list <expr_vct_statement> (206)
+        on left: 2 3
+        on right: 1 3
+    expr_statement <expr_statement> (207)
+        on left: 4 5 6 7 8 9 10 11 12 13 14 15 16
+        on right: 2 3
+    expr_create_db <expr_create_db> (208)
+        on left: 17 18
+        on right: 4
+    expr_drop_db <expr_drop_db> (209)
+        on left: 19 20
+        on right: 5
+    expr_show_db <expr_show_db> (210)
+        on left: 21
+        on right: 6
+    expr_use_db <expr_use_db> (211)
+        on left: 22
+        on right: 7
+    expr_create_table <expr_create_table> (212)
+        on left: 23
+        on right: 8
+    expr_drop_table <expr_drop_table> (213)
+        on left: 24
+        on right: 9
+    expr_show_tables <expr_show_tables> (214)
+        on left: 25 26
+        on right: 10
+    expr_trun_table <expr_trun_table> (215)
+        on left: 27
+        on right: 11
+    expr_transaction <expr_transaction> (216)
+        on left: 28 29 30 31
+        on right: 16
+    expr_insert <expr_insert> (217)
+        on left: 32 33
+        on right: 13
+    expr_delete <expr_delete> (218)
+        on left: 34
+        on right: 15
+    expr_update <expr_update> (219)
+        on left: 35
+        on right: 14
+    expr_select <expr_select> (220)
+        on left: 36
+        on right: 12 33
+    expr_vct_select_column <expr_vct_column> (221)
+        on left: 37 38
+        on right: 36 38
+    expr_select_column <expr_column> (222)
+        on left: 39
+        on right: 37 38
+    col_alias <sval> (223)
+        on left: 40 41
+        on right: 39
+    expr_vct_insert_column <expr_vct_column> (224)
+        on left: 42 43
+        on right: 32 33 43
+    expr_insert_column <expr_column> (225)
+        on left: 44
+        on right: 42 43
+    expr_vct_update_column <expr_vct_column> (226)
+        on left: 45 46
+        on right: 35 46
+    expr_update_column <expr_column> (227)
+        on left: 47
+        on right: 45 46
+    expr_table <expr_table> (228)
+        on left: 48 49 50 51
+        on right: 23 24 27 32 33 34 35 58 59
+    opt_not_exists <bval> (229)
+        on left: 52 53
+        on right: 17 18 23
+    opt_exists <bval> (230)
+        on left: 54 55
+        on right: 19 20 24
+    opt_expr_vct_table <expr_vct_table> (231)
+        on left: 56 57
+        on right: 36 59
+    expr_vct_table <expr_vct_table> (232)
+        on left: 58 59
+        on right: 56
+    join_type <join_type> (233)
+        on left: 60 61 62 63 64 65 66 67 68 69
+        on right: 59
+    expr_vct_col_name <expr_vct_str> (234)
+        on left: 70 71
+        on right: 71 77 78 124
+    opt_semicolon (235)
+        on left: 72 73
+        on right: 1
+    expr_vct_create_table_item <expr_vct_create_table_item> (236)
+        on left: 74 75
+        on right: 23 75
+    expr_create_table_item <expr_create_table_item> (237)
+        on left: 76 77 78
+        on right: 74 75
+    expr_data_type <expr_data_type> (238)
+        on left: 79 80 81 82 83 84 85 86 87 88 89
+        on right: 76
+    col_nullable <bval> (239)
+        on left: 90 91 92
+        on right: 76
+    default_col_dv <data_value> (240)
+        on left: 93 94
+        on right: 76
+    auto_increment <bval> (241)
+        on left: 95 96
+        on right: 76
+    index_type <index_type> (242)
+        on left: 97 98 99 100 101 102
+        on right: 76 77
+    table_comment <sval> (243)
+        on left: 103 104
+        on right: 76
+    expr_vct_elem_row <expr_vct_elem_row> (244)
+        on left: 105 106
+        on right: 32 106
+    expr_elem_row <expr_elem_row> (245)
+        on left: 107 108
+        on right: 105 106 108
+    opt_expr_where <expr_where> (246)
+        on left: 109 110
+        on right: 34 35 36
+    opt_expr_on <expr_on> (247)
+        on left: 111 112
+        on right: 36
+    opt_expr_order_by <expr_order_by> (248)
+        on left: 113 114
+        on right: 34 35 36
+    expr_vct_order_item <expr_vct_order_item> (249)
+        on left: 115 116
+        on right: 113 116
+    expr_order_item <expr_order_item> (250)
+        on left: 117
+        on right: 115 116
+    opt_order_direction <bval> (251)
+        on left: 118 119 120
+        on right: 117
+    opt_expr_limit <expr_limit> (252)
+        on left: 121 122 123
+        on right: 34 35 36
+    opt_expr_group_by <expr_group_by> (253)
+        on left: 124 125
+        on right: 36
+    opt_expr_having <expr_having> (254)
+        on left: 126 127
+        on right: 124
+    opt_distinct <bval> (255)
+        on left: 128 129
+        on right: 36
+    opt_lock_type <lock_type> (256)
+        on left: 130 131 132
+        on right: 36
+    expr_array <expr_array> (257)
+        on left: 133
+        on right: 190 191
+    expr_vct_const <expr_array> (258)
+        on left: 134 135
+        on right: 133 135
+    expr_elem <expr_elem> (259)
+        on left: 136 137 138
+        on right: 39 47 107 108
+    expr_data <expr_data> (260)
+        on left: 139 140 141 142 143 144 145 146 147 148
+        on right: 137 148 153 154 155 156 157 159 160 182 190 191 192 193 194 195 196 206 208 209 210 211
+    expr_const <expr_data> (261)
+        on left: 149
+        on right: 139
+    expr_field <expr_data> (262)
+        on left: 150 151
+        on right: 140
+    expr_param <expr_data> (263)
+        on left: 152
+        on right: 141
+    expr_add <expr_data> (264)
+        on left: 153
+        on right: 142
+    expr_sub <expr_data> (265)
+        on left: 154
+        on right: 143
+    expr_mul <expr_data> (266)
+        on left: 155
+        on right: 144
+    expr_div <expr_data> (267)
+        on left: 156
+        on right: 145
+    expr_minus <expr_data> (268)
+        on left: 157
+        on right: 146
+    expr_func <expr_data> (269)
+        on left: 158
+        on right: 147
+    opt_expr_vct_data <expr_vct_data> (270)
+        on left: 159 160 161
+        on right: 158 160
+    const_dv <data_value> (271)
+        on left: 162 163 164 165 166
+        on right: 93 134 135 149
+    const_string <data_value> (272)
+        on left: 167
+        on right: 164 195 196
+    const_bool <data_value> (273)
+        on left: 168 169
+        on right: 165
+    const_double <data_value> (274)
+        on left: 170
+        on right: 163
+    const_int <data_value> (275)
+        on left: 171
+        on right: 162
+    const_null <data_value> (276)
+        on left: 172
+        on right: 166
+    expr_logic <expr_logic> (277)
+        on left: 173 174 175 176 177 178 179 180 181
+        on right: 109 111 126 136 181 197 198 199
+    expr_cmp <expr_logic> (278)
+        on left: 182
+        on right: 173
+    comp_type <comp_type> (279)
+        on left: 183 184 185 186 187 188 189
+        on right: 182
+    expr_in_not <expr_logic> (280)
+        on left: 190 191
+        on right: 174
+    expr_is_null_not <expr_logic> (281)
+        on left: 192 193
+        on right: 175
+    expr_between <expr_logic> (282)
+        on left: 194
+        on right: 176
+    expr_like <expr_logic> (283)
+        on left: 195 196
+        on right: 177
+    expr_not <expr_logic> (284)
+        on left: 197
+        on right: 178
+    expr_and <expr_and> (285)
+        on left: 198
+        on right: 179
+    expr_or <expr_or> (286)
+        on left: 199
+        on right: 180
+    expr_aggr <expr_aggr> (287)
+        on left: 200 201 202 203 204 205
+        on right: 138 205
+    expr_count <expr_aggr> (288)
+        on left: 206 207
+        on right: 200
+    expr_sum <expr_aggr> (289)
+        on left: 208
+        on right: 201
+    expr_max <expr_aggr> (290)
+        on left: 209
+        on right: 202
+    expr_min <expr_aggr> (291)
+        on left: 210
+        on right: 203
+    expr_avg <expr_aggr> (292)
+        on left: 211
+        on right: 204
+
+
+State 0
+
+    0 $accept: • input $end
+
+    TRUNCATE  shift, and go to state 1
+    CREATE    shift, and go to state 2
+    DELETE    shift, and go to state 3
+    INSERT    shift, and go to state 4
+    SELECT    shift, and go to state 5
+    UPDATE    shift, and go to state 6
+    DROP      shift, and go to state 7
+    SHOW      shift, and go to state 8
+    BEGIN     shift, and go to state 9
+    COMMIT    shift, and go to state 10
+    ROLLBACK  shift, and go to state 11
+    START     shift, and go to state 12
+    USE       shift, and go to state 13
+
+    input              go to state 14
+    statement_list     go to state 15
+    expr_statement     go to state 16
+    expr_create_db     go to state 17
+    expr_drop_db       go to state 18
+    expr_show_db       go to state 19
+    expr_use_db        go to state 20
+    expr_create_table  go to state 21
+    expr_drop_table    go to state 22
+    expr_show_tables   go to state 23
+    expr_trun_table    go to state 24
+    expr_transaction   go to state 25
+    expr_insert        go to state 26
+    expr_delete        go to state 27
+    expr_update        go to state 28
+    expr_select        go to state 29
+
+
+State 1
+
+   27 expr_trun_table: TRUNCATE • TABLE expr_table
+
+    TABLE  shift, and go to state 30
+
+
+State 2
+
+   17 expr_create_db: CREATE • DATABASE opt_not_exists IDENTIFIER
+   18               | CREATE • SCHEMA opt_not_exists IDENTIFIER
+   23 expr_create_table: CREATE • TABLE opt_not_exists expr_table '(' expr_vct_create_table_item ')'
+
+    SCHEMA    shift, and go to state 31
+    TABLE     shift, and go to state 32
+    DATABASE  shift, and go to state 33
+
+
+State 3
+
+   34 expr_delete: DELETE • FROM expr_table opt_expr_where opt_expr_order_by opt_expr_limit
+
+    FROM  shift, and go to state 34
+
+
+State 4
+
+   32 expr_insert: INSERT • INTO expr_table '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row
+   33            | INSERT • INTO expr_table '(' expr_vct_insert_column ')' expr_select
+
+    INTO  shift, and go to state 35
+
+
+State 5
+
+   36 expr_select: SELECT • opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type
+
+    DISTINCT  shift, and go to state 36
+
+    $default  reduce using rule 129 (opt_distinct)
+
+    opt_distinct  go to state 37
+
+
+State 6
+
+   35 expr_update: UPDATE • expr_table SET expr_vct_update_column opt_expr_where opt_expr_order_by opt_expr_limit
+
+    IDENTIFIER  shift, and go to state 38
+
+    expr_table  go to state 39
+
+
+State 7
+
+   19 expr_drop_db: DROP • DATABASE opt_exists IDENTIFIER
+   20             | DROP • SCHEMA opt_exists IDENTIFIER
+   24 expr_drop_table: DROP • TABLE opt_exists expr_table
+
+    SCHEMA    shift, and go to state 40
+    TABLE     shift, and go to state 41
+    DATABASE  shift, and go to state 42
+
+
+State 8
+
+   21 expr_show_db: SHOW • DATABASES
+   25 expr_show_tables: SHOW • TABLES FROM IDENTIFIER
+   26                 | SHOW • TABLES
+
+    TABLES     shift, and go to state 43
+    DATABASES  shift, and go to state 44
+
+
+State 9
+
+   28 expr_transaction: BEGIN •
+
+    $default  reduce using rule 28 (expr_transaction)
+
+
+State 10
+
+   31 expr_transaction: COMMIT •
+
+    $default  reduce using rule 31 (expr_transaction)
+
+
+State 11
+
+   30 expr_transaction: ROLLBACK •
+
+    $default  reduce using rule 30 (expr_transaction)
+
+
+State 12
+
+   29 expr_transaction: START • TRANSACTION
+
+    TRANSACTION  shift, and go to state 45
+
+
+State 13
+
+   22 expr_use_db: USE • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 46
+
+
+State 14
+
+    0 $accept: input • $end
+
+    $end  shift, and go to state 47
+
+
+State 15
+
+    1 input: statement_list • opt_semicolon
+    3 statement_list: statement_list • ';' expr_statement
+
+    ';'  shift, and go to state 48
+
+    $default  reduce using rule 73 (opt_semicolon)
+
+    opt_semicolon  go to state 49
+
+
+State 16
+
+    2 statement_list: expr_statement •
+
+    $default  reduce using rule 2 (statement_list)
+
+
+State 17
+
+    4 expr_statement: expr_create_db •
+
+    $default  reduce using rule 4 (expr_statement)
+
+
+State 18
+
+    5 expr_statement: expr_drop_db •
+
+    $default  reduce using rule 5 (expr_statement)
+
+
+State 19
+
+    6 expr_statement: expr_show_db •
+
+    $default  reduce using rule 6 (expr_statement)
+
+
+State 20
+
+    7 expr_statement: expr_use_db •
+
+    $default  reduce using rule 7 (expr_statement)
+
+
+State 21
+
+    8 expr_statement: expr_create_table •
+
+    $default  reduce using rule 8 (expr_statement)
+
+
+State 22
+
+    9 expr_statement: expr_drop_table •
+
+    $default  reduce using rule 9 (expr_statement)
+
+
+State 23
+
+   10 expr_statement: expr_show_tables •
+
+    $default  reduce using rule 10 (expr_statement)
+
+
+State 24
+
+   11 expr_statement: expr_trun_table •
+
+    $default  reduce using rule 11 (expr_statement)
+
+
+State 25
+
+   16 expr_statement: expr_transaction •
+
+    $default  reduce using rule 16 (expr_statement)
+
+
+State 26
+
+   13 expr_statement: expr_insert •
+
+    $default  reduce using rule 13 (expr_statement)
+
+
+State 27
+
+   15 expr_statement: expr_delete •
+
+    $default  reduce using rule 15 (expr_statement)
+
+
+State 28
+
+   14 expr_statement: expr_update •
+
+    $default  reduce using rule 14 (expr_statement)
+
+
+State 29
+
+   12 expr_statement: expr_select •
+
+    $default  reduce using rule 12 (expr_statement)
+
+
+State 30
+
+   27 expr_trun_table: TRUNCATE TABLE • expr_table
+
+    IDENTIFIER  shift, and go to state 38
+
+    expr_table  go to state 50
+
+
+State 31
+
+   18 expr_create_db: CREATE SCHEMA • opt_not_exists IDENTIFIER
+
+    IF  shift, and go to state 51
+
+    $default  reduce using rule 53 (opt_not_exists)
+
+    opt_not_exists  go to state 52
+
+
+State 32
+
+   23 expr_create_table: CREATE TABLE • opt_not_exists expr_table '(' expr_vct_create_table_item ')'
+
+    IF  shift, and go to state 51
+
+    $default  reduce using rule 53 (opt_not_exists)
+
+    opt_not_exists  go to state 53
+
+
+State 33
+
+   17 expr_create_db: CREATE DATABASE • opt_not_exists IDENTIFIER
+
+    IF  shift, and go to state 51
+
+    $default  reduce using rule 53 (opt_not_exists)
+
+    opt_not_exists  go to state 54
+
+
+State 34
+
+   34 expr_delete: DELETE FROM • expr_table opt_expr_where opt_expr_order_by opt_expr_limit
+
+    IDENTIFIER  shift, and go to state 38
+
+    expr_table  go to state 55
+
+
+State 35
+
+   32 expr_insert: INSERT INTO • expr_table '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row
+   33            | INSERT INTO • expr_table '(' expr_vct_insert_column ')' expr_select
+
+    IDENTIFIER  shift, and go to state 38
+
+    expr_table  go to state 56
+
+
+State 36
+
+  128 opt_distinct: DISTINCT •
+
+    $default  reduce using rule 128 (opt_distinct)
+
+
+State 37
+
+   36 expr_select: SELECT opt_distinct • expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    AVERAGE     shift, and go to state 65
+    COUNT       shift, and go to state 66
+    MIN         shift, and go to state 67
+    MAX         shift, and go to state 68
+    SUM         shift, and go to state 69
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 71
+    '?'         shift, and go to state 72
+
+    expr_vct_select_column  go to state 73
+    expr_select_column      go to state 74
+    expr_elem               go to state 75
+    expr_data               go to state 76
+    expr_const              go to state 77
+    expr_field              go to state 78
+    expr_param              go to state 79
+    expr_add                go to state 80
+    expr_sub                go to state 81
+    expr_mul                go to state 82
+    expr_div                go to state 83
+    expr_minus              go to state 84
+    expr_func               go to state 85
+    const_dv                go to state 86
+    const_string            go to state 87
+    const_bool              go to state 88
+    const_double            go to state 89
+    const_int               go to state 90
+    const_null              go to state 91
+    expr_logic              go to state 92
+    expr_cmp                go to state 93
+    expr_in_not             go to state 94
+    expr_is_null_not        go to state 95
+    expr_between            go to state 96
+    expr_like               go to state 97
+    expr_not                go to state 98
+    expr_and                go to state 99
+    expr_or                 go to state 100
+    expr_aggr               go to state 101
+    expr_count              go to state 102
+    expr_sum                go to state 103
+    expr_max                go to state 104
+    expr_min                go to state 105
+    expr_avg                go to state 106
+
+
+State 38
+
+   48 expr_table: IDENTIFIER •
+   49           | IDENTIFIER • AS IDENTIFIER
+   50           | IDENTIFIER • '.' IDENTIFIER
+   51           | IDENTIFIER • '.' IDENTIFIER AS IDENTIFIER
+
+    AS   shift, and go to state 107
+    '.'  shift, and go to state 108
+
+    $default  reduce using rule 48 (expr_table)
+
+
+State 39
+
+   35 expr_update: UPDATE expr_table • SET expr_vct_update_column opt_expr_where opt_expr_order_by opt_expr_limit
+
+    SET  shift, and go to state 109
+
+
+State 40
+
+   20 expr_drop_db: DROP SCHEMA • opt_exists IDENTIFIER
+
+    IF  shift, and go to state 110
+
+    $default  reduce using rule 55 (opt_exists)
+
+    opt_exists  go to state 111
+
+
+State 41
+
+   24 expr_drop_table: DROP TABLE • opt_exists expr_table
+
+    IF  shift, and go to state 110
+
+    $default  reduce using rule 55 (opt_exists)
+
+    opt_exists  go to state 112
+
+
+State 42
+
+   19 expr_drop_db: DROP DATABASE • opt_exists IDENTIFIER
+
+    IF  shift, and go to state 110
+
+    $default  reduce using rule 55 (opt_exists)
+
+    opt_exists  go to state 113
+
+
+State 43
+
+   25 expr_show_tables: SHOW TABLES • FROM IDENTIFIER
+   26                 | SHOW TABLES •
+
+    FROM  shift, and go to state 114
+
+    $default  reduce using rule 26 (expr_show_tables)
+
+
+State 44
+
+   21 expr_show_db: SHOW DATABASES •
+
+    $default  reduce using rule 21 (expr_show_db)
+
+
+State 45
+
+   29 expr_transaction: START TRANSACTION •
+
+    $default  reduce using rule 29 (expr_transaction)
+
+
+State 46
+
+   22 expr_use_db: USE IDENTIFIER •
+
+    $default  reduce using rule 22 (expr_use_db)
+
+
+State 47
+
+    0 $accept: input $end •
+
+    $default  accept
+
+
+State 48
+
+    3 statement_list: statement_list ';' • expr_statement
+   72 opt_semicolon: ';' •
+
+    TRUNCATE  shift, and go to state 1
+    CREATE    shift, and go to state 2
+    DELETE    shift, and go to state 3
+    INSERT    shift, and go to state 4
+    SELECT    shift, and go to state 5
+    UPDATE    shift, and go to state 6
+    DROP      shift, and go to state 7
+    SHOW      shift, and go to state 8
+    BEGIN     shift, and go to state 9
+    COMMIT    shift, and go to state 10
+    ROLLBACK  shift, and go to state 11
+    START     shift, and go to state 12
+    USE       shift, and go to state 13
+
+    $default  reduce using rule 72 (opt_semicolon)
+
+    expr_statement     go to state 115
+    expr_create_db     go to state 17
+    expr_drop_db       go to state 18
+    expr_show_db       go to state 19
+    expr_use_db        go to state 20
+    expr_create_table  go to state 21
+    expr_drop_table    go to state 22
+    expr_show_tables   go to state 23
+    expr_trun_table    go to state 24
+    expr_transaction   go to state 25
+    expr_insert        go to state 26
+    expr_delete        go to state 27
+    expr_update        go to state 28
+    expr_select        go to state 29
+
+
+State 49
+
+    1 input: statement_list opt_semicolon •
+
+    $default  reduce using rule 1 (input)
+
+
+State 50
+
+   27 expr_trun_table: TRUNCATE TABLE expr_table •
+
+    $default  reduce using rule 27 (expr_trun_table)
+
+
+State 51
+
+   52 opt_not_exists: IF • NOT EXISTS
+
+    NOT  shift, and go to state 116
+
+
+State 52
+
+   18 expr_create_db: CREATE SCHEMA opt_not_exists • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 117
+
+
+State 53
+
+   23 expr_create_table: CREATE TABLE opt_not_exists • expr_table '(' expr_vct_create_table_item ')'
+
+    IDENTIFIER  shift, and go to state 38
+
+    expr_table  go to state 118
+
+
+State 54
+
+   17 expr_create_db: CREATE DATABASE opt_not_exists • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 119
+
+
+State 55
+
+   34 expr_delete: DELETE FROM expr_table • opt_expr_where opt_expr_order_by opt_expr_limit
+
+    WHERE  shift, and go to state 120
+
+    $default  reduce using rule 110 (opt_expr_where)
+
+    opt_expr_where  go to state 121
+
+
+State 56
+
+   32 expr_insert: INSERT INTO expr_table • '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row
+   33            | INSERT INTO expr_table • '(' expr_vct_insert_column ')' expr_select
+
+    '('  shift, and go to state 122
+
+
+State 57
+
+  150 expr_field: IDENTIFIER •
+  151           | IDENTIFIER • '.' IDENTIFIER
+  158 expr_func: IDENTIFIER • '(' opt_expr_vct_data ')'
+
+    '('  shift, and go to state 123
+    '.'  shift, and go to state 124
+
+    $default  reduce using rule 150 (expr_field)
+
+
+State 58
+
+  167 const_string: STRING •
+
+    $default  reduce using rule 167 (const_string)
+
+
+State 59
+
+  170 const_double: FLOATVAL •
+
+    $default  reduce using rule 170 (const_double)
+
+
+State 60
+
+  171 const_int: INTVAL •
+
+    $default  reduce using rule 171 (const_int)
+
+
+State 61
+
+  172 const_null: NULL •
+
+    $default  reduce using rule 172 (const_null)
+
+
+State 62
+
+  197 expr_not: NOT • expr_logic
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 125
+    '?'         shift, and go to state 72
+
+    expr_data         go to state 126
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 127
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+
+
+State 63
+
+  168 const_bool: TRUE •
+
+    $default  reduce using rule 168 (const_bool)
+
+
+State 64
+
+  169 const_bool: FALSE •
+
+    $default  reduce using rule 169 (const_bool)
+
+
+State 65
+
+  211 expr_avg: AVERAGE • '(' expr_data ')'
+
+    '('  shift, and go to state 128
+
+
+State 66
+
+  206 expr_count: COUNT • '(' expr_data ')'
+  207           | COUNT • '(' '*' ')'
+
+    '('  shift, and go to state 129
+
+
+State 67
+
+  210 expr_min: MIN • '(' expr_data ')'
+
+    '('  shift, and go to state 130
+
+
+State 68
+
+  209 expr_max: MAX • '(' expr_data ')'
+
+    '('  shift, and go to state 131
+
+
+State 69
+
+  208 expr_sum: SUM • '(' expr_data ')'
+
+    '('  shift, and go to state 132
+
+
+State 70
+
+  157 expr_minus: '-' • expr_data
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 134
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 71
+
+  148 expr_data: '(' • expr_data ')'
+  181 expr_logic: '(' • expr_logic ')'
+  205 expr_aggr: '(' • expr_aggr ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    AVERAGE     shift, and go to state 65
+    COUNT       shift, and go to state 66
+    MIN         shift, and go to state 67
+    MAX         shift, and go to state 68
+    SUM         shift, and go to state 69
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 71
+    '?'         shift, and go to state 72
+
+    expr_data         go to state 135
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 136
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+    expr_aggr         go to state 137
+    expr_count        go to state 102
+    expr_sum          go to state 103
+    expr_max          go to state 104
+    expr_min          go to state 105
+    expr_avg          go to state 106
+
+
+State 72
+
+  152 expr_param: '?' •
+
+    $default  reduce using rule 152 (expr_param)
+
+
+State 73
+
+   36 expr_select: SELECT opt_distinct expr_vct_select_column • opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type
+   38 expr_vct_select_column: expr_vct_select_column • ',' expr_select_column
+
+    FROM  shift, and go to state 138
+    ','   shift, and go to state 139
+
+    $default  reduce using rule 57 (opt_expr_vct_table)
+
+    opt_expr_vct_table  go to state 140
+
+
+State 74
+
+   37 expr_vct_select_column: expr_select_column •
+
+    $default  reduce using rule 37 (expr_vct_select_column)
+
+
+State 75
+
+   39 expr_select_column: expr_elem • col_alias
+
+    AS  shift, and go to state 141
+
+    $default  reduce using rule 41 (col_alias)
+
+    col_alias  go to state 142
+
+
+State 76
+
+  137 expr_elem: expr_data •
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  182 expr_cmp: expr_data • comp_type expr_data
+  190 expr_in_not: expr_data • IN expr_array
+  191            | expr_data • NOT IN expr_array
+  192 expr_is_null_not: expr_data • IS NULL
+  193                 | expr_data • IS NOT NULL
+  194 expr_between: expr_data • BETWEEN expr_data AND expr_data
+  195 expr_like: expr_data • LIKE const_string
+  196          | expr_data • NOT LIKE const_string
+
+    BETWEEN  shift, and go to state 143
+    LIKE     shift, and go to state 144
+    NOT      shift, and go to state 145
+    IN       shift, and go to state 146
+    IS       shift, and go to state 147
+    '='      shift, and go to state 148
+    EQ       shift, and go to state 149
+    NE       shift, and go to state 150
+    '<'      shift, and go to state 151
+    '>'      shift, and go to state 152
+    LE       shift, and go to state 153
+    GE       shift, and go to state 154
+    '+'      shift, and go to state 155
+    '-'      shift, and go to state 156
+    '*'      shift, and go to state 157
+    '/'      shift, and go to state 158
+
+    $default  reduce using rule 137 (expr_elem)
+
+    comp_type  go to state 159
+
+
+State 77
+
+  139 expr_data: expr_const •
+
+    $default  reduce using rule 139 (expr_data)
+
+
+State 78
+
+  140 expr_data: expr_field •
+
+    $default  reduce using rule 140 (expr_data)
+
+
+State 79
+
+  141 expr_data: expr_param •
+
+    $default  reduce using rule 141 (expr_data)
+
+
+State 80
+
+  142 expr_data: expr_add •
+
+    $default  reduce using rule 142 (expr_data)
+
+
+State 81
+
+  143 expr_data: expr_sub •
+
+    $default  reduce using rule 143 (expr_data)
+
+
+State 82
+
+  144 expr_data: expr_mul •
+
+    $default  reduce using rule 144 (expr_data)
+
+
+State 83
+
+  145 expr_data: expr_div •
+
+    $default  reduce using rule 145 (expr_data)
+
+
+State 84
+
+  146 expr_data: expr_minus •
+
+    $default  reduce using rule 146 (expr_data)
+
+
+State 85
+
+  147 expr_data: expr_func •
+
+    $default  reduce using rule 147 (expr_data)
+
+
+State 86
+
+  149 expr_const: const_dv •
+
+    $default  reduce using rule 149 (expr_const)
+
+
+State 87
+
+  164 const_dv: const_string •
+
+    $default  reduce using rule 164 (const_dv)
+
+
+State 88
+
+  165 const_dv: const_bool •
+
+    $default  reduce using rule 165 (const_dv)
+
+
+State 89
+
+  163 const_dv: const_double •
+
+    $default  reduce using rule 163 (const_dv)
+
+
+State 90
+
+  162 const_dv: const_int •
+
+    $default  reduce using rule 162 (const_dv)
+
+
+State 91
+
+  166 const_dv: const_null •
+
+    $default  reduce using rule 166 (const_dv)
+
+
+State 92
+
+  136 expr_elem: expr_logic •
+  198 expr_and: expr_logic • AND expr_logic
+  199 expr_or: expr_logic • OR expr_logic
+
+    AND  shift, and go to state 160
+    OR   shift, and go to state 161
+
+    $default  reduce using rule 136 (expr_elem)
+
+
+State 93
+
+  173 expr_logic: expr_cmp •
+
+    $default  reduce using rule 173 (expr_logic)
+
+
+State 94
+
+  174 expr_logic: expr_in_not •
+
+    $default  reduce using rule 174 (expr_logic)
+
+
+State 95
+
+  175 expr_logic: expr_is_null_not •
+
+    $default  reduce using rule 175 (expr_logic)
+
+
+State 96
+
+  176 expr_logic: expr_between •
+
+    $default  reduce using rule 176 (expr_logic)
+
+
+State 97
+
+  177 expr_logic: expr_like •
+
+    $default  reduce using rule 177 (expr_logic)
+
+
+State 98
+
+  178 expr_logic: expr_not •
+
+    $default  reduce using rule 178 (expr_logic)
+
+
+State 99
+
+  179 expr_logic: expr_and •
+
+    $default  reduce using rule 179 (expr_logic)
+
+
+State 100
+
+  180 expr_logic: expr_or •
+
+    $default  reduce using rule 180 (expr_logic)
+
+
+State 101
+
+  138 expr_elem: expr_aggr •
+
+    $default  reduce using rule 138 (expr_elem)
+
+
+State 102
+
+  200 expr_aggr: expr_count •
+
+    $default  reduce using rule 200 (expr_aggr)
+
+
+State 103
+
+  201 expr_aggr: expr_sum •
+
+    $default  reduce using rule 201 (expr_aggr)
+
+
+State 104
+
+  202 expr_aggr: expr_max •
+
+    $default  reduce using rule 202 (expr_aggr)
+
+
+State 105
+
+  203 expr_aggr: expr_min •
+
+    $default  reduce using rule 203 (expr_aggr)
+
+
+State 106
+
+  204 expr_aggr: expr_avg •
+
+    $default  reduce using rule 204 (expr_aggr)
+
+
+State 107
+
+   49 expr_table: IDENTIFIER AS • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 162
+
+
+State 108
+
+   50 expr_table: IDENTIFIER '.' • IDENTIFIER
+   51           | IDENTIFIER '.' • IDENTIFIER AS IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 163
+
+
+State 109
+
+   35 expr_update: UPDATE expr_table SET • expr_vct_update_column opt_expr_where opt_expr_order_by opt_expr_limit
+
+    IDENTIFIER  shift, and go to state 164
+
+    expr_vct_update_column  go to state 165
+    expr_update_column      go to state 166
+
+
+State 110
+
+   54 opt_exists: IF • EXISTS
+
+    EXISTS  shift, and go to state 167
+
+
+State 111
+
+   20 expr_drop_db: DROP SCHEMA opt_exists • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 168
+
+
+State 112
+
+   24 expr_drop_table: DROP TABLE opt_exists • expr_table
+
+    IDENTIFIER  shift, and go to state 38
+
+    expr_table  go to state 169
+
+
+State 113
+
+   19 expr_drop_db: DROP DATABASE opt_exists • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 170
+
+
+State 114
+
+   25 expr_show_tables: SHOW TABLES FROM • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 171
+
+
+State 115
+
+    3 statement_list: statement_list ';' expr_statement •
+
+    $default  reduce using rule 3 (statement_list)
+
+
+State 116
+
+   52 opt_not_exists: IF NOT • EXISTS
+
+    EXISTS  shift, and go to state 172
+
+
+State 117
+
+   18 expr_create_db: CREATE SCHEMA opt_not_exists IDENTIFIER •
+
+    $default  reduce using rule 18 (expr_create_db)
+
+
+State 118
+
+   23 expr_create_table: CREATE TABLE opt_not_exists expr_table • '(' expr_vct_create_table_item ')'
+
+    '('  shift, and go to state 173
+
+
+State 119
+
+   17 expr_create_db: CREATE DATABASE opt_not_exists IDENTIFIER •
+
+    $default  reduce using rule 17 (expr_create_db)
+
+
+State 120
+
+  109 opt_expr_where: WHERE • expr_logic
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 125
+    '?'         shift, and go to state 72
+
+    expr_data         go to state 126
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 174
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+
+
+State 121
+
+   34 expr_delete: DELETE FROM expr_table opt_expr_where • opt_expr_order_by opt_expr_limit
+
+    ORDER  shift, and go to state 175
+
+    $default  reduce using rule 114 (opt_expr_order_by)
+
+    opt_expr_order_by  go to state 176
+
+
+State 122
+
+   32 expr_insert: INSERT INTO expr_table '(' • expr_vct_insert_column ')' VALUES expr_vct_elem_row
+   33            | INSERT INTO expr_table '(' • expr_vct_insert_column ')' expr_select
+
+    IDENTIFIER  shift, and go to state 177
+
+    expr_vct_insert_column  go to state 178
+    expr_insert_column      go to state 179
+
+
+State 123
+
+  158 expr_func: IDENTIFIER '(' • opt_expr_vct_data ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    $default  reduce using rule 161 (opt_expr_vct_data)
+
+    expr_data          go to state 180
+    expr_const         go to state 77
+    expr_field         go to state 78
+    expr_param         go to state 79
+    expr_add           go to state 80
+    expr_sub           go to state 81
+    expr_mul           go to state 82
+    expr_div           go to state 83
+    expr_minus         go to state 84
+    expr_func          go to state 85
+    opt_expr_vct_data  go to state 181
+    const_dv           go to state 86
+    const_string       go to state 87
+    const_bool         go to state 88
+    const_double       go to state 89
+    const_int          go to state 90
+    const_null         go to state 91
+
+
+State 124
+
+  151 expr_field: IDENTIFIER '.' • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 182
+
+
+State 125
+
+  148 expr_data: '(' • expr_data ')'
+  181 expr_logic: '(' • expr_logic ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 125
+    '?'         shift, and go to state 72
+
+    expr_data         go to state 135
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 136
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+
+
+State 126
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  182 expr_cmp: expr_data • comp_type expr_data
+  190 expr_in_not: expr_data • IN expr_array
+  191            | expr_data • NOT IN expr_array
+  192 expr_is_null_not: expr_data • IS NULL
+  193                 | expr_data • IS NOT NULL
+  194 expr_between: expr_data • BETWEEN expr_data AND expr_data
+  195 expr_like: expr_data • LIKE const_string
+  196          | expr_data • NOT LIKE const_string
+
+    BETWEEN  shift, and go to state 143
+    LIKE     shift, and go to state 144
+    NOT      shift, and go to state 145
+    IN       shift, and go to state 146
+    IS       shift, and go to state 147
+    '='      shift, and go to state 148
+    EQ       shift, and go to state 149
+    NE       shift, and go to state 150
+    '<'      shift, and go to state 151
+    '>'      shift, and go to state 152
+    LE       shift, and go to state 153
+    GE       shift, and go to state 154
+    '+'      shift, and go to state 155
+    '-'      shift, and go to state 156
+    '*'      shift, and go to state 157
+    '/'      shift, and go to state 158
+
+    comp_type  go to state 159
+
+
+State 127
+
+  197 expr_not: NOT expr_logic •
+  198 expr_and: expr_logic • AND expr_logic
+  199 expr_or: expr_logic • OR expr_logic
+
+    $default  reduce using rule 197 (expr_not)
+
+
+State 128
+
+  211 expr_avg: AVERAGE '(' • expr_data ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 183
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 129
+
+  206 expr_count: COUNT '(' • expr_data ')'
+  207           | COUNT '(' • '*' ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '*'         shift, and go to state 184
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 185
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 130
+
+  210 expr_min: MIN '(' • expr_data ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 186
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 131
+
+  209 expr_max: MAX '(' • expr_data ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 187
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 132
+
+  208 expr_sum: SUM '(' • expr_data ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 188
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 133
+
+  148 expr_data: '(' • expr_data ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 189
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 134
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  157 expr_minus: '-' expr_data •
+
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+
+    $default  reduce using rule 157 (expr_minus)
+
+
+State 135
+
+  148 expr_data: '(' expr_data • ')'
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  182 expr_cmp: expr_data • comp_type expr_data
+  190 expr_in_not: expr_data • IN expr_array
+  191            | expr_data • NOT IN expr_array
+  192 expr_is_null_not: expr_data • IS NULL
+  193                 | expr_data • IS NOT NULL
+  194 expr_between: expr_data • BETWEEN expr_data AND expr_data
+  195 expr_like: expr_data • LIKE const_string
+  196          | expr_data • NOT LIKE const_string
+
+    BETWEEN  shift, and go to state 143
+    LIKE     shift, and go to state 144
+    NOT      shift, and go to state 145
+    IN       shift, and go to state 146
+    IS       shift, and go to state 147
+    '='      shift, and go to state 148
+    EQ       shift, and go to state 149
+    NE       shift, and go to state 150
+    '<'      shift, and go to state 151
+    '>'      shift, and go to state 152
+    LE       shift, and go to state 153
+    GE       shift, and go to state 154
+    '+'      shift, and go to state 155
+    '-'      shift, and go to state 156
+    '*'      shift, and go to state 157
+    '/'      shift, and go to state 158
+    ')'      shift, and go to state 190
+
+    comp_type  go to state 159
+
+
+State 136
+
+  181 expr_logic: '(' expr_logic • ')'
+  198 expr_and: expr_logic • AND expr_logic
+  199 expr_or: expr_logic • OR expr_logic
+
+    AND  shift, and go to state 160
+    OR   shift, and go to state 161
+    ')'  shift, and go to state 191
+
+
+State 137
+
+  205 expr_aggr: '(' expr_aggr • ')'
+
+    ')'  shift, and go to state 192
+
+
+State 138
+
+   56 opt_expr_vct_table: FROM • expr_vct_table
+
+    IDENTIFIER  shift, and go to state 38
+    FROM        shift, and go to state 138
+
+    $default  reduce using rule 57 (opt_expr_vct_table)
+
+    expr_table          go to state 193
+    opt_expr_vct_table  go to state 194
+    expr_vct_table      go to state 195
+
+
+State 139
+
+   38 expr_vct_select_column: expr_vct_select_column ',' • expr_select_column
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    AVERAGE     shift, and go to state 65
+    COUNT       shift, and go to state 66
+    MIN         shift, and go to state 67
+    MAX         shift, and go to state 68
+    SUM         shift, and go to state 69
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 71
+    '?'         shift, and go to state 72
+
+    expr_select_column  go to state 196
+    expr_elem           go to state 75
+    expr_data           go to state 76
+    expr_const          go to state 77
+    expr_field          go to state 78
+    expr_param          go to state 79
+    expr_add            go to state 80
+    expr_sub            go to state 81
+    expr_mul            go to state 82
+    expr_div            go to state 83
+    expr_minus          go to state 84
+    expr_func           go to state 85
+    const_dv            go to state 86
+    const_string        go to state 87
+    const_bool          go to state 88
+    const_double        go to state 89
+    const_int           go to state 90
+    const_null          go to state 91
+    expr_logic          go to state 92
+    expr_cmp            go to state 93
+    expr_in_not         go to state 94
+    expr_is_null_not    go to state 95
+    expr_between        go to state 96
+    expr_like           go to state 97
+    expr_not            go to state 98
+    expr_and            go to state 99
+    expr_or             go to state 100
+    expr_aggr           go to state 101
+    expr_count          go to state 102
+    expr_sum            go to state 103
+    expr_max            go to state 104
+    expr_min            go to state 105
+    expr_avg            go to state 106
+
+
+State 140
+
+   36 expr_select: SELECT opt_distinct expr_vct_select_column opt_expr_vct_table • opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type
+
+    WHERE  shift, and go to state 120
+
+    $default  reduce using rule 110 (opt_expr_where)
+
+    opt_expr_where  go to state 197
+
+
+State 141
+
+   40 col_alias: AS • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 198
+
+
+State 142
+
+   39 expr_select_column: expr_elem col_alias •
+
+    $default  reduce using rule 39 (expr_select_column)
+
+
+State 143
+
+  194 expr_between: expr_data BETWEEN • expr_data AND expr_data
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 199
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 144
+
+  195 expr_like: expr_data LIKE • const_string
+
+    STRING  shift, and go to state 58
+
+    const_string  go to state 200
+
+
+State 145
+
+  191 expr_in_not: expr_data NOT • IN expr_array
+  196 expr_like: expr_data NOT • LIKE const_string
+
+    LIKE  shift, and go to state 201
+    IN    shift, and go to state 202
+
+
+State 146
+
+  190 expr_in_not: expr_data IN • expr_array
+
+    '('  shift, and go to state 203
+
+    expr_array  go to state 204
+
+
+State 147
+
+  192 expr_is_null_not: expr_data IS • NULL
+  193                 | expr_data IS • NOT NULL
+
+    NULL  shift, and go to state 205
+    NOT   shift, and go to state 206
+
+
+State 148
+
+  183 comp_type: '=' •
+
+    $default  reduce using rule 183 (comp_type)
+
+
+State 149
+
+  189 comp_type: EQ •
+
+    $default  reduce using rule 189 (comp_type)
+
+
+State 150
+
+  188 comp_type: NE •
+
+    $default  reduce using rule 188 (comp_type)
+
+
+State 151
+
+  185 comp_type: '<' •
+
+    $default  reduce using rule 185 (comp_type)
+
+
+State 152
+
+  184 comp_type: '>' •
+
+    $default  reduce using rule 184 (comp_type)
+
+
+State 153
+
+  187 comp_type: LE •
+
+    $default  reduce using rule 187 (comp_type)
+
+
+State 154
+
+  186 comp_type: GE •
+
+    $default  reduce using rule 186 (comp_type)
+
+
+State 155
+
+  153 expr_add: expr_data '+' • expr_data
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 207
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 156
+
+  154 expr_sub: expr_data '-' • expr_data
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 208
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 157
+
+  155 expr_mul: expr_data '*' • expr_data
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 209
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 158
+
+  156 expr_div: expr_data '/' • expr_data
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 210
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 159
+
+  182 expr_cmp: expr_data comp_type • expr_data
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 211
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 160
+
+  198 expr_and: expr_logic AND • expr_logic
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 125
+    '?'         shift, and go to state 72
+
+    expr_data         go to state 126
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 212
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+
+
+State 161
+
+  199 expr_or: expr_logic OR • expr_logic
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 125
+    '?'         shift, and go to state 72
+
+    expr_data         go to state 126
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 213
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+
+
+State 162
+
+   49 expr_table: IDENTIFIER AS IDENTIFIER •
+
+    $default  reduce using rule 49 (expr_table)
+
+
+State 163
+
+   50 expr_table: IDENTIFIER '.' IDENTIFIER •
+   51           | IDENTIFIER '.' IDENTIFIER • AS IDENTIFIER
+
+    AS  shift, and go to state 214
+
+    $default  reduce using rule 50 (expr_table)
+
+
+State 164
+
+   47 expr_update_column: IDENTIFIER • '=' expr_elem
+
+    '='  shift, and go to state 215
+
+
+State 165
+
+   35 expr_update: UPDATE expr_table SET expr_vct_update_column • opt_expr_where opt_expr_order_by opt_expr_limit
+   46 expr_vct_update_column: expr_vct_update_column • ',' expr_update_column
+
+    WHERE  shift, and go to state 120
+    ','    shift, and go to state 216
+
+    $default  reduce using rule 110 (opt_expr_where)
+
+    opt_expr_where  go to state 217
+
+
+State 166
+
+   45 expr_vct_update_column: expr_update_column •
+
+    $default  reduce using rule 45 (expr_vct_update_column)
+
+
+State 167
+
+   54 opt_exists: IF EXISTS •
+
+    $default  reduce using rule 54 (opt_exists)
+
+
+State 168
+
+   20 expr_drop_db: DROP SCHEMA opt_exists IDENTIFIER •
+
+    $default  reduce using rule 20 (expr_drop_db)
+
+
+State 169
+
+   24 expr_drop_table: DROP TABLE opt_exists expr_table •
+
+    $default  reduce using rule 24 (expr_drop_table)
+
+
+State 170
+
+   19 expr_drop_db: DROP DATABASE opt_exists IDENTIFIER •
+
+    $default  reduce using rule 19 (expr_drop_db)
+
+
+State 171
+
+   25 expr_show_tables: SHOW TABLES FROM IDENTIFIER •
+
+    $default  reduce using rule 25 (expr_show_tables)
+
+
+State 172
+
+   52 opt_not_exists: IF NOT EXISTS •
+
+    $default  reduce using rule 52 (opt_not_exists)
+
+
+State 173
+
+   23 expr_create_table: CREATE TABLE opt_not_exists expr_table '(' • expr_vct_create_table_item ')'
+
+    IDENTIFIER  shift, and go to state 218
+    PRIMARY     shift, and go to state 219
+    INDEX       shift, and go to state 220
+
+    expr_vct_create_table_item  go to state 221
+    expr_create_table_item      go to state 222
+
+
+State 174
+
+  109 opt_expr_where: WHERE expr_logic •
+  198 expr_and: expr_logic • AND expr_logic
+  199 expr_or: expr_logic • OR expr_logic
+
+    AND  shift, and go to state 160
+    OR   shift, and go to state 161
+
+    $default  reduce using rule 109 (opt_expr_where)
+
+
+State 175
+
+  113 opt_expr_order_by: ORDER • BY expr_vct_order_item
+
+    BY  shift, and go to state 223
+
+
+State 176
+
+   34 expr_delete: DELETE FROM expr_table opt_expr_where opt_expr_order_by • opt_expr_limit
+
+    LIMIT  shift, and go to state 224
+
+    $default  reduce using rule 123 (opt_expr_limit)
+
+    opt_expr_limit  go to state 225
+
+
+State 177
+
+   44 expr_insert_column: IDENTIFIER •
+
+    $default  reduce using rule 44 (expr_insert_column)
+
+
+State 178
+
+   32 expr_insert: INSERT INTO expr_table '(' expr_vct_insert_column • ')' VALUES expr_vct_elem_row
+   33            | INSERT INTO expr_table '(' expr_vct_insert_column • ')' expr_select
+   43 expr_vct_insert_column: expr_vct_insert_column • ',' expr_insert_column
+
+    ')'  shift, and go to state 226
+    ','  shift, and go to state 227
+
+
+State 179
+
+   42 expr_vct_insert_column: expr_insert_column •
+
+    $default  reduce using rule 42 (expr_vct_insert_column)
+
+
+State 180
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  159 opt_expr_vct_data: expr_data •
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+
+    $default  reduce using rule 159 (opt_expr_vct_data)
+
+
+State 181
+
+  158 expr_func: IDENTIFIER '(' opt_expr_vct_data • ')'
+  160 opt_expr_vct_data: opt_expr_vct_data • ',' expr_data
+
+    ')'  shift, and go to state 228
+    ','  shift, and go to state 229
+
+
+State 182
+
+  151 expr_field: IDENTIFIER '.' IDENTIFIER •
+
+    $default  reduce using rule 151 (expr_field)
+
+
+State 183
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  211 expr_avg: AVERAGE '(' expr_data • ')'
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+    ')'  shift, and go to state 230
+
+
+State 184
+
+  207 expr_count: COUNT '(' '*' • ')'
+
+    ')'  shift, and go to state 231
+
+
+State 185
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  206 expr_count: COUNT '(' expr_data • ')'
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+    ')'  shift, and go to state 232
+
+
+State 186
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  210 expr_min: MIN '(' expr_data • ')'
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+    ')'  shift, and go to state 233
+
+
+State 187
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  209 expr_max: MAX '(' expr_data • ')'
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+    ')'  shift, and go to state 234
+
+
+State 188
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  208 expr_sum: SUM '(' expr_data • ')'
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+    ')'  shift, and go to state 235
+
+
+State 189
+
+  148 expr_data: '(' expr_data • ')'
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+    ')'  shift, and go to state 190
+
+
+State 190
+
+  148 expr_data: '(' expr_data ')' •
+
+    $default  reduce using rule 148 (expr_data)
+
+
+State 191
+
+  181 expr_logic: '(' expr_logic ')' •
+
+    $default  reduce using rule 181 (expr_logic)
+
+
+State 192
+
+  205 expr_aggr: '(' expr_aggr ')' •
+
+    $default  reduce using rule 205 (expr_aggr)
+
+
+State 193
+
+   58 expr_vct_table: expr_table •
+
+    $default  reduce using rule 58 (expr_vct_table)
+
+
+State 194
+
+   59 expr_vct_table: opt_expr_vct_table • join_type expr_table
+
+    CROSS  shift, and go to state 236
+    INNER  shift, and go to state 237
+    OUTER  shift, and go to state 238
+    RIGHT  shift, and go to state 239
+    FULL   shift, and go to state 240
+    LEFT   shift, and go to state 241
+    ','    shift, and go to state 242
+
+    join_type  go to state 243
+
+
+State 195
+
+   56 opt_expr_vct_table: FROM expr_vct_table •
+
+    $default  reduce using rule 56 (opt_expr_vct_table)
+
+
+State 196
+
+   38 expr_vct_select_column: expr_vct_select_column ',' expr_select_column •
+
+    $default  reduce using rule 38 (expr_vct_select_column)
+
+
+State 197
+
+   36 expr_select: SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where • opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type
+
+    ON  shift, and go to state 244
+
+    $default  reduce using rule 112 (opt_expr_on)
+
+    opt_expr_on  go to state 245
+
+
+State 198
+
+   40 col_alias: AS IDENTIFIER •
+
+    $default  reduce using rule 40 (col_alias)
+
+
+State 199
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  194 expr_between: expr_data BETWEEN expr_data • AND expr_data
+
+    AND  shift, and go to state 246
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+
+
+State 200
+
+  195 expr_like: expr_data LIKE const_string •
+
+    $default  reduce using rule 195 (expr_like)
+
+
+State 201
+
+  196 expr_like: expr_data NOT LIKE • const_string
+
+    STRING  shift, and go to state 58
+
+    const_string  go to state 247
+
+
+State 202
+
+  191 expr_in_not: expr_data NOT IN • expr_array
+
+    '('  shift, and go to state 203
+
+    expr_array  go to state 248
+
+
+State 203
+
+  133 expr_array: '(' • expr_vct_const ')'
+
+    STRING    shift, and go to state 58
+    FLOATVAL  shift, and go to state 59
+    INTVAL    shift, and go to state 60
+    NULL      shift, and go to state 61
+    TRUE      shift, and go to state 63
+    FALSE     shift, and go to state 64
+
+    expr_vct_const  go to state 249
+    const_dv        go to state 250
+    const_string    go to state 87
+    const_bool      go to state 88
+    const_double    go to state 89
+    const_int       go to state 90
+    const_null      go to state 91
+
+
+State 204
+
+  190 expr_in_not: expr_data IN expr_array •
+
+    $default  reduce using rule 190 (expr_in_not)
+
+
+State 205
+
+  192 expr_is_null_not: expr_data IS NULL •
+
+    $default  reduce using rule 192 (expr_is_null_not)
+
+
+State 206
+
+  193 expr_is_null_not: expr_data IS NOT • NULL
+
+    NULL  shift, and go to state 251
+
+
+State 207
+
+  153 expr_add: expr_data • '+' expr_data
+  153         | expr_data '+' expr_data •
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+
+    $default  reduce using rule 153 (expr_add)
+
+
+State 208
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  154         | expr_data '-' expr_data •
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+
+    $default  reduce using rule 154 (expr_sub)
+
+
+State 209
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  155         | expr_data '*' expr_data •
+  156 expr_div: expr_data • '/' expr_data
+
+    $default  reduce using rule 155 (expr_mul)
+
+
+State 210
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  156         | expr_data '/' expr_data •
+
+    $default  reduce using rule 156 (expr_div)
+
+
+State 211
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  182 expr_cmp: expr_data comp_type expr_data •
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+
+    $default  reduce using rule 182 (expr_cmp)
+
+
+State 212
+
+  198 expr_and: expr_logic • AND expr_logic
+  198         | expr_logic AND expr_logic •
+  199 expr_or: expr_logic • OR expr_logic
+
+    $default  reduce using rule 198 (expr_and)
+
+
+State 213
+
+  198 expr_and: expr_logic • AND expr_logic
+  199 expr_or: expr_logic • OR expr_logic
+  199        | expr_logic OR expr_logic •
+
+    AND  shift, and go to state 160
+
+    $default  reduce using rule 199 (expr_or)
+
+
+State 214
+
+   51 expr_table: IDENTIFIER '.' IDENTIFIER AS • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 252
+
+
+State 215
+
+   47 expr_update_column: IDENTIFIER '=' • expr_elem
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    AVERAGE     shift, and go to state 65
+    COUNT       shift, and go to state 66
+    MIN         shift, and go to state 67
+    MAX         shift, and go to state 68
+    SUM         shift, and go to state 69
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 71
+    '?'         shift, and go to state 72
+
+    expr_elem         go to state 253
+    expr_data         go to state 76
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 92
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+    expr_aggr         go to state 101
+    expr_count        go to state 102
+    expr_sum          go to state 103
+    expr_max          go to state 104
+    expr_min          go to state 105
+    expr_avg          go to state 106
+
+
+State 216
+
+   46 expr_vct_update_column: expr_vct_update_column ',' • expr_update_column
+
+    IDENTIFIER  shift, and go to state 164
+
+    expr_update_column  go to state 254
+
+
+State 217
+
+   35 expr_update: UPDATE expr_table SET expr_vct_update_column opt_expr_where • opt_expr_order_by opt_expr_limit
+
+    ORDER  shift, and go to state 175
+
+    $default  reduce using rule 114 (opt_expr_order_by)
+
+    opt_expr_order_by  go to state 255
+
+
+State 218
+
+   76 expr_create_table_item: IDENTIFIER • expr_data_type col_nullable default_col_dv auto_increment index_type table_comment
+
+    INTEGER   shift, and go to state 256
+    REAL      shift, and go to state 257
+    SMALLINT  shift, and go to state 258
+    BIGINT    shift, and go to state 259
+    VARCHAR   shift, and go to state 260
+    DOUBLE    shift, and go to state 261
+    FLOAT     shift, and go to state 262
+    CHAR      shift, and go to state 263
+    LONG      shift, and go to state 264
+    INT       shift, and go to state 265
+    BOOLEAN   shift, and go to state 266
+
+    expr_data_type  go to state 267
+
+
+State 219
+
+   78 expr_create_table_item: PRIMARY • KEY '(' expr_vct_col_name ')'
+
+    KEY  shift, and go to state 268
+
+
+State 220
+
+   77 expr_create_table_item: INDEX • IDENTIFIER index_type '(' expr_vct_col_name ')'
+
+    IDENTIFIER  shift, and go to state 269
+
+
+State 221
+
+   23 expr_create_table: CREATE TABLE opt_not_exists expr_table '(' expr_vct_create_table_item • ')'
+   75 expr_vct_create_table_item: expr_vct_create_table_item • ',' expr_create_table_item
+
+    ')'  shift, and go to state 270
+    ','  shift, and go to state 271
+
+
+State 222
+
+   74 expr_vct_create_table_item: expr_create_table_item •
+
+    $default  reduce using rule 74 (expr_vct_create_table_item)
+
+
+State 223
+
+  113 opt_expr_order_by: ORDER BY • expr_vct_order_item
+
+    IDENTIFIER  shift, and go to state 272
+
+    expr_vct_order_item  go to state 273
+    expr_order_item      go to state 274
+
+
+State 224
+
+  121 opt_expr_limit: LIMIT • INTVAL
+  122               | LIMIT • INTVAL ',' INTVAL
+
+    INTVAL  shift, and go to state 275
+
+
+State 225
+
+   34 expr_delete: DELETE FROM expr_table opt_expr_where opt_expr_order_by opt_expr_limit •
+
+    $default  reduce using rule 34 (expr_delete)
+
+
+State 226
+
+   32 expr_insert: INSERT INTO expr_table '(' expr_vct_insert_column ')' • VALUES expr_vct_elem_row
+   33            | INSERT INTO expr_table '(' expr_vct_insert_column ')' • expr_select
+
+    SELECT  shift, and go to state 5
+    VALUES  shift, and go to state 276
+
+    expr_select  go to state 277
+
+
+State 227
+
+   43 expr_vct_insert_column: expr_vct_insert_column ',' • expr_insert_column
+
+    IDENTIFIER  shift, and go to state 177
+
+    expr_insert_column  go to state 278
+
+
+State 228
+
+  158 expr_func: IDENTIFIER '(' opt_expr_vct_data ')' •
+
+    $default  reduce using rule 158 (expr_func)
+
+
+State 229
+
+  160 opt_expr_vct_data: opt_expr_vct_data ',' • expr_data
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 279
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 230
+
+  211 expr_avg: AVERAGE '(' expr_data ')' •
+
+    $default  reduce using rule 211 (expr_avg)
+
+
+State 231
+
+  207 expr_count: COUNT '(' '*' ')' •
+
+    $default  reduce using rule 207 (expr_count)
+
+
+State 232
+
+  206 expr_count: COUNT '(' expr_data ')' •
+
+    $default  reduce using rule 206 (expr_count)
+
+
+State 233
+
+  210 expr_min: MIN '(' expr_data ')' •
+
+    $default  reduce using rule 210 (expr_min)
+
+
+State 234
+
+  209 expr_max: MAX '(' expr_data ')' •
+
+    $default  reduce using rule 209 (expr_max)
+
+
+State 235
+
+  208 expr_sum: SUM '(' expr_data ')' •
+
+    $default  reduce using rule 208 (expr_sum)
+
+
+State 236
+
+   68 join_type: CROSS •
+
+    $default  reduce using rule 68 (join_type)
+
+
+State 237
+
+   60 join_type: INNER •
+
+    $default  reduce using rule 60 (join_type)
+
+
+State 238
+
+   66 join_type: OUTER •
+
+    $default  reduce using rule 66 (join_type)
+
+
+State 239
+
+   63 join_type: RIGHT • OUTER
+   64          | RIGHT •
+
+    OUTER  shift, and go to state 280
+
+    $default  reduce using rule 64 (join_type)
+
+
+State 240
+
+   65 join_type: FULL • OUTER
+   67          | FULL •
+
+    OUTER  shift, and go to state 281
+
+    $default  reduce using rule 67 (join_type)
+
+
+State 241
+
+   61 join_type: LEFT • OUTER
+   62          | LEFT •
+
+    OUTER  shift, and go to state 282
+
+    $default  reduce using rule 62 (join_type)
+
+
+State 242
+
+   69 join_type: ',' •
+
+    $default  reduce using rule 69 (join_type)
+
+
+State 243
+
+   59 expr_vct_table: opt_expr_vct_table join_type • expr_table
+
+    IDENTIFIER  shift, and go to state 38
+
+    expr_table  go to state 283
+
+
+State 244
+
+  111 opt_expr_on: ON • expr_logic
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 125
+    '?'         shift, and go to state 72
+
+    expr_data         go to state 126
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 284
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+
+
+State 245
+
+   36 expr_select: SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on • opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type
+
+    GROUP  shift, and go to state 285
+
+    $default  reduce using rule 125 (opt_expr_group_by)
+
+    opt_expr_group_by  go to state 286
+
+
+State 246
+
+  194 expr_between: expr_data BETWEEN expr_data AND • expr_data
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 133
+    '?'         shift, and go to state 72
+
+    expr_data     go to state 287
+    expr_const    go to state 77
+    expr_field    go to state 78
+    expr_param    go to state 79
+    expr_add      go to state 80
+    expr_sub      go to state 81
+    expr_mul      go to state 82
+    expr_div      go to state 83
+    expr_minus    go to state 84
+    expr_func     go to state 85
+    const_dv      go to state 86
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 247
+
+  196 expr_like: expr_data NOT LIKE const_string •
+
+    $default  reduce using rule 196 (expr_like)
+
+
+State 248
+
+  191 expr_in_not: expr_data NOT IN expr_array •
+
+    $default  reduce using rule 191 (expr_in_not)
+
+
+State 249
+
+  133 expr_array: '(' expr_vct_const • ')'
+  135 expr_vct_const: expr_vct_const • ',' const_dv
+
+    ')'  shift, and go to state 288
+    ','  shift, and go to state 289
+
+
+State 250
+
+  134 expr_vct_const: const_dv •
+
+    $default  reduce using rule 134 (expr_vct_const)
+
+
+State 251
+
+  193 expr_is_null_not: expr_data IS NOT NULL •
+
+    $default  reduce using rule 193 (expr_is_null_not)
+
+
+State 252
+
+   51 expr_table: IDENTIFIER '.' IDENTIFIER AS IDENTIFIER •
+
+    $default  reduce using rule 51 (expr_table)
+
+
+State 253
+
+   47 expr_update_column: IDENTIFIER '=' expr_elem •
+
+    $default  reduce using rule 47 (expr_update_column)
+
+
+State 254
+
+   46 expr_vct_update_column: expr_vct_update_column ',' expr_update_column •
+
+    $default  reduce using rule 46 (expr_vct_update_column)
+
+
+State 255
+
+   35 expr_update: UPDATE expr_table SET expr_vct_update_column opt_expr_where opt_expr_order_by • opt_expr_limit
+
+    LIMIT  shift, and go to state 224
+
+    $default  reduce using rule 123 (opt_expr_limit)
+
+    opt_expr_limit  go to state 290
+
+
+State 256
+
+   85 expr_data_type: INTEGER •
+
+    $default  reduce using rule 85 (expr_data_type)
+
+
+State 257
+
+   87 expr_data_type: REAL •
+
+    $default  reduce using rule 87 (expr_data_type)
+
+
+State 258
+
+   88 expr_data_type: SMALLINT •
+
+    $default  reduce using rule 88 (expr_data_type)
+
+
+State 259
+
+   79 expr_data_type: BIGINT •
+
+    $default  reduce using rule 79 (expr_data_type)
+
+
+State 260
+
+   89 expr_data_type: VARCHAR • '(' INTVAL ')'
+
+    '('  shift, and go to state 291
+
+
+State 261
+
+   82 expr_data_type: DOUBLE •
+
+    $default  reduce using rule 82 (expr_data_type)
+
+
+State 262
+
+   83 expr_data_type: FLOAT •
+
+    $default  reduce using rule 83 (expr_data_type)
+
+
+State 263
+
+   81 expr_data_type: CHAR • '(' INTVAL ')'
+
+    '('  shift, and go to state 292
+
+
+State 264
+
+   86 expr_data_type: LONG •
+
+    $default  reduce using rule 86 (expr_data_type)
+
+
+State 265
+
+   84 expr_data_type: INT •
+
+    $default  reduce using rule 84 (expr_data_type)
+
+
+State 266
+
+   80 expr_data_type: BOOLEAN •
+
+    $default  reduce using rule 80 (expr_data_type)
+
+
+State 267
+
+   76 expr_create_table_item: IDENTIFIER expr_data_type • col_nullable default_col_dv auto_increment index_type table_comment
+
+    NULL  shift, and go to state 293
+    NOT   shift, and go to state 294
+
+    $default  reduce using rule 92 (col_nullable)
+
+    col_nullable  go to state 295
+
+
+State 268
+
+   78 expr_create_table_item: PRIMARY KEY • '(' expr_vct_col_name ')'
+
+    '('  shift, and go to state 296
+
+
+State 269
+
+   77 expr_create_table_item: INDEX IDENTIFIER • index_type '(' expr_vct_col_name ')'
+
+    PRIMARY  shift, and go to state 297
+    UNIQUE   shift, and go to state 298
+    KEY      shift, and go to state 299
+
+    $default  reduce using rule 102 (index_type)
+
+    index_type  go to state 300
+
+
+State 270
+
+   23 expr_create_table: CREATE TABLE opt_not_exists expr_table '(' expr_vct_create_table_item ')' •
+
+    $default  reduce using rule 23 (expr_create_table)
+
+
+State 271
+
+   75 expr_vct_create_table_item: expr_vct_create_table_item ',' • expr_create_table_item
+
+    IDENTIFIER  shift, and go to state 218
+    PRIMARY     shift, and go to state 219
+    INDEX       shift, and go to state 220
+
+    expr_create_table_item  go to state 301
+
+
+State 272
+
+  117 expr_order_item: IDENTIFIER • opt_order_direction
+
+    DESC  shift, and go to state 302
+    ASC   shift, and go to state 303
+
+    $default  reduce using rule 120 (opt_order_direction)
+
+    opt_order_direction  go to state 304
+
+
+State 273
+
+  113 opt_expr_order_by: ORDER BY expr_vct_order_item •
+  116 expr_vct_order_item: expr_vct_order_item • ',' expr_order_item
+
+    ','  shift, and go to state 305
+
+    $default  reduce using rule 113 (opt_expr_order_by)
+
+
+State 274
+
+  115 expr_vct_order_item: expr_order_item •
+
+    $default  reduce using rule 115 (expr_vct_order_item)
+
+
+State 275
+
+  121 opt_expr_limit: LIMIT INTVAL •
+  122               | LIMIT INTVAL • ',' INTVAL
+
+    ','  shift, and go to state 306
+
+    $default  reduce using rule 121 (opt_expr_limit)
+
+
+State 276
+
+   32 expr_insert: INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES • expr_vct_elem_row
+
+    '('  shift, and go to state 307
+
+    expr_vct_elem_row  go to state 308
+
+
+State 277
+
+   33 expr_insert: INSERT INTO expr_table '(' expr_vct_insert_column ')' expr_select •
+
+    $default  reduce using rule 33 (expr_insert)
+
+
+State 278
+
+   43 expr_vct_insert_column: expr_vct_insert_column ',' expr_insert_column •
+
+    $default  reduce using rule 43 (expr_vct_insert_column)
+
+
+State 279
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  160 opt_expr_vct_data: opt_expr_vct_data ',' expr_data •
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+
+    $default  reduce using rule 160 (opt_expr_vct_data)
+
+
+State 280
+
+   63 join_type: RIGHT OUTER •
+
+    $default  reduce using rule 63 (join_type)
+
+
+State 281
+
+   65 join_type: FULL OUTER •
+
+    $default  reduce using rule 65 (join_type)
+
+
+State 282
+
+   61 join_type: LEFT OUTER •
+
+    $default  reduce using rule 61 (join_type)
+
+
+State 283
+
+   59 expr_vct_table: opt_expr_vct_table join_type expr_table •
+
+    $default  reduce using rule 59 (expr_vct_table)
+
+
+State 284
+
+  111 opt_expr_on: ON expr_logic •
+  198 expr_and: expr_logic • AND expr_logic
+  199 expr_or: expr_logic • OR expr_logic
+
+    AND  shift, and go to state 160
+    OR   shift, and go to state 161
+
+    $default  reduce using rule 111 (opt_expr_on)
+
+
+State 285
+
+  124 opt_expr_group_by: GROUP • BY expr_vct_col_name opt_expr_having
+
+    BY  shift, and go to state 309
+
+
+State 286
+
+   36 expr_select: SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by • opt_expr_order_by opt_expr_limit opt_lock_type
+
+    ORDER  shift, and go to state 175
+
+    $default  reduce using rule 114 (opt_expr_order_by)
+
+    opt_expr_order_by  go to state 310
+
+
+State 287
+
+  153 expr_add: expr_data • '+' expr_data
+  154 expr_sub: expr_data • '-' expr_data
+  155 expr_mul: expr_data • '*' expr_data
+  156 expr_div: expr_data • '/' expr_data
+  194 expr_between: expr_data BETWEEN expr_data AND expr_data •
+
+    '+'  shift, and go to state 155
+    '-'  shift, and go to state 156
+    '*'  shift, and go to state 157
+    '/'  shift, and go to state 158
+
+    $default  reduce using rule 194 (expr_between)
+
+
+State 288
+
+  133 expr_array: '(' expr_vct_const ')' •
+
+    $default  reduce using rule 133 (expr_array)
+
+
+State 289
+
+  135 expr_vct_const: expr_vct_const ',' • const_dv
+
+    STRING    shift, and go to state 58
+    FLOATVAL  shift, and go to state 59
+    INTVAL    shift, and go to state 60
+    NULL      shift, and go to state 61
+    TRUE      shift, and go to state 63
+    FALSE     shift, and go to state 64
+
+    const_dv      go to state 311
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 290
+
+   35 expr_update: UPDATE expr_table SET expr_vct_update_column opt_expr_where opt_expr_order_by opt_expr_limit •
+
+    $default  reduce using rule 35 (expr_update)
+
+
+State 291
+
+   89 expr_data_type: VARCHAR '(' • INTVAL ')'
+
+    INTVAL  shift, and go to state 312
+
+
+State 292
+
+   81 expr_data_type: CHAR '(' • INTVAL ')'
+
+    INTVAL  shift, and go to state 313
+
+
+State 293
+
+   90 col_nullable: NULL •
+
+    $default  reduce using rule 90 (col_nullable)
+
+
+State 294
+
+   91 col_nullable: NOT • NULL
+
+    NULL  shift, and go to state 314
+
+
+State 295
+
+   76 expr_create_table_item: IDENTIFIER expr_data_type col_nullable • default_col_dv auto_increment index_type table_comment
+
+    DEFAULT  shift, and go to state 315
+
+    $default  reduce using rule 94 (default_col_dv)
+
+    default_col_dv  go to state 316
+
+
+State 296
+
+   78 expr_create_table_item: PRIMARY KEY '(' • expr_vct_col_name ')'
+
+    IDENTIFIER  shift, and go to state 317
+
+    expr_vct_col_name  go to state 318
+
+
+State 297
+
+   97 index_type: PRIMARY • KEY
+   98           | PRIMARY •
+
+    KEY  shift, and go to state 319
+
+    $default  reduce using rule 98 (index_type)
+
+
+State 298
+
+   99 index_type: UNIQUE • KEY
+  100           | UNIQUE •
+
+    KEY  shift, and go to state 320
+
+    $default  reduce using rule 100 (index_type)
+
+
+State 299
+
+  101 index_type: KEY •
+
+    $default  reduce using rule 101 (index_type)
+
+
+State 300
+
+   77 expr_create_table_item: INDEX IDENTIFIER index_type • '(' expr_vct_col_name ')'
+
+    '('  shift, and go to state 321
+
+
+State 301
+
+   75 expr_vct_create_table_item: expr_vct_create_table_item ',' expr_create_table_item •
+
+    $default  reduce using rule 75 (expr_vct_create_table_item)
+
+
+State 302
+
+  119 opt_order_direction: DESC •
+
+    $default  reduce using rule 119 (opt_order_direction)
+
+
+State 303
+
+  118 opt_order_direction: ASC •
+
+    $default  reduce using rule 118 (opt_order_direction)
+
+
+State 304
+
+  117 expr_order_item: IDENTIFIER opt_order_direction •
+
+    $default  reduce using rule 117 (expr_order_item)
+
+
+State 305
+
+  116 expr_vct_order_item: expr_vct_order_item ',' • expr_order_item
+
+    IDENTIFIER  shift, and go to state 272
+
+    expr_order_item  go to state 322
+
+
+State 306
+
+  122 opt_expr_limit: LIMIT INTVAL ',' • INTVAL
+
+    INTVAL  shift, and go to state 323
+
+
+State 307
+
+  105 expr_vct_elem_row: '(' • expr_elem_row ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    AVERAGE     shift, and go to state 65
+    COUNT       shift, and go to state 66
+    MIN         shift, and go to state 67
+    MAX         shift, and go to state 68
+    SUM         shift, and go to state 69
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 71
+    '?'         shift, and go to state 72
+
+    expr_elem_row     go to state 324
+    expr_elem         go to state 325
+    expr_data         go to state 76
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 92
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+    expr_aggr         go to state 101
+    expr_count        go to state 102
+    expr_sum          go to state 103
+    expr_max          go to state 104
+    expr_min          go to state 105
+    expr_avg          go to state 106
+
+
+State 308
+
+   32 expr_insert: INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row •
+  106 expr_vct_elem_row: expr_vct_elem_row • ',' '(' expr_elem_row ')'
+
+    ','  shift, and go to state 326
+
+    $default  reduce using rule 32 (expr_insert)
+
+
+State 309
+
+  124 opt_expr_group_by: GROUP BY • expr_vct_col_name opt_expr_having
+
+    IDENTIFIER  shift, and go to state 317
+
+    expr_vct_col_name  go to state 327
+
+
+State 310
+
+   36 expr_select: SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by • opt_expr_limit opt_lock_type
+
+    LIMIT  shift, and go to state 224
+
+    $default  reduce using rule 123 (opt_expr_limit)
+
+    opt_expr_limit  go to state 328
+
+
+State 311
+
+  135 expr_vct_const: expr_vct_const ',' const_dv •
+
+    $default  reduce using rule 135 (expr_vct_const)
+
+
+State 312
+
+   89 expr_data_type: VARCHAR '(' INTVAL • ')'
+
+    ')'  shift, and go to state 329
+
+
+State 313
+
+   81 expr_data_type: CHAR '(' INTVAL • ')'
+
+    ')'  shift, and go to state 330
+
+
+State 314
+
+   91 col_nullable: NOT NULL •
+
+    $default  reduce using rule 91 (col_nullable)
+
+
+State 315
+
+   93 default_col_dv: DEFAULT • const_dv
+
+    STRING    shift, and go to state 58
+    FLOATVAL  shift, and go to state 59
+    INTVAL    shift, and go to state 60
+    NULL      shift, and go to state 61
+    TRUE      shift, and go to state 63
+    FALSE     shift, and go to state 64
+
+    const_dv      go to state 331
+    const_string  go to state 87
+    const_bool    go to state 88
+    const_double  go to state 89
+    const_int     go to state 90
+    const_null    go to state 91
+
+
+State 316
+
+   76 expr_create_table_item: IDENTIFIER expr_data_type col_nullable default_col_dv • auto_increment index_type table_comment
+
+    AUTO_INCREMENT  shift, and go to state 332
+
+    $default  reduce using rule 96 (auto_increment)
+
+    auto_increment  go to state 333
+
+
+State 317
+
+   70 expr_vct_col_name: IDENTIFIER •
+
+    $default  reduce using rule 70 (expr_vct_col_name)
+
+
+State 318
+
+   71 expr_vct_col_name: expr_vct_col_name • ',' IDENTIFIER
+   78 expr_create_table_item: PRIMARY KEY '(' expr_vct_col_name • ')'
+
+    ')'  shift, and go to state 334
+    ','  shift, and go to state 335
+
+
+State 319
+
+   97 index_type: PRIMARY KEY •
+
+    $default  reduce using rule 97 (index_type)
+
+
+State 320
+
+   99 index_type: UNIQUE KEY •
+
+    $default  reduce using rule 99 (index_type)
+
+
+State 321
+
+   77 expr_create_table_item: INDEX IDENTIFIER index_type '(' • expr_vct_col_name ')'
+
+    IDENTIFIER  shift, and go to state 317
+
+    expr_vct_col_name  go to state 336
+
+
+State 322
+
+  116 expr_vct_order_item: expr_vct_order_item ',' expr_order_item •
+
+    $default  reduce using rule 116 (expr_vct_order_item)
+
+
+State 323
+
+  122 opt_expr_limit: LIMIT INTVAL ',' INTVAL •
+
+    $default  reduce using rule 122 (opt_expr_limit)
+
+
+State 324
+
+  105 expr_vct_elem_row: '(' expr_elem_row • ')'
+  108 expr_elem_row: expr_elem_row • ',' expr_elem
+
+    ')'  shift, and go to state 337
+    ','  shift, and go to state 338
+
+
+State 325
+
+  107 expr_elem_row: expr_elem •
+
+    $default  reduce using rule 107 (expr_elem_row)
+
+
+State 326
+
+  106 expr_vct_elem_row: expr_vct_elem_row ',' • '(' expr_elem_row ')'
+
+    '('  shift, and go to state 339
+
+
+State 327
+
+   71 expr_vct_col_name: expr_vct_col_name • ',' IDENTIFIER
+  124 opt_expr_group_by: GROUP BY expr_vct_col_name • opt_expr_having
+
+    HAVING  shift, and go to state 340
+    ','     shift, and go to state 335
+
+    $default  reduce using rule 127 (opt_expr_having)
+
+    opt_expr_having  go to state 341
+
+
+State 328
+
+   36 expr_select: SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit • opt_lock_type
+
+    FOR  shift, and go to state 342
+
+    $default  reduce using rule 132 (opt_lock_type)
+
+    opt_lock_type  go to state 343
+
+
+State 329
+
+   89 expr_data_type: VARCHAR '(' INTVAL ')' •
+
+    $default  reduce using rule 89 (expr_data_type)
+
+
+State 330
+
+   81 expr_data_type: CHAR '(' INTVAL ')' •
+
+    $default  reduce using rule 81 (expr_data_type)
+
+
+State 331
+
+   93 default_col_dv: DEFAULT const_dv •
+
+    $default  reduce using rule 93 (default_col_dv)
+
+
+State 332
+
+   95 auto_increment: AUTO_INCREMENT •
+
+    $default  reduce using rule 95 (auto_increment)
+
+
+State 333
+
+   76 expr_create_table_item: IDENTIFIER expr_data_type col_nullable default_col_dv auto_increment • index_type table_comment
+
+    PRIMARY  shift, and go to state 297
+    UNIQUE   shift, and go to state 298
+    KEY      shift, and go to state 299
+
+    $default  reduce using rule 102 (index_type)
+
+    index_type  go to state 344
+
+
+State 334
+
+   78 expr_create_table_item: PRIMARY KEY '(' expr_vct_col_name ')' •
+
+    $default  reduce using rule 78 (expr_create_table_item)
+
+
+State 335
+
+   71 expr_vct_col_name: expr_vct_col_name ',' • IDENTIFIER
+
+    IDENTIFIER  shift, and go to state 345
+
+
+State 336
+
+   71 expr_vct_col_name: expr_vct_col_name • ',' IDENTIFIER
+   77 expr_create_table_item: INDEX IDENTIFIER index_type '(' expr_vct_col_name • ')'
+
+    ')'  shift, and go to state 346
+    ','  shift, and go to state 335
+
+
+State 337
+
+  105 expr_vct_elem_row: '(' expr_elem_row ')' •
+
+    $default  reduce using rule 105 (expr_vct_elem_row)
+
+
+State 338
+
+  108 expr_elem_row: expr_elem_row ',' • expr_elem
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    AVERAGE     shift, and go to state 65
+    COUNT       shift, and go to state 66
+    MIN         shift, and go to state 67
+    MAX         shift, and go to state 68
+    SUM         shift, and go to state 69
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 71
+    '?'         shift, and go to state 72
+
+    expr_elem         go to state 347
+    expr_data         go to state 76
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 92
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+    expr_aggr         go to state 101
+    expr_count        go to state 102
+    expr_sum          go to state 103
+    expr_max          go to state 104
+    expr_min          go to state 105
+    expr_avg          go to state 106
+
+
+State 339
+
+  106 expr_vct_elem_row: expr_vct_elem_row ',' '(' • expr_elem_row ')'
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    AVERAGE     shift, and go to state 65
+    COUNT       shift, and go to state 66
+    MIN         shift, and go to state 67
+    MAX         shift, and go to state 68
+    SUM         shift, and go to state 69
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 71
+    '?'         shift, and go to state 72
+
+    expr_elem_row     go to state 348
+    expr_elem         go to state 325
+    expr_data         go to state 76
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 92
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+    expr_aggr         go to state 101
+    expr_count        go to state 102
+    expr_sum          go to state 103
+    expr_max          go to state 104
+    expr_min          go to state 105
+    expr_avg          go to state 106
+
+
+State 340
+
+  126 opt_expr_having: HAVING • expr_logic
+
+    IDENTIFIER  shift, and go to state 57
+    STRING      shift, and go to state 58
+    FLOATVAL    shift, and go to state 59
+    INTVAL      shift, and go to state 60
+    NULL        shift, and go to state 61
+    NOT         shift, and go to state 62
+    TRUE        shift, and go to state 63
+    FALSE       shift, and go to state 64
+    '-'         shift, and go to state 70
+    '('         shift, and go to state 125
+    '?'         shift, and go to state 72
+
+    expr_data         go to state 126
+    expr_const        go to state 77
+    expr_field        go to state 78
+    expr_param        go to state 79
+    expr_add          go to state 80
+    expr_sub          go to state 81
+    expr_mul          go to state 82
+    expr_div          go to state 83
+    expr_minus        go to state 84
+    expr_func         go to state 85
+    const_dv          go to state 86
+    const_string      go to state 87
+    const_bool        go to state 88
+    const_double      go to state 89
+    const_int         go to state 90
+    const_null        go to state 91
+    expr_logic        go to state 349
+    expr_cmp          go to state 93
+    expr_in_not       go to state 94
+    expr_is_null_not  go to state 95
+    expr_between      go to state 96
+    expr_like         go to state 97
+    expr_not          go to state 98
+    expr_and          go to state 99
+    expr_or           go to state 100
+
+
+State 341
+
+  124 opt_expr_group_by: GROUP BY expr_vct_col_name opt_expr_having •
+
+    $default  reduce using rule 124 (opt_expr_group_by)
+
+
+State 342
+
+  130 opt_lock_type: FOR • SHARE
+  131              | FOR • UPDATE
+
+    UPDATE  shift, and go to state 350
+    SHARE   shift, and go to state 351
+
+
+State 343
+
+   36 expr_select: SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type •
+
+    $default  reduce using rule 36 (expr_select)
+
+
+State 344
+
+   76 expr_create_table_item: IDENTIFIER expr_data_type col_nullable default_col_dv auto_increment index_type • table_comment
+
+    COMMENT  shift, and go to state 352
+
+    $default  reduce using rule 104 (table_comment)
+
+    table_comment  go to state 353
+
+
+State 345
+
+   71 expr_vct_col_name: expr_vct_col_name ',' IDENTIFIER •
+
+    $default  reduce using rule 71 (expr_vct_col_name)
+
+
+State 346
+
+   77 expr_create_table_item: INDEX IDENTIFIER index_type '(' expr_vct_col_name ')' •
+
+    $default  reduce using rule 77 (expr_create_table_item)
+
+
+State 347
+
+  108 expr_elem_row: expr_elem_row ',' expr_elem •
+
+    $default  reduce using rule 108 (expr_elem_row)
+
+
+State 348
+
+  106 expr_vct_elem_row: expr_vct_elem_row ',' '(' expr_elem_row • ')'
+  108 expr_elem_row: expr_elem_row • ',' expr_elem
+
+    ')'  shift, and go to state 354
+    ','  shift, and go to state 338
+
+
+State 349
+
+  126 opt_expr_having: HAVING expr_logic •
+  198 expr_and: expr_logic • AND expr_logic
+  199 expr_or: expr_logic • OR expr_logic
+
+    AND  shift, and go to state 160
+    OR   shift, and go to state 161
+
+    $default  reduce using rule 126 (opt_expr_having)
+
+
+State 350
+
+  131 opt_lock_type: FOR UPDATE •
+
+    $default  reduce using rule 131 (opt_lock_type)
+
+
+State 351
+
+  130 opt_lock_type: FOR SHARE •
+
+    $default  reduce using rule 130 (opt_lock_type)
+
+
+State 352
+
+  103 table_comment: COMMENT • STRING
+
+    STRING  shift, and go to state 355
+
+
+State 353
+
+   76 expr_create_table_item: IDENTIFIER expr_data_type col_nullable default_col_dv auto_increment index_type table_comment •
+
+    $default  reduce using rule 76 (expr_create_table_item)
+
+
+State 354
+
+  106 expr_vct_elem_row: expr_vct_elem_row ',' '(' expr_elem_row ')' •
+
+    $default  reduce using rule 106 (expr_vct_elem_row)
+
+
+State 355
+
+  103 table_comment: COMMENT STRING •
+
+    $default  reduce using rule 103 (table_comment)

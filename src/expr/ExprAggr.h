@@ -56,6 +56,8 @@ public:
 
       if (!val->IsNull())
         dv.Add(val->GetDouble());
+
+      val->DecRef();
       return true;
     }
 

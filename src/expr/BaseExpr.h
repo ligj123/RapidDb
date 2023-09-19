@@ -200,14 +200,12 @@ public:
   ExprType GetType() { return ExprType::EXPR_COLUMN; }
 
   bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
-    IDataValue *dv = _exprData->Calc(vdPara, vdRow);
+    IDataValue *dv = _exprElem->Calc(vdPara, vdRow);
     if (dv == nullptr)
       return false;
 
-    vdRow[_pos]->Copy(*dv, !dv->IsReuse());
-    if (!dv->IsReuse()) {
-      delete dv;
-    }
+    vdRow[_pos]->Copy(*dv, dv->GetRef() == 1);
+    dv->DecRef();
 
     return true;
   }
