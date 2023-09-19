@@ -78,8 +78,8 @@ public:
   }
 
 public:
-  PhysTable(const MString &dbName, const MString &tableName, const MString &desc,
-            uint32_t tid, DT_MilliSec dtCreate)
+  PhysTable(const MString &dbName, const MString &tableName,
+            const MString &desc, uint32_t tid, DT_MilliSec dtCreate)
       : _dbName(dbName), _name(tableName), _fullName(_dbName + "." + tableName),
         _desc(desc), _tid(tid), _dtCreate(dtCreate) {
     _dtLastUpdate = MilliSecTime();

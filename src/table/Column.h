@@ -26,7 +26,7 @@ public:
         _incStep(incStep), _charset(charset), _pDefaultVal(defaultVal) {}
   ~PhysColumn() {
     if (_pDefaultVal != nullptr)
-      delete _pDefaultVal;
+      _pDefaultVal->DecRef();
   }
   PhysColumn(PhysColumn &&rhs) noexcept {
     _name = rhs._name;
@@ -72,7 +72,7 @@ public:
   uint32_t CalcSize();
 
 protected:
-  MString _name;       // The column's name
+  MString _name;      // The column's name
   int32_t _index;     // The index in table start from 0
   DataType _dataType; // Which data type for this column
   bool _bNullable;    // Can be null or not for this column
@@ -80,7 +80,7 @@ protected:
   int32_t _maxLength; // The max length for variable length data type
   // The initalize value for auto-increment column, the default is 0
   int64_t _initVal;
-  int64_t _incStep; // The step between two neighbor value, the default is 1
+  int64_t _incStep;  // The step between two neighbor value, the default is 1
   MString _comments; // Comments for this column
   IDataValue *_pDefaultVal; // If the default value has or null
 };
