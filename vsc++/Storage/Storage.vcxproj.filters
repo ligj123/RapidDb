@@ -139,7 +139,7 @@
     <ClInclude Include="..\..\src\dataType\DataValueVarChar.h">
       <Filter>dataType</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\utils\BytesConvert.h">
+    <ClInclude Include="..\..\src\utils\BytesFuncs.h">
       <Filter>utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\utils\CharsetConvert.h">
@@ -291,9 +291,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\statement\InsertStatement.h">
       <Filter>statement</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\utils\BytesMicro.h">
-      <Filter>utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\binlog\LogType.h">
       <Filter>binlog</Filter>

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "../config/ErrorID.h"
-#include "../utils/BytesConvert.h"
+#include "../utils/BytesFuncs.h"
 #include "../utils/ErrorMsg.h"
 #include "IDataValue.h"
 #include "Metadata.h"

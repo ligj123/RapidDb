@@ -1,4 +1,4 @@
-#include "../../src/utils/BytesConvert.h"
+#include "../../src/utils/BytesFuncs.h"
 #include <boost/test/unit_test.hpp>
 #include <string>
 

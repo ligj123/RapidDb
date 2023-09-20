@@ -4,7 +4,7 @@
 #include "../../src/dataType/DataValueDigit.h"
 #include "../../src/dataType/DataValueVarChar.h"
 #include "../../src/pool/PageBufferPool.h"
-#include "../../src/utils/BytesConvert.h"
+#include "../../src/utils/BytesFuncs.h"
 #include "../../src/utils/Utilitys.h"
 #include "../TestHeader.h"
 #include "CoreSuit.h"

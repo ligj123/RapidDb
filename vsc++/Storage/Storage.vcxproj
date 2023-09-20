@@ -118,8 +118,7 @@
     <ClInclude Include="..\..\src\transaction\TranStatus.h" />
     <ClInclude Include="..\..\src\transaction\Transaction.h" />
     <ClInclude Include="..\..\src\transaction\TranType.h" />
-    <ClInclude Include="..\..\src\utils\BytesConvert.h" />
-    <ClInclude Include="..\..\src\utils\BytesMicro.h" />
+    <ClInclude Include="..\..\src\utils\BytesFuncs.h" />
     <ClInclude Include="..\..\src\utils\CharsetConvert.h" />
     <ClInclude Include="..\..\src\utils\ConcurrentHashMap.h" />
     <ClInclude Include="..\..\src\utils\Coroutine.h" />

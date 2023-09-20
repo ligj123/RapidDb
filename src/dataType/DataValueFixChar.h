@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../utils/BytesConvert.h"
+#include "../utils/BytesFuncs.h"
 #include "IDataValue.h"
 
 namespace storage {
@@ -65,11 +65,8 @@ public:
   size_t Hash() const override {
     if (valType_ == ValueType::NULL_VALUE)
       return 0;
-    size_t h = 0;
-    for (uint32_t i = 0; i < maxLength_; i++) {
-      h = (h << 1) ^ bysValue_[i];
-    }
-    return h;
+
+    return BytesHash(bysValue_, maxLength_);
   }
   uint32_t GetDataLength() const override {
     if (valType_ == ValueType::NULL_VALUE)

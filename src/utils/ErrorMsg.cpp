@@ -1,14 +1,14 @@
 ﻿#include "ErrorMsg.h"
-#include "BytesConvert.h"
+#include "BytesFuncs.h"
 #include <fstream>
 #include <iostream>
 #include <regex>
 
 namespace storage {
 thread_local unique_ptr<ErrorMsg> _threadErrorMsg = nullptr;
-unordered_map<int, string> ErrorMsg::_mapErrorMsg = ErrorMsg::LoadErrorMsg();
+unordered_map<int, MString> ErrorMsg::_mapErrorMsg = ErrorMsg::LoadErrorMsg();
 
-unordered_map<int, string> ErrorMsg::LoadErrorMsg() {
+unordered_map<int, MString> ErrorMsg::LoadErrorMsg() {
   ifstream ifs("ErrorMsg.txt");
   string line;
   std::regex rgx("^\\d+(\t| {2,})");

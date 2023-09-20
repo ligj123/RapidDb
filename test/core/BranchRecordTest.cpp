@@ -3,7 +3,7 @@
 #include "../../src/core/IndexTree.h"
 #include "../../src/dataType/DataValueFactory.h"
 #include "../../src/pool/PageBufferPool.h"
-#include "../../src/utils/BytesConvert.h"
+#include "../../src/utils/BytesFuncs.h"
 #include "../../src/utils/Utilitys.h"
 #include "../TestHeader.h"
 #include "CoreSuit.h"

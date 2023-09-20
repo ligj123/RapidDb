@@ -1,9 +1,26 @@
 ﻿#pragma once
 #include "../header.h"
-#include "BytesMicro.h"
 #include "Log.h"
 #include <cstdint>
 #include <cstring>
+
+#ifdef BIGENDIAN
+#define BytesSwap16(a) a
+#define BytesSwap32(a) a
+#define BytesSwap64(a) a
+#else
+#ifdef _MSVC_LANG
+#include <stdlib.h>
+#define BytesSwap16(a) _byteswap_ushort(a)
+#define BytesSwap32(a) _byteswap_ulong(a)
+#define BytesSwap64(a) _byteswap_uint64(a)
+#else
+#include <byteswap.h>
+#define BytesSwap16(a) bswap_16(a)
+#define BytesSwap32(a) bswap_32(a)
+#define BytesSwap64(a) bswap_64(a)
+#endif // _MSVC_LANG
+#endif // BIGENDIAN
 
 namespace storage {
 inline int64_t Int64FromBytes(Byte *pArr, bool bkey = false) {
@@ -304,16 +321,17 @@ inline void FloatToBytes(float dval, Byte *pArr, bool bkey = false) {
 #endif
 }
 
-inline int BytesCompare(Byte *bys1, uint32_t len1, Byte *bys2, uint32_t len2) {
+inline int BytesCompare(const Byte *bys1, size_t len1, const Byte *bys2,
+                        size_t len2) {
 #ifdef STD_MEM
   int hr = std::memcmp(bys1, bys2, std::min(len1, len2));
   if (hr != 0)
     return hr;
   return len1 - len2;
 #else
-  uint32_t minLen = min(len1, len2);
-  uint32_t min8 = minLen & 0xFFFFFFF8;
-  uint32_t i = 0;
+  size_t minLen = min(len1, len2);
+  size_t min8 = minLen & 0xFFFFFFFFFFFFFFF8;
+  size_t i = 0;
   for (; i < min8; i += 8) {
     int64_t hr =
         BytesSwap64(*(uint64_t *)bys1) - BytesSwap64(*(uint64_t *)bys2);
@@ -331,16 +349,19 @@ inline int BytesCompare(Byte *bys1, uint32_t len1, Byte *bys2, uint32_t len2) {
     bys2++;
   }
 
-  return len1 - len2;
+  return (int)(len1 - len2);
 #endif // STD_MEM
 }
 
-inline void *BytesCpy(void *dst, const void *src, size_t count) {
-  size_t c8 = count & 0xFFFFFFF8;
+#ifdef STD_MEM
+#define BytesCopy(dst, src, count) std::memcpy(dst, src, count)
+#else
+inline void *BytesCpy(void *dst, const void *src, size_t len) {
+  size_t len8 = count & 0xFFFFFFFFFFFFFFF8;
   size_t i = 0;
   Byte *pdst = (Byte *)dst;
   const Byte *psrc = (Byte *)src;
-  for (; i < c8; i += 8) {
+  for (; i < len8; i += 8) {
     *((uint64_t *)pdst) = *((uint64_t *)psrc);
     pdst += 8;
     psrc += 8;
@@ -351,5 +372,47 @@ inline void *BytesCpy(void *dst, const void *src, size_t count) {
   }
 
   return dst;
+}
+#endif // STD_MEM
+
+inline size_t BytesHash(const Byte *bys, size_t len) {
+  size_t len8 = len & 0xFFFFFFFFFFFFFFF8;
+  size_t i = 0;
+  size_t h = 0;
+  for (; i < len8; i += 8) {
+    h = (h << 8) ^ (size_t)bys;
+    bys += 8;
+  }
+
+  for (; i < len; i++) {
+    h = (h << 1) ^ *bys;
+  }
+
+  return h;
+}
+
+inline bool BytesEqual(const Byte *bys1, size_t len1, const Byte *bys2,
+                       size_t len2) {
+  if (len1 != len2)
+    return false;
+  size_t len8 = len1 & 0xFFFFFFFFFFFFFFF8;
+  size_t i = 0;
+  for (; i < len8; i += 8) {
+    if (*(uint64_t *)bys1 != *(uint64_t *)bys2)
+      return false;
+
+    bys1 += 8;
+    bys2 += 8;
+  }
+
+  for (; i < Len1; i++) {
+    if (*bys1 - *bys2)
+      return false;
+
+    bys1++;
+    bys2++;
+  }
+
+  return true;
 }
 } // namespace storage

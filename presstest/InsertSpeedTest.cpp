@@ -3,7 +3,7 @@
 #include "../src/pool/PageBufferPool.h"
 #include "../src/pool/PageDividePool.h"
 #include "../src/pool/StoragePool.h"
-#include "../src/utils/BytesConvert.h"
+#include "../src/utils/BytesFuncs.h"
 #include "../src/utils/Utilitys.h"
 #include "PressTest.h"
 #include <filesystem>
@@ -24,7 +24,7 @@ void InsertSpeedPrimaryTest(uint64_t row_count) {
   // VectorDataValue vctKey = {dvKey->Clone()};
   // VectorDataValue vctVal = {dvVal->Clone()};
   //// IndexTree *indexTree = new IndexTree(TABLE_NAME, FILE_NAME, vctKey,
-  ///vctVal, / IndexType::PRIMARY);
+  /// vctVal, / IndexType::PRIMARY);
 
   // vctKey.push_back(dvKey->Clone());
   // vctVal.push_back(dvVal->Clone());

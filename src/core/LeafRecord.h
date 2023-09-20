@@ -2,7 +2,7 @@
 #include "../cache/Mallocator.h"
 #include "../dataType/IDataValue.h"
 #include "../transaction/TranStatus.h"
-#include "../utils/BytesConvert.h"
+#include "../utils/BytesFuncs.h"
 #include "../utils/ErrorMsg.h"
 #include "OverflowPage.h"
 #include "RawKey.h"

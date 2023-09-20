@@ -69,7 +69,8 @@
         "forward_list": "cpp",
         "iterator": "cpp",
         "xstring": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "algorithm": "cpp"
     },
     "C_Cpp.errorSquiggles": "disabled",
     "boost-test-adapter.cwd": "/home/lgj/mydb/RapidDb",

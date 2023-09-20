@@ -6,7 +6,7 @@
 #include "../../src/dataType/DataValueFactory.h"
 #include "../../src/dataType/DataValueFixChar.h"
 #include "../../src/dataType/DataValueVarChar.h"
-#include "../../src/utils/BytesConvert.h"
+#include "../../src/utils/BytesFuncs.h"
 #include "../../src/utils/Utilitys.h"
 #include "../TestHeader.h"
 #include "CoreSuit.h"

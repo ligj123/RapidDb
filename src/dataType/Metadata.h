@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../utils/BytesConvert.h"
+#include "../utils/BytesFuncs.h"
 #include "DataType.h"
 namespace storage {
 // From digital to bytes

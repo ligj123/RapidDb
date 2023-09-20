@@ -1,6 +1,6 @@
 ﻿#include "DataValueBlob.h"
 #include "../config/ErrorID.h"
-#include "../utils/BytesConvert.h"
+#include "../utils/BytesFuncs.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
 #include <cstring>

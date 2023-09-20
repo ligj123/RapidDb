@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "BytesConvert.h"
+#include "BytesFuncs.h"
 #include <boost/locale/encoding.hpp>
 #include <cstring>
 #include <iostream>

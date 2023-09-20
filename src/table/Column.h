@@ -3,7 +3,7 @@
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
 #include "../header.h"
-#include "../utils/BytesConvert.h"
+#include "../utils/BytesFuncs.h"
 #include "../utils/CharsetConvert.h"
 #include <any>
 #include <memory>
