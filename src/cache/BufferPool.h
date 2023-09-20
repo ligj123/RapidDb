@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "../config/Configure.h"
 #include "../header.h"
 #include "../utils/SpinMutex.h"
 #include <unordered_map>
@@ -7,8 +6,10 @@
 
 namespace storage {
 using namespace std;
-const uint64_t BUFFER_MASK = Configure::GetCacheBlockSize() - 1;
 class Buffer {
+public:
+  static const uint64_t BUFFER_MASK;
+
 public:
   inline static Byte *CalcAddr(Byte *sAddr) {
     return sAddr - ((uint64_t)sAddr & BUFFER_MASK);

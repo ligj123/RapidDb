@@ -64,25 +64,6 @@ template <class T> using MList = std::list<T, Mallocator<T>>;
 template <class T> using MDeque = std::deque<T, Mallocator<T>>;
 
 using MString = basic_string<char, std::char_traits<char>, Mallocator<char>>;
-template <> struct hash<MString> {
-  std::size_t operator()(const MString &str) const noexcept {
-    return BytesHash((const Byte *)str.c_str(), str.size());
-  }
-};
-
-template <> struct equal_to<string> {
-  bool operator()(const MString &lhs, const MString &rhs) const noexcept {
-    return BytesEqual((Byte *)lhs.c_str(), lhs.size(), (Byte *)rhs.c_str(),
-                      rhs.size());
-  }
-};
-
-template <> struct less<string> {
-  bool operator()(const MString &lhs, const MString &rhs) const noexcept {
-    return (BytesCompare((Byte *)lhs.c_str(), lhs.size(), (Byte *)rhs.c_str(),
-                         rhs.size()) <= 0);
-  }
-};
 
 inline MString ToMString(int value) {
   char buf[32];
@@ -125,3 +106,25 @@ inline MString ToMString(double value) {
   return MString(buf);
 }
 } // namespace storage
+
+template <> struct std::hash<storage::MString> {
+  std::size_t operator()(const storage::MString &str) const noexcept {
+    return storage::BytesHash((const Byte *)str.c_str(), str.size());
+  }
+};
+
+template <> struct std::equal_to<storage::MString> {
+  bool operator()(const storage::MString &lhs,
+                  const storage::MString &rhs) const noexcept {
+    return storage::BytesEqual((Byte *)lhs.c_str(), lhs.size(),
+                               (Byte *)rhs.c_str(), rhs.size());
+  }
+};
+
+template <> struct std::less<storage::MString> {
+  bool operator()(const storage::MString &lhs,
+                  const storage::MString &rhs) const noexcept {
+    return (storage::BytesCompare((Byte *)lhs.c_str(), lhs.size(),
+                                  (Byte *)rhs.c_str(), rhs.size()) <= 0);
+  }
+};

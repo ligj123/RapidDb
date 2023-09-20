@@ -1,6 +1,5 @@
 ﻿#include "CachePool.h"
 #include "../config/Configure.h"
-#include "../config/ErrorID.h"
 #include "StackTrace.h"
 #include <iostream>
 

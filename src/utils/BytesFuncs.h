@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "../header.h"
-#include "Log.h"
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 
@@ -329,7 +329,7 @@ inline int BytesCompare(const Byte *bys1, size_t len1, const Byte *bys2,
     return hr;
   return len1 - len2;
 #else
-  size_t minLen = min(len1, len2);
+  size_t minLen = std::min(len1, len2);
   size_t min8 = minLen & 0xFFFFFFFFFFFFFFF8;
   size_t i = 0;
   for (; i < min8; i += 8) {
@@ -354,10 +354,10 @@ inline int BytesCompare(const Byte *bys1, size_t len1, const Byte *bys2,
 }
 
 #ifdef STD_MEM
-#define BytesCopy(dst, src, count) std::memcpy(dst, src, count)
+#define BytesCopy(dst, src, len) std::memcpy(dst, src, len)
 #else
-inline void *BytesCpy(void *dst, const void *src, size_t len) {
-  size_t len8 = count & 0xFFFFFFFFFFFFFFF8;
+inline void *BytesCopy(void *dst, const void *src, size_t len) {
+  size_t len8 = len & 0xFFFFFFFFFFFFFFF8;
   size_t i = 0;
   Byte *pdst = (Byte *)dst;
   const Byte *psrc = (Byte *)src;
@@ -367,7 +367,7 @@ inline void *BytesCpy(void *dst, const void *src, size_t len) {
     psrc += 8;
   }
 
-  for (; i < count; i++) {
+  for (; i < len; i++) {
     *pdst++ = *psrc++;
   }
 
@@ -405,7 +405,7 @@ inline bool BytesEqual(const Byte *bys1, size_t len1, const Byte *bys2,
     bys2 += 8;
   }
 
-  for (; i < Len1; i++) {
+  for (; i < len1; i++) {
     if (*bys1 - *bys2)
       return false;
 

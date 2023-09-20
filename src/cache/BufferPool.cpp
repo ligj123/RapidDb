@@ -10,6 +10,8 @@
 #endif // _MSVC_LANG
 
 namespace storage {
+const uint64_t Buffer::BUFFER_MASK = Configure::GetCacheBlockSize() - 1;
+
 Buffer::Buffer(uint16_t eleSize) : _eleSize(eleSize) {
 #ifdef _MSVC_LANG
   _pBuf = (Byte *)_aligned_malloc(Configure::GetCacheBlockSize(),

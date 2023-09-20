@@ -34,7 +34,7 @@ public:
     } else {
       _errMsg = iter->second;
       for (int i = 0; i < paras.size(); i++) {
-        MString str = "{" + to_string(i + 1) + "}";
+        MString str = "{" + ToMString(i + 1) + "}";
         size_t pos = _errMsg.find(str);
         if (pos != MString::npos)
           _errMsg.replace(pos, 3, paras[i]);
