@@ -37,7 +37,6 @@ inline bool operator!=(const Mallocator<T> &, const Mallocator<U> &) {
 
 template <class V> using MVector = std::vector<V, Mallocator<V>>;
 template <class V> class MVectorPtr : public MVector<V> {
-  using vector<V>::vector;
   ~MVectorPtr() {
     for (auto iter = this->begin(); iter != this->end(); iter++) {
       delete *iter;

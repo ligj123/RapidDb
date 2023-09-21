@@ -36,7 +36,8 @@ typedef ExprCondition<ExprType::EXPR_HAVING> ExprHaving;
 
 // To query physical table, point out which index will be used. Only one index
 // can be selected.
-struct UseIndex {
+class UseIndex {
+public:
   ~UseIndex { delete _indexExpr; }
   // If the primary or secondary index can be used to query, copy the query
   // conditions to here. Only one index can be used. Only valid for physical

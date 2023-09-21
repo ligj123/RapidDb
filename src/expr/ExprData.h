@@ -38,7 +38,7 @@ public:
     _val = new DataValueNull();
     _val->SetConstRef();
   }
-  ~ExprConst() { delete _val; }
+  ~ExprConst() { _val->DecRef(); }
   ExprType GetType() { return ExprType::EXPR_CONST; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return _val;
@@ -234,14 +234,14 @@ public:
   ExprMinus(ExprData *data) : _exprData(data) {}
   ~ExprMinus() { delete _exprData; }
 
-  ExprType GetType() { return ExprType::EXPR_DATA; }
+  ExprType GetType() { return ExprType::EXPR_MINUS; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    IDataValue *data = _exprLeft->Calc(vdParas, vdRow);
+    IDataValue *data = _exprData->Calc(vdParas, vdRow);
     IDataValue *rt = nullptr;
 
     if (data->IsAutoPrimaryKey()) {
       rt = new DataValueLong(data->GetLong());
-    } else if (left->IsDigital() && right->IsDigital()) {
+    } else if (data->IsDigital()) {
       double r = data->GetDouble();
       if (r != 0)
         rt = new DataValueDouble(data->GetDouble());
@@ -253,29 +253,5 @@ public:
 
 public:
   ExprData *_exprData;
-};
-
-/*
- * @brief The function expression.
- */
-class ExprFunc : public ExprData {
-public:
-  ExprFunc(MString *funcName, MVectorPtr<ExprData *> paras)
-      : _funcName(funcName), _vctPara(paras) {}
-  ~ExprFunc() {
-    delete _funcName;
-    delete _vctPara;
-  }
-
-  ExprType GetType() { return ExprType::EXPR_FUNCTION; }
-  IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    return nullptr;
-  }
-
-protected:
-  // The function name, must convert to upper case
-  MString _funcName;
-  // The parameters for this function
-  MVector<ExprData *> _vctPara;
 };
 } // namespace storage

@@ -1,14 +1,10 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
-#include "../cache/StrBuff.h"
-#include "../config/ErrorID.h"
-#include "../dataType/DataValueDigit.h"
-#include "../dataType/DataValueFixChar.h"
-#include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
 #include "ExprData.h"
+
 #include <unordered_set>
 
 using namespace std;
@@ -29,8 +25,10 @@ public:
     IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
     IDataValue *right = _exprRight->Calc(vdParas, vdRow);
     if (left == nullptr || right == nullptr) {
-      left->DecRef();
-      right->DecRef();
+      if (left != nullptr)
+        left->DecRef();
+      else
+        right->DecRef();
       return TriBool::Error;
     }
 
@@ -123,12 +121,15 @@ public:
   ExprType GetType() { return ExprType::EXPR_BETWEEN; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *pdv = _child->Calc(vdParas, vdRow);
-    IDataValue *left = _exprLeft->GetValue();
-    IDataValue *right = _exprRight->GetValue();
+    IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
+    IDataValue *right = _exprRight->Calc(vdParas, vdRow);
     if (pdv == nullptr || left == nullptr || right == nullptr) {
-      pdv->DecRef();
-      left->DecRef();
-      right->DecRef();
+      if (pdv != nullptr)
+        pdv->DecRef();
+      if (left != nullptr)
+        left->DecRef();
+      if (right != nullptr)
+        right->DecRef();
       return TriBool::Error;
     }
 

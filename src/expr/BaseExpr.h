@@ -25,6 +25,7 @@ enum class ExprType {
   EXPR_MUL,
   EXPR_DIV,
   EXPR_MINUS,
+  EXPR_DATA_END,
 
   // Aggr
   EXPR_COUNT,
@@ -32,6 +33,7 @@ enum class ExprType {
   EXPR_MAX,
   EXPR_MIN,
   EXPR_AVG,
+  EXPR_AGGR_END,
 
   // bool value type
   EXPR_COMP,
@@ -44,6 +46,7 @@ enum class ExprType {
   EXPR_AND,
   EXPR_OR,
   EXPR_NOT,
+  EXPR_LOGIC_END,
 
   // Statement part
   EXPR_WHERE,
@@ -187,22 +190,11 @@ public:
       : _name(name), _exprElem(exprElem), _alias(alias) {}
   ~ExprColumn() {
     delete _exprElem;
-    delete *_name;
-    delete *_alias;
+    delete _name;
+    delete _alias;
   }
 
   ExprType GetType() { return ExprType::EXPR_COLUMN; }
-
-  bool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
-    IDataValue *dv = _exprElem->Calc(vdPara, vdRow);
-    if (dv == nullptr)
-      return false;
-
-    vdRow[_pos]->Copy(*dv, dv->GetRef() == 1);
-    dv->DecRef();
-
-    return true;
-  }
 
 public:
   MString *_name;      // column name
@@ -235,13 +227,13 @@ public:
   MString *_dbName;
   MString *_tName;
   MString *_tAlias;
-  JoinType _joinType{JOIN_NULL};
+  JoinType _joinType{JoinType::JOIN_NULL};
 };
 
 // Base class for all statement
 class ExprStatement : public BaseExpr {
 public:
-  bool Preprocess() = 0;
+  virtual bool Preprocess() = 0;
 
 public:
   // int _paramNum{0}; // The numbe of parameters in this statement
