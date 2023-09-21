@@ -107,7 +107,8 @@ bool IndexTree::InitIndex(const string &indexName, const string &fileName,
   _headPage->ReadPage();
   FileVersion &&fv = _headPage->ReadFileVersion();
   if (!(fv == CURRENT_FILE_VERSION)) {
-    _threadErrorMsg.reset(new ErrorMsg(TB_ERROR_INDEX_VERSION, {_fileName}));
+    _threadErrorMsg.reset(
+        new ErrorMsg(TB_ERROR_INDEX_VERSION, {_fileName.c_str()}));
     return false;
   }
 

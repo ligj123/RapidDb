@@ -10,7 +10,7 @@ namespace storage {
 bool DataValueBlob::SetValue(const char *val, uint32_t len) {
   if (len > maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return false;
   }
 
@@ -67,7 +67,7 @@ bool DataValueBlob::PutValue(std::any val) {
 
   if (len > maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return false;
   }
 
@@ -92,7 +92,7 @@ bool DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
   if (dv.GetDataLength() > maxLength_) {
     _threadErrorMsg.reset(
         new ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {to_string(maxLength_), to_string(dv.GetDataLength())}));
+                     {ToMString(maxLength_), ToMString(dv.GetDataLength())}));
     return false;
   }
 
@@ -149,7 +149,7 @@ uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len, SavePosition dtPos,
 
   if (len > maxLength_)
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
   soleLength_ = len;
   if (bSole) {
     bysValue_ = CachePool::Apply(soleLength_);

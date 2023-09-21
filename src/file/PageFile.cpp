@@ -11,7 +11,7 @@ PageFile::PageFile(const string &path) {
   if (!_file.is_open()) {
     _file.open(path.c_str(), ios::out);
     if (!_file.is_open())
-      throw ErrorMsg(FILE_OPEN_FAILED, {path});
+      throw ErrorMsg(FILE_OPEN_FAILED, {path.c_str()});
     _file.close();
     _file.open(path.c_str(), ios::in | ios::out | ios::binary);
   }

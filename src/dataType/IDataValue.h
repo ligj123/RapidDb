@@ -2,8 +2,6 @@
 #include "../cache/CachePool.h"
 #include "../cache/Mallocator.h"
 #include "../cache/StrBuff.h"
-#include "../config/ErrorID.h"
-#include "../utils/ErrorMsg.h"
 #include "DataType.h"
 #include <any>
 #include <cassert>

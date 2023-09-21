@@ -63,7 +63,7 @@ inline IDataValue *DataValueFactory(DataType type,
     break;
   default:
     _threadErrorMsg.reset(
-        new ErrorMsg(DT_UNKNOWN_TYPE, {to_string((uint32_t)type)}));
+        new ErrorMsg(DT_UNKNOWN_TYPE, {ToMString((uint32_t)type)}));
     return nullptr;
   }
 

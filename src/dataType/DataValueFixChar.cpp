@@ -30,7 +30,7 @@ DataValueFixChar::DataValueFixChar(const DataValueFixChar &src)
 bool DataValueFixChar::SetValue(const char *val, uint32_t len) {
   if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return false;
   }
 
@@ -86,7 +86,7 @@ bool DataValueFixChar::PutValue(std::any val) {
     len = strlen(buf);
   if (len + 1 > maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return false;
   }
 
@@ -116,7 +116,7 @@ bool DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
     if (maxLength_ < sb.GetStrLen() + 1) {
       _threadErrorMsg.reset(
           new ErrorMsg(DT_INPUT_OVER_LENGTH,
-                       {to_string(maxLength_), to_string(sb.GetStrLen() + 1)}));
+                       {ToMString(maxLength_), ToMString(sb.GetStrLen() + 1)}));
       return false;
     }
 
@@ -135,7 +135,7 @@ bool DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
   if (dv.GetDataLength() > maxLength_) {
     _threadErrorMsg.reset(
         new ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {to_string(maxLength_), to_string(dv.GetDataLength())}));
+                     {ToMString(maxLength_), ToMString(dv.GetDataLength())}));
     return false;
   }
 
@@ -300,7 +300,7 @@ DataValueFixChar *DataValueFixChar::operator=(const char *val) {
   uint32_t len = (uint32_t)strlen(val);
   if (len + 1 >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return nullptr;
   }
   if (valType_ != ValueType::SOLE_VALUE)
@@ -317,7 +317,7 @@ DataValueFixChar *DataValueFixChar::operator=(const MString val) {
   uint32_t len = (uint32_t)val.size();
   if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return nullptr;
   }
   if (valType_ != ValueType::SOLE_VALUE)
@@ -334,7 +334,7 @@ DataValueFixChar *DataValueFixChar::operator=(const string val) {
   uint32_t len = (uint32_t)val.size();
   if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return nullptr;
   }
   if (valType_ != ValueType::SOLE_VALUE)

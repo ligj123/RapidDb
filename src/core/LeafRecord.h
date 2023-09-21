@@ -185,7 +185,7 @@ protected:
     }
 
     if (lenKey > Configure::GetMaxKeyLength()) {
-      throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {to_string(lenKey)});
+      throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)});
     }
     return lenKey;
   }

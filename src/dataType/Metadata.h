@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "../utils/BytesFuncs.h"
 #include "DataType.h"
+#include <cfloat>
+
 namespace storage {
 // From digital to bytes
 template <DataType v> class Case_T {

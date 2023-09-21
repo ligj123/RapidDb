@@ -116,7 +116,7 @@ public:
 
     if (fields != _vctParaTmpl->size()) {
       throw ErrorMsg(STAT_PARAM_NUM_INVALID,
-                     {to_string(_vctParaTmpl->size()), to_string(fields)});
+                     {ToMString(_vctParaTmpl->size()), ToMString(fields)});
     }
 
     for (int i = 0; i < rows; i++) {
@@ -133,7 +133,7 @@ public:
 
     if (len != (int)(bys - sbys)) {
       throw ErrorMsg(STAT_PARAM_LEN_INVALID,
-                     {to_string(len), to_string((int)(bys - sbys))});
+                     {ToMString(len), ToMString((int)(bys - sbys))});
     }
   }
 

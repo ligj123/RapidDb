@@ -12,7 +12,7 @@ namespace storage {
 bool DataValueVarChar::SetValue(const char *val, uint32_t len) {
   if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len + 1)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len + 1)}));
     return false;
   }
 
@@ -72,7 +72,7 @@ bool DataValueVarChar::PutValue(std::any val) {
 
   if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {to_string(maxLength_), to_string(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return false;
   }
 
@@ -104,7 +104,7 @@ bool DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
     if (maxLength_ < sb.GetStrLen() + 1) {
       _threadErrorMsg.reset(
           new ErrorMsg(DT_INPUT_OVER_LENGTH,
-                       {to_string(maxLength_), to_string(sb.GetStrLen() + 1)}));
+                       {ToMString(maxLength_), ToMString(sb.GetStrLen() + 1)}));
       return false;
     }
 
@@ -125,7 +125,7 @@ bool DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
   if (dv.GetDataLength() > maxLength_) {
     _threadErrorMsg.reset(
         new ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {to_string(maxLength_), to_string(dv.GetDataLength())}));
+                     {ToMString(maxLength_), ToMString(dv.GetDataLength())}));
     return false;
   }
 
@@ -296,7 +296,7 @@ DataValueVarChar &DataValueVarChar::operator=(const char *val) {
   uint32_t len = (uint32_t)strlen(val) + 1;
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+                   {ToMString(maxLength_), ToMString(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 
@@ -311,7 +311,7 @@ DataValueVarChar &DataValueVarChar::operator=(const MString val) {
   uint32_t len = (uint32_t)val.size() + 1;
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+                   {ToMString(maxLength_), ToMString(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 
@@ -326,7 +326,7 @@ DataValueVarChar &DataValueVarChar::operator=(const string val) {
   uint32_t len = (uint32_t)val.size() + 1;
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
-                   {to_string(maxLength_), to_string(soleLength_)});
+                   {ToMString(maxLength_), ToMString(soleLength_)});
   if (valType_ == ValueType::SOLE_VALUE)
     CachePool::Release(bysValue_, soleLength_);
 

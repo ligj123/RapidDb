@@ -1,12 +1,9 @@
 ﻿#pragma once
-#include "../cache/StrBuff.h"
-#include "../config/ErrorID.h"
 #include "../dataType/DataValueDigit.h"
 #include "../dataType/DataValueFixChar.h"
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
-#include "../table/Table.h"
-#include "../utils/ErrorMsg.h"
+
 #include <unordered_set>
 #include <vector>
 
@@ -14,10 +11,10 @@ using namespace std;
 namespace storage {
 enum class ExprType {
   EXPR_BASE,
-  EXPR_STAR
+  EXPR_STAR,
 
-      // const type
-      EXPR_ARRAY,
+  // const type
+  EXPR_ARRAY,
 
   // data value type
   EXPR_CONST,
@@ -112,7 +109,6 @@ class ExprElem : public BaseExpr {};
  */
 class ExprData : public ExprElem {
 public:
-  using BaseExpr::BaseExpr;
   /**
    * @brief Get data value from vdLeft or vdRight, then calc them and return the
    * result.
@@ -131,7 +127,6 @@ public:
  */
 class ExprAggr : public ExprElem {
 public:
-  using BaseExpr::BaseExpr;
   /**
    * @brief Calc the aggressive value
    * @param vdParas The row data value array from source table.
@@ -143,13 +138,12 @@ public:
                     IDataValue &dv) = 0;
 };
 
-enum class TriBool : uint8_t { Error = -1, False = 0, True = 1 };
+enum class TriBool : int8_t { Error = -1, False = 0, True = 1 };
 /**
  * @brief Base class for all logic expression, for example and,or
  */
 class ExprLogic : public ExprElem {
 public:
-  using BaseExpr::BaseExpr;
   /**
    * @brief To calc the bool result from child expr and return.
    * @param vdSrc The row data value array from source table.
@@ -163,12 +157,12 @@ public:
 /**
  * @brief To save array const values, to be used in SQL operator IN.
  */
-class ExprArray : public BaseElem {
+class ExprArray : public BaseExpr {
 public:
   ExprArray() {}
   ~ExprArray() {
     for (IDataValue *pdv : _setVal) {
-      delete pdv;
+      pdv->DecRef();
     }
   }
 
