@@ -37,6 +37,7 @@ inline bool operator!=(const Mallocator<T> &, const Mallocator<U> &) {
 
 template <class V> using MVector = std::vector<V, Mallocator<V>>;
 template <class V> class MVectorPtr : public MVector<V> {
+public:
   ~MVectorPtr() {
     for (auto iter = this->begin(); iter != this->end(); iter++) {
       delete *iter;
@@ -103,6 +104,18 @@ inline MString ToMString(double value) {
   char buf[32];
   std::sprintf(buf, "%f", value);
   return MString(buf);
+}
+inline bool MStringEqualIgnoreCase(const MString &lhs, const MString &rhs) {
+  if (lhs.size() != rhs.size())
+    return false;
+  const char *p1 = lhs.c_str();
+  const char *p2 = rhs.c_str();
+  for (size_t i = lhs.size(); i > 0; --i, p1++, p2++) {
+    if (toupper(*p1) != toupper(*p2))
+      return false;
+  }
+
+  return true;
 }
 } // namespace storage
 

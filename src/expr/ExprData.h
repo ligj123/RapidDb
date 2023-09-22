@@ -39,12 +39,14 @@ public:
     _val->SetConstRef();
   }
   ~ExprConst() { _val->DecRef(); }
-  ExprType GetType() { return ExprType::EXPR_CONST; }
+  ExprType GetType() override { return ExprType::EXPR_CONST; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return _val;
   }
-  IDataValue *GetValue() { return _val; }
-  bool IsNull() { return _val->GetDataType() == DataType::VAL_NULL; }
+
+  bool IsNull() {
+    return _val == nullptr || _val->GetDataType() == DataType::VAL_NULL;
+  }
 
 public:
   IDataValue *_val;
@@ -62,7 +64,7 @@ public:
     delete _colName;
   }
 
-  ExprType GetType() { return ExprType::EXPR_FIELD; }
+  ExprType GetType() override { return ExprType::EXPR_FIELD; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return vdRow[_rowPos];
   }
@@ -78,7 +80,7 @@ public:
  */
 class ExprParameter : public ExprData {
 public:
-  ExprType GetType() { return ExprType::EXPR_PARAMETER; }
+  ExprType GetType() override { return ExprType::EXPR_PARAMETER; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return vdParas[_paraPos];
   }
@@ -96,7 +98,7 @@ public:
     delete _exprRight;
   }
 
-  ExprType GetType() { return ExprType::EXPR_ADD; }
+  ExprType GetType() override { return ExprType::EXPR_ADD; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
     IDataValue *right = _exprRight->Calc(vdParas, vdRow);
@@ -133,7 +135,7 @@ public:
     delete _exprRight;
   }
 
-  ExprType GetType() { return ExprType::EXPR_SUB; }
+  ExprType GetType() override { return ExprType::EXPR_SUB; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
     IDataValue *right = _exprRight->Calc(vdParas, vdRow);
@@ -166,7 +168,7 @@ public:
     delete _exprRight;
   }
 
-  ExprType GetType() { return ExprType::EXPR_MUL; }
+  ExprType GetType() override { return ExprType::EXPR_MUL; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
     IDataValue *right = _exprRight->Calc(vdParas, vdRow);
@@ -199,7 +201,7 @@ public:
     delete _exprRight;
   }
 
-  ExprType GetType() { return ExprType::EXPR_DIV; }
+  ExprType GetType() override { return ExprType::EXPR_DIV; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
     IDataValue *right = _exprRight->Calc(vdParas, vdRow);
@@ -234,7 +236,7 @@ public:
   ExprMinus(ExprData *data) : _exprData(data) {}
   ~ExprMinus() { delete _exprData; }
 
-  ExprType GetType() { return ExprType::EXPR_MINUS; }
+  ExprType GetType() override { return ExprType::EXPR_MINUS; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *data = _exprData->Calc(vdParas, vdRow);
     IDataValue *rt = nullptr;

@@ -13,7 +13,11 @@ public:
   ExprCreateDatabase(MString *dbName, bool ifNotExist)
       : _dbName(dbName), _ifNotExist(ifNotExist) {}
   ~ExprCreateDatabase() { delete _dbName; }
-  ExprType GetType() { return ExprType::EXPR_CREATE_DATABASE; }
+  ExprType GetType() override { return ExprType::EXPR_CREATE_DATABASE; }
+  bool Preprocess() override {
+    // TO DO
+    return false;
+  }
 
 public:
   MString *_dbName;
@@ -25,7 +29,11 @@ public:
   ExprDropDatabase(MString *dbName, bool ifExist)
       : _dbName(dbName), _ifExist(ifExist) {}
   ~ExprDropDatabase() { delete _dbName; }
-  ExprType GetType() { return ExprType::EXPR_DROP_DATABASE; }
+  ExprType GetType() override { return ExprType::EXPR_DROP_DATABASE; }
+  bool Preprocess() override {
+    // TO DO
+    return false;
+  }
 
 public:
   MString *_dbName;
@@ -34,24 +42,33 @@ public:
 
 class ExprShowDatabases : public ExprStatement {
 public:
-  ExprType GetType() { return ExprType::EXPR_SHOW_DATABASES; }
+  ExprType GetType() override { return ExprType::EXPR_SHOW_DATABASES; }
+  bool Preprocess() override {
+    // TO DO
+    return false;
+  }
 };
 
 class ExprUseDatabase : public ExprStatement {
 public:
   ExprUseDatabase(MString *dbName) : _dbName(dbName) {}
   ~ExprUseDatabase() { delete _dbName; }
-  ExprType GetType() { return ExprType::EXPR_USE_DATABASE; }
+  ExprType GetType() override { return ExprType::EXPR_USE_DATABASE; }
+  bool Preprocess() override {
+    // TO DO
+    return false;
+  }
 
 public:
   MString *_dbName;
 };
 
-class ExprDataType : public base {
+class ExprDataType : public BaseExpr {
 public:
   ExprDataType(DataType dataType, int32_t maxLen)
       : _dataType(dataType), _maxLen(maxLen) {}
   ExprDataType(DataType dataType) : _dataType(dataType), _maxLen(-1) {}
+  ExprType GetType() override { return ExprType::EXPR_DATA_TYPE; }
 
 public:
   DataType _dataType;
@@ -65,9 +82,10 @@ public:
   ~ExprColumnItem() {
     delete _colName;
     delete _comment;
-    delete _defaultVal;
+    if (_defaultVal != nullptr)
+      _defaultVal->DecRef();
   }
-  ExprType GetType() { return ExprType::EXPR_COLUMN_INFO; }
+  ExprType GetType() override { return ExprType::EXPR_COLUMN_INFO; }
 
 public:
   MString *_colName{nullptr};
@@ -83,13 +101,13 @@ public:
 class ExprTableConstraint : public ExprCreateTableItem {
 public:
   ExprTableConstraint(MString *idxName, IndexType idxType,
-                      MVector<MString *> *vctColName)
+                      MVectorPtr<MString *> *vctColName)
       : _idxName(idxName), _idxType(idxType), _vctColName(vctColName) {}
-  ~ExprConstraint() {
+  ~ExprTableConstraint() {
     delete _idxName;
     delete _vctColName;
   }
-  ExprType GetType() { return ExprType::EXPR_CONSTRAINT; }
+  ExprType GetType() override { return ExprType::EXPR_CONSTRAINT; }
 
 public:
   MString *_idxName;
@@ -97,29 +115,31 @@ public:
   // In this version here does only support to include entire columns, and the
   // total length of columns can not exceed the index max length defined in
   // config. In following version, maybe to support more complex content.
-  MVector<MString *> *_vctColName;
+  MVectorPtr<MString *> *_vctColName;
 };
 
 class ExprCreateTable : public ExprStatement {
 public:
   ExprCreateTable(ExprTable *tName, bool ifNotExist,
-                  MVectorPtr<ExprTableItem *> *vctItem)
+                  MVectorPtr<ExprCreateTableItem *> *vctItem)
       : _tName(tName), _ifNotExist(ifNotExist), _vctItem(vctItem) {}
   ~ExprCreateTable() {
     delete _tName;
+    delete _vctItem;
     delete _vctColumn;
-    delete _vctConstraint
+    delete _vctConstraint;
   }
-  ExprType GetType() { return ExprType::EXPR_CREATE_TABLE; }
+  ExprType GetType() override { return ExprType::EXPR_CREATE_TABLE; }
 
-  bool Preprocess() {
+  bool Preprocess() override {
     // TO DO
+    return false;
   }
 
 public:
   ExprTable *_tName;
   bool _ifNotExist;
-  MVectorPtr<ExprTableItem *> *_vctItem;
+  MVectorPtr<ExprCreateTableItem *> *_vctItem;
   // Split from _vctElem when preprocess
   MVectorPtr<ExprColumnItem *> *_vctColumn{nullptr};
   // Split from _vctElem when preprocess
@@ -131,9 +151,10 @@ public:
   ExprDropTable(ExprTable *tName, bool ifExist)
       : _tName(tName), _ifExist(ifExist) {}
   ~ExprDropTable() { delete _tName; }
-  ExprType GetType() { return ExprType::EXPR_DROP_TABLE; }
-  bool Preprocess() {
+  ExprType GetType() override { return ExprType::EXPR_DROP_TABLE; }
+  bool Preprocess() override {
     // TO DO
+    return false;
   }
 
 public:
@@ -142,13 +163,15 @@ public:
 };
 
 class ExprShowTables : public ExprStatement {
+public:
   ExprShowTables(MString *dbName) : _dbName(dbName) {}
   ~ExprShowTables() { delete _dbName; }
 
 public:
-  ExprType GetType() { return ExprType::EXPR_SHOW_TABLES; }
-  bool Preprocess() {
+  ExprType GetType() override { return ExprType::EXPR_SHOW_TABLES; }
+  bool Preprocess() override {
     // TO DO
+    return false;
   }
 
 public:
@@ -159,33 +182,46 @@ class ExprTrunTable : public ExprStatement {
 public:
   ExprTrunTable(ExprTable *tableName) : _tableName(tableName) {}
   ~ExprTrunTable() { delete _tableName; }
-  ExprType GetType() { return ExprType::EXPR_TRUN_TABLE; }
-  bool Preprocess() {
+  ExprType GetType() override { return ExprType::EXPR_TRUN_TABLE; }
+  bool Preprocess() override {
     // TO DO
+    return false;
   }
 
 public:
   ExprTable *_tableName;
 };
 
-enum class TranType { BEGIN, COMMIT, ROLLBACK };
+enum class TranAction : int8_t { TRAN_BEGIN = 0, TRAN_COMMIT, TRAN_ROLLBACK };
 class ExprTransaction : public ExprStatement {
 public:
-  ExprTransaction(TranType tranType) : _tranType(tranType) {}
-  ExprType GetType() { return ExprType::EXPR_TRANSACTION; }
-
-public:
-  TranType _tranType;
-};
-
-enum class AlterAction { ADD, CHANGE, ALTER, MODIFY, DROP, RENAME };
-class ExprAlterTable : public ExprStatement {
-public:
-  bool Preprocess() {
+  ExprTransaction(TranAction tranAction) : _tranAction(tranAction) {}
+  ExprType GetType() override { return ExprType::EXPR_TRANSACTION; }
+  bool Preprocess() override {
     // TO DO
+    return false;
   }
 
 public:
-  AlterAction _action;
+  TranAction _tranAction;
 };
+
+// enum class AlterAction : int8_t {
+//   ADD = 0,
+//   CHANGE,
+//   ALTER,
+//   MODIFY,
+//   DROP,
+//   RENAME
+// };
+// class ExprAlterTable : public ExprStatement {
+// public:
+//   bool Preprocess()override {
+//     // TO DO
+//     return false;
+//   }
+
+// public:
+//   AlterAction _action;
+// };
 } // namespace storage

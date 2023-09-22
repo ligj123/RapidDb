@@ -19,7 +19,7 @@ template <ExprType ET> class ExprCondition : public BaseExpr {
 public:
   ExprCondition(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
   ~ExprCondition() { delete _exprLogic; }
-  ExprType GetDataType() const { return ET; }
+  ExprType GetType() override { return ET; }
 
   TriBool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) {
     if (_exprLogic == nullptr)
@@ -38,7 +38,7 @@ typedef ExprCondition<ExprType::EXPR_HAVING> ExprHaving;
 // can be selected.
 class UseIndex {
 public:
-  ~UseIndex { delete _indexExpr; }
+  ~UseIndex() { delete _indexExpr; }
   // If the primary or secondary index can be used to query, copy the query
   // conditions to here. Only one index can be used. Only valid for physical
   // table select
@@ -55,7 +55,7 @@ public:
 public:
   // This variable will be set when preprocess
   UseIndex *_useIndex{nullptr};
-}
+};
 
 class ExprGroupBy : public BaseExpr {
 public:
@@ -65,19 +65,19 @@ public:
     delete _vctColName;
     delete _exprHaving;
   }
-  ExprType GetType() { return ExprType::EXPR_GROUP_BY; }
+  ExprType GetType() override { return ExprType::EXPR_GROUP_BY; }
 
 public:
   MVectorPtr<MString *> *_vctColName;
   MVector<int> _vctColPos;
-  ExprHaving *_exprHaving{nullptr};
+  ExprHaving *_exprHaving;
 };
 
-class ExprOrderItem : BaseExpr {
+class ExprOrderItem : public BaseExpr {
 public:
   ExprOrderItem(MString *colName, bool direct)
       : _colName(colName), _direct(direct) {}
-  ExprType GetType() { return ExprType::EXPR_ORDER_ITEM; }
+  ExprType GetType() override { return ExprType::EXPR_ORDER_ITEM; }
   ~ExprOrderItem() { delete _colName; }
 
 public:
@@ -90,7 +90,7 @@ class ExprOrderBy : public BaseExpr {
 public:
   ExprOrderBy(MVectorPtr<ExprOrderItem *> *vctItem) : _vctItem(vctItem) {}
   ~ExprOrderBy() { delete _vctItem; }
-  ExprType GetType() { return ExprType::EXPR_ORDER_BY; }
+  ExprType GetType() override { return ExprType::EXPR_ORDER_BY; }
 
 public:
   MVectorPtr<ExprOrderItem *> *_vctItem;
@@ -100,7 +100,7 @@ class ExprLimit : public BaseExpr {
 public:
   ExprLimit(int rowOffset, int rowCount)
       : _rowOffset(rowOffset), _rowCount(rowCount) {}
-  ExprType GetType() { return ExprType::EXPR_LIMIT; }
+  ExprType GetType() override { return ExprType::EXPR_LIMIT; }
 
 public:
   // Offset for return rows, default 0. Only valid for root select result.
@@ -125,9 +125,10 @@ public:
     delete _exprOrderBy;
     delete _exprLimit;
   }
-  ExprType GetType() { return ExprType::EXPR_SELECT; }
-  bool Preprocess() {
+  ExprType GetType() override { return ExprType::EXPR_SELECT; }
+  bool Preprocess() override {
     // TO DO
+    return false;
   }
 
 public:
@@ -140,11 +141,11 @@ public:
   MVectorPtr<ExprTable *> *_vctTable{nullptr};
   // Where condition
   ExprWhere *_exprWhere{nullptr};
-  ExprOn *_exprOn(nullptr);
+  ExprOn *_exprOn{nullptr};
 
   ExprGroupBy *_exprGroupBy{nullptr};
   ExprOrderBy *_exprOrderBy{nullptr};
-  ExprLimit *_exprLimit(nullptr);
+  ExprLimit *_exprLimit{nullptr};
   LockType _lockType{LockType::NO_LOCK};
 };
 
@@ -161,9 +162,10 @@ public:
       _physTable->DecRef();
   }
 
-  ExprType GetType() { return ExprType::EXPR_INSERT; }
-  bool Preprocess() {
+  ExprType GetType() override { return ExprType::EXPR_INSERT; }
+  bool Preprocess() override {
     // TO DO
+    return false;
   }
 
 public:
@@ -173,9 +175,9 @@ public:
   // table's columns
   MVectorPtr<ExprColumn *> *_vctCol{nullptr};
   // One row data to insert
-  MVectorPtr<ExprData *> *_rowData{nullptr};
+  MVectorPtr<ExprElem *> *_rowData{nullptr};
   // The multi row data that will be inserted.
-  MVectorPtr<MVectorPtr<ExprData *> *> *_vctRowData{nullptr};
+  MVectorPtr<MVectorPtr<ExprElem *> *> *_vctRowData{nullptr};
   // The source data that selected from other table and will be inserted into
   // this table
   ExprSelect *_exprSelect{nullptr};
@@ -200,14 +202,15 @@ public:
       _physTable->DecRef();
   }
 
-  ExprType GetType() { return ExprType::EXPR_UPDATE; }
-  bool Preprocess() {
+  ExprType GetType() override { return ExprType::EXPR_UPDATE; }
+  bool Preprocess() override {
     // TO DO
+    return false;
   }
 
 public:
   // The destion table information
-  ExprTable *_exprTable(nullptr);
+  ExprTable *_exprTable{nullptr};
   // The update columns and their values, have saved in ExprColumn
   MVectorPtr<ExprColumn *> *_vctCol{nullptr};
   // Where condition
@@ -230,9 +233,10 @@ public:
       _physTable->DecRef();
   }
 
-  ExprType GetType() { return ExprType::EXPR_DELETE; }
-  bool Preprocess() {
+  ExprType GetType() override { return ExprType::EXPR_DELETE; }
+  bool Preprocess() override {
     // TO DO
+    return false;
   }
 
 public:

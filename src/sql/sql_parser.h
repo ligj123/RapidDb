@@ -53,19 +53,22 @@
 extern int db_debug;
 #endif
 /* "%code requires" blocks.  */
-#line 35 "sql_parser.y"
+#line 33 "sql_parser.y"
 
 // %code requires block
 
 #include "../cache/Mallocator.h"
 #include "../expr/BaseExpr.h"
 #include "../expr/ExprAggr.h"
-#include "../expr/ExprDate.h"
+#include "../expr/ExprData.h"
 #include "../expr/ExprDdl.h"
 #include "../expr/ExprFunc.h"
 #include "../expr/ExprLogic.h"
 #include "../expr/ExprStatement.h"
 #include "parser_typedef.h"
+#include "SQLParserResult.h"
+
+using namespace storage;
 
 // Auto update column and line number
 #define YY_USER_ACTION                        \
@@ -82,7 +85,7 @@ extern int db_debug;
     }                                         \
   }
 
-#line 86 "sql_parser.h"
+#line 89 "sql_parser.h"
 
 /* Token kinds.  */
 #ifndef DB_TOKENTYPE
@@ -285,7 +288,7 @@ extern int db_debug;
 #if ! defined DB_STYPE && ! defined DB_STYPE_IS_DECLARED
 union DB_STYPE
 {
-#line 99 "sql_parser.y"
+#line 100 "sql_parser.y"
 
   // basic type
   bool bval;
@@ -358,8 +361,8 @@ union DB_STYPE
   ExprShowDatabases *expr_show_db;
   ExprUseDatabase *expr_use_db;
   ExprCreateTable *expr_create_table;
-  ExprDropTables *expr_drop_tables;
-  ExprShowTable *expr_show_table;
+  ExprDropTable *expr_drop_table;
+  ExprShowTables *expr_show_tables;
   ExprTrunTable *expr_trun_table;
   ExprTransaction *expr_transaction;
   //Expr DML
@@ -373,13 +376,13 @@ union DB_STYPE
   MVectorPtr<ExprColumn*> *expr_vct_column;
   MVectorPtr<ExprTable*> *expr_vct_table;
   MVectorPtr<ExprStatement*> * expr_vct_statement;
-  MVectorPtr<ExprCreateTableItem*> expr_vct_create_table_item;
+  MVectorPtr<ExprCreateTableItem*> *expr_vct_create_table_item;
   MVectorPtr<ExprOrderItem*> *expr_vct_order_item;
   MVectorPtr<ExprElem*> *expr_elem_row;
   MVectorPtr<MVectorPtr<ExprElem*>*> *expr_vct_elem_row;
   MVectorPtr<ExprData*> *expr_vct_data;
 
-#line 383 "sql_parser.h"
+#line 386 "sql_parser.h"
 
 };
 typedef union DB_STYPE DB_STYPE;

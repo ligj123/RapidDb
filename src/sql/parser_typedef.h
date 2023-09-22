@@ -26,7 +26,7 @@ struct DB_CUST_LTYPE {
 
   // Parameters.
   // int param_id;
-  MVector<ExprParameter *> param_list;
+  storage::MVector<storage::ExprParameter *> param_list;
 };
 
 #define DB_LTYPE DB_CUST_LTYPE

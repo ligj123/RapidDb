@@ -16,11 +16,9 @@
 #include <stdio.h>
 #include <string.h>
 
-  using namespace storage;
-
   int yyerror(YYLTYPE * llocp, SQLParserResult * result, yyscan_t scanner, const char* msg) {
-    result->setIsValid(false);
-    result->setErrorDetails(strdup(msg), llocp->first_line, llocp->first_column);
+    result->SetIsValid(false);
+    result->SetErrorDetails(msg, llocp->first_line, llocp->first_column);
     return 0;
   }
   // clang-format off
@@ -38,12 +36,15 @@
 #include "../cache/Mallocator.h"
 #include "../expr/BaseExpr.h"
 #include "../expr/ExprAggr.h"
-#include "../expr/ExprDate.h"
+#include "../expr/ExprData.h"
 #include "../expr/ExprDdl.h"
 #include "../expr/ExprFunc.h"
 #include "../expr/ExprLogic.h"
 #include "../expr/ExprStatement.h"
 #include "parser_typedef.h"
+#include "SQLParserResult.h"
+
+using namespace storage;
 
 // Auto update column and line number
 #define YY_USER_ACTION                        \
@@ -168,8 +169,8 @@
   ExprShowDatabases *expr_show_db;
   ExprUseDatabase *expr_use_db;
   ExprCreateTable *expr_create_table;
-  ExprDropTables *expr_drop_tables;
-  ExprShowTable *expr_show_table;
+  ExprDropTable *expr_drop_table;
+  ExprShowTables *expr_show_tables;
   ExprTrunTable *expr_trun_table;
   ExprTransaction *expr_transaction;
   //Expr DML
@@ -183,7 +184,7 @@
   MVectorPtr<ExprColumn*> *expr_vct_column;
   MVectorPtr<ExprTable*> *expr_vct_table;
   MVectorPtr<ExprStatement*> * expr_vct_statement;
-  MVectorPtr<ExprCreateTableItem*> expr_vct_create_table_item;
+  MVectorPtr<ExprCreateTableItem*> *expr_vct_create_table_item;
   MVectorPtr<ExprOrderItem*> *expr_vct_order_item;
   MVectorPtr<ExprElem*> *expr_elem_row;
   MVectorPtr<MVectorPtr<ExprElem*>*> *expr_vct_elem_row;
@@ -195,6 +196,7 @@
      *********************************/
     // clang-format off
     %destructor { } <fval> <ival> <bval> <join_type> <index_type> <lock_type> <comp_type>
+    %destructor { if ($$ != nullptr) $$->DecRef(); } <data_value>
     %destructor { delete ($$); } <*>
 
 
@@ -288,7 +290,7 @@
     %type <expr_vct_column> expr_vct_update_column expr_vct_insert_column expr_vct_select_column
     %type <expr_vct_order_item> expr_vct_order_item
     %type <expr_vct_table> opt_expr_vct_table expr_vct_table
-    %type <expr_vct_data> opt_expr_vct_data
+    %type <expr_vct_data> opt_expr_vct_data expr_vct_data
     %type <expr_vct_create_table_item> expr_vct_create_table_item
 
     /******************************
@@ -394,10 +396,10 @@ expr_trun_table : TRUNCATE TABLE expr_table {
   $$ = new ExprTrunTable($3);
 }
 
-expr_transaction : BEGIN { $$ = new ExprTransaction(TranType::BEGIN); }
-| START TRANSACTION { $$ = new ExprTransaction(TranType::BEGIN); }
-| ROLLBACK { $$ = new ExprTransaction(TranType::ROLLBACK); }
-| COMMIT { $$ = new ExprTransaction(TranType::COMMIT); };
+expr_transaction : BEGIN { $$ = new ExprTransaction(TranAction::TRAN_BEGIN); }
+| START TRANSACTION { $$ = new ExprTransaction(TranAction::TRAN_BEGIN); }
+| ROLLBACK { $$ = new ExprTransaction(TranAction::TRAN_ROLLBACK); }
+| COMMIT { $$ = new ExprTransaction(TranAction::TRAN_COMMIT); };
 
 expr_insert : INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row {
   $$ = new ExprInsert();
@@ -511,25 +513,25 @@ opt_expr_vct_table : FROM expr_vct_table {
 | /* empty */ { $$ = nullptr; };
 
 expr_vct_table : expr_table {
-  $$ = new MVectorPtr<ExprTable>();
+  $$ = new MVectorPtr<ExprTable*>();
   $$->push_back($1);
 }
 | opt_expr_vct_table join_type expr_table {
-  $3->join_type = $2;
+  $3->_joinType = $2;
   $1->push_back($3);
   $$ = $1;
 };
 
-join_type : INNER { $$ = INNER_JOIN; }
-| LEFT OUTER { $$ = LEFT_JOIN; }
-| LEFT { $$ = LEFT_JOIN; }
-| RIGHT OUTER { $$ = RIGHT_JOIN; }
-| RIGHT { $$ = RIGHT_JOIN; }
-| FULL OUTER { $$ = OUTTER_JOIN; }
-| OUTER { $$ = OUTTER_JOIN; }
-| FULL { $$ = OUTTER_JOIN; }
-| CROSS { $$ = INNER_JOIN; }
-| ',' { $$ = INNER_JOIN; };
+join_type : INNER { $$ = JoinType::INNER_JOIN; }
+| LEFT OUTER { $$ = JoinType::LEFT_JOIN; }
+| LEFT { $$ = JoinType::LEFT_JOIN; }
+| RIGHT OUTER { $$ = JoinType::RIGHT_JOIN; }
+| RIGHT { $$ = JoinType::RIGHT_JOIN; }
+| FULL OUTER { $$ = JoinType::OUTTER_JOIN; }
+| OUTER { $$ = JoinType::OUTTER_JOIN; }
+| FULL { $$ = JoinType::OUTTER_JOIN; }
+| CROSS { $$ = JoinType::INNER_JOIN; }
+| ',' { $$ = JoinType::INNER_JOIN; };
 
 expr_vct_col_name : IDENTIFIER {
   $$ = new MVectorPtr<MString*>();
@@ -553,16 +555,17 @@ expr_vct_create_table_item : expr_create_table_item {
 };
 
 expr_create_table_item : IDENTIFIER expr_data_type col_nullable default_col_dv auto_increment index_type table_comment {
-  $$ = new ExprColumnItem();
-  $$->_colName = $1;
-  $$->_dataType = $2->_dataType;
-  $$->_maxLength = $2->_maxLen;
+  ExprColumnItem *item = new ExprColumnItem();
+  item->_colName = $1;
+  item->_dataType = $2->_dataType;
+  item->_maxLength = $2->_maxLen;
   delete $2;
-  $$->_nullable = $3;
-  $$->_defaultVal = $4;
-  $$->_autoInc = $5;
-  $$->_indexType = $6;
-  $$->_comment = $7;
+  item->_nullable = $3;
+  item->_defaultVal = $4;
+  item->_autoInc = $5;
+  item->_indexType = $6;
+  item->_comment = $7;
+  $$ = item;
 }
 | INDEX IDENTIFIER index_type '(' expr_vct_col_name ')' {
   $$ = new ExprTableConstraint($2, $3, $5);
@@ -697,13 +700,14 @@ expr_data : expr_const | expr_field | expr_param | expr_add | expr_sub | expr_mu
 
 expr_const : const_dv { $$ = new ExprConst($1); };
 
-expr_field : IDENTIFIER { $$ = new ExprField(str_null, $1); }
+expr_field : IDENTIFIER { $$ = new ExprField(nullptr, $1); }
 | IDENTIFIER '.' IDENTIFIER {$$ = new ExprField($1, $3);};
 
 expr_param : '?' {
-  $$ =  new ExprParameter();
-  $$->_paraPos = yyloc.param_list.size();
-  yyloc.param_list.push_back($$);
+  ExprParameter *ep =  new ExprParameter();
+  ep->_paraPos = yyloc.param_list.size();
+  $$ = ep;
+  yyloc.param_list.push_back(ep);
 };
 
 expr_add : expr_data '+' expr_data { $$ = new ExprAdd($1, $3); };
@@ -717,18 +721,22 @@ expr_div : expr_data '/' expr_data { $$ = new ExprDiv($1, $3); };
 expr_minus : '-' expr_data { $$ = new ExprMinus($2); };
 
 expr_func : IDENTIFIER '(' opt_expr_vct_data ')' {
-  $$ = ExprFunc($1, $3);
+  $$ = new ExprFunc($1, $3);
 };
 
-opt_expr_vct_data : expr_data {
+opt_expr_vct_data : expr_vct_data {
+  $$ = $1;
+}
+| /* empty */ { $$ = nullptr; };
+
+expr_vct_data : expr_data {
   $$ = new  MVectorPtr<ExprData*>();
   $$->push_back($1);
 }
-| opt_expr_vct_data ',' expr_data {
+| expr_vct_data ',' expr_data {
   $1->push_back($3);
   $$ = $1;
-}
-| /* empty */ { $$ = new  MVectorPtr<ExprData*>(); };
+};
 
 const_dv : const_int | const_double | const_string | const_bool | const_null;
 const_string : STRING {
@@ -741,9 +749,9 @@ const_bool : TRUE { $$ = new DataValueBool(true); }
 
 const_double : FLOATVAL { $$ = new DataValueDouble($1); }
 
-const_int : INTVAL { $$ = DataValueLong($1); };
+const_int : INTVAL { $$ = new DataValueLong($1); };
 
-const_null : NULL { $$ = DataValueNull(); };
+const_null : NULL { $$ = new DataValueNull(); };
 
 expr_logic : expr_cmp | expr_in_not | expr_is_null_not | expr_between | expr_like | expr_not
 | expr_and { $$ = $1; }
@@ -783,8 +791,8 @@ expr_not : NOT expr_logic { $$ = new ExprNot($2); };
 
 expr_and : expr_logic AND expr_logic {
   if ($1->GetType()== ExprType::EXPR_AND) {
-    $1->_vctChild.push_back($3);
-    $$ = $1;
+    $$ = (ExprAnd*)$1;
+    $$->_vctChild.push_back($3);
   } else {
     $$ = new ExprAnd();
     $$->_vctChild.push_back($1);
@@ -794,8 +802,8 @@ expr_and : expr_logic AND expr_logic {
 
 expr_or : expr_logic OR expr_logic {
   if ($1->GetType()== ExprType::EXPR_OR) {
-    $1->_vctChild.push_back($3);
-    $$ = $1;
+    $$ = (ExprOr*)$1;
+    $$->_vctChild.push_back($3);
   } else {
     $$ = new ExprOr();
     $$->_vctChild.push_back($1);

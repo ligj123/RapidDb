@@ -20,7 +20,7 @@ public:
     delete _exprRight;
   }
 
-  ExprType GetType() { return ExprType::EXPR_COMP; }
+  ExprType GetType() override { return ExprType::EXPR_COMP; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
     IDataValue *right = _exprRight->Calc(vdParas, vdRow);
@@ -70,7 +70,7 @@ public:
     delete _exprArray;
   }
 
-  ExprType GetType() { return ExprType::EXPR_IN_OR_NOT; }
+  ExprType GetType() override { return ExprType::EXPR_IN_OR_NOT; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *pdv = _exprData->Calc(vdParas, vdRow);
     if (pdv == nullptr)
@@ -92,7 +92,7 @@ public:
   ExprIsNullNot(ExprData *child, bool bNull) : _child(child), _bNull(bNull) {}
   ~ExprIsNullNot() { delete _child; }
 
-  ExprType GetType() { return ExprType::EXPR_IS_NULL_NOT; }
+  ExprType GetType() override { return ExprType::EXPR_IS_NULL_NOT; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *pdv = _child->Calc(vdParas, vdRow);
     if (pdv == nullptr)
@@ -118,7 +118,7 @@ public:
     delete _exprRight;
   }
 
-  ExprType GetType() { return ExprType::EXPR_BETWEEN; }
+  ExprType GetType() override { return ExprType::EXPR_BETWEEN; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     IDataValue *pdv = _child->Calc(vdParas, vdRow);
     IDataValue *left = _exprLeft->Calc(vdParas, vdRow);
@@ -149,16 +149,17 @@ public:
 
 class ExprLike : public ExprLogic {
 public:
-  ExprLike(ExprData *exprData, ExprConst *exprPatten, bool blike)
-      : _child(exprData), _exprPatten(exprPatten), _bLike(blike) {
-    assert(exprPatten->GetValue()->IsStringType());
+  ExprLike(ExprData *exprData, IDataValue *dvPatten, bool blike)
+      : _child(exprData), _dvPatten(dvPatten), _bLike(blike) {
+    assert(dvPatten->IsStringType());
   }
   ~ExprLike() {
     delete _child;
-    delete _exprPatten;
+    if (_dvPatten != nullptr)
+      _dvPatten->DecRef();
   }
 
-  ExprType GetType() { return ExprType::EXPR_LIKE; }
+  ExprType GetType() override { return ExprType::EXPR_LIKE; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     // TO DO
     return TriBool::True;
@@ -166,7 +167,7 @@ public:
 
 public:
   ExprData *_child;
-  ExprConst *_exprPatten;
+  IDataValue *_dvPatten;
   bool _bLike;
 };
 
@@ -175,7 +176,7 @@ public:
   ExprNot(ExprLogic *child) : _child(child) {}
   ~ExprNot() { delete _child; }
 
-  ExprType GetType() { return ExprType::EXPR_NOT; }
+  ExprType GetType() override { return ExprType::EXPR_NOT; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     TriBool tb = _child->Calc(vdParas, vdRow);
     if (tb == TriBool::Error)
@@ -196,7 +197,7 @@ public:
     }
   }
 
-  ExprType GetType() { return ExprType::EXPR_AND; }
+  ExprType GetType() override { return ExprType::EXPR_AND; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     for (ExprLogic *expr : _vctChild) {
       TriBool tb = expr->Calc(vdParas, vdRow);
@@ -222,7 +223,7 @@ public:
     }
   }
 
-  ExprType GetType() { return ExprType::EXPR_OR; }
+  ExprType GetType() override { return ExprType::EXPR_OR; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     for (ExprLogic *expr : _vctChild) {
       TriBool tb = expr->Calc(vdParas, vdRow);

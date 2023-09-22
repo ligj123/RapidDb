@@ -28,8 +28,8 @@ public:
   void SetIsValid(bool isValid) { _isValid = isValid; }
   bool IsValid() const { return _isValid; }
 
-  void SetErrorDetails(MString &errorMsg, int errorLine, int errorColumn) {
-    _errorMsg = move(errorMsg);
+  void SetErrorDetails(const char *errorMsg, int errorLine, int errorColumn) {
+    _errorMsg = errorMsg;
     _errorLine = errorLine;
     _errorColumn = errorColumn;
   }
@@ -45,9 +45,9 @@ public:
     _vctStatement = vct_stmt;
   }
   const MVectorPtr<ExprStatement *> &GetStatements() const {
-    return _vctStatement;
+    return *_vctStatement;
   }
-  void AddParameters(MVectorPtr<ExprParameter *> &vct_para) {
+  void AddParameters(MVector<ExprParameter *> &vct_para) {
     size_t ii = _vctPara.size();
     for (ExprParameter *para : vct_para) {
       para->_paraPos = ii;
@@ -57,7 +57,10 @@ public:
     _vctPara.clear();
   }
   void Reset() {
-    _vctStatement = MVectorPtr<ExprStatement *>();
+    if (_vctStatement != nullptr)
+      delete _vctStatement;
+
+    _vctStatement = new MVectorPtr<ExprStatement *>();
     _vctPara.clear();
     _isValid = true;
     _errorMsg.clear();
@@ -67,7 +70,7 @@ public:
 
 private:
   // List of statements within the result. In this version only one statement
-  MVectorPtr<ExprStatement *> _vctStatement;
+  MVectorPtr<ExprStatement *> *_vctStatement;
   // To record the parameters information, they have been included in statement,
   // do not need to free.
   MVector<ExprParameter *> _vctPara;

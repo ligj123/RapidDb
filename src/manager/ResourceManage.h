@@ -16,12 +16,12 @@ public:
     _inst->_mapIdTable.Find(id, t);
     return t;
   }
-  static PhysTable *GetTable(const string &name) {
+  static PhysTable *GetTable(const MString &name) {
     PhysTable *t;
     _inst->_mapNameTable.Find(name, t);
     return t;
   }
-  static Database *GetDb(string name) {
+  static Database *GetDb(MString name) {
     Database *db;
     _inst->_mapDatabase.Find(name, db);
     return db;
@@ -72,10 +72,10 @@ protected:
   ConcurrentHashMap<uint32_t, PhysTable *, false> _mapIdTable;
   // The map for all opened table names and themselves, name should be 'db name'
   // + '/' + 'table name'
-  ConcurrentHashMap<string, PhysTable *, false> _mapNameTable;
+  ConcurrentHashMap<MString, PhysTable *, false> _mapNameTable;
   // The map for all database names and databases. They should be loaded when
   // initializing
-  ConcurrentHashMap<string, Database *, false> _mapDatabase;
+  ConcurrentHashMap<MString, Database *, false> _mapDatabase;
   // The map for its id and ExprStatement.
   ConcurrentHashMap<uint64_t, ExprStatement *, false> _mapExprStat;
   // Every connection fron the client will create a session and assign a unique

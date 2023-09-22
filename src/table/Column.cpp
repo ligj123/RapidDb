@@ -62,7 +62,7 @@ uint32_t PhysColumn::WriteData(Byte *pBuf) {
 
 uint32_t PhysColumn::ReadData(Byte *pBuf) {
   if (_pDefaultVal != nullptr) {
-    delete _pDefaultVal;
+    _pDefaultVal->DecRef();
     _pDefaultVal = nullptr;
   }
 

@@ -19,7 +19,7 @@ public:
   }
   ~ExprCount() { delete _exprData; }
 
-  ExprType GetType() { return ExprType::EXPR_COUNT; }
+  ExprType GetType() override { return ExprType::EXPR_COUNT; }
   bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
             IDataValue &dv) override {
     if (_bStar) {
@@ -45,7 +45,7 @@ class ExprSum : public ExprAggr {
 public:
   ExprSum(ExprData *exprData) : _exprData(exprData) {}
   ~ExprSum() { delete _exprData; }
-  ExprType GetType() { return ExprType::EXPR_SUM; }
+  ExprType GetType() override { return ExprType::EXPR_SUM; }
   bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
             IDataValue &dv) override {
     IDataValue *val = _exprData->Calc(vdParas, vdRow);
@@ -68,7 +68,7 @@ public:
   ExprMax(ExprData *exprData) : _exprData(exprData) {}
   ~ExprMax() { delete _exprData; }
 
-  ExprType GetType() { return ExprType::EXPR_MAX; }
+  ExprType GetType() override { return ExprType::EXPR_MAX; }
   bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
             IDataValue &dv) override {
     IDataValue *val = _exprData->Calc(vdParas, vdRow);
@@ -90,7 +90,7 @@ public:
   ExprMin(ExprData *exprData) : _exprData(exprData) {}
   ~ExprMin() { delete _exprData; }
 
-  ExprType GetType() { return ExprType::EXPR_MIN; }
+  ExprType GetType() override { return ExprType::EXPR_MIN; }
   bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
             IDataValue &dv) override {
     IDataValue *val = _exprData->Calc(vdParas, vdRow);
@@ -113,7 +113,7 @@ public:
   ExprAvg(ExprData *exprData) : _exprData(exprData) {}
   ~ExprAvg() { delete _exprData; }
 
-  ExprType GetType() { return ExprType::EXPR_AVG; }
+  ExprType GetType() override { return ExprType::EXPR_AVG; }
   bool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow,
             IDataValue &dv) override {
     IDataValue *val = _exprData->Calc(vdParas, vdRow);

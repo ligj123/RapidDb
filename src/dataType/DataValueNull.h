@@ -19,7 +19,9 @@ public:
   DataValueNull() : IDataValue(DataType::VAL_NULL, ValueType::SOLE_VALUE) {}
 
   bool Copy(const IDataValue &dv, bool bMove = false) override { return true; }
-  DataValueNull *Clone(bool incVal = false) override { new DataValueNull(); }
+  DataValueNull *Clone(bool incVal = false) override {
+    return new DataValueNull();
+  }
   std::any GetValue() const override { return std::any(); }
   bool PutValue(std::any val) override { return true; };
   void SetNull() override{};

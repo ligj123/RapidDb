@@ -11,7 +11,7 @@
 %{
 
 #include "../cache/Mallocator.h"
-#include "bison_parser.h"
+#include "sql_parser.h"
 #include <climits>
 #include <stdio.h>
 #include <sstream>
@@ -44,7 +44,7 @@ static thread_local std::stringstream strbuf;
 %option nounput
 %option warn
 %option case-insensitive
-%option prefix="hsql_"
+%option prefix="db_"
 %option bison-locations
 /* %option nodefault */
 
@@ -91,7 +91,7 @@ COMMIT      TOKEN(COMMIT)
 COMMENT     TOKEN(COMMENT)
 CONTROL     TOKEN(CONTROL)
 COPY        TOKEN(COPY)
-COUNT       TKEN(COUNT)
+COUNT       TOKEN(COUNT)
 CREATE      TOKEN(CREATE)
 CROSS       TOKEN(CROSS)
 DATABASE    TOKEN(DATABASE)
@@ -206,7 +206,7 @@ SMALLINT    TOKEN(SMALLINT)
 SORTED      TOKEN(SORTED)
 SPATIAL     TOKEN(SPATIAL)
 START       TOKEN(START)
-SUM         TKKEN(SUM)
+SUM         TOKEN(SUM)
 TABLE       TOKEN(TABLE)
 TABLES      TOKEN(TABLES)
 TEMPORARY   TOKEN(TEMPORARY)

@@ -15,237 +15,237 @@
 #endif
 
 #ifdef yy_create_buffer
-#define hsql__create_buffer_ALREADY_DEFINED
+#define db__create_buffer_ALREADY_DEFINED
 #else
-#define yy_create_buffer hsql__create_buffer
+#define yy_create_buffer db__create_buffer
 #endif
 
 #ifdef yy_delete_buffer
-#define hsql__delete_buffer_ALREADY_DEFINED
+#define db__delete_buffer_ALREADY_DEFINED
 #else
-#define yy_delete_buffer hsql__delete_buffer
+#define yy_delete_buffer db__delete_buffer
 #endif
 
 #ifdef yy_scan_buffer
-#define hsql__scan_buffer_ALREADY_DEFINED
+#define db__scan_buffer_ALREADY_DEFINED
 #else
-#define yy_scan_buffer hsql__scan_buffer
+#define yy_scan_buffer db__scan_buffer
 #endif
 
 #ifdef yy_scan_string
-#define hsql__scan_string_ALREADY_DEFINED
+#define db__scan_string_ALREADY_DEFINED
 #else
-#define yy_scan_string hsql__scan_string
+#define yy_scan_string db__scan_string
 #endif
 
 #ifdef yy_scan_bytes
-#define hsql__scan_bytes_ALREADY_DEFINED
+#define db__scan_bytes_ALREADY_DEFINED
 #else
-#define yy_scan_bytes hsql__scan_bytes
+#define yy_scan_bytes db__scan_bytes
 #endif
 
 #ifdef yy_init_buffer
-#define hsql__init_buffer_ALREADY_DEFINED
+#define db__init_buffer_ALREADY_DEFINED
 #else
-#define yy_init_buffer hsql__init_buffer
+#define yy_init_buffer db__init_buffer
 #endif
 
 #ifdef yy_flush_buffer
-#define hsql__flush_buffer_ALREADY_DEFINED
+#define db__flush_buffer_ALREADY_DEFINED
 #else
-#define yy_flush_buffer hsql__flush_buffer
+#define yy_flush_buffer db__flush_buffer
 #endif
 
 #ifdef yy_load_buffer_state
-#define hsql__load_buffer_state_ALREADY_DEFINED
+#define db__load_buffer_state_ALREADY_DEFINED
 #else
-#define yy_load_buffer_state hsql__load_buffer_state
+#define yy_load_buffer_state db__load_buffer_state
 #endif
 
 #ifdef yy_switch_to_buffer
-#define hsql__switch_to_buffer_ALREADY_DEFINED
+#define db__switch_to_buffer_ALREADY_DEFINED
 #else
-#define yy_switch_to_buffer hsql__switch_to_buffer
+#define yy_switch_to_buffer db__switch_to_buffer
 #endif
 
 #ifdef yypush_buffer_state
-#define hsql_push_buffer_state_ALREADY_DEFINED
+#define db_push_buffer_state_ALREADY_DEFINED
 #else
-#define yypush_buffer_state hsql_push_buffer_state
+#define yypush_buffer_state db_push_buffer_state
 #endif
 
 #ifdef yypop_buffer_state
-#define hsql_pop_buffer_state_ALREADY_DEFINED
+#define db_pop_buffer_state_ALREADY_DEFINED
 #else
-#define yypop_buffer_state hsql_pop_buffer_state
+#define yypop_buffer_state db_pop_buffer_state
 #endif
 
 #ifdef yyensure_buffer_stack
-#define hsql_ensure_buffer_stack_ALREADY_DEFINED
+#define db_ensure_buffer_stack_ALREADY_DEFINED
 #else
-#define yyensure_buffer_stack hsql_ensure_buffer_stack
+#define yyensure_buffer_stack db_ensure_buffer_stack
 #endif
 
 #ifdef yylex
-#define hsql_lex_ALREADY_DEFINED
+#define db_lex_ALREADY_DEFINED
 #else
-#define yylex hsql_lex
+#define yylex db_lex
 #endif
 
 #ifdef yyrestart
-#define hsql_restart_ALREADY_DEFINED
+#define db_restart_ALREADY_DEFINED
 #else
-#define yyrestart hsql_restart
+#define yyrestart db_restart
 #endif
 
 #ifdef yylex_init
-#define hsql_lex_init_ALREADY_DEFINED
+#define db_lex_init_ALREADY_DEFINED
 #else
-#define yylex_init hsql_lex_init
+#define yylex_init db_lex_init
 #endif
 
 #ifdef yylex_init_extra
-#define hsql_lex_init_extra_ALREADY_DEFINED
+#define db_lex_init_extra_ALREADY_DEFINED
 #else
-#define yylex_init_extra hsql_lex_init_extra
+#define yylex_init_extra db_lex_init_extra
 #endif
 
 #ifdef yylex_destroy
-#define hsql_lex_destroy_ALREADY_DEFINED
+#define db_lex_destroy_ALREADY_DEFINED
 #else
-#define yylex_destroy hsql_lex_destroy
+#define yylex_destroy db_lex_destroy
 #endif
 
 #ifdef yyget_debug
-#define hsql_get_debug_ALREADY_DEFINED
+#define db_get_debug_ALREADY_DEFINED
 #else
-#define yyget_debug hsql_get_debug
+#define yyget_debug db_get_debug
 #endif
 
 #ifdef yyset_debug
-#define hsql_set_debug_ALREADY_DEFINED
+#define db_set_debug_ALREADY_DEFINED
 #else
-#define yyset_debug hsql_set_debug
+#define yyset_debug db_set_debug
 #endif
 
 #ifdef yyget_extra
-#define hsql_get_extra_ALREADY_DEFINED
+#define db_get_extra_ALREADY_DEFINED
 #else
-#define yyget_extra hsql_get_extra
+#define yyget_extra db_get_extra
 #endif
 
 #ifdef yyset_extra
-#define hsql_set_extra_ALREADY_DEFINED
+#define db_set_extra_ALREADY_DEFINED
 #else
-#define yyset_extra hsql_set_extra
+#define yyset_extra db_set_extra
 #endif
 
 #ifdef yyget_in
-#define hsql_get_in_ALREADY_DEFINED
+#define db_get_in_ALREADY_DEFINED
 #else
-#define yyget_in hsql_get_in
+#define yyget_in db_get_in
 #endif
 
 #ifdef yyset_in
-#define hsql_set_in_ALREADY_DEFINED
+#define db_set_in_ALREADY_DEFINED
 #else
-#define yyset_in hsql_set_in
+#define yyset_in db_set_in
 #endif
 
 #ifdef yyget_out
-#define hsql_get_out_ALREADY_DEFINED
+#define db_get_out_ALREADY_DEFINED
 #else
-#define yyget_out hsql_get_out
+#define yyget_out db_get_out
 #endif
 
 #ifdef yyset_out
-#define hsql_set_out_ALREADY_DEFINED
+#define db_set_out_ALREADY_DEFINED
 #else
-#define yyset_out hsql_set_out
+#define yyset_out db_set_out
 #endif
 
 #ifdef yyget_leng
-#define hsql_get_leng_ALREADY_DEFINED
+#define db_get_leng_ALREADY_DEFINED
 #else
-#define yyget_leng hsql_get_leng
+#define yyget_leng db_get_leng
 #endif
 
 #ifdef yyget_text
-#define hsql_get_text_ALREADY_DEFINED
+#define db_get_text_ALREADY_DEFINED
 #else
-#define yyget_text hsql_get_text
+#define yyget_text db_get_text
 #endif
 
 #ifdef yyget_lineno
-#define hsql_get_lineno_ALREADY_DEFINED
+#define db_get_lineno_ALREADY_DEFINED
 #else
-#define yyget_lineno hsql_get_lineno
+#define yyget_lineno db_get_lineno
 #endif
 
 #ifdef yyset_lineno
-#define hsql_set_lineno_ALREADY_DEFINED
+#define db_set_lineno_ALREADY_DEFINED
 #else
-#define yyset_lineno hsql_set_lineno
+#define yyset_lineno db_set_lineno
 #endif
 
 #ifdef yyget_column
-#define hsql_get_column_ALREADY_DEFINED
+#define db_get_column_ALREADY_DEFINED
 #else
-#define yyget_column hsql_get_column
+#define yyget_column db_get_column
 #endif
 
 #ifdef yyset_column
-#define hsql_set_column_ALREADY_DEFINED
+#define db_set_column_ALREADY_DEFINED
 #else
-#define yyset_column hsql_set_column
+#define yyset_column db_set_column
 #endif
 
 #ifdef yywrap
-#define hsql_wrap_ALREADY_DEFINED
+#define db_wrap_ALREADY_DEFINED
 #else
-#define yywrap hsql_wrap
+#define yywrap db_wrap
 #endif
 
 #ifdef yyget_lval
-#define hsql_get_lval_ALREADY_DEFINED
+#define db_get_lval_ALREADY_DEFINED
 #else
-#define yyget_lval hsql_get_lval
+#define yyget_lval db_get_lval
 #endif
 
 #ifdef yyset_lval
-#define hsql_set_lval_ALREADY_DEFINED
+#define db_set_lval_ALREADY_DEFINED
 #else
-#define yyset_lval hsql_set_lval
+#define yyset_lval db_set_lval
 #endif
 
 #ifdef yyget_lloc
-#define hsql_get_lloc_ALREADY_DEFINED
+#define db_get_lloc_ALREADY_DEFINED
 #else
-#define yyget_lloc hsql_get_lloc
+#define yyget_lloc db_get_lloc
 #endif
 
 #ifdef yyset_lloc
-#define hsql_set_lloc_ALREADY_DEFINED
+#define db_set_lloc_ALREADY_DEFINED
 #else
-#define yyset_lloc hsql_set_lloc
+#define yyset_lloc db_set_lloc
 #endif
 
 #ifdef yyalloc
-#define hsql_alloc_ALREADY_DEFINED
+#define db_alloc_ALREADY_DEFINED
 #else
-#define yyalloc hsql_alloc
+#define yyalloc db_alloc
 #endif
 
 #ifdef yyrealloc
-#define hsql_realloc_ALREADY_DEFINED
+#define db_realloc_ALREADY_DEFINED
 #else
-#define yyrealloc hsql_realloc
+#define yyrealloc db_realloc
 #endif
 
 #ifdef yyfree
-#define hsql_free_ALREADY_DEFINED
+#define db_free_ALREADY_DEFINED
 #else
-#define yyfree hsql_free
+#define yyfree db_free
 #endif
 
 /* First, we deal with  platform-specific or compiler-specific issues. */
@@ -551,7 +551,7 @@ void yyfree ( void * , yyscan_t yyscanner );
 
 /* Begin user sect3 */
 
-#define hsql_wrap(yyscanner) (/*CONSTCOND*/1)
+#define db_wrap(yyscanner) (/*CONSTCOND*/1)
 #define YY_SKIP_YYWRAP
 typedef flex_uint8_t YY_CHAR;
 
@@ -3219,7 +3219,7 @@ static const flex_int16_t yy_chk[9476] =
 #line 12 "flex_lexer.l"
 
 #include "../cache/Mallocator.h"
-#include "bison_parser.h"
+#include "sql_parser.h"
 #include <climits>
 #include <stdio.h>
 #include <sstream>
@@ -3752,7 +3752,7 @@ TOKEN(COPY)
 case 34:
 YY_RULE_SETUP
 #line 94 "flex_lexer.l"
-TKEN(COUNT)
+TOKEN(COUNT)
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
@@ -4327,7 +4327,7 @@ TOKEN(START)
 case 149:
 YY_RULE_SETUP
 #line 209 "flex_lexer.l"
-TKKEN(SUM)
+TOKEN(SUM)
 	YY_BREAK
 case 150:
 YY_RULE_SETUP

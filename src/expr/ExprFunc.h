@@ -14,22 +14,22 @@ struct FuncStru {
  */
 class ExprFunc : public ExprData {
 public:
-  ExprFunc(MString *funcName, MVectorPtr<ExprData *> paras)
+  ExprFunc(MString *funcName, MVectorPtr<ExprData *> *paras)
       : _funcName(funcName), _vctPara(paras) {}
   ~ExprFunc() {
     delete _funcName;
     delete _vctPara;
   }
 
-  ExprType GetType() { return ExprType::EXPR_FUNCTION; }
+  ExprType GetType() override { return ExprType::EXPR_FUNCTION; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return nullptr;
   }
 
 protected:
   // The function name, must convert to upper case
-  MString _funcName;
+  MString *_funcName;
   // The parameters for this function
-  MVectorPtr<ExprData *> _vctPara;
+  MVectorPtr<ExprData *> *_vctPara;
 };
 } // namespace storage

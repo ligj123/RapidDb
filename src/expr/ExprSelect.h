@@ -38,7 +38,7 @@ public:
     delete _selIndex;
   }
 
-  ExprType GetType() { return ExprType::EXPR_TABLE_SELECT; }
+  ExprType GetType() override { return ExprType::EXPR_TABLE_SELECT; }
   PhysTable *GetSourTable() const { return _physTable; }
   const SelIndex *GetSelIndex() const { return _selIndex; }
 

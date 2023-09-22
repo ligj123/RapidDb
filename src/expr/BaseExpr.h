@@ -73,6 +73,7 @@ enum class ExprType {
   EXPR_DROP_TABLE,
   EXPR_SHOW_TABLES,
   EXPR_TRUN_TABLE,
+  EXPR_DATA_TYPE,
   EXPR_COLUMN_INFO,
   EXPR_CONSTRAINT,
   EXPR_TRANSACTION,
@@ -169,7 +170,7 @@ public:
     }
   }
 
-  ExprType GetType() { return ExprType::EXPR_ARRAY; }
+  ExprType GetType() override { return ExprType::EXPR_ARRAY; }
   bool Exist(IDataValue *pdv) { return (_setVal.find(pdv) != _setVal.end()); }
   void AddElem(IDataValue *dv) { _setVal.insert(dv); }
 
@@ -194,7 +195,7 @@ public:
     delete _alias;
   }
 
-  ExprType GetType() { return ExprType::EXPR_COLUMN; }
+  ExprType GetType() override { return ExprType::EXPR_COLUMN; }
 
 public:
   MString *_name;      // column name
@@ -221,7 +222,7 @@ public:
     delete _tAlias;
   }
 
-  ExprType GetType() { return ExprType::EXPR_TABLE; }
+  ExprType GetType() override { return ExprType::EXPR_TABLE; }
 
 public:
   MString *_dbName;

@@ -66,12 +66,13 @@ uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
 }
 
 bool PhysTable::AddColumn(const MString &columnName, DataType dataType,
-                          bool nullable, uint32_t maxLen, const MString &comment,
-                          Charsets charset, const any &valDefault) {
+                          bool nullable, uint32_t maxLen,
+                          const MString &comment, Charsets charset,
+                          const any &valDefault) {
   assert(_vctIndex.size() == 0);
 
   for (auto iter = _mapColumnPos.begin(); iter != _mapColumnPos.end(); iter++) {
-    if (StringEqualIgnoreCase(columnName, iter->first)) {
+    if (MStringEqualIgnoreCase(columnName, iter->first)) {
       _threadErrorMsg.reset(
           new ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName}));
       return false;
@@ -123,7 +124,7 @@ bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
 
   for (auto iter = _mapIndexNamePos.begin(); iter != _mapIndexNamePos.end();
        iter++) {
-    if (StringEqualIgnoreCase(iter->first, iname)) {
+    if (MStringEqualIgnoreCase(iter->first, iname)) {
       _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_INDEX, {iname}));
       return false;
     }
@@ -159,7 +160,7 @@ bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
     if (!IDataValue::IsIndexType(_vctColumn[iter->second].GetDataType())) {
       _threadErrorMsg.reset(new ErrorMsg(
           TB_INDEX_UNSUPPORT_DATA_TYPE,
-          {cname, DateTypeToString(_vctColumn[iter->second].GetDataType())}));
+          {cname, DateTypeToMString(_vctColumn[iter->second].GetDataType())}));
       return false;
     }
 
@@ -333,8 +334,8 @@ uint32_t PhysTable::LoadData(Byte *bys) {
 bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   assert(idx >= 0 && idx < _vctIndex.size());
   IndexProp &prop = _vctIndex[idx];
-  MString path = Configure::GetDbRootPath() + "/" + _dbName + "/" + _name + "/" +
-                _vctIndex[idx]._name + ".idx";
+  MString path = Configure::GetDbRootPath().c_str();
+  path += "/" + _dbName + "/" + _name + "/" + _vctIndex[idx]._name + ".idx";
 
   VectorDataValue dvKey;
   dvKey.reserve(prop._vctCol.size());

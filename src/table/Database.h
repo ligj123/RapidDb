@@ -7,16 +7,16 @@ using namespace std;
 
 class Database {
 public:
-  Database(string rootPath, string dbName)
+  Database(MString rootPath, MString dbName)
       : _rootPath(rootPath), _dbName(dbName) {}
-  const string GetDbPath() { return _rootPath + "/" + _dbName; }
-  const string &GetRootPath() { return _rootPath; }
-  const string &GetDbName() { return _dbName; }
+  const MString GetDbPath() { return _rootPath + "/" + _dbName; }
+  const MString &GetRootPath() { return _rootPath; }
+  const MString &GetDbName() { return _dbName; }
 
 protected:
   // The root folder to save this database data.
-  string _rootPath;
+  MString _rootPath;
   // Database name
-  string _dbName;
+  MString _dbName;
 };
 } // namespace storage
