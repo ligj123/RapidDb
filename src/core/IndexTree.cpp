@@ -24,7 +24,7 @@ void IndexTree::TestCloseWait(IndexTree *indexTree) {
   }
 }
 
-bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
+bool IndexTree::CreateIndex(const MString &indexName, const MString &fileName,
                             VectorDataValue &vctKey, VectorDataValue &vctVal,
                             uint32_t indexId, IndexType iType) {
   assert(_headPage == nullptr);
@@ -91,7 +91,7 @@ bool IndexTree::CreateIndex(const string &indexName, const string &fileName,
   return true;
 }
 
-bool IndexTree::InitIndex(const string &indexName, const string &fileName,
+bool IndexTree::InitIndex(const MString &indexName, const MString &fileName,
                           VectorDataValue &vctKey, VectorDataValue &vctVal,
                           uint32_t indexId) {
   assert(_headPage == nullptr);

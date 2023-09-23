@@ -13,9 +13,7 @@ using namespace std;
 
 class PageFile {
 public:
-  static thread_local char _tmpBuff[1024 * 1024];
-
-  PageFile(const string &path);
+  PageFile(const MString &path);
 
   ~PageFile() {
     if (_file.is_open())
@@ -33,7 +31,8 @@ public:
   void close() { _file.close(); }
 
 protected:
-  string _path;
+  MString _path;
   fstream _file;
+  bool _bValid;
 };
 } // namespace storage

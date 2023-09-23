@@ -22,8 +22,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
   VectorDataValue vctKey = {dvKey.Clone()};
   VectorDataValue vctVal = {dvVal.Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0,
-                         IndexType::PRIMARY);
+  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
+                         0, IndexType::PRIMARY);
   BranchPage *bp = (BranchPage *)indexTree->AllocateNewPage(1, (Byte)1);
 
   vctKey.push_back(dvKey.Clone(true));
@@ -70,8 +70,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
   VectorDataValue vctKey = {dvKey.Clone()};
   VectorDataValue vctVal = {dvVal.Clone()};
   IndexTree *indexPri = new IndexTree();
-  indexPri->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0,
-                        IndexType::PRIMARY);
+  indexPri->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
+                        0, IndexType::PRIMARY);
 
   vctKey.push_back(dvKey.Clone(true));
   vctVal.push_back(dvVal.Clone(true));
@@ -80,8 +80,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
   DataValueFixChar dvFix("1234567890abcdefghijklmn", 26, 100);
   VectorDataValue vctSec = {dvFix.Clone(), dvKey.Clone()};
   IndexTree *indexSec = new IndexTree();
-  indexSec->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 1,
-                        IndexType::UNIQUE);
+  indexSec->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
+                        1, IndexType::UNIQUE);
   vctSec = {dvFix.Clone(true), dvKey.Clone(true)};
   Byte *bys = lr->GetBysValue() + UI16_2_LEN;
   uint16_t lKey = lr->GetKeyLength();
@@ -130,8 +130,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   VectorDataValue vctKey = {dvKey.Clone()};
   VectorDataValue vctVal = {dvVal.Clone()};
   IndexTree *indexPri = new IndexTree();
-  indexPri->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 0,
-                        IndexType::PRIMARY);
+  indexPri->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
+                        0, IndexType::PRIMARY);
 
   vctKey.push_back(dvKey.Clone(true));
   vctVal.push_back(dvVal.Clone(true));
@@ -140,8 +140,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   DataValueFixChar dvFix("1234567890abcdefghijklmn", 26, 100);
   VectorDataValue vctSec = {dvFix.Clone(), dvKey.Clone()};
   IndexTree *indexSec = new IndexTree();
-  indexSec->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 1,
-                        IndexType::NON_UNIQUE);
+  indexSec->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
+                        1, IndexType::NON_UNIQUE);
   vctSec = {dvFix.Clone(true), dvKey.Clone(true)};
   Byte *bys = lr->GetBysValue() + UI16_2_LEN;
   uint16_t lKey = lr->GetKeyLength();

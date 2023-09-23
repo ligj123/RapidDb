@@ -27,6 +27,11 @@ public:
         bysValue_(byArray), maxLength_(maxLength) {}
 
   DataValueFixChar(const DataValueFixChar &src);
+  ~DataValueFixChar() {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::Release(bysValue_, maxLength_);
+    }
+  }
 
 public:
   DataValueFixChar *Clone(bool incVal = false) override {
@@ -184,13 +189,6 @@ public:
   Byte *GetBuff() const override { return bysValue_; }
   bool operator!=(const DataValueFixChar &dv) const { return !(*this == dv); }
   friend std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv);
-
-protected:
-  ~DataValueFixChar() {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, maxLength_);
-    }
-  }
 
 protected:
   uint32_t maxLength_;

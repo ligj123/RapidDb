@@ -43,6 +43,12 @@ public:
       break;
     }
   }
+  ~DataValueVarChar() {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::Release((Byte *)bysValue_, soleLength_);
+      valType_ = ValueType::NULL_VALUE;
+    }
+  }
 
 public:
   DataValueVarChar *Clone(bool incVal = false) override {
@@ -206,14 +212,6 @@ public:
   bool operator!=(const DataValueVarChar &dv) const { return !(*this == dv); }
   Byte *GetBuff() const override { return bysValue_; }
   friend std::ostream &operator<<(std::ostream &os, const DataValueVarChar &dv);
-
-protected:
-  ~DataValueVarChar() {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release((Byte *)bysValue_, soleLength_);
-      valType_ = ValueType::NULL_VALUE;
-    }
-  }
 
 protected:
   uint32_t maxLength_;

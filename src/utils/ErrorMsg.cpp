@@ -12,7 +12,7 @@ unordered_map<int, MString> ErrorMsg::LoadErrorMsg() {
   ifstream ifs("ErrorMsg.txt");
   string line;
   std::regex rgx("^\\d+(\t| {2,})");
-  unordered_map<int, string> map;
+  unordered_map<int, MString> map;
 
   while (getline(ifs, line)) {
     if (line.size() < 4)
@@ -22,7 +22,7 @@ unordered_map<int, MString> ErrorMsg::LoadErrorMsg() {
       continue;
 
     int id = std::atoi(sm[0].str().c_str());
-    string msg = sm.suffix().str().c_str();
+    MString msg = sm.suffix().str().c_str();
     map.insert({id, msg});
   }
 
@@ -34,6 +34,6 @@ void ErrorMsg::SaveMsg(Byte *buf) {
   buf += UI32_LEN;
   *(uint32_t *)buf = (uint32_t)_errMsg.size();
   buf += UI32_LEN;
-  BytesCpy((void *)buf, (void *)_errMsg.data(), _errMsg.size());
+  BytesCopy((void *)buf, (void *)_errMsg.data(), _errMsg.size());
 }
 } // namespace storage

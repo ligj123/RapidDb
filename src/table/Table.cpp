@@ -393,11 +393,10 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
     IndexProp &prop = _vctIndex[i];
     VectorDataValue dstSk;
 
-    dstSk.SetRef(true);
     dstSk.reserve(prop._vctCol.size());
 
     for (IndexColumn &ic : prop._vctCol) {
-      dstSk.push_back(dstPr.at(ic.colPos));
+      dstSk.push_back(dstPr.at(ic.colPos)->AddRef());
     }
     if (lrSrc == nullptr) {
       LeafRecord *lr =
@@ -408,10 +407,9 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
     }
 
     VectorDataValue srcSk;
-    srcSk.SetRef(true);
     srcSk.reserve(prop._vctCol.size());
     for (IndexColumn &ic : prop._vctCol) {
-      srcSk.push_back(srcPr.at(ic.colPos));
+      srcSk.push_back(srcPr.at(ic.colPos)->AddRef());
     }
 
     assert(srcSk.size() == dstSk.size());
