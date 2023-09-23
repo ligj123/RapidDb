@@ -1,4 +1,5 @@
 ﻿#include "../../src/file/PageFile.h"
+#include "../../src/config/Configure.h"
 #include "../../src/dataType/DataValueFactory.h"
 #include "../../src/utils/Log.h"
 #include "../../src/utils/Utilitys.h"
@@ -17,7 +18,7 @@ BOOST_AUTO_TEST_CASE(PageFile_test) {
   uint32_t pageLen = (uint32_t)Configure::GetCachePageSize();
   try {
     string nofile = "./unexistdir/filename";
-    PageFile errFile(nofile);
+    PageFile errFile(nofile.c_str());
     throw "Here should have an exception!";
   } catch (ErrorMsg &msg) {
     LOG_INFO << msg.what();
@@ -26,7 +27,7 @@ BOOST_AUTO_TEST_CASE(PageFile_test) {
   fs::path path(ROOT_PATH);
   if (!fs::exists(path))
     fs::create_directories(path);
-  PageFile pf(pageName);
+  PageFile pf(pageName.c_str());
 
   char *bys1 = new char[pageLen];
   char *bys2 = new char[pageLen];

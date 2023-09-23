@@ -3,17 +3,20 @@
 #include "../utils/Log.h"
 
 namespace storage {
-thread_local char PageFile::_tmpBuff[1024 * 1024];
-
-PageFile::PageFile(const string &path) {
+PageFile::PageFile(const MString &path) {
   _path = path;
   _file.open(path.c_str(), ios::in | ios::out | ios::binary);
   if (!_file.is_open()) {
     _file.open(path.c_str(), ios::out);
-    if (!_file.is_open())
-      throw ErrorMsg(FILE_OPEN_FAILED, {path.c_str()});
-    _file.close();
-    _file.open(path.c_str(), ios::in | ios::out | ios::binary);
+    if (!_file.is_open()) {
+      _threadErrorMsg.reset(new ErrorMsg(FILE_OPEN_FAILED, {path.c_str()}));
+      _file.close();
+      _file.open(path.c_str(), ios::in | ios::out | ios::binary);
+      LOG_ERROR << "Failed to initialize PageFile, path= " << path;
+      _bValid = false;
+    } else {
+      _bValid = true;
+    }
   }
 }
 

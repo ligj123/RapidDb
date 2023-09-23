@@ -94,31 +94,26 @@ void CachePage::ReadPage(PageFile *pageFile) {
 void CachePage::WritePage(PageFile *pageFile) {
   PageFile *pFile =
       (pageFile == nullptr ? _indexTree->ApplyPageFile() : pageFile);
-  char *tmp = PageFile::_tmpBuff;
-  {
-    unique_lock<SpinMutex> lock(_pageLock);
-    BytesCopy(
-        tmp, _bysPage,
-        (_pageId != PAGE_NULL_POINTER ? CACHE_PAGE_SIZE : HEAD_PAGE_SIZE));
-    _bDirty = false;
-  }
+  unique_lock<SpinMutex> lock(_pageLock);
+  _bDirty = false;
 
   if (_pageId != PAGE_NULL_POINTER) {
     if (_pageType != PageType::OVERFLOW_PAGE) {
       crc32.reset();
       crc32.process_bytes(_bysPage, CRC32_PAGE_OFFSET);
-      *((int *)&tmp[CRC32_PAGE_OFFSET]) = crc32.checksum();
+      *((int *)&_bysPage[CRC32_PAGE_OFFSET]) = crc32.checksum();
     }
 
     pFile->WritePage(Configure::GetDiskClusterSize() +
                          _pageId * Configure::GetCachePageSize(),
-                     tmp, (uint32_t)Configure::GetCachePageSize());
+                     (char *)_bysPage, (uint32_t)Configure::GetCachePageSize());
   } else {
     crc32.reset();
     crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
-    *((int *)&tmp[CRC32_HEAD_OFFSET]) = crc32.checksum();
+    *((int *)&_bysPage[CRC32_HEAD_OFFSET]) = crc32.checksum();
 
-    pFile->WritePage(0, tmp, (uint32_t)Configure::GetDiskClusterSize());
+    pFile->WritePage(0, (char *)_bysPage,
+                     (uint32_t)Configure::GetDiskClusterSize());
   }
   if (pageFile == nullptr) {
     _indexTree->ReleasePageFile(pFile);

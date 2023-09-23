@@ -32,10 +32,10 @@ public:
 
 public:
   IndexTree() {}
-  bool CreateIndex(const string &indexName, const string &fileName,
+  bool CreateIndex(const MString &indexName, const MString &fileName,
                    VectorDataValue &vctKey, VectorDataValue &vctVal,
                    uint32_t indexId, IndexType iType);
-  bool InitIndex(const string &indexName, const string &fileName,
+  bool InitIndex(const MString &indexName, const MString &fileName,
                  VectorDataValue &vctKey, VectorDataValue &vctVal,
                  uint32_t indexId);
 
@@ -93,7 +93,7 @@ public:
   inline uint64_t GetRecordsCount() {
     return _headPage->ReadTotalRecordCount();
   }
-  inline string &GetFileName() { return _fileName; }
+  inline MString &GetFileName() { return _fileName; }
   inline uint16_t GetFileId() { return _fileId; }
   inline bool IsClosed() { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
@@ -127,8 +127,8 @@ protected:
   ~IndexTree();
 
 protected:
-  string _indexName;
-  string _fileName;
+  MString _indexName;
+  MString _fileName;
   std::queue<PageFile *> _fileQueue;
   SpinMutex _fileMutex;
   condition_variable_any _fileCv;

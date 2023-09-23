@@ -14,7 +14,7 @@ public:
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
     _value = src._value;
   }
-
+  ~DataValueDigit() {}
   bool SetValue(T val) {
     _value = val;
     valType_ = ValueType::SOLE_VALUE;
@@ -308,6 +308,19 @@ public:
   bool operator!=(const DataValueDigit &dv) const { return !(*this == dv); }
   void Add(int64_t val) override { _value += (T)val; }
   void Add(double val) override { _value += (T)val; }
+  bool Add(IDataValue &dv) override {
+    if (dv.IsDigital()) {
+      Case_Add<DT>::Add(_value, dv);
+    } else if (dv.IsStringType()) {
+      Bool_Add<T>::Add(_value, (char *)dv.GetBuff());
+    } else {
+      _threadErrorMsg.reset(
+          new ErrorMsg(DT_UNSUPPORT_CONVERT,
+                       {StrOfDataType(dv.GetDataType()), StrOfDataType(DT)}));
+      return false;
+    }
+    return true;
+  }
 
   template <class V, DataType DTV>
   DataValueDigit *operator+(const DataValueDigit<V, DTV> &dv) {
@@ -334,9 +347,6 @@ public:
     _value /= (T)(V)dv;
     return this;
   }
-
-protected:
-  ~DataValueDigit() {}
 
 protected:
   T _value;

@@ -66,6 +66,7 @@ public:
       : dataType_(dv.dataType_), valType_(dv.valType_), refCount_(1) {}
   IDataValue(DataType dataType, ValueType valType)
       : dataType_(dataType), valType_(valType), refCount_(1) {}
+  virtual ~IDataValue() { assert(refCount_ == 1); }
   // return the data type for this data value
   inline DataType GetDataType() const { return dataType_; }
   inline ValueType GetValueType() const { return valType_; }
@@ -77,9 +78,11 @@ public:
   }
   inline void DecRef() {
     if (refCount_ != UINT16_MAX) {
-      --refCount_;
-      if (refCount_ == 0)
+
+      if (refCount_ == 1)
         delete this;
+      else
+        --refCount_;
     }
   }
   inline uint16_t GetRef() { return refCount_; }
@@ -133,7 +136,7 @@ public:
   virtual Byte *GetBuff() const { abort(); }
   virtual void Add(int64_t val) {}
   virtual void Add(double val) {}
-
+  virtual bool Add(IDataValue &dv) { return true; }
   virtual bool EQ(const IDataValue &dv) const = 0;
   virtual bool GT(const IDataValue &dv) const = 0;
   virtual bool LT(const IDataValue &dv) const = 0;
@@ -153,9 +156,6 @@ public:
   static void operator delete(void *ptr, size_t size) {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
-
-protected:
-  virtual ~IDataValue() {}
 
 protected:
   DataType dataType_;

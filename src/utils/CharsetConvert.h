@@ -39,10 +39,10 @@ public:
                                 char *outFrom, int &outLen,
                                 const Charsets cset = Charsets::GBK,
                                 const bool bZero = true) {
-    MString str = boost::locale::conv::between(inFrom, inFrom + inLen,
-                                               mapCharset[Charsets::UTF8],
-                                               mapCharset[cset])
-                      .c_str();
+    string str = boost::locale::conv::between(inFrom, inFrom + inLen,
+                                              mapCharset[Charsets::UTF8],
+                                              mapCharset[cset])
+                     .c_str();
     if (str.size() > outLen) {
       BytesCopy(outFrom, str.c_str(), outLen);
       return ConvResult::PARTIAL;
@@ -60,7 +60,7 @@ public:
                                   char *outFrom, int &outLen,
                                   const Charsets cset = Charsets::GBK,
                                   const bool bZero = true) {
-    MString str =
+    string str =
         boost::locale::conv::between(inFrom, inFrom + inLen, mapCharset[cset],
                                      mapCharset[Charsets::UTF8])
             .c_str();
