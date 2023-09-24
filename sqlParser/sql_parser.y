@@ -16,7 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 
-  int yyerror(YYLTYPE * llocp, SQLParserResult * result, yyscan_t scanner, const char* msg) {
+  int yyerror(YYLTYPE * llocp, ParserResult * result, yyscan_t scanner, const char* msg) {
     result->SetIsValid(false);
     result->SetErrorDetails(msg, llocp->first_line, llocp->first_column);
     return 0;
@@ -42,7 +42,7 @@
 #include "../expr/ExprLogic.h"
 #include "../expr/ExprStatement.h"
 #include "parser_typedef.h"
-#include "SQLParserResult.h"
+#include "ParserResult.h"
 
 using namespace storage;
 
@@ -91,7 +91,7 @@ using namespace storage;
 %lex-param   { yyscan_t scanner }
 
 // Define additional parameters for yyparse
-%parse-param { SQLParserResult* result }
+%parse-param { ParserResult* result }
 %parse-param { yyscan_t scanner }
 
 /*********************************

@@ -66,7 +66,7 @@ extern int db_debug;
 #include "../expr/ExprLogic.h"
 #include "../expr/ExprStatement.h"
 #include "parser_typedef.h"
-#include "SQLParserResult.h"
+#include "ParserResult.h"
 
 using namespace storage;
 
@@ -407,7 +407,7 @@ struct DB_LTYPE
 
 
 
-int db_parse (SQLParserResult* result, yyscan_t scanner);
+int db_parse (ParserResult* result, yyscan_t scanner);
 
 
 #endif /* !YY_DB_SQL_PARSER_H_INCLUDED  */

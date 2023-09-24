@@ -48,3 +48,6 @@
 #Statement
 8001  Invalid statement's parameters number, expect {1}, actual {2}.
 8002  Invalid statement's parameters values length, expect {1}, actual {2}.
+
+#SQLParser
+9001 SQLParser: Error when initializing lexer!

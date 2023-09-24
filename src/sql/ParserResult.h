@@ -1,5 +1,4 @@
-#ifndef SQLPARSER_SQLPARSER_RESULT_H
-#define SQLPARSER_SQLPARSER_RESULT_H
+#pragma once
 
 #include "../cache/Mallocator.h"
 #include "../expr/ExprData.h"
@@ -8,13 +7,13 @@
 namespace storage {
 // Represents the result of the SQLParser.
 // If parsing was successful it contains a list of ExprStatement.
-class SQLParserResult {
+class ParserResult {
 public:
-  SQLParserResult(){};
-  SQLParserResult(SQLParserResult &&src) { *this = move(src); }
-  virtual ~SQLParserResult() { Reset(); }
+  ParserResult(){};
+  ParserResult(ParserResult &&src) { *this = move(src); }
+  virtual ~ParserResult() { Reset(); }
 
-  SQLParserResult &operator=(SQLParserResult &&src) {
+  ParserResult &operator=(ParserResult &&src) {
     _isValid = src._isValid;
     _errorMsg = move(src._errorMsg);
     _vctStatement = move(src._vctStatement);
@@ -89,5 +88,3 @@ private:
 };
 
 } // namespace storage
-
-#endif // SQLPARSER_SQLPARSER_RESULT_H

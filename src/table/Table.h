@@ -189,6 +189,7 @@ public:
       assert(_vctIndex[i]._tree == nullptr);
       OpenIndex(i, true);
     }
+    return true;
   }
   bool LockTable(Transaction *tran) {
     if (!_spinMutex.try_lock())
@@ -201,6 +202,7 @@ public:
     _lockTran = tran;
     _tableStatus = TableStatus::Locking;
     _spinMutex.unlock();
+    return true;
   }
   void UnlockTable() {
     _spinMutex.lock();

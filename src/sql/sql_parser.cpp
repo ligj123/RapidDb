@@ -92,7 +92,7 @@
 #include <stdio.h>
 #include <string.h>
 
-  int yyerror(YYLTYPE * llocp, SQLParserResult * result, yyscan_t scanner, const char* msg) {
+  int yyerror(YYLTYPE * llocp, ParserResult * result, yyscan_t scanner, const char* msg) {
     result->SetIsValid(false);
     result->SetErrorDetails(msg, llocp->first_line, llocp->first_column);
     return 0;
@@ -1384,7 +1384,7 @@ do {                                                                      \
 
 static void
 yy_symbol_value_print (FILE *yyo,
-                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, SQLParserResult* result, yyscan_t scanner)
+                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, ParserResult* result, yyscan_t scanner)
 {
   FILE *yyoutput = yyo;
   YY_USE (yyoutput);
@@ -1405,7 +1405,7 @@ yy_symbol_value_print (FILE *yyo,
 
 static void
 yy_symbol_print (FILE *yyo,
-                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, SQLParserResult* result, yyscan_t scanner)
+                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep, YYLTYPE const * const yylocationp, ParserResult* result, yyscan_t scanner)
 {
   YYFPRINTF (yyo, "%s %s (",
              yykind < YYNTOKENS ? "token" : "nterm", yysymbol_name (yykind));
@@ -1446,7 +1446,7 @@ do {                                                            \
 
 static void
 yy_reduce_print (yy_state_t *yyssp, YYSTYPE *yyvsp, YYLTYPE *yylsp,
-                 int yyrule, SQLParserResult* result, yyscan_t scanner)
+                 int yyrule, ParserResult* result, yyscan_t scanner)
 {
   int yylno = yyrline[yyrule];
   int yynrhs = yyr2[yyrule];
@@ -1777,7 +1777,7 @@ yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
 
 static void
 yydestruct (const char *yymsg,
-            yysymbol_kind_t yykind, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, SQLParserResult* result, yyscan_t scanner)
+            yysymbol_kind_t yykind, YYSTYPE *yyvaluep, YYLTYPE *yylocationp, ParserResult* result, yyscan_t scanner)
 {
   YY_USE (yyvaluep);
   YY_USE (yylocationp);
@@ -2352,7 +2352,7 @@ yydestruct (const char *yymsg,
 `----------*/
 
 int
-yyparse (SQLParserResult* result, yyscan_t scanner)
+yyparse (ParserResult* result, yyscan_t scanner)
 {
 /* Lookahead token kind.  */
 int yychar;
