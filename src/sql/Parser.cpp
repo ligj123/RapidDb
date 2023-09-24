@@ -1,11 +1,11 @@
 #include "Parser.h"
 #include "../utils/ErrorMsg.h"
+#include "./sql_parser.h"
 #include "flex_lexer.h"
-#include "sql_parser.h"
 
 namespace storage {
 
-bool SQLParser::Parse(const MString &sql, ParserResult &result) {
+bool Parser::Parse(const MString &sql, ParserResult &result) {
   yyscan_t scanner;
   YY_BUFFER_STATE state;
 
@@ -25,10 +25,10 @@ bool SQLParser::Parse(const MString &sql, ParserResult &result) {
   return true;
 }
 
-bool SQLParser::Tokenize(const MString &sql, MVector<int16_t> &tokens) {
+bool Parser::Tokenize(const MString &sql, MVector<int16_t> &tokens) {
   // Initialize the scanner.
   yyscan_t scanner;
-  if (hsql_lex_init(&scanner)) {
+  if (db_lex_init(&scanner)) {
     _threadErrorMsg.reset(new ErrorMsg(SQL_PARSER_INIT_FAILED));
     return false;
   }
@@ -43,8 +43,8 @@ bool SQLParser::Tokenize(const MString &sql, MVector<int16_t> &tokens) {
   // Note: hsql_lex returns int, but we know that its range is within 16 bit.
   int16_t token = db_lex(&yylval, &yylloc, scanner);
   while (token != 0) {
-    tokens->push_back(token);
-    token = hsql_lex(&yylval, &yylloc, scanner);
+    tokens.push_back(token);
+    token = db_lex(&yylval, &yylloc, scanner);
 
     if (token == SQL_IDENTIFIER || token == SQL_STRING) {
       free(yylval.sval);
