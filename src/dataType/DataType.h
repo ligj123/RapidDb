@@ -49,6 +49,7 @@ static const int DEFAULT_MAX_FIX_LEN = 1000;
 static const int DEFAULT_MAX_VAR_LEN = (1 << 30);
 
 inline std::ostream &operator<<(std::ostream &os, const DataType &dt) {
+  os << "DataType::";
   switch (dt) {
   case DataType::BYTE:
     os << "BYTE(" << (int)DataType::BYTE << ")";

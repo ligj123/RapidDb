@@ -43,8 +43,8 @@ public:
 
     _vctStatement = vct_stmt;
   }
-  const MVectorPtr<ExprStatement *> &GetStatements() const {
-    return *_vctStatement;
+  const MVectorPtr<ExprStatement *> *GetStatements() const {
+    return _vctStatement;
   }
   void AddParameters(MVector<ExprParameter *> &vct_para) {
     size_t ii = _vctPara.size();

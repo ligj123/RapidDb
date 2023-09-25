@@ -23,23 +23,85 @@ BOOST_AUTO_TEST_CASE(ExprType_test) {
   BOOST_TEST("EXPR_LAST" == ExprStr[(int)ExprType::EXPR_LAST]);
 }
 
-BOOST_AUTO_TEST_CASE(ParserBasic_test) {
+BOOST_AUTO_TEST_CASE(ParserDatabase_test) {
   MString str = "create database db1;";
   ParserResult result;
   bool b = Parser::Parse(str, result);
   BOOST_TEST(b);
   BOOST_TEST(result.IsValid());
-  const MVectorPtr<ExprStatement *> &vct = result.GetStatements();
-  BOOST_TEST(vct.size() == 1);
-  BOOST_TEST(vct[0]->GetType() == ExprType::EXPR_CREATE_DATABASE);
+  const MVectorPtr<ExprStatement *> *vct = result.GetStatements();
+  BOOST_TEST(vct->size() == 1);
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_CREATE_DATABASE);
 
-  ExprCreateDatabase *expr = (ExprCreateDatabase *)vct[0];
+  ExprCreateDatabase *expr = (ExprCreateDatabase *)(*vct)[0];
   BOOST_TEST(expr->_ifNotExist == false);
   BOOST_TEST(*expr->_dbName == "db1");
 
-  // "drop database db1;", "show databases", "use db1",
-  //     "create table db1.t1(c1 long primary key AUTO_INCREMENT, c2 "
-  //     "varchar(100), c3 char(10), )";
+  str = "create database if not exists db1;";
+  b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
+  vct = result.GetStatements();
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_CREATE_DATABASE);
+  expr = (ExprCreateDatabase *)(*vct)[0];
+  BOOST_TEST(expr->_ifNotExist == true);
+  BOOST_TEST(*expr->_dbName == "db1");
+
+  str = "drop database db1;";
+  Parser::Parse(str, result);
+  vct = result.GetStatements();
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_DROP_DATABASE);
+  ExprDropDatabase *dropDb = (ExprDropDatabase *)(*vct)[0];
+  BOOST_TEST(dropDb->_ifExist == false);
+  BOOST_TEST(*dropDb->_dbName == "db1");
+
+  str = "drop database if exists db1;";
+  Parser::Parse(str, result);
+  vct = result.GetStatements();
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_DROP_DATABASE);
+  dropDb = (ExprDropDatabase *)(*vct)[0];
+  BOOST_TEST(dropDb->_ifExist == true);
+  BOOST_TEST(*dropDb->_dbName == "db1");
+
+  str = "show databases";
+  Parser::Parse(str, result);
+  vct = result.GetStatements();
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_SHOW_DATABASES);
+
+  str = "use db1;";
+  Parser::Parse(str, result);
+  vct = result.GetStatements();
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_USE_DATABASE);
+  ExprUseDatabase *useDb = (ExprUseDatabase *)(*vct)[0];
+  BOOST_TEST(*useDb->_dbName == "db1");
+
+  str = "BEGIN";
+  Parser::Parse(str, result);
+  vct = result.GetStatements();
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_TRANSACTION);
+  ExprTransaction *tran = (ExprTransaction *)(*vct)[0];
+  BOOST_TEST(tran->_tranAction == TranAction::TRAN_BEGIN);
+
+  str = "start transaction";
+  Parser::Parse(str, result);
+  vct = result.GetStatements();
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_TRANSACTION);
+  tran = (ExprTransaction *)(*vct)[0];
+  BOOST_TEST(tran->_tranAction == TranAction::TRAN_BEGIN);
+
+  str = "ROLLBACK";
+  Parser::Parse(str, result);
+  vct = result.GetStatements();
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_TRANSACTION);
+  tran = (ExprTransaction *)(*vct)[0];
+  BOOST_TEST(tran->_tranAction == TranAction::TRAN_ROLLBACK);
+
+  str = "COMMIT";
+  Parser::Parse(str, result);
+  vct = result.GetStatements();
+  BOOST_TEST((*vct)[0]->GetType() == ExprType::EXPR_TRANSACTION);
+  tran = (ExprTransaction *)(*vct)[0];
+  BOOST_TEST(tran->_tranAction == TranAction::TRAN_COMMIT);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -83,6 +83,27 @@ enum class ExprType {
 
   EXPR_LAST
 };
+
+enum class TranAction : int8_t { TRAN_BEGIN = 0, TRAN_COMMIT, TRAN_ROLLBACK };
+
+inline std::ostream &operator<<(std::ostream &os, const TranAction &action) {
+  switch (action) {
+  case TranAction::TRAN_BEGIN:
+    os << "TRAN_BEGIN(" << (int)TranAction::TRAN_BEGIN << ")";
+    break;
+  case TranAction::TRAN_COMMIT:
+    os << "TRAN_COMMIT(" << (int)TranAction::TRAN_COMMIT << ")";
+    break;
+  case TranAction::TRAN_ROLLBACK:
+    os << "TRAN_ROLLBACK(" << (int)TranAction::TRAN_ROLLBACK << ")";
+    break;
+  default:
+    os << "UNKNOWN Action";
+    break;
+  }
+  return os;
+}
+
 static const char ExprStr[][32] = {"EXPR_BASE",
                                    "EXPR_STAR",
                                    "EXPR_ARRAY",

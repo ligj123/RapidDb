@@ -192,7 +192,6 @@ public:
   ExprTable *_tableName;
 };
 
-enum class TranAction : int8_t { TRAN_BEGIN = 0, TRAN_COMMIT, TRAN_ROLLBACK };
 class ExprTransaction : public ExprStatement {
 public:
   ExprTransaction(TranAction tranAction) : _tranAction(tranAction) {}
