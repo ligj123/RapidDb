@@ -131,7 +131,7 @@ protected:
       }
     }
 
-    _aliveMaxThreads > _threadPool->GetAliveThreadCount();
+    _aliveMaxThreads = _threadPool->GetAliveThreadCount();
     if (bLock) {
       _spinMutex.unlock();
     }

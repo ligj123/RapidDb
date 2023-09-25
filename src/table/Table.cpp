@@ -300,7 +300,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     buf += csz;
 
     _mapColumnPos.insert({col.GetName(), i});
-    _vctColumn.push_back(move(col));
+    _vctColumn.push_back(std::move(col));
   }
 
   len = *(uint16_t *)buf;

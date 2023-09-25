@@ -15,7 +15,7 @@ class ExprCount : public ExprAggr {
 public:
   ExprCount(ExprData *exprData, bool bStar = false)
       : _exprData(exprData), _bStar(bStar) {
-    assert(exprData != nullptr ^ bStar);
+    assert((exprData != nullptr) ^ bStar);
   }
   ~ExprCount() { delete _exprData; }
 

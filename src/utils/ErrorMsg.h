@@ -13,16 +13,18 @@ extern thread_local unique_ptr<ErrorMsg> _threadErrorMsg;
 class ErrorMsg : public exception {
 public:
   ErrorMsg() {}
-  ErrorMsg(int id, MVector<MString> &&paras = {}) { SetMsg(id, move(paras)); }
+  ErrorMsg(int id, MVector<MString> &&paras = {}) {
+    SetMsg(id, std::move(paras));
+  }
 
   ErrorMsg(ErrorMsg &&msg) noexcept {
     _errId = msg._errId;
-    _errMsg = move(msg._errMsg);
+    _errMsg = std::move(msg._errMsg);
   }
 
   ErrorMsg &operator=(ErrorMsg &&msg) noexcept {
     _errId = msg._errId;
-    _errMsg = move(msg._errMsg);
+    _errMsg = std::move(msg._errMsg);
     return *this;
   }
 

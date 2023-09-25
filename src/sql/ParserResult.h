@@ -10,13 +10,13 @@ namespace storage {
 class ParserResult {
 public:
   ParserResult(){};
-  ParserResult(ParserResult &&src) { *this = move(src); }
+  ParserResult(ParserResult &&src) { *this = std::move(src); }
   virtual ~ParserResult() { Reset(); }
 
   ParserResult &operator=(ParserResult &&src) {
     _isValid = src._isValid;
-    _errorMsg = move(src._errorMsg);
-    _vctStatement = move(src._vctStatement);
+    _errorMsg = std::move(src._errorMsg);
+    _vctStatement = src._vctStatement;
     _errorLine = src._errorLine;
     _errorColumn = src._errorColumn;
 
@@ -69,7 +69,7 @@ public:
 
 private:
   // List of statements within the result. In this version only one statement
-  MVectorPtr<ExprStatement *> *_vctStatement;
+  MVectorPtr<ExprStatement *> *_vctStatement{nullptr};
   // To record the parameters information, they have been included in statement,
   // do not need to free.
   MVector<ExprParameter *> _vctPara;

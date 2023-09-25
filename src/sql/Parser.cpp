@@ -13,6 +13,8 @@ bool Parser::Parse(const MString &sql, ParserResult &result) {
     _threadErrorMsg.reset(new ErrorMsg(SQL_PARSER_INIT_FAILED));
     return false;
   }
+
+  result.Reset();
   const char *text = sql.c_str();
   state = db__scan_string(text, scanner);
 
@@ -33,6 +35,7 @@ bool Parser::Tokenize(const MString &sql, MVector<int16_t> &tokens) {
     return false;
   }
 
+  tokens.clear();
   YY_BUFFER_STATE state;
   state = db__scan_string(sql.c_str(), scanner);
 

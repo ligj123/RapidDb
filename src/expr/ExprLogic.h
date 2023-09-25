@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
+#include "../dataType/DataValueFactory.h"
 #include "../dataType/IDataValue.h"
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
@@ -201,10 +202,8 @@ public:
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     for (ExprLogic *expr : _vctChild) {
       TriBool tb = expr->Calc(vdParas, vdRow);
-      if (tb == TriBool::Error)
+      if (tb == TriBool::Error || tb == TriBool::False)
         return tb;
-      if (tb == TriBool::False)
-        tb;
     }
 
     return TriBool::True;
@@ -228,10 +227,8 @@ public:
     for (ExprLogic *expr : _vctChild) {
       TriBool tb = expr->Calc(vdParas, vdRow);
 
-      if (tb == TriBool::Error)
+      if (tb == TriBool::Error || tb == TriBool::True)
         return tb;
-      if (tb == TriBool::True)
-        tb;
     }
     return TriBool::False;
   }

@@ -287,7 +287,7 @@ using namespace storage;
     %type <expr_elem_row> expr_elem_row
     %type <expr_vct_elem_row> expr_vct_elem_row
     %type <expr_vct_statement> statement_list
-    %type <expr_vct_column> expr_vct_update_column expr_vct_insert_column expr_vct_select_column
+    %type <expr_vct_column> expr_vct_update_column expr_vct_insert_column expr_vct_select_column opt_expr_vct_select_column
     %type <expr_vct_order_item> expr_vct_order_item
     %type <expr_vct_table> opt_expr_vct_table expr_vct_table
     %type <expr_vct_data> opt_expr_vct_data expr_vct_data
@@ -431,7 +431,7 @@ expr_update : UPDATE expr_table SET expr_vct_update_column opt_expr_where opt_ex
   $$->_exprLimit = $7;
 };
 
-expr_select : SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type {
+expr_select : SELECT opt_distinct opt_expr_vct_select_column opt_expr_vct_table opt_expr_where opt_expr_on opt_expr_group_by opt_expr_order_by opt_expr_limit opt_lock_type {
   $$ = new ExprSelect();
   $$->_bDistinct = $2;
   $$->_vctCol = $3;
@@ -442,6 +442,13 @@ expr_select : SELECT opt_distinct expr_vct_select_column opt_expr_vct_table opt_
   $$->_exprOrderBy = $8;
   $$->_exprLimit = $9;
   $$->_lockType = $10;
+};
+
+opt_expr_vct_select_column : expr_vct_select_column {
+  $$ = $1;
+}
+| '*' {
+   $$ = new  MVectorPtr<ExprColumn*>();
 };
 
 expr_vct_select_column : expr_select_column {
