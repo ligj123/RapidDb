@@ -104,5 +104,68 @@ BOOST_AUTO_TEST_CASE(ParserDatabase_test) {
   BOOST_TEST(tran->_tranAction == TranAction::TRAN_COMMIT);
 }
 
+BOOST_AUTO_TEST_CASE(ParserTable_test) {
+
+  MString str = "create table if not exists t1("
+                "i int AUTO_INCREMENT primary key,"
+                "j varchar(100) not null default 'abcd',"
+                "k char(10) null comment 'comment column',"
+                "KEY idx_j_k(j,k));";
+  ParserResult result;
+  bool b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
+  BOOST_TEST(result.GetStatements()->at(0)->GetType() ==
+             ExprType::EXPR_CREATE_TABLE);
+  ExprCreateTable *ct = (ExprCreateTable *)result.GetStatements()->at(0);
+  BOOST_TEST(ct->_table->_dbName == nullptr);
+  BOOST_TEST(*ct->_table->_tName == "t1");
+  BOOST_TEST(ct->_table->_tAlias == nullptr);
+  BOOST_TEST(ct->_ifNotExist);
+  MVectorPtr<ExprCreateTableItem *> &vctItem = *ct->_vctItem;
+  BOOST_TEST(vctItem.size() == 4);
+  BOOST_TEST(vctItem[0]->GetType() == ExprType::EXPR_COLUMN_INFO);
+  BOOST_TEST(vctItem[1]->GetType() == ExprType::EXPR_COLUMN_INFO);
+  BOOST_TEST(vctItem[2]->GetType() == ExprType::EXPR_COLUMN_INFO);
+  BOOST_TEST(vctItem[3]->GetType() == ExprType::EXPR_CONSTRAINT);
+
+  ExprColumnItem *ci = (ExprColumnItem *)vctItem[0];
+  BOOST_TEST(*ci->_colName == "i");
+  BOOST_TEST(ci->_dataType == DataType::INT);
+  BOOST_TEST(ci->_maxLength == -1);
+  BOOST_TEST(ci->_nullable == true);
+  BOOST_TEST(ci->_defaultVal == nullptr);
+  BOOST_TEST(ci->_autoInc == true);
+  BOOST_TEST(ci->_indexType == IndexType::PRIMARY);
+  BOOST_TEST(ci->_comment == nullptr);
+
+  ci = (ExprColumnItem *)vctItem[1];
+  BOOST_TEST(*ci->_colName == "j");
+  BOOST_TEST(ci->_dataType == DataType::VARCHAR);
+  BOOST_TEST(ci->_maxLength == 100);
+  BOOST_TEST(ci->_nullable == false);
+  BOOST_TEST(*ci->_defaultVal == DataValueVarChar("abcd", 4));
+  BOOST_TEST(ci->_autoInc == false);
+  BOOST_TEST(ci->_indexType == IndexType::UNKNOWN);
+  BOOST_TEST(ci->_comment == nullptr);
+
+  ci = (ExprColumnItem *)vctItem[2];
+  BOOST_TEST(*ci->_colName == "k");
+  BOOST_TEST(ci->_dataType == DataType::FIXCHAR);
+  BOOST_TEST(ci->_maxLength == 10);
+  BOOST_TEST(ci->_nullable == true);
+  BOOST_TEST(ci->_defaultVal == nullptr);
+  BOOST_TEST(ci->_autoInc == false);
+  BOOST_TEST(ci->_indexType == IndexType::UNKNOWN);
+  BOOST_TEST(*ci->_comment == "comment column");
+
+  ExprTableConstraint *tc = (ExprTableConstraint *)vctItem[3];
+  BOOST_TEST(*tc->_idxName == "idx_i_j");
+  BOOST_TEST(tc->_idxType == IndexType::NON_UNIQUE);
+  BOOST_TEST(tc->_vctColName->size() == 2);
+  BOOST_TEST(*tc->_vctColName->at(0) == "j");
+  BOOST_TEST(*tc->_vctColName->at(1) == "k");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

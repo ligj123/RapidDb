@@ -120,11 +120,11 @@ public:
 
 class ExprCreateTable : public ExprStatement {
 public:
-  ExprCreateTable(ExprTable *tName, bool ifNotExist,
+  ExprCreateTable(ExprTable *table, bool ifNotExist,
                   MVectorPtr<ExprCreateTableItem *> *vctItem)
-      : _tName(tName), _ifNotExist(ifNotExist), _vctItem(vctItem) {}
+      : _table(table), _ifNotExist(ifNotExist), _vctItem(vctItem) {}
   ~ExprCreateTable() {
-    delete _tName;
+    delete _table;
     delete _vctItem;
     delete _vctColumn;
     delete _vctConstraint;
@@ -137,7 +137,7 @@ public:
   }
 
 public:
-  ExprTable *_tName;
+  ExprTable *_table;
   bool _ifNotExist;
   MVectorPtr<ExprCreateTableItem *> *_vctItem;
   // Split from _vctElem when preprocess
@@ -148,9 +148,9 @@ public:
 
 class ExprDropTable : public ExprStatement {
 public:
-  ExprDropTable(ExprTable *tName, bool ifExist)
-      : _tName(tName), _ifExist(ifExist) {}
-  ~ExprDropTable() { delete _tName; }
+  ExprDropTable(ExprTable *table, bool ifExist)
+      : _table(table), _ifExist(ifExist) {}
+  ~ExprDropTable() { delete _table; }
   ExprType GetType() override { return ExprType::EXPR_DROP_TABLE; }
   bool Preprocess() override {
     // TO DO
@@ -158,7 +158,7 @@ public:
   }
 
 public:
-  ExprTable *_tName;
+  ExprTable *_table;
   bool _ifExist;
 };
 
@@ -180,8 +180,8 @@ public:
 
 class ExprTrunTable : public ExprStatement {
 public:
-  ExprTrunTable(ExprTable *tableName) : _tableName(tableName) {}
-  ~ExprTrunTable() { delete _tableName; }
+  ExprTrunTable(ExprTable *table) : _table(table) {}
+  ~ExprTrunTable() { delete _table; }
   ExprType GetType() override { return ExprType::EXPR_TRUN_TABLE; }
   bool Preprocess() override {
     // TO DO
@@ -189,7 +189,7 @@ public:
   }
 
 public:
-  ExprTable *_tableName;
+  ExprTable *_table;
 };
 
 class ExprTransaction : public ExprStatement {

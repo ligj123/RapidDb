@@ -238,7 +238,7 @@ using namespace storage;
     %type <sval> table_comment col_alias
     %type <join_type> join_type
     %type <comp_type> comp_type
-    %type <index_type> index_type
+    %type <index_type> index_type opt_index_type
     %type <lock_type> opt_lock_type
     
     // DDL
@@ -561,7 +561,7 @@ expr_vct_create_table_item : expr_create_table_item {
   $$ = $1;
 };
 
-expr_create_table_item : IDENTIFIER expr_data_type col_nullable default_col_dv auto_increment index_type table_comment {
+expr_create_table_item : IDENTIFIER expr_data_type col_nullable default_col_dv auto_increment opt_index_type table_comment {
   ExprColumnItem *item = new ExprColumnItem();
   item->_colName = $1;
   item->_dataType = $2->_dataType;
@@ -574,11 +574,11 @@ expr_create_table_item : IDENTIFIER expr_data_type col_nullable default_col_dv a
   item->_comment = $7;
   $$ = item;
 }
-| INDEX IDENTIFIER index_type '(' expr_vct_col_name ')' {
-  $$ = new ExprTableConstraint($2, $3, $5);
+| index_type IDENTIFIER '(' expr_vct_col_name ')' {
+  $$ = new ExprTableConstraint($2, $1, $4);
 }
-| PRIMARY KEY '(' expr_vct_col_name ')' {
-  $$ = new ExprTableConstraint(nullptr, IndexType::PRIMARY, $4);
+| index_type '(' expr_vct_col_name ')' {
+  $$ = new ExprTableConstraint(nullptr, $1, $3);
 };
 
 expr_data_type : BIGINT { $$ = new ExprDataType(DataType::LONG); }
@@ -603,12 +603,15 @@ default_col_dv : DEFAULT const_dv { $$ = $2; }
 auto_increment : AUTO_INCREMENT { $$ = true; }
 |  /* empty */ { $$ = false; };
 
+opt_index_type : index_type { $$ = $1; }
+| /* empty */ { $$ = IndexType::UNKNOWN; }
+
 index_type : PRIMARY KEY { $$ = IndexType::PRIMARY; }
 | PRIMARY { $$ = IndexType::PRIMARY; }
 | UNIQUE KEY { $$ = IndexType::UNIQUE; }
 | UNIQUE { $$ = IndexType::UNIQUE; }
 | KEY { $$ = IndexType::NON_UNIQUE; }
-| /* empty */ { $$ = IndexType::UNKNOWN; };
+| INDEX { $$ = IndexType::NON_UNIQUE; };
 
 table_comment : COMMENT STRING { $$ = $2; }
 |  /* empty */ { $$ = nullptr; };
