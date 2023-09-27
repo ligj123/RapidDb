@@ -9,7 +9,7 @@
 #define PRINT_FUNC(str) #str
 
 namespace storage {
-BOOST_AUTO_TEST_SUITE(SqlParserTest)
+BOOST_AUTO_TEST_SUITE(SqlParserBasicTest)
 
 BOOST_AUTO_TEST_CASE(ExprType_test) {
   BOOST_TEST("EXPR_BASE" == ExprStr[(int)ExprType::EXPR_BASE]);
@@ -104,8 +104,7 @@ BOOST_AUTO_TEST_CASE(ParserDatabase_test) {
   BOOST_TEST(tran->_tranAction == TranAction::TRAN_COMMIT);
 }
 
-BOOST_AUTO_TEST_CASE(ParserTable_test) {
-
+BOOST_AUTO_TEST_CASE(ParserCreateTable_test) {
   MString str = "create table if not exists t1("
                 "i int AUTO_INCREMENT primary key,"
                 "j varchar(100) not null default 'abcd',"
@@ -160,12 +159,98 @@ BOOST_AUTO_TEST_CASE(ParserTable_test) {
   BOOST_TEST(*ci->_comment == "comment column");
 
   ExprTableConstraint *tc = (ExprTableConstraint *)vctItem[3];
-  BOOST_TEST(*tc->_idxName == "idx_i_j");
+  BOOST_TEST(*tc->_idxName == "idx_j_k");
   BOOST_TEST(tc->_idxType == IndexType::NON_UNIQUE);
   BOOST_TEST(tc->_vctColName->size() == 2);
   BOOST_TEST(*tc->_vctColName->at(0) == "j");
   BOOST_TEST(*tc->_vctColName->at(1) == "k");
 }
 
+BOOST_AUTO_TEST_CASE(ParserDropTable_test) {
+  MString str = "drop table if exists t1";
+  ParserResult result;
+  bool b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
+  BOOST_TEST(result.GetStatements()->at(0)->GetType() ==
+             ExprType::EXPR_DROP_TABLE);
+
+  ExprDropTable *dt = (ExprDropTable *)(*result.GetStatements())[0];
+  BOOST_TEST(dt->_ifExist == true);
+  BOOST_TEST(dt->_table->_dbName == nullptr);
+  BOOST_TEST(*dt->_table->_tName == "t1");
+  BOOST_TEST(dt->_table->_tAlias == nullptr);
+
+  str = "drop table db1.t1";
+  b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
+  BOOST_TEST(result.GetStatements()->at(0)->GetType() ==
+             ExprType::EXPR_DROP_TABLE);
+
+  dt = (ExprDropTable *)(*result.GetStatements())[0];
+  BOOST_TEST(dt->_ifExist == false);
+  BOOST_TEST(*dt->_table->_dbName == "db1");
+  BOOST_TEST(*dt->_table->_tName == "t1");
+  BOOST_TEST(dt->_table->_tAlias == nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(ParserShowTables_test) {
+  MString str = "show tables";
+  ParserResult result;
+  bool b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
+  BOOST_TEST(result.GetStatements()->at(0)->GetType() ==
+             ExprType::EXPR_SHOW_TABLES);
+
+  ExprShowTables *st = (ExprShowTables *)(*result.GetStatements())[0];
+  BOOST_TEST(st->_dbName == nullptr);
+
+  str = "show tables from db1";
+  b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
+  BOOST_TEST(result.GetStatements()->at(0)->GetType() ==
+             ExprType::EXPR_SHOW_TABLES);
+
+  st = (ExprShowTables *)(*result.GetStatements())[0];
+  BOOST_TEST(*st->_dbName == "db1");
+}
+
+BOOST_AUTO_TEST_CASE(ParserTrunTable_test) {
+  MString str = "truncate table t1";
+  ParserResult result;
+  bool b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
+  BOOST_TEST(result.GetStatements()->at(0)->GetType() ==
+             ExprType::EXPR_TRUN_TABLE);
+
+  ExprTrunTable *dt = (ExprTrunTable *)(*result.GetStatements())[0];
+  BOOST_TEST(dt->_table->_dbName == nullptr);
+  BOOST_TEST(*dt->_table->_tName == "t1");
+  BOOST_TEST(dt->_table->_tAlias == nullptr);
+
+  str = "truncate table db1.t1";
+  b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
+  BOOST_TEST(result.GetStatements()->at(0)->GetType() ==
+             ExprType::EXPR_TRUN_TABLE);
+
+  dt = (ExprTrunTable *)(*result.GetStatements())[0];
+  BOOST_TEST(*dt->_table->_dbName == "db1");
+  BOOST_TEST(*dt->_table->_tName == "t1");
+  BOOST_TEST(dt->_table->_tAlias == nullptr);
+}
+
+
+BOOST_AUTO_TEST_CASE(ParserInsert_test) {
+  MString str = "truncate table t1";
+  ParserResult result;
+  bool b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage
