@@ -228,7 +228,7 @@ using namespace storage;
     %token TRANSACTION BEGIN COMMIT ROLLBACK START
     %token NOWAIT SKIP LOCKED SHARE
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
-    %token DATABASE DATABASES AUTO_INCREMENT COMMENT
+    %token DATABASE DATABASES AUTO_INCREMENT COMMENT UPSERT
     %token AVERAGE COUNT MIN MAX SUM USE
 
     // Basic data type
@@ -287,7 +287,7 @@ using namespace storage;
     %type <expr_elem_row> expr_elem_row
     %type <expr_vct_elem_row> expr_vct_elem_row
     %type <expr_vct_statement> statement_list
-    %type <expr_vct_column> expr_vct_update_column expr_vct_insert_column expr_vct_select_column opt_expr_vct_select_column
+    %type <expr_vct_column> expr_vct_update_column opt_expr_vct_insert_column expr_vct_insert_column expr_vct_select_column opt_expr_vct_select_column
     %type <expr_vct_order_item> expr_vct_order_item
     %type <expr_vct_table> opt_expr_vct_table expr_vct_table
     %type <expr_vct_data> opt_expr_vct_data expr_vct_data
@@ -401,17 +401,24 @@ expr_transaction : BEGIN { $$ = new ExprTransaction(TranAction::TRAN_BEGIN); }
 | ROLLBACK { $$ = new ExprTransaction(TranAction::TRAN_ROLLBACK); }
 | COMMIT { $$ = new ExprTransaction(TranAction::TRAN_COMMIT); };
 
-expr_insert : INSERT INTO expr_table '(' expr_vct_insert_column ')' VALUES expr_vct_elem_row {
+expr_insert : INSERT INTO expr_table opt_expr_vct_insert_column VALUES expr_vct_elem_row {
   $$ = new ExprInsert();
   $$->_exprTable = $3;
-  $$->_vctCol = $5;
-  $$->_vctRowData = $8;
+  $$->_vctCol = $4;
+  $$->_vctRowData = $6;
 }
-| INSERT INTO expr_table '(' expr_vct_insert_column ')' expr_select {
+| INSERT INTO expr_table opt_expr_vct_insert_column expr_select {
   $$ = new ExprInsert();
   $$->_exprTable = $3;
-  $$->_vctCol = $5;
-  $$->_exprSelect = $7;
+  $$->_vctCol = $4;
+  $$->_exprSelect = $5;
+}
+| UPSERT INTO expr_table opt_expr_vct_insert_column VALUES expr_vct_elem_row {
+  $$ = new ExprInsert();
+  $$->_exprTable = $3;
+  $$->_vctCol = $4;
+  $$->_vctRowData = $6;
+  $$->_bUpsert = true;
 };
 
 expr_delete : DELETE FROM expr_table opt_expr_where opt_expr_order_by opt_expr_limit {
@@ -448,7 +455,7 @@ opt_expr_vct_select_column : expr_vct_select_column {
   $$ = $1;
 }
 | '*' {
-   $$ = new  MVectorPtr<ExprColumn*>();
+   $$ = nullptr;
 };
 
 expr_vct_select_column : expr_select_column {
@@ -464,9 +471,10 @@ expr_select_column : expr_elem col_alias {
   $$ = new ExprColumn(nullptr, $1, $2);
 };
 
-col_alias : AS IDENTIFIER {
-  $$ = $2;
-}
+col_alias : AS IDENTIFIER { $$ = $2; }
+| /* empty */ { $$ = nullptr; };
+
+opt_expr_vct_insert_column : '(' expr_vct_insert_column ')' { $$ = $2; }
 | /* empty */ { $$ = nullptr; };
 
 expr_vct_insert_column : expr_insert_column {

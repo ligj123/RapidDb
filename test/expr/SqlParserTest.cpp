@@ -245,12 +245,24 @@ BOOST_AUTO_TEST_CASE(ParserTrunTable_test) {
   BOOST_TEST(dt->_table->_tAlias == nullptr);
 }
 
-
 BOOST_AUTO_TEST_CASE(ParserInsert_test) {
-  MString str = "truncate table t1";
+  MString str = "insert into t1 values(100, 1.5, 'abcdefg', 'dddd')";
   ParserResult result;
   bool b = Parser::Parse(str, result);
   BOOST_TEST(b);
   BOOST_TEST(result.IsValid());
+  BOOST_TEST(result.GetStatements()->at(0)->GetType() == ExprType::EXPR_INSERT);
+
+  ExprInsert *ei = (ExprInsert *)(*result.GetStatements())[0];
+  BOOST_TEST(ei->_exprTable->_joinType == JoinType::JOIN_NULL);
+  BOOST_TEST(ei->_exprTable->_dbName == nullptr);
+  BOOST_TEST(*ei->_exprTable->_tName == "t1");
+  BOOST_TEST(ei->_exprTable->_tAlias == nullptr);
+  BOOST_TEST(ei->_vctRowData->size() == 1);
+
+  MVectorPtr<ExprElem *> &vct = *ei->_vctRowData->at(0);
+  BOOST_TEST(vct[0]->GetType() == ExprType::EXPR_CONST);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage
