@@ -246,7 +246,7 @@ BOOST_AUTO_TEST_CASE(ParserTrunTable_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserInsert_test) {
-  MString str = "insert into t1 values(100, 1.5, 'abcdefg', 'dddd')";
+  MString str = "insert into t1 values(100, 1.5, 'abcdefg', true, null)";
   ParserResult result;
   bool b = Parser::Parse(str, result);
   BOOST_TEST(b);
@@ -258,10 +258,23 @@ BOOST_AUTO_TEST_CASE(ParserInsert_test) {
   BOOST_TEST(ei->_exprTable->_dbName == nullptr);
   BOOST_TEST(*ei->_exprTable->_tName == "t1");
   BOOST_TEST(ei->_exprTable->_tAlias == nullptr);
+  BOOST_TEST(ei->_vctCol == nullptr);
   BOOST_TEST(ei->_vctRowData->size() == 1);
 
   MVectorPtr<ExprElem *> &vct = *ei->_vctRowData->at(0);
   BOOST_TEST(vct[0]->GetType() == ExprType::EXPR_CONST);
+  BOOST_TEST(((ExprConst *)vct[0])->_val->GetLong() == 100);
+  BOOST_TEST(((ExprConst *)vct[1])->_val->GetDouble() == 1.5);
+  BOOST_TEST(((ExprConst *)vct[2])->_val->GetValue() == "abcdefg");
+  BOOST_TEST(((ExprConst *)vct[3])->_val->GetValue() == True);
+  BOOST_TEST(((ExprConst *)vct[4])->_val->GetDataType() == DataType::VAL_NULL);
+
+  str = "insert into t1(a, b, c) values(100, 'abcdefg', c+10)";
+  ParserResult result;
+  bool b = Parser::Parse(str, result);
+  BOOST_TEST(b);
+  BOOST_TEST(result.IsValid());
+  BOOST_TEST(result.GetStatements()->at(0)->GetType() == ExprType::EXPR_INSERT);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

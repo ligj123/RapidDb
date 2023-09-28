@@ -86,6 +86,14 @@ enum class ExprType {
 
 enum class TranAction : int8_t { TRAN_BEGIN = 0, TRAN_COMMIT, TRAN_ROLLBACK };
 
+enum class JoinType {
+  JOIN_NULL,
+  INNER_JOIN,
+  LEFT_JOIN,
+  RIGHT_JOIN,
+  OUTTER_JOIN
+};
+
 inline std::ostream &operator<<(std::ostream &os, const TranAction &action) {
   switch (action) {
   case TranAction::TRAN_BEGIN:
@@ -96,6 +104,30 @@ inline std::ostream &operator<<(std::ostream &os, const TranAction &action) {
     break;
   case TranAction::TRAN_ROLLBACK:
     os << "TRAN_ROLLBACK(" << (int)TranAction::TRAN_ROLLBACK << ")";
+    break;
+  default:
+    os << "UNKNOWN Action";
+    break;
+  }
+  return os;
+}
+
+inline std::ostream &operator<<(std::ostream &os, const JoinType &type) {
+  switch (type) {
+  case JoinType::JOIN_NULL:
+    os << "JOIN_NULL(" << (int)JoinType::JOIN_NULL << ")";
+    break;
+  case JoinType::INNER_JOIN:
+    os << "INNER_JOIN(" << (int)JoinType::INNER_JOIN << ")";
+    break;
+  case JoinType::LEFT_JOIN:
+    os << "LEFT_JOIN(" << (int)JoinType::LEFT_JOIN << ")";
+    break;
+  case JoinType::RIGHT_JOIN:
+    os << "RIGHT_JOIN(" << (int)JoinType::RIGHT_JOIN << ")";
+    break;
+  case JoinType::OUTTER_JOIN:
+    os << "OUTTER_JOIN(" << (int)JoinType::OUTTER_JOIN << ")";
     break;
   default:
     os << "UNKNOWN Action";

@@ -125,14 +125,6 @@ public:
   MString *_alias;     // column alias name
 };
 
-enum class JoinType {
-  JOIN_NULL,
-  INNER_JOIN,
-  LEFT_JOIN,
-  RIGHT_JOIN,
-  OUTTER_JOIN
-};
-
 class ExprTable : public BaseExpr {
 public:
   ExprTable(MString *dbName, MString *tName, MString *_tAlias = nullptr)

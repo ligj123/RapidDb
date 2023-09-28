@@ -38,7 +38,7 @@ public:
     _val = new DataValueNull();
     _val->SetConstRef();
   }
-  ~ExprConst() { _val->DecRef(); }
+  ~ExprConst() { _val->Free(); }
   ExprType GetType() override { return ExprType::EXPR_CONST; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return _val;

@@ -759,17 +759,33 @@ expr_vct_data : expr_data {
 const_dv : const_int | const_double | const_string | const_bool | const_null;
 const_string : STRING {
   $$ = new DataValueVarChar($1->c_str(), $1->size());
+  $$->SetConstRef();
   delete $1;
 };
 
-const_bool : TRUE { $$ = new DataValueBool(true); }
-| FALSE { $$ = new DataValueBool(false); };
+const_bool : TRUE {
+  $$ = new DataValueBool(true);
+  $$->SetConstRef();
+}
+| FALSE {
+  $$ = new DataValueBool(false);
+  $$->SetConstRef();
+};
 
-const_double : FLOATVAL { $$ = new DataValueDouble($1); }
+const_double : FLOATVAL {
+  $$ = new DataValueDouble($1);
+  $$->SetConstRef();
+}
 
-const_int : INTVAL { $$ = new DataValueLong($1); };
+const_int : INTVAL {
+  $$ = new DataValueLong($1);
+  $$->SetConstRef();
+};
 
-const_null : NULL { $$ = new DataValueNull(); };
+const_null : NULL {
+  $$ = new DataValueNull();
+  $$->SetConstRef();
+};
 
 expr_logic : expr_cmp | expr_in_not | expr_is_null_not | expr_between | expr_like | expr_not
 | expr_and { $$ = $1; }

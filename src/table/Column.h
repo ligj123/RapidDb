@@ -26,7 +26,7 @@ public:
         _incStep(incStep), _charset(charset), _pDefaultVal(defaultVal) {}
   ~PhysColumn() {
     if (_pDefaultVal != nullptr)
-      _pDefaultVal->DecRef();
+      _pDefaultVal->Free();
   }
   PhysColumn(PhysColumn &&rhs) noexcept {
     _name = rhs._name;

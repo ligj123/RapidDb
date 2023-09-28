@@ -269,17 +269,18 @@ using namespace storage;
     SQL_DATABASES = 428,           /* DATABASES  */
     SQL_AUTO_INCREMENT = 429,      /* AUTO_INCREMENT  */
     SQL_COMMENT = 430,             /* COMMENT  */
-    SQL_AVERAGE = 431,             /* AVERAGE  */
-    SQL_COUNT = 432,               /* COUNT  */
-    SQL_MIN = 433,                 /* MIN  */
-    SQL_MAX = 434,                 /* MAX  */
-    SQL_SUM = 435,                 /* SUM  */
-    SQL_USE = 436,                 /* USE  */
-    SQL_EQ = 437,                  /* EQ  */
-    SQL_NE = 438,                  /* NE  */
-    SQL_LE = 439,                  /* LE  */
-    SQL_GE = 440,                  /* GE  */
-    SQL_UMINUS = 441               /* UMINUS  */
+    SQL_UPSERT = 431,              /* UPSERT  */
+    SQL_AVERAGE = 432,             /* AVERAGE  */
+    SQL_COUNT = 433,               /* COUNT  */
+    SQL_MIN = 434,                 /* MIN  */
+    SQL_MAX = 435,                 /* MAX  */
+    SQL_SUM = 436,                 /* SUM  */
+    SQL_USE = 437,                 /* USE  */
+    SQL_EQ = 438,                  /* EQ  */
+    SQL_NE = 439,                  /* NE  */
+    SQL_LE = 440,                  /* LE  */
+    SQL_GE = 441,                  /* GE  */
+    SQL_UMINUS = 442               /* UMINUS  */
   };
   typedef enum db_tokentype db_token_kind_t;
 #endif
@@ -382,7 +383,7 @@ union DB_STYPE
   MVectorPtr<MVectorPtr<ExprElem*>*> *expr_vct_elem_row;
   MVectorPtr<ExprData*> *expr_vct_data;
 
-#line 386 "sql_parser.h"
+#line 387 "sql_parser.h"
 
 };
 typedef union DB_STYPE DB_STYPE;
