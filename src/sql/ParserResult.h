@@ -53,8 +53,9 @@ public:
       ii++;
       _vctPara.push_back(para);
     }
-    _vctPara.clear();
+    vct_para.clear();
   }
+  const MVector<ExprParameter *> *GetVctPara() { return &_vctPara; }
   void Reset() {
     if (_vctStatement != nullptr)
       delete _vctStatement;

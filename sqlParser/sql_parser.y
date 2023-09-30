@@ -723,7 +723,6 @@ expr_field : IDENTIFIER { $$ = new ExprField(nullptr, $1); }
 
 expr_param : '?' {
   ExprParameter *ep =  new ExprParameter();
-  ep->_paraPos = yyloc.param_list.size();
   $$ = ep;
   yyloc.param_list.push_back(ep);
 };

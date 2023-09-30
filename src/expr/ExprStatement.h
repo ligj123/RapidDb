@@ -110,8 +110,6 @@ public:
   int _rowCount;
 };
 
-enum class LockType { NO_LOCK, SHARE_LOCK, WRITE_LOCK };
-
 // This select class is only for parse, it will convert into a series of
 // statement in preprocess.
 class ExprSelect : public ExprStatement {

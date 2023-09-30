@@ -848,13 +848,13 @@ static const yytype_int16 yyrline[] =
      680,   683,   685,   688,   690,   693,   695,   696,   698,   699,
      700,   702,   703,   707,   712,   713,   714,   716,   716,   716,
      716,   716,   716,   716,   716,   716,   717,   719,   721,   722,
-     724,   731,   733,   735,   737,   739,   741,   745,   748,   750,
-     754,   759,   759,   759,   759,   759,   760,   765,   766,   768,
-     770,   772,   774,   774,   774,   774,   774,   774,   775,   776,
-     777,   779,   783,   784,   785,   786,   787,   788,   789,   791,
-     794,   798,   799,   801,   805,   806,   808,   810,   821,   832,
-     832,   832,   832,   832,   833,   835,   838,   842,   846,   850,
-     854
+     724,   730,   732,   734,   736,   738,   740,   744,   747,   749,
+     753,   758,   758,   758,   758,   758,   759,   765,   769,   774,
+     779,   784,   789,   789,   789,   789,   789,   789,   790,   791,
+     792,   794,   798,   799,   800,   801,   802,   803,   804,   806,
+     809,   813,   814,   816,   820,   821,   823,   825,   836,   847,
+     847,   847,   847,   847,   848,   850,   853,   857,   861,   865,
+     869
 };
 #endif
 
@@ -3775,87 +3775,87 @@ yyreduce:
 #line 724 "sql_parser.y"
                  {
   ExprParameter *ep =  new ExprParameter();
-  ep->_paraPos = yyloc.param_list.size();
   (yyval.expr_data) = ep;
   yyloc.param_list.push_back(ep);
 }
-#line 3783 "sql_parser.cpp"
+#line 3782 "sql_parser.cpp"
     break;
 
   case 161: /* expr_add: expr_data '+' expr_data  */
-#line 731 "sql_parser.y"
+#line 730 "sql_parser.y"
                                    { (yyval.expr_data) = new ExprAdd((yyvsp[-2].expr_data), (yyvsp[0].expr_data)); }
-#line 3789 "sql_parser.cpp"
+#line 3788 "sql_parser.cpp"
     break;
 
   case 162: /* expr_sub: expr_data '-' expr_data  */
-#line 733 "sql_parser.y"
+#line 732 "sql_parser.y"
                                    { (yyval.expr_data) = new ExprSub((yyvsp[-2].expr_data), (yyvsp[0].expr_data)); }
-#line 3795 "sql_parser.cpp"
+#line 3794 "sql_parser.cpp"
     break;
 
   case 163: /* expr_mul: expr_data '*' expr_data  */
-#line 735 "sql_parser.y"
+#line 734 "sql_parser.y"
                                    { (yyval.expr_data) = new ExprMul((yyvsp[-2].expr_data), (yyvsp[0].expr_data)); }
-#line 3801 "sql_parser.cpp"
+#line 3800 "sql_parser.cpp"
     break;
 
   case 164: /* expr_div: expr_data '/' expr_data  */
-#line 737 "sql_parser.y"
+#line 736 "sql_parser.y"
                                    { (yyval.expr_data) = new ExprDiv((yyvsp[-2].expr_data), (yyvsp[0].expr_data)); }
-#line 3807 "sql_parser.cpp"
+#line 3806 "sql_parser.cpp"
     break;
 
   case 165: /* expr_minus: '-' expr_data  */
-#line 739 "sql_parser.y"
+#line 738 "sql_parser.y"
                            { (yyval.expr_data) = new ExprMinus((yyvsp[0].expr_data)); }
-#line 3813 "sql_parser.cpp"
+#line 3812 "sql_parser.cpp"
     break;
 
   case 166: /* expr_func: IDENTIFIER '(' opt_expr_vct_data ')'  */
-#line 741 "sql_parser.y"
+#line 740 "sql_parser.y"
                                                  {
   (yyval.expr_data) = new ExprFunc((yyvsp[-3].sval), (yyvsp[-1].expr_vct_data));
 }
-#line 3821 "sql_parser.cpp"
+#line 3820 "sql_parser.cpp"
     break;
 
   case 167: /* opt_expr_vct_data: expr_vct_data  */
-#line 745 "sql_parser.y"
+#line 744 "sql_parser.y"
                                   {
   (yyval.expr_vct_data) = (yyvsp[0].expr_vct_data);
 }
-#line 3829 "sql_parser.cpp"
+#line 3828 "sql_parser.cpp"
     break;
 
   case 168: /* opt_expr_vct_data: %empty  */
-#line 748 "sql_parser.y"
+#line 747 "sql_parser.y"
               { (yyval.expr_vct_data) = nullptr; }
-#line 3835 "sql_parser.cpp"
+#line 3834 "sql_parser.cpp"
     break;
 
   case 169: /* expr_vct_data: expr_data  */
-#line 750 "sql_parser.y"
+#line 749 "sql_parser.y"
                           {
   (yyval.expr_vct_data) = new  MVectorPtr<ExprData*>();
   (yyval.expr_vct_data)->push_back((yyvsp[0].expr_data));
 }
-#line 3844 "sql_parser.cpp"
+#line 3843 "sql_parser.cpp"
     break;
 
   case 170: /* expr_vct_data: expr_vct_data ',' expr_data  */
-#line 754 "sql_parser.y"
+#line 753 "sql_parser.y"
                               {
   (yyvsp[-2].expr_vct_data)->push_back((yyvsp[0].expr_data));
   (yyval.expr_vct_data) = (yyvsp[-2].expr_vct_data);
 }
-#line 3853 "sql_parser.cpp"
+#line 3852 "sql_parser.cpp"
     break;
 
   case 176: /* const_string: STRING  */
-#line 760 "sql_parser.y"
+#line 759 "sql_parser.y"
                       {
   (yyval.data_value) = new DataValueVarChar((yyvsp[0].sval)->c_str(), (yyvsp[0].sval)->size());
+  (yyval.data_value)->SetConstRef();
   delete (yyvsp[0].sval);
 }
 #line 3862 "sql_parser.cpp"
@@ -3863,158 +3863,173 @@ yyreduce:
 
   case 177: /* const_bool: TRUE  */
 #line 765 "sql_parser.y"
-                  { (yyval.data_value) = new DataValueBool(true); }
-#line 3868 "sql_parser.cpp"
+                  {
+  (yyval.data_value) = new DataValueBool(true);
+  (yyval.data_value)->SetConstRef();
+}
+#line 3871 "sql_parser.cpp"
     break;
 
   case 178: /* const_bool: FALSE  */
-#line 766 "sql_parser.y"
-        { (yyval.data_value) = new DataValueBool(false); }
-#line 3874 "sql_parser.cpp"
-    break;
-
-  case 179: /* const_double: FLOATVAL  */
-#line 768 "sql_parser.y"
-                        { (yyval.data_value) = new DataValueDouble((yyvsp[0].fval)); }
+#line 769 "sql_parser.y"
+        {
+  (yyval.data_value) = new DataValueBool(false);
+  (yyval.data_value)->SetConstRef();
+}
 #line 3880 "sql_parser.cpp"
     break;
 
+  case 179: /* const_double: FLOATVAL  */
+#line 774 "sql_parser.y"
+                        {
+  (yyval.data_value) = new DataValueDouble((yyvsp[0].fval));
+  (yyval.data_value)->SetConstRef();
+}
+#line 3889 "sql_parser.cpp"
+    break;
+
   case 180: /* const_int: INTVAL  */
-#line 770 "sql_parser.y"
-                   { (yyval.data_value) = new DataValueLong((yyvsp[0].ival)); }
-#line 3886 "sql_parser.cpp"
-    break;
-
-  case 181: /* const_null: NULL  */
-#line 772 "sql_parser.y"
-                  { (yyval.data_value) = new DataValueNull(); }
-#line 3892 "sql_parser.cpp"
-    break;
-
-  case 188: /* expr_logic: expr_and  */
-#line 775 "sql_parser.y"
-           { (yyval.expr_logic) = (yyvsp[0].expr_and); }
+#line 779 "sql_parser.y"
+                   {
+  (yyval.data_value) = new DataValueLong((yyvsp[0].ival));
+  (yyval.data_value)->SetConstRef();
+}
 #line 3898 "sql_parser.cpp"
     break;
 
+  case 181: /* const_null: NULL  */
+#line 784 "sql_parser.y"
+                  {
+  (yyval.data_value) = new DataValueNull();
+  (yyval.data_value)->SetConstRef();
+}
+#line 3907 "sql_parser.cpp"
+    break;
+
+  case 188: /* expr_logic: expr_and  */
+#line 790 "sql_parser.y"
+           { (yyval.expr_logic) = (yyvsp[0].expr_and); }
+#line 3913 "sql_parser.cpp"
+    break;
+
   case 189: /* expr_logic: expr_or  */
-#line 776 "sql_parser.y"
+#line 791 "sql_parser.y"
           { (yyval.expr_logic) = (yyvsp[0].expr_or); }
-#line 3904 "sql_parser.cpp"
+#line 3919 "sql_parser.cpp"
     break;
 
   case 190: /* expr_logic: '(' expr_logic ')'  */
-#line 777 "sql_parser.y"
+#line 792 "sql_parser.y"
                      { (yyval.expr_logic) = (yyvsp[-1].expr_logic); }
-#line 3910 "sql_parser.cpp"
+#line 3925 "sql_parser.cpp"
     break;
 
   case 191: /* expr_cmp: expr_data comp_type expr_data  */
-#line 779 "sql_parser.y"
+#line 794 "sql_parser.y"
                                          {
   (yyval.expr_logic) = new ExprComp((yyvsp[-1].comp_type), (yyvsp[-2].expr_data), (yyvsp[0].expr_data));
 }
-#line 3918 "sql_parser.cpp"
+#line 3933 "sql_parser.cpp"
     break;
 
   case 192: /* comp_type: '='  */
-#line 783 "sql_parser.y"
+#line 798 "sql_parser.y"
                 { (yyval.comp_type) = CompType::EQ; }
-#line 3924 "sql_parser.cpp"
+#line 3939 "sql_parser.cpp"
     break;
 
   case 193: /* comp_type: '>'  */
-#line 784 "sql_parser.y"
+#line 799 "sql_parser.y"
       { (yyval.comp_type) = CompType::GT; }
-#line 3930 "sql_parser.cpp"
+#line 3945 "sql_parser.cpp"
     break;
 
   case 194: /* comp_type: '<'  */
-#line 785 "sql_parser.y"
+#line 800 "sql_parser.y"
       { (yyval.comp_type) = CompType::LT; }
-#line 3936 "sql_parser.cpp"
+#line 3951 "sql_parser.cpp"
     break;
 
   case 195: /* comp_type: GE  */
-#line 786 "sql_parser.y"
+#line 801 "sql_parser.y"
      { (yyval.comp_type) = CompType::GE; }
-#line 3942 "sql_parser.cpp"
+#line 3957 "sql_parser.cpp"
     break;
 
   case 196: /* comp_type: LE  */
-#line 787 "sql_parser.y"
+#line 802 "sql_parser.y"
      { (yyval.comp_type) = CompType::LE; }
-#line 3948 "sql_parser.cpp"
+#line 3963 "sql_parser.cpp"
     break;
 
   case 197: /* comp_type: NE  */
-#line 788 "sql_parser.y"
+#line 803 "sql_parser.y"
      { (yyval.comp_type) = CompType::NE; }
-#line 3954 "sql_parser.cpp"
+#line 3969 "sql_parser.cpp"
     break;
 
   case 198: /* comp_type: EQ  */
-#line 789 "sql_parser.y"
+#line 804 "sql_parser.y"
      { (yyval.comp_type) = CompType::EQ; }
-#line 3960 "sql_parser.cpp"
+#line 3975 "sql_parser.cpp"
     break;
 
   case 199: /* expr_in_not: expr_data IN expr_array  */
-#line 791 "sql_parser.y"
+#line 806 "sql_parser.y"
                                       {
   (yyval.expr_logic) = new ExprInNot((yyvsp[-2].expr_data), (yyvsp[0].expr_array), true);
 }
-#line 3968 "sql_parser.cpp"
+#line 3983 "sql_parser.cpp"
     break;
 
   case 200: /* expr_in_not: expr_data NOT IN expr_array  */
-#line 794 "sql_parser.y"
+#line 809 "sql_parser.y"
                               {
   (yyval.expr_logic) = new ExprInNot((yyvsp[-3].expr_data), (yyvsp[0].expr_array), false);
 }
-#line 3976 "sql_parser.cpp"
+#line 3991 "sql_parser.cpp"
     break;
 
   case 201: /* expr_is_null_not: expr_data IS NULL  */
-#line 798 "sql_parser.y"
+#line 813 "sql_parser.y"
                                      { (yyval.expr_logic) = new ExprIsNullNot((yyvsp[-2].expr_data), true); }
-#line 3982 "sql_parser.cpp"
+#line 3997 "sql_parser.cpp"
     break;
 
   case 202: /* expr_is_null_not: expr_data IS NOT NULL  */
-#line 799 "sql_parser.y"
+#line 814 "sql_parser.y"
                         { (yyval.expr_logic) = new ExprIsNullNot((yyvsp[-3].expr_data), false); }
-#line 3988 "sql_parser.cpp"
+#line 4003 "sql_parser.cpp"
     break;
 
   case 203: /* expr_between: expr_data BETWEEN expr_data AND expr_data  */
-#line 801 "sql_parser.y"
+#line 816 "sql_parser.y"
                                                          {
   (yyval.expr_logic) = new ExprBetween((yyvsp[-4].expr_data), (yyvsp[-2].expr_data), (yyvsp[0].expr_data));
 }
-#line 3996 "sql_parser.cpp"
+#line 4011 "sql_parser.cpp"
     break;
 
   case 204: /* expr_like: expr_data LIKE const_string  */
-#line 805 "sql_parser.y"
+#line 820 "sql_parser.y"
                                         { (yyval.expr_logic) = new ExprLike((yyvsp[-2].expr_data), (yyvsp[0].data_value), true); }
-#line 4002 "sql_parser.cpp"
+#line 4017 "sql_parser.cpp"
     break;
 
   case 205: /* expr_like: expr_data NOT LIKE const_string  */
-#line 806 "sql_parser.y"
+#line 821 "sql_parser.y"
                                   { (yyval.expr_logic) = new ExprLike((yyvsp[-3].expr_data), (yyvsp[0].data_value), false); }
-#line 4008 "sql_parser.cpp"
+#line 4023 "sql_parser.cpp"
     break;
 
   case 206: /* expr_not: NOT expr_logic  */
-#line 808 "sql_parser.y"
+#line 823 "sql_parser.y"
                           { (yyval.expr_logic) = new ExprNot((yyvsp[0].expr_logic)); }
-#line 4014 "sql_parser.cpp"
+#line 4029 "sql_parser.cpp"
     break;
 
   case 207: /* expr_and: expr_logic AND expr_logic  */
-#line 810 "sql_parser.y"
+#line 825 "sql_parser.y"
                                      {
   if ((yyvsp[-2].expr_logic)->GetType()== ExprType::EXPR_AND) {
     (yyval.expr_and) = (ExprAnd*)(yyvsp[-2].expr_logic);
@@ -4025,11 +4040,11 @@ yyreduce:
     (yyval.expr_and)->_vctChild.push_back((yyvsp[0].expr_logic));
   }
 }
-#line 4029 "sql_parser.cpp"
+#line 4044 "sql_parser.cpp"
     break;
 
   case 208: /* expr_or: expr_logic OR expr_logic  */
-#line 821 "sql_parser.y"
+#line 836 "sql_parser.y"
                                    {
   if ((yyvsp[-2].expr_logic)->GetType()== ExprType::EXPR_OR) {
     (yyval.expr_or) = (ExprOr*)(yyvsp[-2].expr_logic);
@@ -4040,65 +4055,65 @@ yyreduce:
     (yyval.expr_or)->_vctChild.push_back((yyvsp[0].expr_logic));
   }
 }
-#line 4044 "sql_parser.cpp"
+#line 4059 "sql_parser.cpp"
     break;
 
   case 214: /* expr_aggr: '(' expr_aggr ')'  */
-#line 833 "sql_parser.y"
+#line 848 "sql_parser.y"
                     { (yyval.expr_aggr) = (yyvsp[-1].expr_aggr); }
-#line 4050 "sql_parser.cpp"
+#line 4065 "sql_parser.cpp"
     break;
 
   case 215: /* expr_count: COUNT '(' expr_data ')'  */
-#line 835 "sql_parser.y"
+#line 850 "sql_parser.y"
                                      {
   (yyval.expr_aggr) = new ExprCount((yyvsp[-1].expr_data), false);
 }
-#line 4058 "sql_parser.cpp"
+#line 4073 "sql_parser.cpp"
     break;
 
   case 216: /* expr_count: COUNT '(' '*' ')'  */
-#line 838 "sql_parser.y"
+#line 853 "sql_parser.y"
                     {
   (yyval.expr_aggr) = new ExprCount(nullptr, true);
 }
-#line 4066 "sql_parser.cpp"
+#line 4081 "sql_parser.cpp"
     break;
 
   case 217: /* expr_sum: SUM '(' expr_data ')'  */
-#line 842 "sql_parser.y"
+#line 857 "sql_parser.y"
                                  {
   (yyval.expr_aggr) = new ExprSum((yyvsp[-1].expr_data));
 }
-#line 4074 "sql_parser.cpp"
+#line 4089 "sql_parser.cpp"
     break;
 
   case 218: /* expr_max: MAX '(' expr_data ')'  */
-#line 846 "sql_parser.y"
+#line 861 "sql_parser.y"
                                  {
   (yyval.expr_aggr) = new ExprMax((yyvsp[-1].expr_data));
 }
-#line 4082 "sql_parser.cpp"
+#line 4097 "sql_parser.cpp"
     break;
 
   case 219: /* expr_min: MIN '(' expr_data ')'  */
-#line 850 "sql_parser.y"
+#line 865 "sql_parser.y"
                                  {
   (yyval.expr_aggr) = new ExprMin((yyvsp[-1].expr_data));
 }
-#line 4090 "sql_parser.cpp"
+#line 4105 "sql_parser.cpp"
     break;
 
   case 220: /* expr_avg: AVERAGE '(' expr_data ')'  */
-#line 854 "sql_parser.y"
+#line 869 "sql_parser.y"
                                      {
   (yyval.expr_aggr) = new ExprAvg((yyvsp[-1].expr_data));
 }
-#line 4098 "sql_parser.cpp"
+#line 4113 "sql_parser.cpp"
     break;
 
 
-#line 4102 "sql_parser.cpp"
+#line 4117 "sql_parser.cpp"
 
       default: break;
     }
@@ -4327,7 +4342,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 859 "sql_parser.y"
+#line 874 "sql_parser.y"
 
     // clang-format on
     /*********************************

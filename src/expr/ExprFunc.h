@@ -26,7 +26,7 @@ public:
     return nullptr;
   }
 
-protected:
+public:
   // The function name, must convert to upper case
   MString *_funcName;
   // The parameters for this function

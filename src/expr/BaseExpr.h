@@ -109,7 +109,7 @@ public:
 class ExprColumn : public BaseExpr {
 public:
   ExprColumn(MString *name, ExprElem *exprElem, MString *alias)
-      : _name(name), _exprElem(exprElem), _alias(alias) {}
+      : _name(name), _exprElem(exprElem), _alias(alias), _pos(-1) {}
   ~ExprColumn() {
     delete _exprElem;
     delete _name;

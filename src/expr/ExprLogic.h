@@ -10,8 +10,6 @@
 
 using namespace std;
 namespace storage {
-enum class CompType { EQ, GT, GE, LT, LE, NE };
-
 class ExprComp : public ExprLogic {
 public:
   ExprComp(CompType type, ExprData *left, ExprData *right)
@@ -191,13 +189,6 @@ public:
 
 class ExprAnd : public ExprLogic {
 public:
-  ExprAnd() {}
-  ~ExprAnd() {
-    for (auto ele : _vctChild) {
-      delete ele;
-    }
-  }
-
   ExprType GetType() override { return ExprType::EXPR_AND; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     for (ExprLogic *expr : _vctChild) {
@@ -210,18 +201,11 @@ public:
   }
 
 public:
-  MVector<ExprLogic *> _vctChild;
+  MVectorPtr<ExprLogic *> _vctChild;
 };
 
 class ExprOr : public ExprLogic {
 public:
-  ExprOr() {}
-  ~ExprOr() {
-    for (auto ele : _vctChild) {
-      delete ele;
-    }
-  }
-
   ExprType GetType() override { return ExprType::EXPR_OR; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     for (ExprLogic *expr : _vctChild) {
@@ -234,7 +218,7 @@ public:
   }
 
 public:
-  MVector<ExprLogic *> _vctChild;
+  MVectorPtr<ExprLogic *> _vctChild;
 };
 
 } // namespace storage

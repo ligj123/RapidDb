@@ -83,7 +83,7 @@ public:
     delete _colName;
     delete _comment;
     if (_defaultVal != nullptr)
-      _defaultVal->DecRef();
+      _defaultVal->Free();
   }
   ExprType GetType() override { return ExprType::EXPR_COLUMN_INFO; }
 

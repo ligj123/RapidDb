@@ -66,7 +66,7 @@ public:
       : dataType_(dv.dataType_), valType_(dv.valType_), refCount_(1) {}
   IDataValue(DataType dataType, ValueType valType)
       : dataType_(dataType), valType_(valType), refCount_(1) {}
-  virtual ~IDataValue() { assert(refCount_ == 1); }
+  virtual ~IDataValue() { assert(refCount_ == 1 || refCount_ == UINT16_MAX); }
   // return the data type for this data value
   inline DataType GetDataType() const { return dataType_; }
   inline ValueType GetValueType() const { return valType_; }

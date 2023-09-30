@@ -94,6 +94,10 @@ enum class JoinType {
   OUTTER_JOIN
 };
 
+enum class CompType { EQ, GT, GE, LT, LE, NE };
+
+enum class LockType { NO_LOCK, SHARE_LOCK, WRITE_LOCK };
+
 inline std::ostream &operator<<(std::ostream &os, const TranAction &action) {
   switch (action) {
   case TranAction::TRAN_BEGIN:
@@ -131,6 +135,51 @@ inline std::ostream &operator<<(std::ostream &os, const JoinType &type) {
     break;
   default:
     os << "UNKNOWN Action";
+    break;
+  }
+  return os;
+}
+
+inline std::ostream &operator<<(std::ostream &os, const CompType &type) {
+  switch (type) {
+  case CompType::EQ:
+    os << "EQ(" << (int)CompType::EQ << ")";
+    break;
+  case CompType::GT:
+    os << "GT(" << (int)CompType::GT << ")";
+    break;
+  case CompType::GE:
+    os << "GE(" << (int)CompType::GE << ")";
+    break;
+  case CompType::LT:
+    os << "LT(" << (int)CompType::LT << ")";
+    break;
+  case CompType::LE:
+    os << "LE(" << (int)CompType::LE << ")";
+    break;
+  case CompType::NE:
+    os << "NE(" << (int)CompType::NE << ")";
+    break;
+  default:
+    os << "UNKNOWN CompType";
+    break;
+  }
+  return os;
+}
+
+inline std::ostream &operator<<(std::ostream &os, const LockType &type) {
+  switch (type) {
+  case LockType::NO_LOCK:
+    os << "NO_LOCK(" << (int)LockType::NO_LOCK << ")";
+    break;
+  case LockType::SHARE_LOCK:
+    os << "SHARE_LOCK(" << (int)LockType::SHARE_LOCK << ")";
+    break;
+  case LockType::WRITE_LOCK:
+    os << "WRITE_LOCK(" << (int)LockType::WRITE_LOCK << ")";
+    break;
+  default:
+    os << "UNKNOWN LockType";
     break;
   }
   return os;
