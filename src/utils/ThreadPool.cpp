@@ -130,13 +130,13 @@ void ThreadPool::CreateThread(int id) {
     RemoveThread(id);
   });
 
-  _vctThread[id] = t;
-  _aliveThreads++;
-  thread_lock.unlock();
-
   for (function<void()> func : _vctLambda) {
     func();
   }
+
+  _vctThread[id] = t;
+  _aliveThreads++;
+  thread_lock.unlock();
 }
 
 ThreadPool::~ThreadPool() {
@@ -150,6 +150,7 @@ ThreadPool::~ThreadPool() {
     _aliveThreads--;
   }
 
+  _vctLambda.clear();
   assert(GetTaskCount() == 0);
   delete _fastQueue;
 }

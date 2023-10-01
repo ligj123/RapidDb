@@ -78,7 +78,6 @@ public:
   }
   inline void DecRef() {
     if (refCount_ != UINT16_MAX) {
-
       if (refCount_ == 1)
         delete this;
       else

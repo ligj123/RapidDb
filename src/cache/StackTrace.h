@@ -2,5 +2,5 @@
 #include <string>
 
 namespace storage {
-std::string StackTrace();
+const std::string StackTrace();
 } // namespace storage

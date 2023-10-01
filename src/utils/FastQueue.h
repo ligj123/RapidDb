@@ -30,7 +30,8 @@ template <class T> struct InnerQueue {
 template <class T> class FastQueue {
 public:
   // threadCount: The total threads in all related ThreadPool
-  FastQueue(ThreadPool *tp) : _threadPool(tp) {
+  FastQueue(ThreadPool *tp)
+      : _threadPool(tp), _aliveMaxThreads(tp->GetAliveThreadCount()) {
     int tcount = tp->GetMaxThreads();
     _vctInner.reserve(tcount);
     for (int i = 0; i < tcount; i++) {

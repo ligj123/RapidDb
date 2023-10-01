@@ -1,4 +1,5 @@
 #define BOOST_TEST_MODULE RapidDb
+#include "../src/utils/ErrorMsg.h"
 #include "../src/utils/Log.h"
 #include "TestHeader.h"
 #include <boost/test/unit_test.hpp>
@@ -26,6 +27,7 @@ struct GlobalFixTure {
 
   ~GlobalFixTure() {
     LOG_INFO << "Stop global fixture." << std::endl;
+    _threadErrorMsg.reset();
 
     for (auto const &dir_entry :
          std::filesystem::directory_iterator{ROOT_PATH}) {

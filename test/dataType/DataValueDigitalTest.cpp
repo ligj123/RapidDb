@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(DataValueDigital_test) {
   BOOST_TEST(len == 9);
   dv3->ReadData(buf);
   BOOST_TEST(dv3->GetLong() == 300);
-  delete dv3;
+  dv3->DecRef();
 
   dv1 = 50;
   BOOST_TEST((int64_t)dv1 == 50);

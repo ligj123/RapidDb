@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "../cache/Mallocator.h"
-#include "ErrorMsg.h"
 #include "SpinMutex.h"
 #include <boost/coroutine2/all.hpp>
 #include <condition_variable>

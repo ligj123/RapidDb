@@ -458,7 +458,7 @@ BOOST_AUTO_TEST_CASE(ParserSelect_test) {
   BOOST_TEST(es->_exprLimit == nullptr);
   BOOST_TEST(es->_lockType == LockType::NO_LOCK);
 
-  str = "select datetime() as dt";
+  str = "select func(c1, c2) as f";
   Parser::Parse(str, result);
   BOOST_TEST(result.GetStatements()->at(0)->GetType() == ExprType::EXPR_SELECT);
   es = (ExprSelect *)(*result.GetStatements())[0];
@@ -467,11 +467,15 @@ BOOST_AUTO_TEST_CASE(ParserSelect_test) {
   ExprColumn *ec = es->_vctCol->at(0);
   BOOST_TEST(ec->GetType() == ExprType::EXPR_COLUMN);
   BOOST_TEST(ec->_name == nullptr);
-  BOOST_TEST(ec->_alias->compare("dt") == 0);
+  BOOST_TEST(ec->_alias->compare("f") == 0);
   BOOST_TEST(ec->_exprElem->GetType() == ExprType::EXPR_FUNCTION);
   ExprFunc *ef = (ExprFunc *)ec->_exprElem;
-  BOOST_TEST(ef->_funcName->compare("datetime") == 0);
-  BOOST_TEST(ef->_vctPara == nullptr);
+  BOOST_TEST(ef->_funcName->compare("func") == 0);
+  BOOST_TEST(ef->_vctPara->size() == 2);
+  BOOST_TEST(ef->_vctPara->at(0)->GetType() == ExprType::EXPR_FIELD);
+  BOOST_TEST(((ExprField *)ef->_vctPara->at(0))->_colName->compare("c1") == 0);
+  BOOST_TEST(ef->_vctPara->at(1)->GetType() == ExprType::EXPR_FIELD);
+  BOOST_TEST(((ExprField *)ef->_vctPara->at(1))->_colName->compare("c2") == 0);
 
   str = "select distinct t1.c1 as a, t2.c2+100 as b, count(t3.c3) as c from "
         "db1.table1 as t1 inner table2 as t2 left table3 as t3 where t1.c1>10 "
@@ -495,7 +499,7 @@ BOOST_AUTO_TEST_CASE(ParserSelect_test) {
   BOOST_TEST(ec->_exprElem->GetType() == ExprType::EXPR_ADD);
   ExprAdd *ea = (ExprAdd *)ec->_exprElem;
   BOOST_TEST(ea->_exprLeft->GetType() == ExprType::EXPR_FIELD);
-  BOOST_TEST(ea->_exprRight->GetType() == ExprType::EXPR_FIELD);
+  BOOST_TEST(ea->_exprRight->GetType() == ExprType::EXPR_CONST);
   ed = (ExprField *)ea->_exprLeft;
   BOOST_TEST(ed->_tableName->compare("t2") == 0);
   BOOST_TEST(ed->_colName->compare("c2") == 0);
@@ -521,14 +525,14 @@ BOOST_AUTO_TEST_CASE(ParserSelect_test) {
   BOOST_TEST(et->_tAlias->compare("t1") == 0);
 
   et = es->_vctTable->at(1);
-  BOOST_TEST(et->_dbName->compare("db1") == 0);
+  BOOST_TEST(et->_dbName == nullptr);
   BOOST_TEST(et->_joinType == JoinType::INNER_JOIN);
   BOOST_TEST(et->_tName->compare("table2") == 0);
   BOOST_TEST(et->_tAlias->compare("t2") == 0);
 
   et = es->_vctTable->at(2);
-  BOOST_TEST(et->_dbName->compare("db1") == 0);
-  BOOST_TEST(et->_joinType == JoinType::INNER_JOIN);
+  BOOST_TEST(et->_dbName == nullptr);
+  BOOST_TEST(et->_joinType == JoinType::LEFT_JOIN);
   BOOST_TEST(et->_tName->compare("table3") == 0);
   BOOST_TEST(et->_tAlias->compare("t3") == 0);
 

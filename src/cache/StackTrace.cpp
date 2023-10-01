@@ -15,7 +15,7 @@
 #include <string>
 
 namespace storage {
-std::string StackTrace() {
+const std::string StackTrace() {
 #ifdef _STACK_DEPTH
   static int depth = _STACK_DEPTH;
 #else

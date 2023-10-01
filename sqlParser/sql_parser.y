@@ -531,7 +531,7 @@ expr_vct_table : expr_table {
   $$ = new MVectorPtr<ExprTable*>();
   $$->push_back($1);
 }
-| opt_expr_vct_table join_type expr_table {
+| expr_vct_table join_type expr_table {
   $3->_joinType = $2;
   $1->push_back($3);
   $$ = $1;
