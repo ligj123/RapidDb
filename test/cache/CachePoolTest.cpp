@@ -115,8 +115,9 @@ BOOST_AUTO_TEST_CASE(CachePool_test) {
 
   CachePoolEx::_gCachePool = new CachePoolEx();
   uint32_t maxEle = (uint32_t)Configure::GetCacheBlockSize() / 32;
+  vector<Byte *> vct;
   for (uint32_t i = 0; i < maxEle; i++) {
-    CachePoolEx::Apply(32);
+    vct.push_back(CachePoolEx::Apply(32));
   }
 
   BOOST_TEST(1 == ((CachePoolEx *)CachePoolEx::_gCachePool)->_mapPool.size());
@@ -145,6 +146,9 @@ BOOST_AUTO_TEST_CASE(CachePool_test) {
   // *)CachePoolEx::_gCachePool)->_mapPool.size());
   BOOST_TEST(0 ==
              ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+  for (uint32_t i = 0; i < maxEle; i++) {
+    CachePoolEx::Release(vct[i], 32);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

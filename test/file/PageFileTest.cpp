@@ -16,13 +16,10 @@ BOOST_AUTO_TEST_CASE(PageFile_test) {
   const string ovfName = ROOT_PATH + "/testOverflow" + StrMSTime() + ".dat";
 
   uint32_t pageLen = (uint32_t)Configure::GetCachePageSize();
-  try {
-    string nofile = "./unexistdir/filename";
-    PageFile errFile(nofile.c_str());
-    throw "Here should have an exception!";
-  } catch (ErrorMsg &msg) {
-    LOG_INFO << msg.what();
-  }
+  string nofile = "./unexistdir/filename";
+  PageFile errFile(nofile.c_str());
+  BOOST_TEST(errFile.IsValid() == false);
+  LOG_INFO << _threadErrorMsg->what();
 
   fs::path path(ROOT_PATH);
   if (!fs::exists(path))

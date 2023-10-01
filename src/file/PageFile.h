@@ -29,6 +29,7 @@ public:
   }
 
   void close() { _file.close(); }
+  bool IsValid() { return _bValid; }
 
 protected:
   MString _path;
