@@ -6,13 +6,13 @@
 
 namespace storage {
 thread_local unique_ptr<ErrorMsg> _threadErrorMsg = nullptr;
-unordered_map<int, MString> ErrorMsg::_mapErrorMsg = ErrorMsg::LoadErrorMsg();
+unordered_map<int, MString> ErrorMsg::_mapErrorMsg;
 
-unordered_map<int, MString> ErrorMsg::LoadErrorMsg() {
-  ifstream ifs("ErrorMsg.txt");
+void ErrorMsg::LoadErrorMsg(const string &msgPath) {
+  ifstream ifs(msgPath);
   string line;
   std::regex rgx("^\\d+(\t| {2,})");
-  unordered_map<int, MString> map;
+  _mapErrorMsg.clear();
 
   while (getline(ifs, line)) {
     if (line.size() < 4)
@@ -23,10 +23,8 @@ unordered_map<int, MString> ErrorMsg::LoadErrorMsg() {
 
     int id = std::atoi(sm[0].str().c_str());
     MString msg = sm.suffix().str().c_str();
-    map.insert({id, msg});
+    _mapErrorMsg.insert({id, msg});
   }
-
-  return map;
 }
 
 void ErrorMsg::SaveMsg(Byte *buf) {

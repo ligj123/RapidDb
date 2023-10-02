@@ -12,6 +12,10 @@ extern thread_local unique_ptr<ErrorMsg> _threadErrorMsg;
 
 class ErrorMsg : public exception {
 public:
+  static void LoadErrorMsg(const string &msgPath);
+  static void ClearErrorMsg() { _mapErrorMsg.clear(); }
+
+public:
   ErrorMsg() {}
   ErrorMsg(int id, MVector<MString> &&paras = {}) {
     SetMsg(id, std::move(paras));
@@ -57,7 +61,6 @@ public:
   }
 
 protected:
-  static unordered_map<int, MString> LoadErrorMsg();
   static unordered_map<int, MString> _mapErrorMsg;
 
 protected:

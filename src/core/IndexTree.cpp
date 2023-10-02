@@ -222,7 +222,7 @@ PageFile *IndexTree::ApplyPageFile() {
       return rpf;
     } else if (_rpfCount < Configure::GetMaxPageFileCount()) {
       _rpfCount++;
-      return new PageFile(_fileName);
+      return new PageFile(_fileName.c_str());
     }
   }
 }

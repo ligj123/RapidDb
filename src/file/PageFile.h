@@ -5,6 +5,7 @@
 #include "../utils/ErrorMsg.h"
 #include "../utils/SpinMutex.h"
 #include <atomic>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 
@@ -13,7 +14,7 @@ using namespace std;
 
 class PageFile {
 public:
-  PageFile(const MString &path);
+  PageFile(const string &path);
 
   ~PageFile() {
     if (_file.is_open())
@@ -32,7 +33,7 @@ public:
   bool IsValid() { return _bValid; }
 
 protected:
-  MString _path;
+  filesystem::path _path;
   fstream _file;
   bool _bValid;
 };

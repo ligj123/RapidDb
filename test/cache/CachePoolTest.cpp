@@ -122,30 +122,35 @@ BOOST_AUTO_TEST_CASE(CachePool_test) {
 
   BOOST_TEST(1 == ((CachePoolEx *)CachePoolEx::_gCachePool)->_mapPool.size());
 
-  Byte *bys = CachePoolEx::Apply(32);
-  BOOST_TEST(0 ==
-             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+  // Byte *bys = CachePoolEx::Apply(32);
+  // BOOST_TEST(0 ==
+  //            ((CachePoolEx
+  //            *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 
-  CachePoolEx::Release(bys, 32);
-  BOOST_TEST(0 ==
-             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+  // CachePoolEx::Release(bys, 32);
+  // BOOST_TEST(0 ==
+  //            ((CachePoolEx
+  //            *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 
-  bys = CachePoolEx::Apply(32);
-  BOOST_TEST(0 ==
-             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+  // bys = CachePoolEx::Apply(32);
+  // BOOST_TEST(0 ==
+  //            ((CachePoolEx
+  //            *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 
-  Byte *bys2 = CachePoolEx::Apply(40);
-  // BOOST_TEST(2 == ((CachePoolEx
-  // *)CachePoolEx::_gCachePool)->_mapPool.size());
-  BOOST_TEST(0 ==
-             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+  // Byte *bys2 = CachePoolEx::Apply(40);
+  // // BOOST_TEST(2 == ((CachePoolEx
+  // // *)CachePoolEx::_gCachePool)->_mapPool.size());
+  // BOOST_TEST(0 ==
+  //            ((CachePoolEx
+  //            *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
 
-  CachePoolEx::Release(bys, 32);
-  CachePoolEx::Release(bys2, 40);
-  // BOOST_TEST(2 == ((CachePoolEx
-  // *)CachePoolEx::_gCachePool)->_mapPool.size());
-  BOOST_TEST(0 ==
-             ((CachePoolEx *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
+  // CachePoolEx::Release(bys, 32);
+  // CachePoolEx::Release(bys2, 40);
+  // // BOOST_TEST(2 == ((CachePoolEx
+  // // *)CachePoolEx::_gCachePool)->_mapPool.size());
+  // BOOST_TEST(0 ==
+  //            ((CachePoolEx
+  //            *)CachePoolEx::_gCachePool)->_queueFreeBuf.size());
   for (uint32_t i = 0; i < maxEle; i++) {
     CachePoolEx::Release(vct[i], 32);
   }

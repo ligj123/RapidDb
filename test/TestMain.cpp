@@ -21,6 +21,7 @@ struct GlobalFixTure {
       fs::create_directories(path);
 
     Logger::init("./", INFO, INFO);
+    ErrorMsg::LoadErrorMsg("./ErrorMsg.txt");
 
     LOG_INFO << "Start global fixture." << std::endl;
   };
@@ -28,6 +29,7 @@ struct GlobalFixTure {
   ~GlobalFixTure() {
     LOG_INFO << "Stop global fixture." << std::endl;
     _threadErrorMsg.reset();
+    ErrorMsg::ClearErrorMsg();
 
     for (auto const &dir_entry :
          std::filesystem::directory_iterator{ROOT_PATH}) {
