@@ -96,7 +96,7 @@ public:
   static inline void AddThread(string name, int id) {
     _threadName = name;
     _threadID = id;
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
     if (id >= 0) {
       if (_setId.find(id) != _setId.end())
         abort();
@@ -105,7 +105,7 @@ public:
 #endif
   }
   static inline void RemoveThread(int id) {
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
     if (id >= 0)
       _setId.erase(id);
 #endif
@@ -192,7 +192,7 @@ protected:
   static thread_local int _threadID;
   static thread_local string _threadName;
 
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
   // Sve have used thread id to avoid id collide
   static set<int> _setId;
 #endif

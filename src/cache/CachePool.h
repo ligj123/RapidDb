@@ -25,7 +25,7 @@ protected:
 
 class CachePool {
 public:
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
   static Byte *ApplyBlock();
   static void ReleaseBlock(Byte *bys);
   static Byte *ApplyPage();
@@ -110,7 +110,7 @@ public:
       pool->_localMap.Push(pBuf, (uint16_t)sz);
     }
   }
-#endif // DEBUG_TEST
+#endif // CACHE_TRACE
 
 public:
   CachePool();

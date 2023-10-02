@@ -11,6 +11,7 @@
 
 namespace storage {
 const uint64_t Buffer::BUFFER_MASK = Configure::GetCacheBlockSize() - 1;
+const uint64_t Buffer::BUFFER_MASK_N = ~(Configure::GetCacheBlockSize() - 1);
 
 Buffer::Buffer(uint16_t eleSize) : _eleSize(eleSize) {
 #ifdef _MSVC_LANG
@@ -93,12 +94,16 @@ void BufferPool::Apply(vector<Byte *> &vct) {
   std::unique_lock<SpinMutex> lock(_spinMutex);
   size_t cap = (vct.capacity() >> 2) + (vct.capacity() >> 1);
   while (vct.size() < cap) {
+    unordered_map<Byte *, storage::Buffer *>::iterator iter;
     if (_mapFreeBuffer.size() == 0) {
       Buffer *buff = CachePool::AllocateBuffer(_eleSize);
       _mapBuffer.insert(pair<Byte *, Buffer *>(buff->GetBuf(), buff));
-      _mapFreeBuffer.insert(pair<Byte *, Buffer *>(buff->GetBuf(), buff));
+      iter = _mapFreeBuffer.insert(pair<Byte *, Buffer *>(buff->GetBuf(), buff))
+                 .first;
+    } else {
+      iter = _mapFreeBuffer.begin();
     }
-    auto iter = _mapFreeBuffer.begin();
+
     iter->second->Apply(vct);
     if (iter->second->IsEmpty()) {
       _mapFreeBuffer.erase(iter);
@@ -112,6 +117,10 @@ void BufferPool::Release(vector<Byte *> &vct, bool bAll) {
   while (vct.size() > sz) {
     Byte *buf = Buffer::CalcAddr(vct[0]);
     auto iter = _mapBuffer.find(buf);
+    if (iter->second->IsEmpty()) {
+      _mapFreeBuffer.insert({buf, iter->second});
+    }
+
     iter->second->Release(vct, bAll);
 
     if (iter->second->IsFull()) {

@@ -306,8 +306,16 @@ public:
     return _value == dv._value;
   }
   bool operator!=(const DataValueDigit &dv) const { return !(*this == dv); }
-  void Add(int64_t val) override { _value += (T)val; }
-  void Add(double val) override { _value += (T)val; }
+  void Add(int64_t val) override {
+    if constexpr (DT != DataType::BOOL) {
+      _value += (T)val;
+    }
+  }
+  void Add(double val) override {
+    if constexpr (DT != DataType::BOOL) {
+      _value += (T)val;
+    }
+  }
   bool Add(IDataValue &dv) override {
     if (dv.IsDigital()) {
       Case_Add<DT>::Add(_value, dv);

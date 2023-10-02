@@ -37,13 +37,13 @@ struct GlobalFixTure {
         std::filesystem::remove(dir_entry);
       }
     }
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
     LOG_INFO << "Memory leaked: " << CachePool::GetMemoryUsed() << std::endl;
     unordered_map<Byte *, string> &map = CachePool::_mapApply;
     for (auto iter = map.begin(); iter != map.end(); iter++) {
       LOG_INFO << (void *)iter->first << "    " << iter->second;
     }
-#endif // DEBUG_TEST
+#endif // CACHE_TRACE
   }
 };
 // 定义全局夹具

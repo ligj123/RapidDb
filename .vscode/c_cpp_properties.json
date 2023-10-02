@@ -6,7 +6,7 @@
                 "${workspaceFolder}/**"
             ],
             "defines": [
-                "DEBUG_TEST",
+                "CACHE_TRACE",
                 "DEBUG_WITHOUT_BIN_LOG"
             ],
             "compilerPath": "/usr/bin/gcc",

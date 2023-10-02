@@ -42,7 +42,9 @@ void test() {
     CachePoolEx::Release(vct[i], 32);
   }
 }
+
 int main(int argc, char *argv[]) {
+  ErrorMsg::LoadErrorMsg("./ErrorMsg.txt");
   test();
   std::cout << "Initialize press test.\n";
   fs::path path(ROOT_PATH);

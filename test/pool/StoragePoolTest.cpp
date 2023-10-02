@@ -18,11 +18,11 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
       ROOT_PATH + "/testStoragePool" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
 
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
   const int NUM = 100;
 #else
   const int NUM = 10000;
-#endif // DEBUG_TEST
+#endif // CACHE_TRACE
 
   class StorageTask : public Task {
   public:

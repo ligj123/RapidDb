@@ -7,14 +7,14 @@ namespace storage {
 CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
 thread_local LocalMap CachePool::_localMap;
 
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
 vector<unordered_map<uint16_t, vector<Byte *>> *> CachePool::_vctMap;
 SpinMutex CachePool::_spinLocal;
 unordered_map<Byte *, string> CachePool::_mapApply;
 #endif
 
 LocalMap::LocalMap() {
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
   unique_lock<SpinMutex> lock(CachePool::_spinLocal);
   CachePool::_vctMap.push_back(&_map);
 #endif
@@ -25,7 +25,7 @@ LocalMap::~LocalMap() {
     CachePool::BatchRelease(iter->first, iter->second, true);
   }
 
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
   unique_lock<SpinMutex> lock(CachePool::_spinLocal);
   for (auto iter = CachePool::_vctMap.begin(); iter != CachePool::_vctMap.end();
        iter++) {
@@ -46,30 +46,25 @@ void LocalMap::Push(Byte *pBuf, uint16_t eleSize) {
 
   auto iter = _map.find(eleSize);
   if (iter == _map.end()) {
-    _map.insert({eleSize, vector<Byte *>()});
-    iter = _map.find(eleSize);
-    int num = (eleSize == Configure::GetCachePageSize() ? 32 : 16384 / eleSize);
-    if (num < 4)
-      num = 4;
+    iter = _map.insert({eleSize, vector<Byte *>()}).first;
+    int num = (eleSize >= 512 ? 32 : 16384 / eleSize);
     iter->second.reserve(num);
   }
 
-  iter->second.push_back(pBuf);
-  if (iter->second.size() >= iter->second.capacity() - 1) {
+  if (iter->second.size() >= iter->second.capacity()) {
     CachePool::BatchRelease(iter->first, iter->second, false);
   }
+
+  iter->second.push_back(pBuf);
 }
 
 Byte *LocalMap::Pop(uint16_t eleSize) {
-  assert(eleSize % 8 == 0);
+  assert(eleSize % 16 == 0);
 
   auto iter = _map.find(eleSize);
   if (iter == _map.end()) {
-    _map.insert({eleSize, vector<Byte *>()});
-    iter = _map.find(eleSize);
-    int num = (eleSize == Configure::GetCachePageSize() ? 32 : 16384 / eleSize);
-    if (num < 4)
-      num = 4;
+    iter = _map.insert({eleSize, vector<Byte *>()}).first;
+    int num = (eleSize >= 512 ? 32 : 16384 / eleSize);
     iter->second.reserve(num);
   }
 
@@ -141,7 +136,7 @@ CachePool::~CachePool() {
   }
 }
 
-#ifdef DEBUG_TEST
+#ifdef CACHE_TRACE
 size_t CachePool::GetMemoryUsed() {
   unique_lock<SpinMutex> lock(CachePool::_spinLocal);
   for (auto mm : _vctMap) {
@@ -261,5 +256,5 @@ void CachePool::Release(Byte *pBuf, uint32_t bufSize) {
     assert(rt == 1);
   }
 }
-#endif // DEBUG_TEST
+#endif // CACHE_TRACE
 } // namespace storage
