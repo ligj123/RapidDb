@@ -380,12 +380,13 @@ inline size_t BytesHash(const Byte *bys, size_t len) {
   size_t i = 0;
   size_t h = 0;
   for (; i < len8; i += 8) {
-    h = (h << 8) ^ (size_t)bys;
+    h = (h << 8) ^ (*(size_t *)bys);
     bys += 8;
   }
 
   for (; i < len; i++) {
-    h = (h << 1) ^ *bys;
+    h = (h << 1) ^ (*bys);
+    bys++;
   }
 
   return h;

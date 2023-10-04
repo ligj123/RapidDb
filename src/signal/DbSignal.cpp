@@ -1,6 +1,8 @@
 #include "DbSignal.h"
 #include "../cache/StackTrace.h"
 #include "../utils/Log.h"
+#include <csignal>
+#include <unistd.h>
 
 namespace storage {
 void SignalHandle::SetSignal() {

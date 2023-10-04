@@ -23,7 +23,10 @@ public:
              IDataValue *defaultVal = nullptr)
       : _name(name), _index(index), _dataType(dataType), _bNullable(bNullable),
         _comments(comments), _maxLength(maxLen), _initVal(initVal),
-        _incStep(incStep), _charset(charset), _pDefaultVal(defaultVal) {}
+        _incStep(incStep), _charset(charset), _pDefaultVal(defaultVal) {
+    if (_pDefaultVal != nullptr)
+      _pDefaultVal->SetConstRef();
+  }
   ~PhysColumn() {
     if (_pDefaultVal != nullptr)
       _pDefaultVal->Free();

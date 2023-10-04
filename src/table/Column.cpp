@@ -99,6 +99,7 @@ uint32_t PhysColumn::ReadData(Byte *pBuf) {
   p += UI16_LEN;
   if (len > 0) {
     _pDefaultVal = DataValueFactory(_dataType, len);
+    _pDefaultVal->SetConstRef();
     p += _pDefaultVal->ReadData(p, len, SavePosition::VALUE, true);
   }
 
