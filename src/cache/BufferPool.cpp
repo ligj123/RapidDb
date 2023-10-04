@@ -97,9 +97,8 @@ void BufferPool::Apply(vector<Byte *> &vct) {
     unordered_map<Byte *, storage::Buffer *>::iterator iter;
     if (_mapFreeBuffer.size() == 0) {
       Buffer *buff = CachePool::AllocateBuffer(_eleSize);
-      _mapBuffer.insert(pair<Byte *, Buffer *>(buff->GetBuf(), buff));
-      iter = _mapFreeBuffer.insert(pair<Byte *, Buffer *>(buff->GetBuf(), buff))
-                 .first;
+      _mapBuffer.insert({buff->GetBuf(), buff});
+      iter = _mapFreeBuffer.insert({buff->GetBuf(), buff}).first;
     } else {
       iter = _mapFreeBuffer.begin();
     }
@@ -135,8 +134,8 @@ Byte *BufferPool::Apply() {
   std::unique_lock<SpinMutex> lock(_spinMutex);
   if (_mapFreeBuffer.size() == 0) {
     Buffer *buff = CachePool::AllocateBuffer(_eleSize);
-    _mapBuffer.insert(pair<Byte *, Buffer *>(buff->GetBuf(), buff));
-    _mapFreeBuffer.insert(pair<Byte *, Buffer *>(buff->GetBuf(), buff));
+    _mapBuffer.insert({buff->GetBuf(), buff});
+    _mapFreeBuffer.insert({buff->GetBuf(), buff});
     return buff->Apply();
   } else {
     auto iter = _mapFreeBuffer.begin();

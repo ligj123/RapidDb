@@ -23,29 +23,8 @@ void help() {
   std::cout << "internal parameters for cases" << std::endl;
 }
 
-void test() {
-  class CachePoolEx : public CachePool {
-  public:
-    using CachePool::_gCachePool;
-    using CachePool::_mapPool;
-    using CachePool::_queueFreeBuf;
-  };
-
-  CachePoolEx::_gCachePool = new CachePoolEx();
-  uint32_t maxEle = 4096;
-  vector<Byte *> vct;
-  for (uint32_t i = 0; i < maxEle; i++) {
-    vct.push_back(CachePoolEx::Apply(32));
-  }
-
-  for (uint32_t i = 0; i < maxEle; i++) {
-    CachePoolEx::Release(vct[i], 32);
-  }
-}
-
 int main(int argc, char *argv[]) {
   ErrorMsg::LoadErrorMsg("./ErrorMsg.txt");
-  test();
   std::cout << "Initialize press test.\n";
   fs::path path(ROOT_PATH);
   if (!fs::exists(path))

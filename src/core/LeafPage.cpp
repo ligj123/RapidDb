@@ -111,7 +111,6 @@ bool LeafPage::SaveRecords() {
 
 void LeafPage::InsertRecord(LeafRecord *lr, int32_t pos, bool incRef) {
   assert(pos >= 0);
-  assert(_rwLock.is_write_locked());
 
   if (incRef) {
     lr->AddRef();

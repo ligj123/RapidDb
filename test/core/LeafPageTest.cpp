@@ -200,7 +200,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
     lp->InsertRecord(rr);
   }
 
-  lp->IncRef();
+  // lp->IncRef();
   bool b = lp->PageDivide();
   BOOST_TEST(true == b);
 
@@ -222,6 +222,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
       VectorDataValue vVal;
       lr->GetListValue(vVal);
       BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong *)vVal[0]));
+      lr->DecRef();
       count++;
     }
 
@@ -253,7 +254,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
   b = lp->PageDivide();
   BOOST_TEST(true == b);
 
-  lp->IncRef();
+  // lp->IncRef();
   count = 0;
   while (true) {
     // LOG_DEBUG << "ID:" << lp->GetPageId() << "  RecNum:" <<
@@ -269,6 +270,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
       VectorDataValue vVal;
       lr->GetListValue(vVal);
       BOOST_TEST((count + 100) == (int64_t)(*(DataValueLong *)vVal[0]));
+      lr->DecRef();
       count++;
     }
 
@@ -286,7 +288,7 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
 
   BOOST_TEST(ROW_COUNT * 10 == count);
 
-  indexTree->Close();
+  IndexTree::TestCloseWait(indexTree);
   delete dvKey;
   delete dvVal;
 

@@ -44,4 +44,24 @@ const std::string StackTrace() {
 
   return "NO: " + std::to_string(count) + "\n" + ss.str();
 }
+
+const std::string PrintStack() {
+  boost::stacktrace::stacktrace st;
+#ifdef _MSVC_LANG
+  auto iter = st.begin() + 3;
+#else
+  auto iter = st.begin() + 1;
+#endif
+
+  std::stringstream ss;
+  for (int i = 0; iter != st.end(); iter++, i++) {
+    std::string ff = iter->source_file();
+    ff = ff.substr(ff.rfind('/', ff.rfind('/') - 1) + 1);
+    ss << i << "# " << iter->name() << " at " << ff << " : "
+       << iter->source_line() << "\n";
+  }
+
+  return ss.str();
+}
+
 } // namespace storage

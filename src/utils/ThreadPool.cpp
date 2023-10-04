@@ -16,13 +16,13 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
                        int minThreads, int maxThreads, int startId)
     : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize),
       _stopThreads(false), _minThreads(minThreads), _maxThreads(maxThreads),
-      _aliveThreads(0), _freeThreads(0), _tasksNum(0), _startId(startId),
-      _fastQueue(new FastQueue<Task>(this)) {
+      _aliveThreads(0), _freeThreads(0), _tasksNum(0), _startId(startId) {
   if (_minThreads < 1 || _minThreads > _maxThreads || _maxThreads < 1) {
     throw invalid_argument(
         "Please set min threads and max thread in right range!");
   }
 
+  _fastQueue = new FastQueue<Task>(this);
   _vctThread.resize(_maxThreads, nullptr);
   for (int i = 0; i < minThreads; ++i) {
     CreateThread(i);

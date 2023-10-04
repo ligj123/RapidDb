@@ -8,7 +8,7 @@ SET(CMAKE_CXX_COMPILER /usr/bin/clang++)
 #SET(CMAKE_CXX_COMPILER C:/LLVM/bin/clang++)
 endif()
 
-#add_definitions(-DDEBUG_TEST -DDEBUG_WITHOUT_BIN_LOG)
+#add_definitions(-DCACHE_TRACE -DDEBUG_WITHOUT_BIN_LOG)
 set(CMAKE_EXPORT_COMPILECOMMANDS ON)
 project(RapidDB)
 

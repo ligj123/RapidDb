@@ -84,9 +84,7 @@ void CachePool::BatchApply(uint32_t bufSize, vector<Byte *> &vct) {
     std::unique_lock<SpinMutex> lock(pool->_spinMutex);
     iter = pool->_mapPool.find(bufSize);
     if (iter == pool->_mapPool.end()) {
-      pool->_mapPool.insert(
-          pair<uint32_t, BufferPool *>(bufSize, new BufferPool(bufSize)));
-      iter = pool->_mapPool.find(bufSize);
+      iter = pool->_mapPool.insert({bufSize, new BufferPool(bufSize)}).first;
     }
   }
 

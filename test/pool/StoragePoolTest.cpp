@@ -1,8 +1,10 @@
 ﻿#include "../../src/pool/StoragePool.h"
 #include "../../src/core/IndexTree.h"
 #include "../../src/pool/PageBufferPool.h"
+#include "../../src/pool/PageDividePool.h"
 #include "../../src/utils/Utilitys.h"
 #include "../TestHeader.h"
+
 #include <boost/test/unit_test.hpp>
 #include <cstring>
 #include <filesystem>
@@ -57,7 +59,14 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
   };
 
   ThreadPool *tp = ThreadPool::InitMain(100000, 1, 1);
+  TimerThread::Start();
   StoragePool::InitPool(tp);
+  StoragePool::AddTimerTask();
+  PageDividePool::InitPool(tp);
+  PageDividePool::AddTimerTask();
+  PageBufferPool::InitPool(tp);
+  PageBufferPool::AddTimerTask();
+
   string strTest = "abcdefg1234567890中文测试abcdefghigjlmnopqrstuvwrst";
   strTest += strTest;
   strTest += strTest;
@@ -136,8 +145,17 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
     PageBufferPool::PoolManage();
   }
 
-  StoragePool::StopPool();
+  PageBufferPool::RemoveTimerTask();
+  PageDividePool::RemoveTimerTask();
+  StoragePool::RemoveTimerTask();
+  TimerThread::Stop();
+
   ThreadPool::StopMain();
+  tp = nullptr;
+
+  PageDividePool::StopPool();
+  StoragePool::StopPool();
+  PageBufferPool::StopPool();
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

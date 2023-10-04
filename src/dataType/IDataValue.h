@@ -183,6 +183,8 @@ public:
     for (auto iter = begin(); iter != end(); iter++) {
       (*iter)->DecRef();
     }
+
+    erase(begin(), end());
   }
 };
 
@@ -195,6 +197,8 @@ public:
     for (auto iter = begin(); iter != end(); iter++) {
       delete *iter;
     }
+
+    erase(begin(), end());
   }
 };
 

@@ -196,7 +196,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToPrimaryKey_test) {
   BOOST_TEST(_threadErrorMsg->getErrId() == CORE_REPEATED_RECORD);
 
   rr->DecRef();
-  idxPage->DecRef();
+  // idxPage->DecRef();
   idxPage->WriteUnlock();
   PageDividePool::AddPage(idxPage, false);
 

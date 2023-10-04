@@ -5,8 +5,9 @@ if [ -d ./Release ] ; then
 fi
 
 mkdir ./Release
+cp ErrorMsg.txt ./Release
 cd Release
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=clang++ ..
 cd ..
 
 if [ -d ./Debug ] ; then
@@ -14,7 +15,8 @@ if [ -d ./Debug ] ; then
 fi
 
 mkdir ./Debug
+cp ErrorMsg.txt ./Debug
 cd Debug
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ .. 
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++ .. 
 cd ..
 
