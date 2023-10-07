@@ -382,5 +382,5 @@ typedef DataValueDigit<int64_t, DataType::LONG> DataValueLong;
 typedef DataValueDigit<uint64_t, DataType::ULONG> DataValueULong;
 typedef DataValueDigit<float, DataType::FLOAT> DataValueFloat;
 typedef DataValueDigit<double, DataType::DOUBLE> DataValueDouble;
-typedef DataValueDigit<uint64_t, DataType::DATETIME> DataValueDate;
+// typedef DataValueDigit<uint64_t, DataType::DATETIME> DataValueDate;
 } // namespace storage
