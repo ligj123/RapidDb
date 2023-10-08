@@ -2,20 +2,24 @@
 #include "DataValueDigit.h"
 
 namespace storage {
+/**
+ * @brief DataTime will be saved as unsigned long int, the unit is millisecond.
+ * In future will add the code to support load from string and output to string.
+ */
 class DataValueDateTime : public DataValueDigit<uint64_t, DataType::DATETIME> {
 public:
   DataValueDateTime() : DataValueDigit() {}
-  DataValueDateTime(uint64_t millSec/*The milliseconds since epoch*/)
+  DataValueDateTime(uint64_t millSec /*The milliseconds since epoch*/)
       : DataValueDigit(millSec) {}
-  DataValueDateTime(char* dtStr, size_t dtLen, const char* format) : DataValueDigit() {
-    
-  }
-  DataValueDate(const DataValueDate &src) : DataValueDigit(src) {}
-  ~DataValueDate() {}
+  // DataValueDateTime(char* dtStr, size_t dtLen, const char* format) :
+  // DataValueDigit() {
+  // }
+  DataValueDateTime(const DataValueDateTime &src) : DataValueDigit(src) {}
+  ~DataValueDateTime() {}
 
 public:
-  DataValueDate *Clone(bool incVal = false) override {
-    return new DataValueDate(*this);
+  DataValueDateTime *Clone(bool incVal = false) override {
+    return new DataValueDateTime(*this);
   }
   void ToString(StrBuff &sb) const override {
     if (valType_ == ValueType::NULL_VALUE) {
@@ -31,7 +35,6 @@ public:
   }
 
 protected:
-static MString _dtFormat;
   friend std::ostream &operator<<(std::ostream &os, const DataValueDate &dv);
 };
 

@@ -5,14 +5,16 @@
 using namespace std;
 namespace storage {
 struct SysColumn {
-  
+
   MString _name;
   DataType _dtType;
   int _maxLength;
+};
 
-} class Systable {
+class Systable {
 public:
+
 protected:
-  vector <
+  MVector<SysColumn> _vctColumn;
 };
 } // namespace storage
