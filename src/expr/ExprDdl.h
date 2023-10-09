@@ -77,6 +77,12 @@ public:
 
 class ExprCreateTableItem : public BaseExpr {};
 
+struct AutoIncrement {
+  bool _autoInc;
+  int64_t _initVal;
+  int64_t _incStep;
+};
+
 class ExprColumnItem : public ExprCreateTableItem {
 public:
   ~ExprColumnItem() {
@@ -94,6 +100,8 @@ public:
   bool _nullable{false};
   IDataValue *_defaultVal{nullptr};
   bool _autoInc{false};
+  int64_t _initVal{-1};
+  int64_t _incStep{-1};
   IndexType _indexType{IndexType::UNKNOWN};
   MString *_comment{nullptr};
 };

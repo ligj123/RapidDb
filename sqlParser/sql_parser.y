@@ -110,6 +110,7 @@ using namespace storage;
 
   MString *sval;
   IDataValue *data_value;
+  AutoIncrement *auto_increment;
 
   // parent for ExprData, ExprLogic and ExprAggr
   ExprElem *expr_elem;
@@ -234,12 +235,13 @@ using namespace storage;
     // Basic data type
     %type <expr_data_type> expr_data_type
     %type <expr_vct_str> expr_vct_col_name
-    %type <bval> opt_not_exists opt_exists col_nullable auto_increment opt_distinct opt_order_direction
+    %type <bval> opt_not_exists opt_exists col_nullable opt_distinct opt_order_direction
     %type <sval> table_comment col_alias
     %type <join_type> join_type
     %type <comp_type> comp_type
     %type <index_type> index_type opt_index_type
     %type <lock_type> opt_lock_type
+    %type <auto_increment> auto_increment
     
     // DDL
     %type <expr_statement> expr_statement
@@ -577,7 +579,10 @@ expr_create_table_item : IDENTIFIER expr_data_type col_nullable default_col_dv a
   delete $2;
   item->_nullable = $3;
   item->_defaultVal = $4;
-  item->_autoInc = $5;
+  item->_autoInc = $5->_autoInc;
+  item->_initVal = $5->_initVal;
+  item->_incStep = $5->_incStep;
+  delete $5;
   item->_indexType = $6;
   item->_comment = $7;
   $$ = item;
@@ -608,8 +613,24 @@ col_nullable : NULL { $$ = true; }
 default_col_dv : DEFAULT const_dv { $$ = $2; }
 | /* empty */ { $$ = nullptr; }
 
-auto_increment : AUTO_INCREMENT { $$ = true; }
-|  /* empty */ { $$ = false; };
+auto_increment : AUTO_INCREMENT {
+  $$ = new AutoIncrement;
+  $$->_autoInc = true;
+  $$->_initVal = 1;
+  $$->_incStep = 1;
+}
+| AUTO_INCREMENT '(' INTVAL ',' INTVAL ')' {
+  $$ = new AutoIncrement;
+  $$->_autoInc = true;
+  $$->_initVal = $3;
+  $$->_incStep = $5;
+}
+|  /* empty */ {
+  $$ = new AutoIncrement;
+  $$->_autoInc = false;
+  $$->_initVal = -1;
+  $$->_incStep = -1;  
+};
 
 opt_index_type : index_type { $$ = $1; }
 | /* empty */ { $$ = IndexType::UNKNOWN; }

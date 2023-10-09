@@ -300,6 +300,7 @@ union DB_STYPE
   IndexType index_type;
   LockType lock_type;
   CompType comp_type;
+  AutoInc auto_inc;
 
   MString *sval;
   IDataValue *data_value;
@@ -383,7 +384,7 @@ union DB_STYPE
   MVectorPtr<MVectorPtr<ExprElem*>*> *expr_vct_elem_row;
   MVectorPtr<ExprData*> *expr_vct_data;
 
-#line 387 "sql_parser.h"
+#line 388 "sql_parser.h"
 
 };
 typedef union DB_STYPE DB_STYPE;

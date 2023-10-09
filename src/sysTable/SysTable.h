@@ -4,17 +4,8 @@
 
 using namespace std;
 namespace storage {
-struct SysColumn {
-
-  MString _name;
-  DataType _dtType;
-  int _maxLength;
-};
-
 class Systable {
 public:
-
-protected:
-  MVector<SysColumn> _vctColumn;
+ static bool CreateSystemTable();
 };
 } // namespace storage
