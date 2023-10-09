@@ -229,7 +229,7 @@ using namespace storage;
     %token TRANSACTION BEGIN COMMIT ROLLBACK START
     %token NOWAIT SKIP LOCKED SHARE
     %token RANGE ROWS GROUPS UNBOUNDED FOLLOWING PRECEDING CURRENT_ROW
-    %token DATABASE DATABASES AUTO_INCREMENT COMMENT UPSERT
+    %token DATABASE DATABASES AUTO_INCREMENT COMMENT UPSERT BLOB
     %token AVERAGE COUNT MIN MAX SUM USE
 
     // Basic data type
@@ -396,7 +396,7 @@ expr_show_tables : SHOW TABLES FROM IDENTIFIER {
 
 expr_trun_table : TRUNCATE TABLE expr_table {
   $$ = new ExprTrunTable($3);
-}
+};
 
 expr_transaction : BEGIN { $$ = new ExprTransaction(TranAction::TRAN_BEGIN); }
 | START TRANSACTION { $$ = new ExprTransaction(TranAction::TRAN_BEGIN); }
@@ -605,19 +605,21 @@ expr_data_type : BIGINT { $$ = new ExprDataType(DataType::LONG); }
 | REAL { $$ = new ExprDataType(DataType::DOUBLE); }
 | SMALLINT { $$ = new ExprDataType(DataType::SHORT); }
 | VARCHAR '(' INTVAL ')' { $$ = new ExprDataType(DataType::VARCHAR, $3); }
+| DATETIME { $$ = new ExprDataType(DataType::DATETIME); }
+| BLOB '(' INTVAL ')' { $$ = new ExprDataType(DataType::BLOB, $3); };
 
 col_nullable : NULL { $$ = true; }
 | NOT NULL { $$ = false; }
 | /* empty */ { $$ = true; };
 
 default_col_dv : DEFAULT const_dv { $$ = $2; }
-| /* empty */ { $$ = nullptr; }
+| /* empty */ { $$ = nullptr; };
 
 auto_increment : AUTO_INCREMENT {
   $$ = new AutoIncrement;
   $$->_autoInc = true;
-  $$->_initVal = 1;
-  $$->_incStep = 1;
+  $$->_initVal = -1;
+  $$->_incStep = -1;
 }
 | AUTO_INCREMENT '(' INTVAL ',' INTVAL ')' {
   $$ = new AutoIncrement;
@@ -633,7 +635,7 @@ auto_increment : AUTO_INCREMENT {
 };
 
 opt_index_type : index_type { $$ = $1; }
-| /* empty */ { $$ = IndexType::UNKNOWN; }
+| /* empty */ { $$ = IndexType::UNKNOWN; };
 
 index_type : PRIMARY KEY { $$ = IndexType::PRIMARY; }
 | PRIMARY { $$ = IndexType::PRIMARY; }
@@ -724,7 +726,7 @@ expr_array : '(' expr_vct_const ')' { $$ = $2; };
 expr_vct_const : const_dv {
   $$ = new ExprArray();
   $$->AddElem($1);
-};
+}
 | expr_vct_const ',' const_dv {
    $1->AddElem($3);
    $$ = $1;
@@ -795,7 +797,7 @@ const_bool : TRUE {
 const_double : FLOATVAL {
   $$ = new DataValueDouble($1);
   $$->SetConstRef();
-}
+};
 
 const_int : INTVAL {
   $$ = new DataValueLong($1);

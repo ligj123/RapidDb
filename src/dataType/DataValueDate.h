@@ -30,15 +30,16 @@ public:
     }
 
     char *dest = sb.GetFreeBuff();
-    int n = sprintf(dest, "%llu", _value);
+    int n = sprintf(dest, "%lu", _value);
     sb.SetStrLen(sb.GetStrLen() + n);
   }
 
 protected:
-  friend std::ostream &operator<<(std::ostream &os, const DataValueDate &dv);
+  friend std::ostream &operator<<(std::ostream &os,
+                                  const DataValueDateTime &dv);
 };
 
-inline std::ostream &operator<<(std::ostream &os, const DataValueDate &dv) {
+inline std::ostream &operator<<(std::ostream &os, const DataValueDateTime &dv) {
   if (dv.valType_ == ValueType::NULL_VALUE)
     os << "nullptr";
   else

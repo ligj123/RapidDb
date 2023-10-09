@@ -270,17 +270,18 @@ using namespace storage;
     SQL_AUTO_INCREMENT = 429,      /* AUTO_INCREMENT  */
     SQL_COMMENT = 430,             /* COMMENT  */
     SQL_UPSERT = 431,              /* UPSERT  */
-    SQL_AVERAGE = 432,             /* AVERAGE  */
-    SQL_COUNT = 433,               /* COUNT  */
-    SQL_MIN = 434,                 /* MIN  */
-    SQL_MAX = 435,                 /* MAX  */
-    SQL_SUM = 436,                 /* SUM  */
-    SQL_USE = 437,                 /* USE  */
-    SQL_EQ = 438,                  /* EQ  */
-    SQL_NE = 439,                  /* NE  */
-    SQL_LE = 440,                  /* LE  */
-    SQL_GE = 441,                  /* GE  */
-    SQL_UMINUS = 442               /* UMINUS  */
+    SQL_BLOB = 432,                /* BLOB  */
+    SQL_AVERAGE = 433,             /* AVERAGE  */
+    SQL_COUNT = 434,               /* COUNT  */
+    SQL_MIN = 435,                 /* MIN  */
+    SQL_MAX = 436,                 /* MAX  */
+    SQL_SUM = 437,                 /* SUM  */
+    SQL_USE = 438,                 /* USE  */
+    SQL_EQ = 439,                  /* EQ  */
+    SQL_NE = 440,                  /* NE  */
+    SQL_LE = 441,                  /* LE  */
+    SQL_GE = 442,                  /* GE  */
+    SQL_UMINUS = 443               /* UMINUS  */
   };
   typedef enum db_tokentype db_token_kind_t;
 #endif
@@ -300,10 +301,10 @@ union DB_STYPE
   IndexType index_type;
   LockType lock_type;
   CompType comp_type;
-  AutoInc auto_inc;
 
   MString *sval;
   IDataValue *data_value;
+  AutoIncrement *auto_increment;
 
   // parent for ExprData, ExprLogic and ExprAggr
   ExprElem *expr_elem;
@@ -384,7 +385,7 @@ union DB_STYPE
   MVectorPtr<MVectorPtr<ExprElem*>*> *expr_vct_elem_row;
   MVectorPtr<ExprData*> *expr_vct_data;
 
-#line 388 "sql_parser.h"
+#line 389 "sql_parser.h"
 
 };
 typedef union DB_STYPE DB_STYPE;

@@ -106,7 +106,7 @@ inline std::ostream &operator<<(std::ostream &os, const IDataValue &dv) {
     os << (const DataValueDouble &)dv;
     break;
   case DataType::DATETIME:
-    os << (const DataValueDate &)dv;
+    os << (const DataValueDateTime &)dv;
     break;
   case DataType::BOOL:
     os << (const DataValueBool &)dv;
