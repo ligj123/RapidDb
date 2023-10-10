@@ -46,7 +46,7 @@ enum class SavePosition : uint8_t {
 enum class ValueType : uint8_t { NULL_VALUE = 0, SOLE_VALUE, BYTES_VALUE };
 
 static const int DEFAULT_MAX_FIX_LEN = 1000;
-static const int DEFAULT_MAX_VAR_LEN = (1 << 30);
+static const int DEFAULT_MAX_VAR_LEN = (1 << 16);
 
 inline std::ostream &operator<<(std::ostream &os, const DataType &dt) {
   os << "DataType::";

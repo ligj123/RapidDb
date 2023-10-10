@@ -25,5 +25,7 @@ static string CREATE_VARS_SQL = "create table variables("
 static string SYS_TABLE_SQL[] = {CREATE_DB_SQL, CREATE_TABLE_SQL,
                                  CREATE_VARS_SQL};
 
-bool Systable::CreateSystemTable() {}
+bool Systable::CreateSystemTable() {
+  
+}
 } // namespace storage

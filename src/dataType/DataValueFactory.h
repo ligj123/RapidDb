@@ -3,7 +3,7 @@
 #include "../config/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "DataValueBlob.h"
-#include "DataValueDate.h"
+#include "DataValueDateTime.h"
 #include "DataValueFixChar.h"
 #include "DataValueVarChar.h"
 #include <any>
@@ -47,7 +47,7 @@ inline IDataValue *DataValueFactory(DataType type,
     pDv = new DataValueDouble();
     break;
   case DataType::DATETIME:
-    pDv = new DataValueDate();
+    pDv = new DataValueDateTime();
     break;
   case DataType::BOOL:
     pDv = new DataValueBool();
