@@ -26,6 +26,6 @@ static string SYS_TABLE_SQL[] = {CREATE_DB_SQL, CREATE_TABLE_SQL,
                                  CREATE_VARS_SQL};
 
 bool Systable::CreateSystemTable() {
-  
+  return false;
 }
 } // namespace storage
