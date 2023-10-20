@@ -9,8 +9,14 @@ public:
   static const uint32_t FAST_SIZE;
 
 public:
+  static bool LoadDb();
+  static bool AddDb();
+  static bool DelDb();
+  static bool ListDb(MVector<MString> &vctDb);
+  static bool FindDb(MString db);
+
 protected:
-  static MHashMap<MString, Database *> _mapDb;
+  static MTreeMap<MString, Database *> _mapDb;
   static SpinMutex _spinMutex;
   static Database *_fastDbCache;
 };
