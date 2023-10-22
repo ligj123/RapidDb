@@ -54,6 +54,12 @@ public:
       _vctPara.push_back(para);
     }
     vct_para.clear();
+
+    if (_vctStatement != nullptr) {
+      for (ExprStatement *es : *_vctStatement) {
+        es->_vctPara = _vctPara;
+      }
+    }
   }
   const MVector<ExprParameter *> *GetVctPara() { return &_vctPara; }
   void Reset() {

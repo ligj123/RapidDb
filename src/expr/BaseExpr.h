@@ -144,13 +144,16 @@ public:
   JoinType _joinType{JoinType::JOIN_NULL};
 };
 
+class Session;
+class ExprParameter;
 // Base class for all statement
 class ExprStatement : public BaseExpr {
 public:
-  virtual bool Preprocess() = 0;
+  virtual bool Preprocess(Session *session) = 0;
 
 public:
-  // int _paramNum{0}; // The numbe of parameters in this statement
+  // The vector of parameters. Params are duplications, do not need free.
+  MVector<ExprParameter *> _vctPara;
 };
 
 } // namespace storage

@@ -1,6 +1,7 @@
 #pragma once
 #include "../expr/ExprStatement.h"
 #include "../statement/Statement.h"
+#include "../table/Database.h"
 #include "../transaction/Transaction.h"
 #include <atomic>
 #include <unordered_map>
@@ -33,7 +34,7 @@ protected:
   // To generate id for _mapExprStat.
   atomic_int32_t _exprStatId;
   // To record the current database switched by use database name
-  string _strCurrDb;
+  Database *_currDb;
   // The running statement in this session, or nullptr if not exist.
   Statement *_currStatement;
   // The current transaction in this session, or nullptr if not exist.

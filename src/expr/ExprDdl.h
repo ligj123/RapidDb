@@ -7,6 +7,7 @@
 
 using namespace std;
 namespace storage {
+class Session;
 
 class ExprCreateDatabase : public ExprStatement {
 public:
@@ -14,10 +15,7 @@ public:
       : _dbName(dbName), _ifNotExist(ifNotExist) {}
   ~ExprCreateDatabase() { delete _dbName; }
   ExprType GetType() override { return ExprType::EXPR_CREATE_DATABASE; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override { return true; }
 
 public:
   MString *_dbName;
@@ -30,10 +28,7 @@ public:
       : _dbName(dbName), _ifExist(ifExist) {}
   ~ExprDropDatabase() { delete _dbName; }
   ExprType GetType() override { return ExprType::EXPR_DROP_DATABASE; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override { return true; }
 
 public:
   MString *_dbName;
@@ -43,10 +38,7 @@ public:
 class ExprShowDatabases : public ExprStatement {
 public:
   ExprType GetType() override { return ExprType::EXPR_SHOW_DATABASES; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session) override { return true; }
 };
 
 class ExprUseDatabase : public ExprStatement {
@@ -54,10 +46,7 @@ public:
   ExprUseDatabase(MString *dbName) : _dbName(dbName) {}
   ~ExprUseDatabase() { delete _dbName; }
   ExprType GetType() override { return ExprType::EXPR_USE_DATABASE; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override { return true; }
 
 public:
   MString *_dbName;
@@ -139,10 +128,7 @@ public:
   }
   ExprType GetType() override { return ExprType::EXPR_CREATE_TABLE; }
 
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override;
 
 public:
   ExprTable *_table;
@@ -160,10 +146,7 @@ public:
       : _table(table), _ifExist(ifExist) {}
   ~ExprDropTable() { delete _table; }
   ExprType GetType() override { return ExprType::EXPR_DROP_TABLE; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override;
 
 public:
   ExprTable *_table;
@@ -177,10 +160,7 @@ public:
 
 public:
   ExprType GetType() override { return ExprType::EXPR_SHOW_TABLES; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override;
 
 public:
   MString *_dbName;
@@ -191,10 +171,7 @@ public:
   ExprTrunTable(ExprTable *table) : _table(table) {}
   ~ExprTrunTable() { delete _table; }
   ExprType GetType() override { return ExprType::EXPR_TRUN_TABLE; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override;
 
 public:
   ExprTable *_table;
@@ -204,10 +181,7 @@ class ExprTransaction : public ExprStatement {
 public:
   ExprTransaction(TranAction tranAction) : _tranAction(tranAction) {}
   ExprType GetType() override { return ExprType::EXPR_TRANSACTION; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override;
 
 public:
   TranAction _tranAction;
