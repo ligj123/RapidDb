@@ -15,6 +15,8 @@
 
 using namespace std;
 namespace storage {
+class Session;
+
 template <ExprType ET> class ExprCondition : public BaseExpr {
 public:
   ExprCondition(ExprLogic *exprLogic) : _exprLogic(exprLogic) {}
@@ -124,10 +126,7 @@ public:
     delete _exprLimit;
   }
   ExprType GetType() override { return ExprType::EXPR_SELECT; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override;
 
 public:
   // Remove repeated rows or not
@@ -161,10 +160,7 @@ public:
   }
 
   ExprType GetType() override { return ExprType::EXPR_INSERT; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override;
 
 public:
   // The destion table
@@ -201,10 +197,7 @@ public:
   }
 
   ExprType GetType() override { return ExprType::EXPR_UPDATE; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override;
 
 public:
   // The destion table information
@@ -232,10 +225,7 @@ public:
   }
 
   ExprType GetType() override { return ExprType::EXPR_DELETE; }
-  bool Preprocess() override {
-    // TO DO
-    return false;
-  }
+  bool Preprocess(Session *session = nullptr) override;
 
 public:
   // The destion table information

@@ -25,9 +25,29 @@ bool ExprTrunTable::Preprocess(Session *session) {
   // TO DO
   return false;
 }
+
 bool ExprTransaction::Preprocess(Session *session) {
   // TO DO
   return false;
 }
 
+bool ExprSelect::Preprocess(Session *session) {
+  // TO DO
+  return false;
+}
+
+bool ExprInsert::Preprocess(Session *session) {
+  // TO DO
+  return false;
+}
+
+bool ExprUpdate::Preprocess(Session *session) {
+  // TO DO
+  return false;
+}
+
+bool ExprDelete::Preprocess(Session *session) {
+  // TO DO
+  return false;
+}
 } // namespace storage
