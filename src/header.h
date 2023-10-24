@@ -4,9 +4,12 @@
 typedef unsigned char Byte;
 typedef uint32_t PageID;
 typedef uint64_t VersionStamp;
-typedef uint64_t DT_MicroSec; // microseconds
-typedef uint64_t DT_MilliSec; // milliseconds
-typedef uint64_t DT_Second;   // seconds
+// Datatime: the elapsing microseconds since epoch
+typedef uint64_t DT_MicroSec;
+// Datatime: the elapsing milliseconds since epoch
+typedef uint64_t DT_MilliSec;
+// Datatime: the elapsing seconds since epoch
+typedef uint64_t DT_Second; // seconds
 const Byte VALUE_TYPE = 0x80;
 const Byte DATE_TYPE = 0x7F;
 const int UI16_LEN = sizeof(uint16_t);

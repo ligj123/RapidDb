@@ -1,7 +1,7 @@
 #include "DatabaseManager.h"
 
 namespace storage {
-const uint32_t DatabaseManager::FAST_SIZE = 256;
+const uint32_t DatabaseManager::FAST_SIZE = 127;
 static inline Database *GenNullPointer() {
   Database *db =
       (Database *)new char[sizeof(Database *) * DatabaseManager::FAST_SIZE];

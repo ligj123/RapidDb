@@ -23,7 +23,7 @@ enum class TableStatus : uint8_t {
   Normal,  // This table is opening with normal status
   Locking, // This table has been locked by a transaction and other transaction
            // can not visit it.
-  Preparing, // This table is opening or fix data
+  Preparing, // This table is opening or fixing data, can not offer service.
   Droped     // This table has been droped and it is only remainder and will be
              // remove in near future
 };
