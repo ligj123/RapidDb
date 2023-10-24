@@ -51,7 +51,13 @@ public:
   const char *what() const noexcept { return _errMsg.c_str(); }
   int getErrId() { return _errId; }
   int GetSize() { return UI32_LEN * 2 + (int)_errMsg.size(); }
-  void SaveMsg(Byte *buf);
+  void SaveMsg(Byte *buf) {
+    *(uint32_t *)buf = _errId;
+    buf += UI32_LEN;
+    *(uint32_t *)buf = (uint32_t)_errMsg.size();
+    buf += UI32_LEN;
+    BytesCopy((void *)buf, (void *)_errMsg.data(), _errMsg.size());
+  }
   void ReadMsg(Byte *buf) {
     _errId = *(uint32_t *)buf;
     buf += UI32_LEN;

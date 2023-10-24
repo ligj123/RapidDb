@@ -26,6 +26,7 @@ public:
 
 public:
   Session(uint32_t id) : _id(id) {}
+  const Database *GetCurrDb() const { return _currDb; }
 
 protected:
   // session id, only valid in this server and to identify the sessions.It will

@@ -42,4 +42,5 @@ enum ErrorID {
 
   SQL_PARSER_INIT_FAILED = 9001
 };
+
 }

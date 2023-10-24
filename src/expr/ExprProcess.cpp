@@ -1,5 +1,6 @@
 
-#include "../manager/Session.h"
+#include "../serv/Session.h"
+#include "../utils/ErrorMsg.h"
 #include "ExprDdl.h"
 #include "ExprStatement.h"
 
@@ -7,7 +8,13 @@ namespace storage {
 using namespace std;
 
 bool ExprCreateTable::Preprocess(Session *session) {
-  // TO DO
+  if (_table->_dbName == nullptr) {
+    const Database *db = session->GetCurrDb();
+    if (db == nullptr) {
+      _threadErrorMsg.reset(new ErrorMsg());
+      return false;
+    }
+  }
   return false;
 }
 
