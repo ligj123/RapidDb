@@ -11,10 +11,14 @@ bool ExprCreateTable::Preprocess(Session *session) {
   if (_table->_dbName == nullptr) {
     const Database *db = session->GetCurrDb();
     if (db == nullptr) {
-      _threadErrorMsg.reset(new ErrorMsg());
+      _threadErrorMsg.reset(new ErrorMsg(SESSION_NO_CURR_DB, {}));
       return false;
     }
+
+    _table->_dbName = db->GetDbName();
   }
+
+for()
   return false;
 }
 

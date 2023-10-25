@@ -73,6 +73,9 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
 
     // SQLParser
     {SQL_PARSER_INIT_FAILED, "SQLParser: Error when initializing lexer!"},
-};
+    {SQL_PARSER_FAILED, "SQLParser: Error when parser sql! {1}"},
+
+    // Session
+    {SESSION_NO_CURR_DB, "Error: No database selected."}};
 
 } // namespace storage
