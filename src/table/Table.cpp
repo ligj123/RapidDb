@@ -194,7 +194,6 @@ bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
 uint32_t PhysTable::CalcSize() {
   uint32_t len = UI32_LEN + UI32_LEN + UI32_LEN;
   len += UI16_LEN + (uint32_t)_fullName.size();
-  len += UI16_LEN + (uint32_t)_desc.size();
   len += UI64_LEN + UI64_LEN;
   len += UI16_LEN;
 
@@ -228,11 +227,6 @@ uint32_t PhysTable::SaveData(Byte *bys) {
   buf += UI16_LEN;
   BytesCopy(buf, _fullName.c_str(), _fullName.size());
   buf += _fullName.size();
-
-  *(uint16_t *)buf = (uint16_t)_desc.size();
-  buf += UI16_LEN;
-  BytesCopy(buf, _desc.c_str(), _desc.size());
-  buf += _desc.size();
 
   *(uint64_t *)buf = _dtCreate;
   buf += UI64_LEN;
@@ -281,11 +275,6 @@ uint32_t PhysTable::LoadData(Byte *bys) {
   size_t pos = _fullName.find(".");
   _name = _fullName.substr(pos + 1);
   _dbName = _fullName.substr(0, pos);
-
-  len = *(uint16_t *)buf;
-  buf += UI16_LEN;
-  _desc = MString((char *)buf, len);
-  buf += len;
 
   _dtCreate = *(uint64_t *)buf;
   buf += UI64_LEN;

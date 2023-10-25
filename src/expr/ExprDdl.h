@@ -95,12 +95,12 @@ public:
   MString *_comment{nullptr};
 };
 
-class ExprTableConstraint : public ExprCreateTableItem {
+class ExprTableIndex : public ExprCreateTableItem {
 public:
-  ExprTableConstraint(MString *idxName, IndexType idxType,
-                      MVectorPtr<MString *> *vctColName)
+  ExprTableIndex(MString *idxName, IndexType idxType,
+                 MVectorPtr<MString *> *vctColName)
       : _idxName(idxName), _idxType(idxType), _vctColName(vctColName) {}
-  ~ExprTableConstraint() {
+  ~ExprTableIndex() {
     delete _idxName;
     delete _vctColName;
   }
@@ -124,7 +124,7 @@ public:
     delete _table;
     delete _vctItem;
     delete _vctColumn;
-    delete _vctConstraint;
+    delete _vctIndex;
   }
   ExprType GetType() override { return ExprType::EXPR_CREATE_TABLE; }
 
@@ -137,7 +137,7 @@ public:
   // Split from _vctElem when preprocess
   MVectorPtr<ExprColumnItem *> *_vctColumn{nullptr};
   // Split from _vctElem when preprocess
-  MVectorPtr<ExprTableConstraint *> *_vctConstraint{nullptr};
+  MVectorPtr<ExprTableIndex *> *_vctIndex{nullptr};
 };
 
 class ExprDropTable : public ExprStatement {

@@ -3321,7 +3321,7 @@ yyreduce:
   case 83: /* expr_create_table_item: index_type IDENTIFIER '(' expr_vct_col_name ')'  */
 #line 590 "sql_parser.y"
                                                   {
-  (yyval.expr_create_table_item) = new ExprTableConstraint((yyvsp[-3].sval), (yyvsp[-4].index_type), (yyvsp[-1].expr_vct_str));
+  (yyval.expr_create_table_item) = new ExprTableIndex((yyvsp[-3].sval), (yyvsp[-4].index_type), (yyvsp[-1].expr_vct_str));
 }
 #line 3327 "sql_parser.cpp"
     break;
@@ -3329,7 +3329,7 @@ yyreduce:
   case 84: /* expr_create_table_item: index_type '(' expr_vct_col_name ')'  */
 #line 593 "sql_parser.y"
                                        {
-  (yyval.expr_create_table_item) = new ExprTableConstraint(nullptr, (yyvsp[-3].index_type), (yyvsp[-1].expr_vct_str));
+  (yyval.expr_create_table_item) = new ExprTableIndex(nullptr, (yyvsp[-3].index_type), (yyvsp[-1].expr_vct_str));
 }
 #line 3335 "sql_parser.cpp"
     break;

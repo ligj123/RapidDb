@@ -588,10 +588,10 @@ expr_create_table_item : IDENTIFIER expr_data_type col_nullable default_col_dv a
   $$ = item;
 }
 | index_type IDENTIFIER '(' expr_vct_col_name ')' {
-  $$ = new ExprTableConstraint($2, $1, $4);
+  $$ = new ExprTableIndex($2, $1, $4);
 }
 | index_type '(' expr_vct_col_name ')' {
-  $$ = new ExprTableConstraint(nullptr, $1, $3);
+  $$ = new ExprTableIndex(nullptr, $1, $3);
 };
 
 expr_data_type : BIGINT { $$ = new ExprDataType(DataType::LONG); }

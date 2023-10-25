@@ -18,8 +18,19 @@ bool ExprCreateTable::Preprocess(Session *session) {
     _table->_dbName = db->GetDbName();
   }
 
-for()
-  return false;
+  for (ExprCreateTableItem *item : *_vctItem) {
+    if (item->GetType() == ExprType::EXPR_COLUMN_INFO)
+      _vctColumn->push_back((ExprColumnItem *)item);
+    else {
+      ExprTableIndex *tindex = (ExprTableIndex *)item;
+      if (tindex->_idxType == IndexType::PRIMARY)
+        _vctIndex->insert(_vctIndex->begin(), tindex);
+      else
+        _vctIndex->push_back(tindex);
+    }
+  }
+
+  return true;
 }
 
 bool ExprDropTable::Preprocess(Session *session) {

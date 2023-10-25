@@ -159,7 +159,7 @@ BOOST_AUTO_TEST_CASE(ParserCreateTable_test) {
   BOOST_TEST(ci->_indexType == IndexType::UNKNOWN);
   BOOST_TEST(*ci->_comment == "comment column");
 
-  ExprTableConstraint *tc = (ExprTableConstraint *)vctItem[3];
+  ExprTableIndex *tc = (ExprTableIndex *)vctItem[3];
   BOOST_TEST(*tc->_idxName == "idx_j_k");
   BOOST_TEST(tc->_idxType == IndexType::NON_UNIQUE);
   BOOST_TEST(tc->_vctColName->size() == 2);

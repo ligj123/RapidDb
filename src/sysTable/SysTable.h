@@ -8,6 +8,7 @@ namespace storage {
 class SysTable {
 public:
   static bool CreateSystemTable();
-  static bool GenerateSysTables(MHashMap<MString, PhyTable *> &hmap);
+  static bool GenerateSysTables(Database *sysDb,
+                                MHashMap<MString, PhyTable *> &hmap);
 };
 } // namespace storage

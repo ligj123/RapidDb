@@ -1,16 +1,17 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
-#include "../config/ErrorID.h"
 #include "../core/IndexTree.h"
 #include "../core/IndexType.h"
 #include "../core/LeafRecord.h"
 #include "../dataType/IDataValue.h"
 #include "../table/Column.h"
 #include "../transaction/Transaction.h"
+#include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/SpinMutex.h"
 #include "../utils/Utilitys.h"
 #include "Column.h"
+#include "Database.h"
 
 #include <any>
 
@@ -78,18 +79,16 @@ public:
   }
 
 public:
-  PhysTable(const MString &dbName, const MString &tableName,
-            const MString &desc, uint32_t tid, DT_MilliSec dtCreate)
-      : _dbName(dbName), _name(tableName), _fullName(_dbName + "." + tableName),
-        _desc(desc), _tid(tid), _dtCreate(dtCreate) {
+  PhysTable(Database *db, const MString &tableName, uint32_t tid,
+            DT_MilliSec dtCreate)
+      : _db(db), _name(tableName), _fullName(_dbName + "." + tableName),
+        _tid(tid), _dtCreate(dtCreate) {
     _dtLastUpdate = MilliSecTime();
   };
-  PhysTable()
-      : _dbName(), _name(), _fullName(), _desc(), _tid(0), _dtCreate(0){};
+  PhysTable() : _dbName(), _name(), _fullName(), _tid(0), _dtCreate(0){};
   ~PhysTable() { Clear(); }
 
   const MString &GetTableName() const { return _name; }
-  const MString &GetDescription() const { return _desc; }
   const MString &GetDbName() const { return _dbName; }
   const MString &GetFullName() const { return _fullName; }
   uint32_t TableID() { return _tid; }
@@ -225,14 +224,12 @@ protected:
   }
 
 protected:
-  /** The database name this table belong to*/
-  MString _dbName;
+  /** The database of this table belong to*/
+  Database *_db;
   /**Table name*/
   MString _name;
   /**db name + '.' + table name*/
   MString _fullName;
-  /**Table describer*/
-  MString _desc;
   // How much time that this instance has been referenced.
   atomic_int32_t _refCount{0};
   // Auto increment id, every time add 256.
