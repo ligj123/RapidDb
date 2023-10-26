@@ -34,7 +34,7 @@ static string SYS_TABLE_SQL[] = {CREATE_DB_SQL, CREATE_TABLE_SQL,
                                  CREATE_VARS_SQL};
 
 bool SysTable::GenerateSysTables(Database *sysDb,
-                                 MHashMap<MString, PhyTable *> &hmap) {
+                                 MHashMap<MString, PhyTable *> &mapTable) {
   uint32_t tid = 0;
 
   for (string &str : SYS_TABLE_SQL) {
@@ -52,21 +52,50 @@ bool SysTable::GenerateSysTables(Database *sysDb,
     PhysTable *table = new PhysTable(sysDb, *et->_tName, tid, MilliSecTime());
     tid += 0xff;
 
-    for (ExprColumnItem* citem : *ect->_vctColumn){
-      if(citem->_autoInc){
-      table->AddColumn(*citem->_colName, citem->_dataType, citem->_nullable, citem->_maxLength, *citem->_comment, Charsets::UTF8, );
+    for (ExprColumnItem *citem : *ect->_vctColumn) {
+      if (citem->_autoInc) {
+        table->AddColumn(*citem->_colName, citem->_dataType,
+                         citem->_comment == nullptr ? "" : *citem->_comment,
+                         citem->_initVal, citem->_incStep);
+      } else {
+        table->AddColumn(*citem->_colName, citem->_dataType, citem->_nullable,
+                         citem->_maxLength,
+                         citem->_comment == nullptr ? "" : *citem->_comment,
+                         Charsets::UTF8, citem->_defaultVal);
       }
     }
+
+    for (ExprTableIndex *eidx : *ect->_vctIndex) {
+      MVector<MString> vct;
+      for (MString *cn : eidx->_vctColName) {
+        vct.push_back(*cn);
+      }
+
+      MString iname = (eidx->_idxName == nullptr) ? "" : *eidx->_idxName;
+      table->AddIndex(eidx->_idxType, iname, vct);
+    }
+
+    mapTable.insert(table->GetFullName(), table);
   }
+
+  return true;
 }
 
 bool SysTable::CreateSystemTable() {
-  fs::path path = Configure::GetDbRootPath() + "/sys";
+  fs::path path = Configure::GetDbRootPath() + "/rapid";
   if (!fs::exists(path)) {
     fs::create_directories(path);
   } else if (!fs::is_empty(path)) {
     LOG_ERROR << "The system database root path is not empty, path="
               << path.c_str();
+    abort();
+  }
+
+  Database dbSys(path.string(), "rapid", MilliSecTime(), MilliSecTime());
+  MHashMap<MString, PhyTable *> mapTable;
+  bool b = GenerateSysTables(&dbSys, mapTable);
+  if (!b) {
+    LOG_ERROR << "Failed to generate system table.";
     abort();
   }
 

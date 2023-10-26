@@ -135,9 +135,9 @@ public:
   bool _ifNotExist;
   MVectorPtr<ExprCreateTableItem *> *_vctItem;
   // Split from _vctElem when preprocess
-  MVectorPtr<ExprColumnItem *> *_vctColumn{nullptr};
+  MVectorPtr<ExprColumnItem *> _vctColumn{nullptr};
   // Split from _vctElem when preprocess
-  MVectorPtr<ExprTableIndex *> *_vctIndex{nullptr};
+  MVectorPtr<ExprTableIndex *> _vctIndex{nullptr};
 };
 
 class ExprDropTable : public ExprStatement {

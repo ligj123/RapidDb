@@ -20,13 +20,23 @@ bool ExprCreateTable::Preprocess(Session *session) {
 
   for (ExprCreateTableItem *item : *_vctItem) {
     if (item->GetType() == ExprType::EXPR_COLUMN_INFO)
-      _vctColumn->push_back((ExprColumnItem *)item);
-    else {
+      ExprColumnItem *col = (ExprColumnItem *)item;
+    _vctColumn.push_back(col);
+    if (col->_indexType != IndexType::UNKNOWN) {
+      MString *name = new MString(*col->_colName);
+      MVectorPtr<MString *> *vct = new MVectorPtr<MString *>();
+      vct->push_back(new MString(*col->_colName));
+      ExprTableIndex *tindex = new ExprTableIndex(name, col->_indexType, vct);
+      if (tindex->_idxType == IndexType::PRIMARY)
+        _vctIndex.insert(_vctIndex.begin(), tindex);
+      else
+        _vctIndex.push_back(tindex);
+    } else {
       ExprTableIndex *tindex = (ExprTableIndex *)item;
       if (tindex->_idxType == IndexType::PRIMARY)
-        _vctIndex->insert(_vctIndex->begin(), tindex);
+        _vctIndex.insert(_vctIndex.begin(), tindex);
       else
-        _vctIndex->push_back(tindex);
+        _vctIndex.push_back(tindex);
     }
   }
 

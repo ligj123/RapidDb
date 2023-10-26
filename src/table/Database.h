@@ -8,7 +8,7 @@ using namespace std;
 
 class Database {
 public:
-  Database(MString dbPath, MString dbName, DT_MilliSec dtCreate,
+  Database(const MString dbPath, const MString dbName, DT_MilliSec dtCreate,
            DT_MilliSec dtLastUpdate)
       : _dbPath(dbPath), _dbName(dbName), _dtCreate(dtCreate),
         _dtLastUpdate(dtLastUpdate) {
