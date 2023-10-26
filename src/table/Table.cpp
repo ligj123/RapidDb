@@ -68,7 +68,7 @@ uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
 bool PhysTable::AddColumn(const MString &columnName, DataType dataType,
                           bool nullable, uint32_t maxLen,
                           const MString &comment, Charsets charset,
-                          const any &valDefault) {
+                          IDataValue *valDefault) {
   assert(_vctIndex.size() == 0);
 
   for (auto iter = _mapColumnPos.begin(); iter != _mapColumnPos.end(); iter++) {
@@ -84,11 +84,7 @@ bool PhysTable::AddColumn(const MString &columnName, DataType dataType,
     return false;
   }
 
-  IDataValue *dvDefault = nullptr;
-  if (valDefault.has_value()) {
-    dvDefault = DataValueFactory(dataType, maxLen, valDefault);
-  }
-
+  IDataValue *dvDefault = valDefault;
   _mapColumnPos.insert(pair<MString, int>(columnName, (int)_vctColumn.size()));
   _vctColumn.emplace_back(columnName, (uint32_t)_vctColumn.size(), dataType,
                           comment, nullable, maxLen, -1, -1, Charsets::UTF8,

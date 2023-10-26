@@ -50,6 +50,13 @@ bool SysTable::GenerateSysTables(Database *sysDb,
     assert(*et->_dbName == sysDb->GetDbName());
 
     PhysTable *table = new PhysTable(sysDb, *et->_tName, tid, MilliSecTime());
+    tid += 0xff;
+
+    for (ExprColumnItem* citem : *ect->_vctColumn){
+      if(citem->_autoInc){
+      table->AddColumn(*citem->_colName, citem->_dataType, citem->_nullable, citem->_maxLength, *citem->_comment, Charsets::UTF8, );
+      }
+    }
   }
 }
 

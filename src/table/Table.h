@@ -125,7 +125,7 @@ public:
   // Add normal column
   bool AddColumn(const MString &columnName, DataType dataType, bool nullable,
                  uint32_t maxLen, const MString &comment, Charsets charset,
-                 const any &valDefault);
+                 IDataValue *valDefault);
   // Add auto increment column. In this version, only one auto increment column
   // in a table and must be first column and as primary key, maybe update in
   // future.
