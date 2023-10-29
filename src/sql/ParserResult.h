@@ -29,13 +29,15 @@ public:
 
   void SetErrorDetails(const char *errorMsg, int errorLine, int errorColumn) {
     _errorMsg = errorMsg;
+    _errorMsg += "  errLine: " + ToMString(_errorLine) +
+                 "  errCol: " + ToMString(_errorColumn);
     _errorLine = errorLine;
     _errorColumn = errorColumn;
   }
 
-  const MString &ErrorMsg() const;
-  int ErrorLine() const;
-  int ErrorColumn() const;
+  const MString &ErrorMsg() const { return _errorMsg; }
+  int ErrorLine() const { return _errorLine; }
+  int ErrorColumn() const { return _errorColumn; }
 
   void AddStatements(MVectorPtr<ExprStatement *> *vct_stmt) {
     if (_vctStatement != nullptr)

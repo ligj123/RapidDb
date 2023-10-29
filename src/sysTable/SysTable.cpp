@@ -40,7 +40,10 @@ bool SysTable::GenerateSysTables(Database *sysDb,
   for (string &str : SYS_TABLE_SQL) {
     ParserResult result;
     Parser::Parse(str.c_str(), result);
-    assert(result.GetStatements()->size() == 1);
+    if (result.GetStatements()->size() != 1) {
+      LOG_ERROR << "Failed to parse system table ExprStatement. ErrMsg: "
+                << result.ErrorMsg();
+    }
 
     ExprCreateTable *ect = (ExprCreateTable *)result.GetStatements()->at(0);
     bool b = ect->Preprocess();
