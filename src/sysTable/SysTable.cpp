@@ -34,7 +34,7 @@ static string SYS_TABLE_SQL[] = {CREATE_DB_SQL, CREATE_TABLE_SQL,
                                  CREATE_VARS_SQL};
 
 bool SysTable::GenerateSysTables(Database *sysDb,
-                                 MHashMap<MString, PhyTable *> &mapTable) {
+                                 MHashMap<MString, PhysTable *> &mapTable) {
   uint32_t tid = 0;
 
   for (string &str : SYS_TABLE_SQL) {
@@ -55,7 +55,7 @@ bool SysTable::GenerateSysTables(Database *sysDb,
     PhysTable *table = new PhysTable(sysDb, *et->_tName, tid, MilliSecTime());
     tid += 0xff;
 
-    for (ExprColumnItem *citem : *ect->_vctColumn) {
+    for (ExprColumnItem *citem : ect->_vctColumn) {
       if (citem->_autoInc) {
         table->AddColumn(*citem->_colName, citem->_dataType,
                          citem->_comment == nullptr ? "" : *citem->_comment,
@@ -68,9 +68,9 @@ bool SysTable::GenerateSysTables(Database *sysDb,
       }
     }
 
-    for (ExprTableIndex *eidx : *ect->_vctIndex) {
+    for (ExprTableIndex *eidx : ect->_vctIndex) {
       MVector<MString> vct;
-      for (MString *cn : eidx->_vctColName) {
+      for (MString *cn : *(eidx->_vctColName)) {
         vct.push_back(*cn);
       }
 
@@ -78,7 +78,7 @@ bool SysTable::GenerateSysTables(Database *sysDb,
       table->AddIndex(eidx->_idxType, iname, vct);
     }
 
-    mapTable.insert(table->GetFullName(), table);
+    mapTable.insert({table->GetFullName(), table});
   }
 
   return true;
@@ -94,22 +94,17 @@ bool SysTable::CreateSystemTable() {
     abort();
   }
 
-  Database dbSys(path.string(), "rapid", MilliSecTime(), MilliSecTime());
-  MHashMap<MString, PhyTable *> mapTable;
+  Database dbSys(path.string().c_str(), "rapid", MilliSecTime(),
+                 MilliSecTime());
+  MHashMap<MString, PhysTable *> mapTable;
   bool b = GenerateSysTables(&dbSys, mapTable);
   if (!b) {
     LOG_ERROR << "Failed to generate system table.";
     abort();
   }
 
-  for (string &str : SYS_TABLE_SQL) {
-    ParserResult result;
-    Parser::Parse(str.c_str(), result);
-    assert(result.GetStatements()->size() == 1);
-
-    ExprCreateTable *ect = (ExprCreateTable *)result.GetStatements()->at(0);
-    bool b = ect->Preprocess();
-    assert(b);
+  for (auto iter = mapTable.begin(); iter != mapTable.end(); iter++) {
+    iter->second->CreateTable();
   }
 
   return false;

@@ -13,7 +13,7 @@ public:
   static bool AddDb();
   static bool DelDb();
   static bool ListDb(MVector<MString> &vctDb);
-  static bool FindDb(MString db);
+  static Database *FindDb(MString db);
   static bool LockDb(bool bWait = true) {
     if (bWait) {
       _spinMutex.lock();

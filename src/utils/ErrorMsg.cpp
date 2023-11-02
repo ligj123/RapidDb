@@ -76,6 +76,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
     {SQL_PARSER_FAILED, "SQLParser: Error when parser sql! {1}"},
 
     // Session
-    {SESSION_NO_CURR_DB, "Error: No database selected."}};
+    {SESSION_NO_CURR_DB, "Error: No database selected."},
+    {DB_NOT_FOUNF, "Failed to found the database {1}."}};
 
 } // namespace storage

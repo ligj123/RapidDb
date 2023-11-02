@@ -8,16 +8,15 @@ using namespace std;
 
 class Database {
 public:
-  Database(const MString dbPath, const MString dbName, DT_MilliSec dtCreate,
+  Database(const MString &dbPath, const MString &dbName, DT_MilliSec dtCreate,
            DT_MilliSec dtLastUpdate)
       : _dbPath(dbPath), _dbName(dbName), _dtCreate(dtCreate),
         _dtLastUpdate(dtLastUpdate) {
-    if (_rootPath.size() == 0)
-      _rootPath = Configure::GetDbRootPath();
+    if (_dbPath.size() == 0)
+      _dbPath = Configure::GetDbRootPath();
   }
-  const MString GetDbPath() { return _dbPath; }
-  const MString &GetRootPath() { return _rootPath; }
-  const MString &GetDbName() { return _dbName; }
+  const MString GetDbPath() const { return _dbPath; }
+  const MString &GetDbName() const { return _dbName; }
 
 protected:
   // The root folder to save this database data.

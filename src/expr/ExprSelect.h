@@ -1,11 +1,11 @@
 #pragma once
 #include "../cache/StrBuff.h"
-#include "../config/ErrorID.h"
 #include "../dataType/DataValueDigit.h"
 #include "../dataType/DataValueFixChar.h"
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
 #include "../table/Table.h"
+#include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
 #include "ExprAggr.h"

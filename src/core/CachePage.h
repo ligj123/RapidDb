@@ -1,10 +1,10 @@
 ﻿#pragma once
 #include "../cache/CachePool.h"
 #include "../config/Configure.h"
-#include "../config/ErrorID.h"
 #include "../file/PageFile.h"
 #include "../header.h"
 #include "../utils/BytesFuncs.h"
+#include "../utils/ErrorID.h"
 #include "../utils/SpinMutex.h"
 #include "../utils/ThreadPool.h"
 #include "../utils/Utilitys.h"

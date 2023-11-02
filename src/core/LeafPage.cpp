@@ -1,7 +1,7 @@
 ﻿#include "LeafPage.h"
-#include "../config/ErrorID.h"
 #include "../pool/PageDividePool.h"
 #include "../pool/StoragePool.h"
+#include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "BranchPage.h"
 #include "HeadPage.h"

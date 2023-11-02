@@ -1,6 +1,6 @@
 ﻿#include "DataValueVarChar.h"
 #include "../cache/Mallocator.h"
-#include "../config/ErrorID.h"
+#include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
 #include <cstring>

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
-#include "../config/ErrorID.h"
 #include "../dataType/IDataValue.h"
+#include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/SpinMutex.h"
 #include <atomic>

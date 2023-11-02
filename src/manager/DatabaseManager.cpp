@@ -21,6 +21,6 @@ bool DatabaseManager::DelDb() { return true; }
 
 bool DatabaseManager::ListDb(MVector<MString> &vctDb) { return true; }
 
-bool DatabaseManager::FindDb(MString db) { return true; }
+Database *DatabaseManager::FindDb(MString db) { return nullptr; }
 
 } // namespace storage

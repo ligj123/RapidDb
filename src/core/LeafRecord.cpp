@@ -1,8 +1,8 @@
 ﻿#include "LeafRecord.h"
-#include "../config/ErrorID.h"
 #include "../dataType/DataValueFactory.h"
 #include "../pool/StoragePool.h"
 #include "../statement/Statement.h"
+#include "../utils/ErrorID.h"
 #include "IndexTree.h"
 #include "LeafPage.h"
 #include <boost/crc.hpp>

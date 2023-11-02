@@ -1,6 +1,6 @@
 ﻿#include "Column.h"
-#include "../config/ErrorID.h"
 #include "../dataType/DataValueFactory.h"
+#include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include <cstring>
 

@@ -9,6 +9,6 @@ class SysTable {
 public:
   static bool CreateSystemTable();
   static bool GenerateSysTables(Database *sysDb,
-                                MHashMap<MString, PhyTable *> &hmap);
+                                MHashMap<MString, PhysTable *> &hmap);
 };
 } // namespace storage

@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "../config/ErrorID.h"
 #include "../header.h"
+#include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "TimerThread.h"
 #include <chrono>

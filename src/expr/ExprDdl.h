@@ -123,8 +123,6 @@ public:
   ~ExprCreateTable() {
     delete _table;
     delete _vctItem;
-    delete _vctColumn;
-    delete _vctIndex;
   }
   ExprType GetType() override { return ExprType::EXPR_CREATE_TABLE; }
 
@@ -135,9 +133,9 @@ public:
   bool _ifNotExist;
   MVectorPtr<ExprCreateTableItem *> *_vctItem;
   // Split from _vctElem when preprocess
-  MVectorPtr<ExprColumnItem *> _vctColumn{nullptr};
+  MVectorPtr<ExprColumnItem *> _vctColumn;
   // Split from _vctElem when preprocess
-  MVectorPtr<ExprTableIndex *> _vctIndex{nullptr};
+  MVectorPtr<ExprTableIndex *> _vctIndex;
 };
 
 class ExprDropTable : public ExprStatement {

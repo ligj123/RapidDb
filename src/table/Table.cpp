@@ -1,5 +1,6 @@
 ﻿#include "Table.h"
 #include "../dataType/DataValueFactory.h"
+#include "../manager/DatabaseManager.h"
 #include <boost/crc.hpp>
 #include <filesystem>
 
@@ -270,7 +271,13 @@ uint32_t PhysTable::LoadData(Byte *bys) {
   buf += len;
   size_t pos = _fullName.find(".");
   _name = _fullName.substr(pos + 1);
-  _dbName = _fullName.substr(0, pos);
+
+  MString db_name = _fullName.substr(0, pos);
+  _db = DatabaseManager::FindDb(db_name);
+  if (_db == nullptr) {
+    _threadErrorMsg.reset(new ErrorMsg(DB_NOT_FOUNF, {db_name}));
+    return UINT32_MAX;
+  }
 
   _dtCreate = *(uint64_t *)buf;
   buf += UI64_LEN;
@@ -320,7 +327,8 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   assert(idx >= 0 && idx < _vctIndex.size());
   IndexProp &prop = _vctIndex[idx];
   MString path = Configure::GetDbRootPath().c_str();
-  path += "/" + _dbName + "/" + _name + "/" + _vctIndex[idx]._name + ".idx";
+  path += "/" + _db->GetDbPath() + "/" + _name + "/" + _vctIndex[idx]._name +
+          ".idx";
 
   VectorDataValue dvKey;
   dvKey.reserve(prop._vctCol.size());

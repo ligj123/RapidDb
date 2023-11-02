@@ -81,15 +81,16 @@ public:
 public:
   PhysTable(Database *db, const MString &tableName, uint32_t tid,
             DT_MilliSec dtCreate)
-      : _db(db), _name(tableName), _fullName(_dbName + "." + tableName),
-        _tid(tid), _dtCreate(dtCreate) {
+      : _db(db), _name(tableName),
+        _fullName(_db->GetDbName() + "." + tableName), _tid(tid),
+        _dtCreate(dtCreate) {
     _dtLastUpdate = MilliSecTime();
   };
-  PhysTable() : _dbName(), _name(), _fullName(), _tid(0), _dtCreate(0){};
+  PhysTable() : _db(nullptr), _name(), _fullName(), _tid(0), _dtCreate(0){};
   ~PhysTable() { Clear(); }
 
   const MString &GetTableName() const { return _name; }
-  const MString &GetDbName() const { return _dbName; }
+  const MString &GetDbName() const { return _db->GetDbName(); }
   const MString &GetFullName() const { return _fullName; }
   uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }

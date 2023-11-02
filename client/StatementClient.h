@@ -1,6 +1,5 @@
 ﻿#pragma once
-#include "../cache/Mallocator.h"
-#include "../config/ErrorID.h"
+#include "../cache/Ma /Mallocator.h"
 #include "../core/ActionType.h"
 #include "../dataType/DataType.h"
 #include "../dataType/DataValueBlob.h"
@@ -10,6 +9,7 @@
 #include "../dataType/IDataValue.h"
 #include "../header.h"
 #include "../resultset/IResultSet.h"
+#include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
 #include "Connection.h"
