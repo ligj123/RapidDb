@@ -12,7 +12,6 @@ extern thread_local unique_ptr<ErrorMsg> _threadErrorMsg;
 
 class ErrorMsg : public exception {
 public:
-  static void LoadErrorMsg(const string &msgPath);
   static void ClearErrorMsg() { _mapErrorMsg.clear(); }
 
 public:

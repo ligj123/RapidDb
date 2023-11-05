@@ -24,7 +24,6 @@ void help() {
 }
 
 int main(int argc, char *argv[]) {
-  ErrorMsg::LoadErrorMsg("./ErrorMsg.txt");
   std::cout << "Initialize press test.\n";
   fs::path path(ROOT_PATH);
   if (!fs::exists(path))

@@ -21,7 +21,6 @@ struct GlobalFixTure {
       fs::create_directories(path);
 
     Logger::init("./", INFO, INFO);
-    ErrorMsg::LoadErrorMsg("./ErrorMsg.txt");
 
     LOG_INFO << "Start global fixture." << std::endl;
   };

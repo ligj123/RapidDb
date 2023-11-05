@@ -76,12 +76,14 @@ bool PhysTable::AddColumn(const MString &columnName, DataType dataType,
     if (MStringEqualIgnoreCase(columnName, iter->first)) {
       _threadErrorMsg.reset(
           new ErrorMsg(TB_REPEATED_COLUMN_NAME, {columnName}));
+      delete valDefault;
       return false;
     }
   }
 
   if (maxLen <= 0 && IDataValue::IsArrayType(dataType)) {
     _threadErrorMsg.reset(new ErrorMsg(TB_Array_MAX_LEN, {columnName}));
+    delete valDefault;
     return false;
   }
 

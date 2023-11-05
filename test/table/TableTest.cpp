@@ -1,6 +1,7 @@
 #include "../../src/table/Table.h"
 #include "../../src/dataType/DataValueFactory.h"
 #include "../../src/table/Column.h"
+#include "../../src/table/Database.h"
 #include "../../src/utils/Utilitys.h"
 
 #include <boost/test/unit_test.hpp>
@@ -51,15 +52,17 @@ BOOST_AUTO_TEST_CASE(PhyColumn_test) {
 BOOST_AUTO_TEST_CASE(PhysTable_test) {
   const char *var_default = "this is default value for the varchr column";
   const char *fix_default = "this is default value for the fixchar column";
-  PhysTable ptable("testdb", "testtable", "PhysTable_test", 0x100,
-                   MilliSecTime());
+  Database db("./", "testdb", MilliSecTime(), MicroSecTime());
+  PhysTable ptable(&db, "testtable", 0x100, MilliSecTime());
   ptable.AddColumn("c1", DataType::LONG, "primary key", 100, 2);
   ptable.AddColumn("c2", DataType::VARCHAR, false, 100, "varchar test",
-                   Charsets::UTF8, var_default);
+                   Charsets::UTF8,
+                   new DataValueVarChar(var_default, strlen(var_default), 100));
   ptable.AddColumn("c3", DataType::DOUBLE, true, -1, "double column test",
-                   Charsets::UTF8, 1.23456);
+                   Charsets::UTF8, new DataValueDouble(1.23456));
   ptable.AddColumn("c4", DataType::FIXCHAR, true, 50, "Fixchar test",
-                   Charsets::UTF8, fix_default);
+                   Charsets::UTF8,
+                   new DataValueVarChar(fix_default, strlen(var_default), 100));
   ptable.AddIndex(IndexType::PRIMARY, PRIMARY_KEY, {"c1"});
   ptable.AddIndex(IndexType::UNIQUE, "c2_unique", {"c2"});
   ptable.AddIndex(IndexType::NON_UNIQUE, "c3_c4_non_unique", {"c3", "c4"});
