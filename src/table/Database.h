@@ -8,9 +8,9 @@ using namespace std;
 
 class Database {
 public:
-  Database(const MString &dbPath, const MString &dbName, DT_MilliSec dtCreate,
-           DT_MilliSec dtLastUpdate)
-      : _dbPath(dbPath), _dbName(dbName), _dtCreate(dtCreate),
+  Database(int id, const MString &dbPath, const MString &dbName,
+           DT_MilliSec dtCreate, DT_MilliSec dtLastUpdate)
+      : _id(id), _dbPath(dbPath), _dbName(dbName), _dtCreate(dtCreate),
         _dtLastUpdate(dtLastUpdate) {
     if (_dbPath.size() == 0)
       _dbPath = Configure::GetDbRootPath();
@@ -19,6 +19,8 @@ public:
   const MString &GetDbName() const { return _dbName; }
 
 protected:
+  // The id start from 0 and increase 1 every time
+  int _id;
   // The root folder to save this database data.
   MString _dbPath;
   // Database name

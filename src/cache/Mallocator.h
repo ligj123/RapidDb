@@ -119,13 +119,13 @@ inline bool MStringEqualIgnoreCase(const MString &lhs, const MString &rhs) {
 }
 } // namespace storage
 
-template <> struct std::hash<storage::MString> {
+template <> struct std::hash<const storage::MString> {
   std::size_t operator()(const storage::MString &str) const noexcept {
     return storage::BytesHash((const Byte *)str.c_str(), str.size());
   }
 };
 
-template <> struct std::equal_to<storage::MString> {
+template <> struct std::equal_to<const storage::MString> {
   bool operator()(const storage::MString &lhs,
                   const storage::MString &rhs) const noexcept {
     return storage::BytesEqual((Byte *)lhs.c_str(), lhs.size(),
@@ -133,7 +133,7 @@ template <> struct std::equal_to<storage::MString> {
   }
 };
 
-template <> struct std::less<storage::MString> {
+template <> struct std::less<const storage::MString> {
   bool operator()(const storage::MString &lhs,
                   const storage::MString &rhs) const noexcept {
     return (storage::BytesCompare((Byte *)lhs.c_str(), lhs.size(),
