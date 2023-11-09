@@ -15,6 +15,7 @@ vector<Database *> DatabaseManager::_fastDbCache(FAST_SIZE, nullptr);
 bool DatabaseManager::LoadDb(PhysTable *dbTable) {
   IndexTree *ptree = dbTable->GetPrimaryKey()._tree;
   LeafPage *lp = ptree->GetBeginPage();
+
   while (lp != nullptr) {
     uint32_t num = lp->GetRecordNumber();
     for (uint32_t i = 0; i < num; i++) {
@@ -31,16 +32,35 @@ bool DatabaseManager::LoadDb(PhysTable *dbTable) {
                                   (DT_MilliSec) * (DataValueDateTime *)vdv[4]);
       _mapDb.insert({db->GetDbName(), db});
       size_t hash = std::hash<storage::MString>{}(db->GetDbName());
+      assert(_fastDbCache[hash % FAST_SIZE] == nullptr);
       _fastDbCache[hash % FAST_SIZE] = db;
     }
+
+    PageID pid = lp->GetNextPageId();
+    lp->DecRef();
+    if (pid == PAGE_NULL_POINTER)
+      break;
+
+    lp = (LeafPage *)ptree->GetPage(pid, PageType::LEAF_PAGE, true);
   }
 
   return true;
 }
 
-bool DatabaseManager::AddDb() { return true; }
+bool DatabaseManager::AddDb(Database *db) {
+  unique_lock<SpinMutex> lock(_spinMutex);
+  if (_mapDb.find(db->GetDbName()) != _mapDb.end())
+    return false;
 
-bool DatabaseManager::DelDb() { return true; }
+  _mapDb.insert({db->GetDbName(), db});
+  size_t hash = std::hash<storage::MString>{}(db->GetDbName());
+  if (_fastDbCache[hash % FAST_SIZE] == nullptr)
+    _fastDbCache[hash % FAST_SIZE] = db;
+
+  return true;
+}
+
+bool DatabaseManager::DelDb(MString dbName) { return true; }
 
 bool DatabaseManager::ListDb(MVector<MString> &vctDb) { return true; }
 

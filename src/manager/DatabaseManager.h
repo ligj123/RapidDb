@@ -11,8 +11,8 @@ public:
 
 public:
   static bool LoadDb(PhysTable *dbTable);
-  static bool AddDb();
-  static bool DelDb();
+  static bool AddDb(Database *db);
+  static bool DelDb(MString dbName);
   static bool ListDb(MVector<MString> &vctDb);
   static Database *FindDb(MString db);
   static bool LockDb(bool bWait = true) {
