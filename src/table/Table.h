@@ -4,6 +4,7 @@
 #include "../core/IndexType.h"
 #include "../core/LeafRecord.h"
 #include "../dataType/IDataValue.h"
+#include "../manager/ResourceStatus.h"
 #include "../table/Column.h"
 #include "../transaction/Transaction.h"
 #include "../utils/ErrorID.h"
@@ -19,15 +20,6 @@ namespace storage {
 using namespace std;
 static const char *COLUMN_CONNECTOR_CHAR = "|";
 static const char *PRIMARY_KEY = "PARMARYKEY";
-
-enum class TableStatus : uint8_t {
-  Normal,  // This table is opening with normal status
-  Locking, // This table has been locked by a transaction and other transaction
-           // can not visit it.
-  Preparing, // This table is opening or fixing data, can not offer service.
-  Droped     // This table has been droped and it is only remainder and will be
-             // remove in near future
-};
 
 struct IndexColumn {
   IndexColumn() {}
@@ -191,26 +183,8 @@ public:
     }
     return true;
   }
-  bool LockTable(Transaction *tran) {
-    if (!_spinMutex.try_lock())
-      return false;
-    if (_tableStatus != TableStatus::Normal) {
-      _spinMutex.unlock();
-      return false;
-    }
 
-    _lockTran = tran;
-    _tableStatus = TableStatus::Locking;
-    _spinMutex.unlock();
-    return true;
-  }
-  void UnlockTable() {
-    _spinMutex.lock();
-    _lockTran = nullptr;
-    _tableStatus = TableStatus::Normal;
-    _spinMutex.unlock();
-  }
-  inline TableStatus GetTableStatus() { return _tableStatus; }
+  inline ResourceStatus GetTableStatus() { return _tableStatus; }
 
 protected:
   inline bool IsExistedColumn(MString &name) {
@@ -259,7 +233,7 @@ protected:
   //  The last time to be visited.
   DT_MilliSec _dtLastVisit{0};
   // This table status.
-  TableStatus _tableStatus{TableStatus::Normal};
+  ResourceStatus _tableStatus{ResourceStatus::Normal};
   // The transaction to lock this table
   Transaction *_lockTran{nullptr};
   // The mutex for table lock

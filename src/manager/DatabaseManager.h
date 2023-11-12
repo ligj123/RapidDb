@@ -29,8 +29,12 @@ public:
   }
 
 protected:
-  static MTreeMap<MString, Database *> _mapDb;
+  static map<MString, Database *> _mapDb;
   static SpinMutex _spinMutex;
+  // Allocate fixed spaces when program initialization and save database pointer
+  // into it according db name' hash remainder if the position is nullptr.
   static vector<Database *> _fastDbCache;
+  // To temporary save the dropped database.
+  static vector<Database *> _discardDb;
 };
 } // namespace storage

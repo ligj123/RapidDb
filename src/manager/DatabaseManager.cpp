@@ -60,7 +60,22 @@ bool DatabaseManager::AddDb(Database *db) {
   return true;
 }
 
-bool DatabaseManager::DelDb(MString dbName) { return true; }
+bool DatabaseManager::DelDb(MString dbName) {
+  unique_lock<SpinMutex> lock(_spinMutex);
+  auto iter = _mapDb.find(dbName);
+  if (iter == _mapDb.end())
+    return false;
+
+  Database *db = iter->second;
+  db->SetDropped();
+  size_t hash = std::hash<storage::MString>{}(dbName);
+  if (_fastDbCache[hash % FAST_SIZE] == nullptr)
+    _fastDbCache[hash % FAST_SIZE] = db;
+
+  _discardDb.push_back(db);
+  _mapDb.erase(iter);
+  return true;
+}
 
 bool DatabaseManager::ListDb(MVector<MString> &vctDb) { return true; }
 
