@@ -40,7 +40,7 @@ BOOST_AUTO_TEST_CASE(FastQueue_test) {
   thread t([]() {
     while (!bStop2) {
       queue<DataValueLong *> q;
-      fastQueue.Swap(q);
+      fastQueue.Pop(q);
 
       while (q.size() > 0) {
         DataValueLong *dv = q.front();
@@ -49,14 +49,6 @@ BOOST_AUTO_TEST_CASE(FastQueue_test) {
         delete dv;
         count++;
         q.pop();
-      }
-
-      DataValueLong *dv = fastQueue.Pop();
-      if (dv != nullptr) {
-        if ((int64_t)(*dv) > maxVal)
-          maxVal = *dv;
-        delete dv;
-        count++;
       }
     }
   });

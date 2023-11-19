@@ -94,7 +94,7 @@ bool SysTable::CreateSystemTable() {
     abort();
   }
 
-  Database dbSys(path.string().c_str(), "rapid", MilliSecTime(),
+  Database dbSys(0, path.string().c_str(), "rapid", MilliSecTime(),
                  MilliSecTime());
   MHashMap<MString, PhysTable *> mapTable;
   bool b = GenerateSysTables(&dbSys, mapTable);

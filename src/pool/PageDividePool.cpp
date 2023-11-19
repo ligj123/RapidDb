@@ -24,7 +24,7 @@ void PageDividePool::RemoveTimerTask() {
 }
 
 void PageDividePool::StopPool() {
-  while (!_divPool->_fastQueue.Empty()) {
+  while (!_divPool->_fastQueue.RoughEmpty()) {
     PoolManage();
   }
   delete _divPool;
@@ -42,7 +42,7 @@ void PageDividePool::PushTask() {
 
 void PageDividePool::PoolManage() {
   queue<IndexPage *> q;
-  _divPool->_fastQueue.Swap(q);
+  _divPool->_fastQueue.Pop(q);
   while (q.size() > 0) {
     IndexPage *page = q.front();
     q.pop();

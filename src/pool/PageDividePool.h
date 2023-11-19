@@ -47,7 +47,7 @@ protected:
 protected:
   PageDividePool(ThreadPool *tp) : _fastQueue(tp), _threadPool(tp) {}
   MTreeMap<uint64_t, IndexPage *> _mapPage;
-  FastQueue<IndexPage> _fastQueue;
+  FastQueue<IndexPage, 100> _fastQueue;
   ThreadPool *_threadPool;
   // If thread pool has PageDivideTask, include watting and running
   atomic_bool _bInThreadPool{false};

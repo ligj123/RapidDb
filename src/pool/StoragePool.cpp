@@ -33,7 +33,7 @@ void StoragePool::PushTask() {
 }
 
 void StoragePool::StopPool() {
-  if (!_storagePool->_fastQueue.Empty()) {
+  if (!_storagePool->_fastQueue.RoughEmpty()) {
     PoolManage();
   }
 
@@ -43,7 +43,7 @@ void StoragePool::StopPool() {
 
 void StoragePool::PoolManage() {
   queue<CachePage *> q;
-  _storagePool->_fastQueue.Swap(q);
+  _storagePool->_fastQueue.Pop(q);
   while (q.size() > 0) {
     CachePage *page = q.front();
     q.pop();

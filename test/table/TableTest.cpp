@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(PhyColumn_test) {
 BOOST_AUTO_TEST_CASE(PhysTable_test) {
   const char *var_default = "this is default value for the varchr column";
   const char *fix_default = "this is default value for the fixchar column";
-  Database db("./", "testdb", MilliSecTime(), MicroSecTime());
+  Database db(1, "./", "testdb", MilliSecTime(), MicroSecTime());
   PhysTable ptable(&db, "testtable", 0x100, MilliSecTime());
   ptable.AddColumn("c1", DataType::LONG, "primary key", 100, 2);
   ptable.AddColumn("c2", DataType::VARCHAR, false, 100, "varchar test",

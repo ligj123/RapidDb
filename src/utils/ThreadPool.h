@@ -87,7 +87,7 @@ protected:
   coroutine<TaskStatus>::pull_type *_coroutine;
 };
 
-template <class T> class FastQueue;
+template <class T, uint16_t SZ> class FastQueue;
 class ThreadPool {
 public:
   static thread_local Task *_currTask;
@@ -160,7 +160,9 @@ public:
   int GetMaxThreads() const { return _maxThreads; }
   int GetFreeThreads() const { return _freeThreads; }
   int GetStartId() const { return _startId; }
-  void PushLambda(function<void()> func) { _vctLambda.push_back(func); }
+  void PushLambda(function<void(uint16_t threads)> func) {
+    _vctLambda.push_back(func);
+  }
 
 protected:
   vector<thread *> _vctThread;
@@ -182,9 +184,9 @@ protected:
   // pragram and the ids must be series between pools. Because FastQueue will
   // use those ids as index.
   int _startId;
-  FastQueue<Task> *_fastQueue;
+  FastQueue<Task, 100> *_fastQueue;
   // lambda fucntions, when create a new thread, to call the functions.
-  vector<function<void()>> _vctLambda;
+  vector<function<void(uint16_t threads)>> _vctLambda;
 
 protected:
   static ThreadPool *_instMain;

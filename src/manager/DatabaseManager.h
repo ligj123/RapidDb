@@ -29,7 +29,7 @@ public:
   }
 
 protected:
-  static map<MString, Database *> _mapDb;
+  static MTreeMap<MString, Database *> _mapDb;
   static SpinMutex _spinMutex;
   // Allocate fixed spaces when program initialization and save database pointer
   // into it according db name' hash remainder if the position is nullptr.

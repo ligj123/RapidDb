@@ -33,7 +33,7 @@ public:
   static size_t GetWaitingPageCount() { return _storagePool->_mapWrite.size(); }
   static bool IsEmpty() {
     return _storagePool->_mapWrite.size() == 0 &&
-           _storagePool->_fastQueue.Empty();
+           _storagePool->_fastQueue.RoughEmpty();
   }
   static void InitPool(ThreadPool *tp) {
     assert(_storagePool == nullptr);
@@ -50,7 +50,7 @@ protected:
 protected:
   StoragePool(ThreadPool *tp) : _fastQueue(tp), _threadPool(tp){};
   MTreeMap<uint64_t, CachePage *> _mapWrite;
-  FastQueue<CachePage> _fastQueue;
+  FastQueue<CachePage, 100> _fastQueue;
   ThreadPool *_threadPool;
   // If thread pool has StorageTask, include waitting or running status
   atomic_bool _bInThreadPool{false};

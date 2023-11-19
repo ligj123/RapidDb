@@ -9,11 +9,11 @@
 
 namespace storage {
 using namespace std;
-template <class T> struct InnerQueue {
-  // Here all pointer address will convert int64_t
-  array<T *, 100> _arr{};
-  int _head = 0;
-  int _tail = 0;
+template <class T, uint16_t SZ> struct InnerQueue {
+  array<T *, SZ> _arr{};
+  uint16_t _head{0};
+  uint16_t _submited{0};
+  uint16_t _tail{0};
 };
 
 // This queue is fast queue and it depend on ThreadPool. As we know, the lock
@@ -27,79 +27,97 @@ template <class T> struct InnerQueue {
 // this pools must series and threadCount must be the sum of all threads in all
 // pools. For all single threads, for example main or timer thread, the id must
 // be -1 and do not use inner queue to avlid lock.
-template <class T> class FastQueue {
+template <class T, uint16_t SZ = 100> class FastQueue {
 public:
   // threadCount: The total threads in all related ThreadPool
-  FastQueue(ThreadPool *tp)
-      : _threadPool(tp), _aliveMaxThreads(tp->GetAliveThreadCount()) {
-    int tcount = tp->GetMaxThreads();
-    _vctInner.reserve(tcount);
-    for (int i = 0; i < tcount; i++) {
-      _vctInner.push_back(new InnerQueue<T>);
+  FastQueue(uint16_t tNum) : _aliveMaxThreads(tNum), _threadTotalNum(tNum) {
+    assert(tNum > 0);
+    _vctInner.reserve(tNum);
+    for (int i = 0; i < tNum; i++) {
+      _vctInner.push_back(new InnerQueue<T, SZ>);
+    }
+  }
+
+  FastQueue(ThreadPool *tp = nullptr)
+      : _aliveMaxThreads(tp->GetMaxThreads()),
+        _threadTotalNum(tp->GetMaxThreads()) {
+    _vctInner.reserve(tp->GetMaxThreads());
+    for (int i = 0; i < tp->GetMaxThreads(); i++) {
+      _vctInner.push_back(new InnerQueue<T, SZ>);
     }
 
-    tp->PushLambda([this]() {
+    tp->PushLambda([this](uint16_t threads) {
       unique_lock<SpinMutex> lock(_spinMutex);
-      if (_aliveMaxThreads < _threadPool->GetAliveThreadCount()) {
-        _aliveMaxThreads = _threadPool->GetAliveThreadCount();
+      _aliveLastThreads = threads;
+      if (_aliveMaxThreads < threads) {
+        _aliveMaxThreads = threads;
       }
     });
   }
 
   ~FastQueue() {
     assert(_queue.size() == 0);
-    for (InnerQueue<T> *q : _vctInner) {
+    for (auto q : _vctInner) {
       assert(q->_head == q->_tail);
       delete q;
     }
   }
 
+  void UpdateLiveThreads(uint16_t threads) {
+    unique_lock<SpinMutex> lock(_spinMutex);
+    _aliveLastThreads = threads;
+    if (_aliveMaxThreads < threads) {
+      _aliveMaxThreads = threads;
+    }
+  }
+
   // Push an element
-  void Push(T *ele) {
-    assert(ThreadPool::GetThreadId() < _threadPool->GetAliveThreadCount());
-    if (ThreadPool::GetThreadId() < 0) {
+  void Push(T *ele, uint16_t tid = UINT16_MAX, bool submit = true) {
+    assert(tid < _threadTotalNum);
+    if (tid == UINT16_MAX) {
       unique_lock<SpinMutex> lock(_spinMutex);
       _queue.push(ele);
       return;
     }
 
-    InnerQueue<T> *q =
-        _vctInner[ThreadPool::GetThreadId() - _threadPool->GetStartId()];
-    q->_arr[q->_tail] = ele;
-    q->_tail = (q->_tail + 1) % 100;
-    if ((q->_tail + 1) % 100 == q->_head) {
-      ElementMove(true);
+    auto q = _vctInner[tid];
+    q->_arr[q->_head] = ele;
+    q->_head = (q->_head + 1) % SZ;
+    if (submit) {
+      atomic_ref<uint16_t>(q->_submited).store(q->_head, memory_order_release);
     }
-  }
-
-  T *Pop() {
-    unique_lock<SpinMutex> lock(_spinMutex);
-    if (_queue.size() == 0) {
+    if ((q->_head + 1) % SZ == q->_tail) {
+      unique_lock<SpinMutex> lock(_spinMutex);
+      q->_submited = q->_head;
       ElementMove();
     }
-
-    if (_queue.size() == 0)
-      return nullptr;
-
-    T *val = _queue.front();
-    _queue.pop();
-
-    return val;
   }
 
-  void Swap(queue<T *> &queue) {
+  void Submit(uint16_t tid) {
+    assert(tid >= 0 && tid < _threadTotalNum);
+    auto q = _vctInner[tid];
+    if (q->_head != q->_submited) {
+      atomic_ref<uint16_t>(q->_submited).store(q->_head, memory_order_release);
+    }
+  }
+
+  void Pop(queue<T *> &queue) {
+    assert(queue.size() == 0);
     unique_lock<SpinMutex> lock(_spinMutex);
     ElementMove();
     queue.swap(_queue);
   }
 
-  bool Empty() {
+  // Here does not consider thread safe, so the result can not sure accurate, it
+  // is just rough result
+  bool RoughEmpty() {
     if (_queue.size() > 0)
       return false;
-    for (InnerQueue<T> *q : _vctInner) {
-      if (q->_head != q->_tail)
+    for (auto q : _vctInner) {
+      if (q->_submited != q->_tail || q->_head != q->_submited)
         return false;
     }
+
     return true;
   }
 
@@ -108,34 +126,23 @@ public:
   size_t RoughSize() { return _queue.size(); }
 
 protected:
-  void ElementMove(bool bLock = false) {
-    if (bLock) {
-      _spinMutex.lock();
-    }
-
-    int num = _aliveMaxThreads > _threadPool->GetAliveThreadCount()
-                  ? _aliveMaxThreads
-                  : _threadPool->GetAliveThreadCount();
-
-    for (int i = 0; i < num; i++) {
-      InnerQueue<T> *q = _vctInner[i];
-      if (q->_head == q->_tail)
+  void ElementMove() {
+    for (int i = 0; i < _aliveMaxThreads; i++) {
+      auto q = _vctInner[i];
+      if (q->_submited == q->_tail)
         continue;
 
       while (true) {
-        _queue.push((T *)q->_arr[q->_head]);
+        _queue.push((T *)q->_arr[q->_tail]);
 
-        q->_head = (q->_head + 1) % 100;
-        if (q->_head == q->_tail) {
+        q->_tail = (q->_tail + 1) % 100;
+        if (q->_tail == q->_submited) {
           break;
         }
       }
     }
 
-    _aliveMaxThreads = _threadPool->GetAliveThreadCount();
-    if (bLock) {
-      _spinMutex.unlock();
-    }
+    _aliveMaxThreads = _aliveLastThreads;
   }
 
 protected:
@@ -144,12 +151,12 @@ protected:
   // FastQueue depend on ThreadPool and only run in ThreadPool can push
   // element. Every thread has a thread id and here will use thread id as
   // index of vector
-  vector<InnerQueue<T> *> _vctInner;
-  // How many threads in thread pool
-  ThreadPool *_threadPool;
-  // The max threads number since previous to call ElementMove
-  int _aliveMaxThreads;
-
-protected:
+  vector<InnerQueue<T, SZ> *> _vctInner;
+  // The max number of threads in thread pool or used sole threads
+  uint16_t _threadTotalNum;
+  // The max alive threads number since previous to call ElementMove
+  uint16_t _aliveMaxThreads;
+  // The thread number of last time to change threads.
+  uint16_t _aliveLastThreads;
 };
 } // namespace storage

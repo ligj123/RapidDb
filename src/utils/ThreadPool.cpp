@@ -49,10 +49,10 @@ void ThreadPool::CreateThread(int id) {
       std::unique_lock<SpinMutex> queue_lock(_task_mutex);
       _freeThreads++;
       _taskCv.wait_for(queue_lock, 100ms, [this]() -> bool {
-        return _tasksNum > 0 || !_fastQueue->Empty() || _stopThreads;
+        return _tasksNum > 0 || !_fastQueue->RoughEmpty() || _stopThreads;
       });
 
-      if (_tasksNum == 0 && _fastQueue->Empty()) {
+      if (_tasksNum == 0 && _fastQueue->RoughEmpty()) {
         _freeThreads--;
         queue_lock.unlock();
         std::unique_lock<SpinMutex> thread_lock(_threadMutex);
@@ -70,7 +70,7 @@ void ThreadPool::CreateThread(int id) {
       } else {
         if (_smallTasks.size() == 0 && _largeTasks.size() == 0) {
           queue<Task *> q;
-          _fastQueue->Swap(q);
+          _fastQueue->Pop(q);
           _tasksNum += (int32_t)q.size();
 
           while (q.size() > 0) {
@@ -130,12 +130,12 @@ void ThreadPool::CreateThread(int id) {
     RemoveThread(id);
   });
 
-  for (function<void()> func : _vctLambda) {
-    func();
-  }
-
   _vctThread[id] = t;
   _aliveThreads++;
+  for (function<void(uint16_t threads)> func : _vctLambda) {
+    func(_aliveThreads);
+  }
+
   thread_lock.unlock();
 }
 

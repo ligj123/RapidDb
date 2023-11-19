@@ -11,6 +11,7 @@ const uint32_t DatabaseManager::FAST_SIZE = 127;
 MTreeMap<MString, Database *> DatabaseManager::_mapDb;
 SpinMutex DatabaseManager::_spinMutex;
 vector<Database *> DatabaseManager::_fastDbCache(FAST_SIZE, nullptr);
+vector<Database *> DatabaseManager::_discardDb;
 
 bool DatabaseManager::LoadDb(PhysTable *dbTable) {
   IndexTree *ptree = dbTable->GetPrimaryKey()._tree;
