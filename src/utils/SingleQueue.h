@@ -17,8 +17,8 @@ public:
   ~SingleQueue() {}
 
   bool Push(T *ele, bool submit = true) {
-    uint32_t end =
-        (submit ? atomic_ref<uint32_t>(_tail).load(memory_order_relaxed)
+    uint16_t end =
+        (submit ? atomic_ref<uint16_t>(_tail).load(memory_order_relaxed)
                 : _tail);
 
     if ((_head + 1) % SZ == end) {
@@ -35,7 +35,7 @@ public:
     _head++;
     _head %= SZ;
     if (submit) {
-      atomic_ref<uint32_t>(_submited).store(_head, memory_order_release);
+      atomic_ref<uint16_t>(_submited).store(_head, memory_order_release);
     }
 
     return true;
@@ -43,15 +43,15 @@ public:
 
   void Submit() {
     if (_head != _submited) {
-      atomic_ref<uint32_t>(_submited).store(_head, memory_order_release);
+      atomic_ref<uint16_t>(_submited).store(_head, memory_order_release);
     }
   }
 
   void Pop(queue<T *> &q) {
     assert(q.size() == 0);
     unique_lock<SpinMutex> lock(_spinMutex);
-    uint32_t head = _submited;
-    uint32_t tail = _tail;
+    uint16_t head = _submited;
+    uint16_t tail = _tail;
     while (tail != head) {
       _queue.push(_arrCircle[tail]);
       tail++;

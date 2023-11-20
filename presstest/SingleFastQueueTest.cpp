@@ -20,13 +20,13 @@ void TestSingleQueue(uint64_t count) {
   vct_ptr.reserve(1000000);
   for (size_t i = 0; i < 1000000; i++) {
     vct_ptr.push_back(new int64_t);
-    vct_ptr[i] = 0;
+    *vct_ptr[i] = 0;
   }
 
   thread *tAr = new thread[2];
   chrono::system_clock::time_point st = chrono::system_clock::now();
-  tAr[0] = thread([vct_ptr, squeue]() {
-    for (uint64_t j = 0; j < count; j++) {
+  tAr[0] = thread([&vct_ptr, &squeue, count]() {
+    for (uint64_t j = 1; j <= count; j++) {
       int64_t *ptr = vct_ptr[j % 1000000];
       *ptr = j;
       squeue.Push(ptr, j % 30 == 0);
@@ -34,11 +34,12 @@ void TestSingleQueue(uint64_t count) {
 
     squeue.Submit();
   });
+  this_thread::sleep_for(1000s);
 
-  tAr[1] = thread([vct_ptr, squeue]() {
-    queue<T *> queue;
-    int j = 0;
-    while (j < count) {
+  tAr[1] = thread([&vct_ptr, &squeue, count]() {
+    queue<int64_t *> queue;
+    int j = 1;
+    while (j <= count) {
       squeue.Pop(queue);
       while (queue.size() > 0) {
         int64_t *ptr = queue.front();
