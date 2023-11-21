@@ -23,11 +23,15 @@ public:
 
     if ((_head + 1) % SZ == end) {
       unique_lock<SpinMutex> lock(_spinMutex);
-      end = _tail;
-      while (end != _head) {
-        _queue.push(_arrCircle[end]);
-        end++;
-        end %= SZ;
+      while (_tail != _submited) {
+        _queue.push(_arrCircle[_tail]);
+        _tail++;
+        _tail %= SZ;
+      }
+
+      assert((_head + 1) % SZ != _tail);
+      if (_queue.size() > SZ * 10) {
+        return false;
       }
     }
 
@@ -50,15 +54,13 @@ public:
   void Pop(queue<T *> &q) {
     assert(q.size() == 0);
     unique_lock<SpinMutex> lock(_spinMutex);
-    uint16_t head = _submited;
-    uint16_t tail = _tail;
-    while (tail != head) {
-      _queue.push(_arrCircle[tail]);
-      tail++;
-      tail &= SZ;
+    uint16_t head = atomic_ref<uint16_t>(_submited).load(memory_order_acquire);
+    while (_tail != head) {
+      _queue.push(_arrCircle[_tail]);
+      _tail++;
+      _tail %= SZ;
     }
 
-    _tail = tail;
     q.swap(_queue);
   }
 
