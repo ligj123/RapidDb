@@ -30,7 +30,7 @@ template <class T, uint32_t SZ> struct InnerQueue {
 template <class T, uint32_t SZ = 1000> class FastQueue {
 public:
   // threadCount: The total threads in all related ThreadPool
-  FastQueue(uint32_t tNum)
+  FastQueue(uint16_t tNum)
       : _aliveMaxThreads(tNum), _threadTotalNum(tNum), _aliveLastThreads(tNum) {
     assert(tNum > 0);
     _vctInner.reserve(tNum);
@@ -48,7 +48,7 @@ public:
       _vctInner.push_back(new InnerQueue<T, SZ>);
     }
 
-    tp->PushLambda([this](uint32_t threads) {
+    tp->PushLambda([this](uint16_t threads) {
       unique_lock<SpinMutex> lock(_spinMutex);
       _aliveLastThreads = threads;
       if (_aliveMaxThreads < threads) {
@@ -65,7 +65,7 @@ public:
     }
   }
 
-  void UpdateLiveThreads(uint32_t threads) {
+  void UpdateLiveThreads(uint16_t threads) {
     unique_lock<SpinMutex> lock(_spinMutex);
     _aliveLastThreads = threads;
     if (_aliveMaxThreads < threads) {
@@ -74,7 +74,7 @@ public:
   }
 
   // Push an element
-  void Push(T *ele, uint32_t tid = UINT32_MAX, bool submit = true) {
+  void Push(T *ele, uint16_t tid = UINT32_MAX, bool submit = true) {
     assert(tid < _threadTotalNum);
     if (tid == UINT32_MAX) [[unlikely]] {
       unique_lock<SpinMutex> lock(_spinMutex);
