@@ -11,65 +11,65 @@ using namespace std;
 // Single channel queue.Only two thread can take part in this queue, one
 // produces elements and the other consume elements. Can not change their roles
 // in short time.
-template <class T, uint16_t SZ = 1000> class SingleQueue {
+template <class T, uint32_t SZ = 1000> class SingleQueue {
 public:
   SingleQueue() {}
   ~SingleQueue() {}
 
-  bool Push(T *ele, bool submit = true) {
-    uint16_t end =
-        (submit ? atomic_ref<uint16_t>(_tail).load(memory_order_relaxed)
-                : _tail);
-
-    if ((_head + 1) % SZ == end) {
+  void Push(T *ele, bool submit = true) {
+    uint32_t end = _tail;
+    assert(_head - end <= SZ);
+    if (_head - end == SZ || _head == UINT32_MAX) [[unlikely]] {
       unique_lock<SpinMutex> lock(_spinMutex);
-      while (_tail != _submited) {
-        _queue.push(_arrCircle[_tail]);
+      _testCount++;
+      while (_tail != _head) {
+        _queue.push(_arrCircle[_tail % SZ]);
         _tail++;
-        _tail %= SZ;
       }
 
-      assert((_head + 1) % SZ != _tail);
-      if (_queue.size() > SZ * 10) {
-        return false;
+      if (_head == UINT32_MAX) [[unlikely]] {
+        _head = 0;
+        _tail = 0;
       }
+      _submited = _head;
     }
 
-    _arrCircle[_head] = ele;
+    _arrCircle[_head % SZ] = ele;
     _head++;
-    _head %= SZ;
     if (submit) {
-      atomic_ref<uint16_t>(_submited).store(_head, memory_order_release);
+      atomic_ref<uint32_t>(_submited).store(_head, memory_order_release);
     }
-
-    return true;
   }
 
   void Submit() {
     if (_head != _submited) {
-      atomic_ref<uint16_t>(_submited).store(_head, memory_order_release);
+      atomic_ref<uint32_t>(_submited).store(_head, memory_order_release);
     }
   }
 
   void Pop(queue<T *> &q) {
     assert(q.size() == 0);
     unique_lock<SpinMutex> lock(_spinMutex);
-    uint16_t head = atomic_ref<uint16_t>(_submited).load(memory_order_acquire);
+    uint32_t head = _submited;
+    // atomic_ref<uint32_t>(_submited).load(memory_order_acquire);
     while (_tail != head) {
-      _queue.push(_arrCircle[_tail]);
+      _queue.push(_arrCircle[_tail % SZ]);
       _tail++;
-      _tail %= SZ;
     }
 
     q.swap(_queue);
   }
 
   // Due to it used in 2 threads, so it can not sure the size is precise.
+  // It must be called in consumer thread.
   size_t Size() {
-    uint32_t sz = (_tail < _head ? _head - _tail : SZ + _head - _tail);
+    uint32_t sz =
+        atomic_ref<uint32_t>(_submited).load(memory_order_relaxed) - _tail;
     sz += _queue.size();
     return sz;
   }
+
+  uint32_t _testCount{0};
 
 protected:
   // The circle queue with fixed space to save elements
@@ -77,12 +77,12 @@ protected:
   //  The head position of circle queue that elements has inserted, if the
   //  client inserted an element and submited at once, it will equal to
   //  _submited, or it will be ahead of _submited
-  uint16_t _head{0};
+  uint32_t _head{0};
   // The position that has submited elements, it should be equal or behind of
   // _head
-  uint16_t _submited{0};
+  uint32_t _submited{0};
   // The tail of queue that obtain inserted elements.
-  uint16_t _tail{0};
+  uint32_t _tail{0};
   // If _queue != nullptr and the circle queue is full, the elements will moved
   // into _queue and free the circle queue to save new elements.
   queue<T *> _queue;

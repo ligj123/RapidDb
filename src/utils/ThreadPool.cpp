@@ -22,7 +22,7 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
         "Please set min threads and max thread in right range!");
   }
 
-  _fastQueue = new FastQueue<Task>(this);
+  _fastQueue = new FastQueue<Task, 1000>(this);
   _vctThread.resize(_maxThreads, nullptr);
   for (int i = 0; i < minThreads; ++i) {
     CreateThread(i);

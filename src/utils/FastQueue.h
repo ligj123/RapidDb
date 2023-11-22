@@ -9,11 +9,11 @@
 
 namespace storage {
 using namespace std;
-template <class T, uint16_t SZ> struct InnerQueue {
+template <class T, uint32_t SZ> struct InnerQueue {
   array<T *, SZ> _arr{};
-  uint16_t _head{0};
-  uint16_t _submited{0};
-  uint16_t _tail{0};
+  uint32_t _head{0};
+  uint32_t _submited{0};
+  uint32_t _tail{0};
 };
 
 // This queue is fast queue and it depend on ThreadPool. As we know, the lock
@@ -27,10 +27,11 @@ template <class T, uint16_t SZ> struct InnerQueue {
 // this pools must series and threadCount must be the sum of all threads in all
 // pools. For all single threads, for example main or timer thread, the id must
 // be -1 and do not use inner queue to avlid lock.
-template <class T, uint16_t SZ = 100> class FastQueue {
+template <class T, uint32_t SZ = 1000> class FastQueue {
 public:
   // threadCount: The total threads in all related ThreadPool
-  FastQueue(uint16_t tNum) : _aliveMaxThreads(tNum), _threadTotalNum(tNum) {
+  FastQueue(uint32_t tNum)
+      : _aliveMaxThreads(tNum), _threadTotalNum(tNum), _aliveLastThreads(tNum) {
     assert(tNum > 0);
     _vctInner.reserve(tNum);
     for (int i = 0; i < tNum; i++) {
@@ -38,15 +39,16 @@ public:
     }
   }
 
-  FastQueue(ThreadPool *tp = nullptr)
+  FastQueue(ThreadPool *tp)
       : _aliveMaxThreads(tp->GetMaxThreads()),
-        _threadTotalNum(tp->GetMaxThreads()) {
+        _threadTotalNum(tp->GetMaxThreads()),
+        _aliveLastThreads(tp->GetMaxThreads()) {
     _vctInner.reserve(tp->GetMaxThreads());
-    for (int i = 0; i < tp->GetMaxThreads(); i++) {
+    for (int i = 0; i < _threadTotalNum; i++) {
       _vctInner.push_back(new InnerQueue<T, SZ>);
     }
 
-    tp->PushLambda([this](uint16_t threads) {
+    tp->PushLambda([this](uint32_t threads) {
       unique_lock<SpinMutex> lock(_spinMutex);
       _aliveLastThreads = threads;
       if (_aliveMaxThreads < threads) {
@@ -63,7 +65,7 @@ public:
     }
   }
 
-  void UpdateLiveThreads(uint16_t threads) {
+  void UpdateLiveThreads(uint32_t threads) {
     unique_lock<SpinMutex> lock(_spinMutex);
     _aliveLastThreads = threads;
     if (_aliveMaxThreads < threads) {
@@ -72,32 +74,42 @@ public:
   }
 
   // Push an element
-  void Push(T *ele, uint16_t tid = UINT16_MAX, bool submit = true) {
+  void Push(T *ele, uint32_t tid = UINT32_MAX, bool submit = true) {
     assert(tid < _threadTotalNum);
-    if (tid == UINT16_MAX) {
+    if (tid == UINT32_MAX) [[unlikely]] {
       unique_lock<SpinMutex> lock(_spinMutex);
       _queue.push(ele);
       return;
     }
 
     auto q = _vctInner[tid];
-    q->_arr[q->_head] = ele;
-    q->_head = (q->_head + 1) % SZ;
-    if (submit) {
-      atomic_ref<uint16_t>(q->_submited).store(q->_head, memory_order_release);
-    }
-    if ((q->_head + 1) % SZ == q->_tail) {
+    uint32_t end = q->_tail;
+    assert(q->_head - end <= SZ);
+    if (q->_head - end == SZ || q->_head == UINT32_MAX) {
       unique_lock<SpinMutex> lock(_spinMutex);
       q->_submited = q->_head;
       ElementMove();
+
+      if (q->_head == UINT32_MAX) [[unlikely]] {
+        q->_head = 0;
+        q->_tail = 0;
+        q->_submited = 0;
+      }
+    }
+
+    q->_arr[q->_head % SZ] = ele;
+    q->_head++;
+
+    if (submit) {
+      atomic_ref<uint32_t>(q->_submited).store(q->_head, memory_order_release);
     }
   }
 
-  void Submit(uint16_t tid) {
-    assert(tid >= 0 && tid < _threadTotalNum);
+  void Submit(uint32_t tid) {
+    assert(tid < _threadTotalNum);
     auto q = _vctInner[tid];
     if (q->_head != q->_submited) {
-      atomic_ref<uint16_t>(q->_submited).store(q->_head, memory_order_release);
+      atomic_ref<uint32_t>(q->_submited).store(q->_head, memory_order_release);
     }
   }
 
@@ -129,16 +141,13 @@ protected:
   void ElementMove() {
     for (int i = 0; i < _aliveMaxThreads; i++) {
       auto q = _vctInner[i];
-      if (q->_submited == q->_tail)
+      uint32_t head = q->_submited;
+      if (head == q->_tail)
         continue;
 
-      while (true) {
-        _queue.push((T *)q->_arr[q->_tail]);
-
-        q->_tail = (q->_tail + 1) % 100;
-        if (q->_tail == q->_submited) {
-          break;
-        }
+      while (head > q->_tail) {
+        _queue.push(q->_arr[q->_tail % SZ]);
+        q->_tail++;
       }
     }
 

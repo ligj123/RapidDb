@@ -15,7 +15,7 @@
 
 namespace storage {
 void TestSingleQueue(uint64_t count) {
-  SingleQueue<int64_t, 100> squeue;
+  SingleQueue<int64_t, 1000> squeue;
   vector<int64_t *> vct_ptr;
   vct_ptr.reserve(10000000);
   for (size_t i = 0; i < 10000000; i++) {
@@ -29,9 +29,7 @@ void TestSingleQueue(uint64_t count) {
     for (uint64_t j = 1; j <= count; j++) {
       int64_t *ptr = vct_ptr[j % 10000000];
       *ptr = j;
-      while (!squeue.Push(ptr, j % 30 == 0)) {
-        std::this_thread::yield();
-      }
+      squeue.Push(ptr, j % 100 == 0);
     }
 
     squeue.Submit();
@@ -41,7 +39,9 @@ void TestSingleQueue(uint64_t count) {
   tAr[1] = thread([&vct_ptr, &squeue, count]() {
     queue<int64_t *> queue;
     int j = 1;
+    int num = 0;
     while (j <= count) {
+      num++;
       squeue.Pop(queue);
       if (queue.size() == 0) {
         std::this_thread::yield();
@@ -59,14 +59,15 @@ void TestSingleQueue(uint64_t count) {
       }
     }
 
-    cout << "consume end." << endl;
+    cout << "consume end. num: " << num << endl;
   });
 
   tAr[1].join();
   chrono::system_clock::time_point et = chrono::system_clock::now();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(et - st);
-  cout << "Time(ms):" << duration.count() << "\tCount:" << count << endl;
+  cout << "Time(ms):" << duration.count() << "\tCount:" << squeue._testCount
+       << endl;
 }
 
 void TestFastQueue(uint16_t threads, uint64_t count) {}
