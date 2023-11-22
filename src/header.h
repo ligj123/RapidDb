@@ -23,7 +23,7 @@ const uint64_t NANO_SEC = 1000000000;
 const PageID PAGE_NULL_POINTER = UINT32_MAX;
 
 // To record memory allocate and free stack trace
-#define CACHE_TRACE
+// #define CACHE_TRACE
 // Do not save bin log
 #define DEBUG_WITHOUT_BIN_LOG
 #define DEFAULT_MAX_THREADS 8

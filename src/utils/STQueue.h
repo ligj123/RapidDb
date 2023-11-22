@@ -12,27 +12,27 @@ using namespace std;
 // Single channel queue.Only two thread can take part in this queue, one
 // produces elements and the other consume elements. Can not change their roles
 // in short time.
-template <class T, uint32_t SZ = 1000> class SingleQueue {
+template <class T, uint32_t SZ = 1000> class STQueue {
 public:
-  SingleQueue() {}
-  ~SingleQueue() {}
+  STQueue() {}
+  ~STQueue() {}
 
-  void Push(T *ele, bool submit = true) {
+  bool Push(T *ele, bool submit = true) {
+    if (_head == UINT32_MAX) [[unlikely]] {
+      uint32_t tail = _tail;
+      _tail %= SZ;
+      tail -= _tail;
+      _head -= tail;
+      _submited -= tail;
+    }
+
     uint32_t end = _tail;
     assert(_head - end <= SZ);
-    if (_head - end == SZ || _head == UINT32_MAX) [[unlikely]] {
-      unique_lock<SpinMutex> lock(_spinMutex);
-      _testCount++;
-      while (_tail != _head) {
-        _queue.push_back(_arrCircle[_tail % SZ]);
-        _tail++;
+    if (_head - end == SZ) [[unlikely]] {
+      end = atomic_ref<uint32_t>(_tail).load(memory_order_relaxed);
+      if (_head - end == SZ) {
+        return false;
       }
-
-      if (_head == UINT32_MAX) [[unlikely]] {
-        _head = 0;
-        _tail = 0;
-      }
-      _submited = _head;
     }
 
     _arrCircle[_head % SZ] = ele;
@@ -40,6 +40,7 @@ public:
     if (submit) {
       atomic_ref<uint32_t>(_submited).store(_head, memory_order_release);
     }
+    return true;
   }
 
   void Submit() {
@@ -48,17 +49,15 @@ public:
     }
   }
 
-  void Pop(MDeque<T *> &q) {
-    assert(q.size() == 0);
+  void Pop(vector<T *> &vct) {
+    assert(vct.size() == 0);
     unique_lock<SpinMutex> lock(_spinMutex);
     uint32_t head = _submited;
-    // atomic_ref<uint32_t>(_submited).load(memory_order_acquire);
+    vct.reserve(head - _tail);
     while (_tail != head) {
-      _queue.push_back(_arrCircle[_tail % SZ]);
+      vct.push_back(_arrCircle[_tail % SZ]);
       _tail++;
     }
-
-    q.swap(_queue);
   }
 
   // Due to it used in 2 threads, so it can not sure the size is precise.
@@ -66,11 +65,8 @@ public:
   size_t Size() {
     uint32_t sz =
         atomic_ref<uint32_t>(_submited).load(memory_order_relaxed) - _tail;
-    sz += _queue.size();
     return sz;
   }
-
-  uint32_t _testCount{0};
 
 protected:
   // The circle queue with fixed space to save elements
@@ -84,10 +80,6 @@ protected:
   uint32_t _submited{0};
   // The tail of queue that obtain inserted elements.
   uint32_t _tail{0};
-  // If _queue != nullptr and the circle queue is full, the elements will moved
-  // into _queue and free the circle queue to save new elements.
-  MDeque<T *> _queue;
-  //
   SpinMutex _spinMutex;
 };
 } // namespace storage

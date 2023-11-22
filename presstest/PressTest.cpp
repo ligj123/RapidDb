@@ -45,6 +45,8 @@ int main(int argc, char *argv[]) {
     storage::MutexTest();
   } else if (str == "2") {
     storage::TestSingleQueue(argc >= 3 ? atol(argv[2]) : 1000000);
+  } else if (str == "3") {
+    storage::TestSTQueue(argc >= 3 ? atol(argv[2]) : 1000000);
   } else if (str == "11") {
     storage::InsertSpeedPrimaryTest(argc >= 3 ? atol(argv[2]) : 0);
   } else if (str == "12") {

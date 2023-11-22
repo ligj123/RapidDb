@@ -74,7 +74,7 @@ public:
   }
 
   // Push an element
-  void Push(T *ele, uint16_t tid = UINT32_MAX, bool submit = true) {
+  void Push(T *ele, uint16_t tid = UINT16_MAX, bool submit = true) {
     assert(tid < _threadTotalNum);
     if (tid == UINT32_MAX) [[unlikely]] {
       unique_lock<SpinMutex> lock(_spinMutex);

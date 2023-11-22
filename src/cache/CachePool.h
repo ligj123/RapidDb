@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "../config/Configure.h"
 #include "BufferPool.h"
 #include <iostream>
 #include <mutex>
