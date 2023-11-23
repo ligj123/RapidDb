@@ -41,11 +41,11 @@ void PageDividePool::PushTask() {
 }
 
 void PageDividePool::PoolManage() {
-  queue<IndexPage *> q;
+  MDeque<IndexPage *> q;
   _divPool->_fastQueue.Pop(q);
   while (q.size() > 0) {
     IndexPage *page = q.front();
-    q.pop();
+    q.pop_front();
 
     if (_divPool->_mapPage.find(page->HashCode()) != _divPool->_mapPage.end()) {
       page->DecRef();

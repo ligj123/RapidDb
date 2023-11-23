@@ -27,7 +27,7 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
   _fastQueue = new FastQueue<Task, 1000>(this);
   _vctThread.resize(_maxThreads, nullptr);
   for (int i = 0; i < minThreads; ++i) {
-    CreateThread(i);
+    CreateThread();
   }
 }
 
@@ -69,13 +69,13 @@ void ThreadPool::CreateThread() {
         _urgentTasks.pop_front();
       } else {
         if (_smallTasks.size() == 0 && _largeTasks.size() == 0) {
-          queue<Task *> q;
+          MDeque<Task *> q;
           _fastQueue->Pop(q);
           _tasksNum += (int32_t)q.size();
 
           while (q.size() > 0) {
             Task *task = q.front();
-            q.pop();
+            q.pop_front();
 
             if (task->IsSmallTask()) {
               _smallTasks.push_back(task);

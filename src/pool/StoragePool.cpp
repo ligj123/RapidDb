@@ -42,11 +42,11 @@ void StoragePool::StopPool() {
 }
 
 void StoragePool::PoolManage() {
-  queue<CachePage *> q;
+  MDeque<CachePage *> q;
   _storagePool->_fastQueue.Pop(q);
   while (q.size() > 0) {
     CachePage *page = q.front();
-    q.pop();
+    q.pop_front();
 
     if (_storagePool->_mapWrite.find(page->HashCode()) !=
         _storagePool->_mapWrite.end()) {

@@ -39,16 +39,16 @@ BOOST_AUTO_TEST_CASE(FastQueue_test) {
 
   thread t([]() {
     while (!bStop2) {
-      queue<DataValueLong *> q;
+      MDeque<DataValueLong *> q;
       fastQueue.Pop(q);
 
       while (q.size() > 0) {
         DataValueLong *dv = q.front();
+        q.pop_front();
         if ((int64_t)(*dv) > maxVal)
           maxVal = *dv;
         delete dv;
         count++;
-        q.pop();
       }
     }
   });

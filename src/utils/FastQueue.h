@@ -76,11 +76,11 @@ public:
 
   void Push(T *ele) {
     unique_lock<SpinMutex> lock(_spinMutex);
-    _queue.push(ele);
+    _queue.push_back(ele);
   }
 
   // Push an element
-  void Push(T *ele, uint16_t tid, bool submit = true) {
+  void Push(uint16_t tid, T *ele, bool submit = true) {
     assert(tid < _threadTotalNum);
 
     auto q = _vctInner[tid];
@@ -155,7 +155,7 @@ protected:
         continue;
 
       while (head > q->_tail) {
-        _queue.push(q->_arr[q->_tail % SZ]);
+        _queue.push_back(q->_arr[q->_tail % SZ]);
         q->_tail++;
       }
     }
