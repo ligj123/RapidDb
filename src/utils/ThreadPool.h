@@ -154,7 +154,7 @@ public:
   uint32_t GetMaxQueueSize() { return _maxQueueSize; }
   // Only rough access the watting tasks number
   bool IsFull();
-  void CreateThread(int id = -1);
+  void CreateThread();
   int GetAliveThreadCount() const { return _aliveThreads; }
   int GetMinThreads() const { return _minThreads; }
   int GetMaxThreads() const { return _maxThreads; }

@@ -1,4 +1,5 @@
 #pragma once
+#include "../cache/Mallocator.h"
 #include "SpinMutex.h"
 #include "ThreadPool.h"
 #include <array>
@@ -60,7 +61,7 @@ public:
   ~FastQueue() {
     assert(_queue.size() == 0);
     for (auto q : _vctInner) {
-      assert(q->_head == q->_tail);
+      assert(q->_head == q->_tail && q->_head == q->_submited);
       delete q;
     }
   }
@@ -73,19 +74,19 @@ public:
     }
   }
 
+  void Push(T *ele) {
+    unique_lock<SpinMutex> lock(_spinMutex);
+    _queue.push(ele);
+  }
+
   // Push an element
-  void Push(T *ele, uint16_t tid = UINT16_MAX, bool submit = true) {
+  void Push(T *ele, uint16_t tid, bool submit = true) {
     assert(tid < _threadTotalNum);
-    if (tid == UINT32_MAX) [[unlikely]] {
-      unique_lock<SpinMutex> lock(_spinMutex);
-      _queue.push(ele);
-      return;
-    }
 
     auto q = _vctInner[tid];
     uint32_t end = q->_tail;
     assert(q->_head - end <= SZ);
-    if (q->_head - end == SZ || q->_head == UINT32_MAX) {
+    if (q->_head - end == SZ || q->_head == UINT32_MAX) [[unlikely]] {
       unique_lock<SpinMutex> lock(_spinMutex);
       q->_submited = q->_head;
       ElementMove();
@@ -113,7 +114,7 @@ public:
     }
   }
 
-  void Pop(queue<T *> &queue) {
+  void Pop(MDeque<T *> &queue) {
     assert(queue.size() == 0);
     unique_lock<SpinMutex> lock(_spinMutex);
     ElementMove();
@@ -133,9 +134,17 @@ public:
     return true;
   }
 
-  // No consider thread safe, only return elements number in queue, neglect the
-  // elements in InnerQueue.
-  size_t RoughSize() { return _queue.size(); }
+  // Only return elements number in queue and submited elements, neglect the
+  // unsubmited elements in InnerQueue.
+  size_t RoughSize() {
+    unique_lock<SpinMutex> lock(_spinMutex);
+    size_t sz = _queue.size();
+    for (auto q : _vctInner) {
+      sz += q->_submited - q->_tail;
+    }
+
+    return sz;
+  }
 
 protected:
   void ElementMove() {
@@ -155,7 +164,7 @@ protected:
   }
 
 protected:
-  queue<T *> _queue;
+  MDeque<T *> _queue;
   SpinMutex _spinMutex;
   // FastQueue depend on ThreadPool and only run in ThreadPool can push
   // element. Every thread has a thread id and here will use thread id as

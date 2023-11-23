@@ -10,7 +10,9 @@ thread_local int ThreadPool::_threadID = -1;
 thread_local Task *ThreadPool::_currTask = nullptr;
 ThreadPool *ThreadPool::_instMain = nullptr;
 SpinMutex ThreadPool::_smMain;
+#ifdef CACHE_TRACE
 set<int> ThreadPool::_setId{};
+#endif
 
 ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
                        int minThreads, int maxThreads, int startId)
@@ -29,15 +31,13 @@ ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
   }
 }
 
-void ThreadPool::CreateThread(int id) {
+void ThreadPool::CreateThread() {
   std::unique_lock<SpinMutex> thread_lock(_threadMutex, try_to_lock);
   if (!thread_lock.owns_lock()) {
     return;
   }
 
-  if (id < 0) {
-    id = _aliveThreads;
-  }
+  int id = _aliveThreads;
 
   thread *t = new thread([this, id]() {
     AddThread(_threadPrefix + "_" + to_string(id), id + _startId);
@@ -48,7 +48,7 @@ void ThreadPool::CreateThread(int id) {
       vct.clear();
       std::unique_lock<SpinMutex> queue_lock(_task_mutex);
       _freeThreads++;
-      _taskCv.wait_for(queue_lock, 100ms, [this]() -> bool {
+      _taskCv.wait_for(queue_lock, 500ms, [this]() -> bool {
         return _tasksNum > 0 || !_fastQueue->RoughEmpty() || _stopThreads;
       });
 
@@ -127,6 +127,11 @@ void ThreadPool::CreateThread(int id) {
       t->detach();
       delete t;
     }
+
+    for (function<void(uint16_t threads)> func : _vctLambda) {
+      func(_aliveThreads);
+    }
+
     RemoveThread(id);
   });
 

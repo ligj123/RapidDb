@@ -49,7 +49,7 @@ public:
     }
   }
 
-  void Pop(vector<T *> &vct) {
+  void Pop(MVector<T *> &vct) {
     assert(vct.size() == 0);
     unique_lock<SpinMutex> lock(_spinMutex);
     uint32_t head = _submited;

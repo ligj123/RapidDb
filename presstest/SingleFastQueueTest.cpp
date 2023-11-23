@@ -86,7 +86,7 @@ void TestSTQueue(uint64_t count) {
     for (uint64_t j = 1; j <= count; j++) {
       int64_t *ptr = vct_ptr[j % 10000000];
       *ptr = j;
-      while (!squeue.Push(ptr, j % 100 == 0)) {
+      while (!squeue.Push(ptr, j % 200 == 0)) {
         std::this_thread::yield();
       }
     }
@@ -96,7 +96,7 @@ void TestSTQueue(uint64_t count) {
   });
 
   tAr[1] = thread([&vct_ptr, &squeue, count]() {
-    vector<int64_t *> vct;
+    MVector<int64_t *> vct;
     int j = 1;
     int num = 0;
     while (j <= count) {
