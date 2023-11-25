@@ -78,8 +78,29 @@ bool DatabaseManager::DelDb(MString dbName) {
   return true;
 }
 
-bool DatabaseManager::ListDb(MVector<MString> &vctDb) { return true; }
+bool DatabaseManager::ListDb(MVector<MString> &vctDb) {
+  assert(vctDb.size() == 0);
+  unique_lock<SpinMutex> lock(_spinMutex);
+  for (auto &iter : _mapDb) {
+    vctDb.push_back(iter.first);
+  }
 
-Database *DatabaseManager::FindDb(MString db) { return nullptr; }
+  return true;
+}
+
+Database *DatabaseManager::FindDb(MString dbName) {
+  size_t hash = std::hash<storage::MString>{}(dbName);
+  if (_fastDbCache[hash % FAST_SIZE] != nullptr &&
+      _fastDbCache[hash % FAST_SIZE]->GetDbName() == dbName) {
+    return _fastDbCache[hash % FAST_SIZE];
+  }
+
+  unique_lock<SpinMutex> lock(_spinMutex);
+  auto iter = _mapDb.find(dbName);
+  if (iter == _mapDb.end())
+    return nullptr;
+  else
+    return iter->second;
+}
 
 } // namespace storage

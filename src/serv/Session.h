@@ -30,7 +30,7 @@ public:
 
 protected:
   // session id, only valid in this server and to identify the sessions.It will
-  // start from 0, and add 1 every time. If goto 2^32, it will restart from 0.
+  // start from 0, and add 1 every time. If exceed 2^32, it will restart from 0.
   uint32_t _id;
   // To record the current database switched by use database name
   Database *_currDb{nullptr};
@@ -38,6 +38,8 @@ protected:
   Statement *_currStatement{nullptr};
   // The current transaction in this session, or nullptr if not exist.
   Transaction *_currTransaction{nullptr};
+  // The parsed ExprStatement in this session
+  MHashMap<MString, ExprStatement *> _mapExprStatement;
 };
 
 } // namespace storage

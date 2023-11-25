@@ -47,9 +47,14 @@ int main(int argc, char *argv[]) {
     storage::TestSingleQueue(argc >= 3 ? atol(argv[2]) : 1000000);
   } else if (str == "3") {
     storage::TestSTQueue(argc >= 3 ? atol(argv[2]) : 1000000);
+  } else if (str == "4") {
+    uint16_t threadNum = argc >= 3 ? atol(argv[2]) : 0;
+    uint64_t recordNum = argc >= 4 ? atoll(argv[3]) : 0;
+    storage::TestFastQueue(threadNum, recordNum);
   } else if (str == "11") {
     storage::InsertSpeedPrimaryTest(argc >= 3 ? atol(argv[2]) : 0);
   } else if (str == "12") {
+    int threadNum = argc >= 3 ? atol(argv[2]) : 0;
     storage::InsertSpeedUniqueTest(argc >= 3 ? atol(argv[2]) : 0);
   } else if (str == "13") {
     storage::InsertSpeedNonUniqueTest(argc >= 3 ? atol(argv[2]) : 0);

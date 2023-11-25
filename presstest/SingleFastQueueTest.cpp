@@ -129,6 +129,10 @@ void TestSTQueue(uint64_t count) {
 }
 
 void TestFastQueue(uint16_t threads, uint64_t count) {
+  if (threads < 1 || threads > 10)
+    threads = 3;
+  if (count < 10000)
+    count = 100000;
   FastQueue<int64_t, 1000> fqueue(threads);
   vector<vector<int64_t *>> v_vct_ptr(threads);
   for (uint16_t k = 0; k < threads; k++) {
@@ -155,13 +159,13 @@ void TestFastQueue(uint16_t threads, uint64_t count) {
     });
   }
 
-  thread cm([&fqueue, count, threads]() {
-    vector<int64_t> v_r(count);
-    for (uint64_t k = 0; k < count; k++) {
+  uint64_t t_count = 0;
+  thread customer([&t_count, &fqueue, count, threads]() {
+    vector<int64_t> v_r(threads);
+    for (uint64_t k = 0; k < threads; k++) {
       v_r[k] = (k << 48) + 1;
     }
 
-    uint64_t t_count = 0;
     uint64_t total = count * threads;
     MDeque<int64_t *> queue;
     int num = 0;
@@ -189,5 +193,11 @@ void TestFastQueue(uint16_t threads, uint64_t count) {
 
     cout << "consume end. num: " << num << endl;
   });
+
+  customer.join();
+  chrono::system_clock::time_point et = chrono::system_clock::now();
+  auto duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(et - st);
+  cout << "Time(ms):" << duration.count() << "\tCount:" << t_count << endl;
 }
 } // namespace storage
