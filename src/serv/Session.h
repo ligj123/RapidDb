@@ -25,8 +25,28 @@ public:
   }
 
 public:
-  Session(uint32_t id) : _id(id) {}
+  Session(uint32_t id, function<void()> hookFunc) : _id(id) {}
   const Database *GetCurrDb() const { return _currDb; }
+  void SetCurrDb(Database *db) { _currDb = db; }
+  /** @brief Create a new statement and send it to queue to wait for execute.
+   * @param sql The sql string
+   * @param paras One or multi group of parameters that wait to fill statement.
+   */
+  bool CreateStatement(MString sql, VectorRow &paras);
+  /**
+   * @brief Parser the sql string and assign ExprStatement with united id.
+   * @param sql the sql string to create statement.
+   * @return return the id of this statement and used for following
+   * AddStatement.
+   */
+  uint64_t PrepareStatement(MString sql);
+  /**
+   * @brief The new statement with prepared statement, use id to identify
+   * statement.
+   * @param sid The statement id.
+   * @param paras One or multi group of parameters that wait to fill statement.
+   */
+  bool AddStatement(uint64_t sid, VectorRow &paras);
 
 protected:
   // session id, only valid in this server and to identify the sessions.It will
@@ -38,8 +58,13 @@ protected:
   Statement *_currStatement{nullptr};
   // The current transaction in this session, or nullptr if not exist.
   Transaction *_currTransaction{nullptr};
-  // The parsed ExprStatement in this session
-  MHashMap<MString, ExprStatement *> _mapExprStatement;
+  // The map of <Sql, parsed ExprStatement> in this session
+  MHashMap<MString, ExprStatement *> _mapSqlExprStatement;
+  // The map of <id, parsed ExprStatement> in this session, duplicate of above
+  // map.
+  MHashMap<uint64_t, ExprStatement *> _mapIdExprStatement;
+  // The hook function that willbe called when the statement finished.
+  function<void()> _hookFunc;
 };
 
 } // namespace storage
