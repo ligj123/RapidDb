@@ -28,6 +28,9 @@ public:
   Session(uint32_t id, function<void()> hookFunc) : _id(id) {}
   const Database *GetCurrDb() const { return _currDb; }
   void SetCurrDb(Database *db) { _currDb = db; }
+  Statement *GetCurrStatement() { return _currStatement; }
+  Transaction *GetCurrTransaction() { return _currTransaction; }
+
   /** @brief Create a new statement and send it to queue to wait for execute.
    * @param sql The sql string
    * @param paras One or multi group of parameters that wait to fill statement.
@@ -47,6 +50,12 @@ public:
    * @param paras One or multi group of parameters that wait to fill statement.
    */
   bool AddStatement(uint64_t sid, VectorRow &paras);
+  /**
+   * @brief To judge if this session is running statement or has finished,
+   * without statement.
+   * @return True: No statement is running, False: One statement is running.
+   */
+  bool IsFree();
 
 protected:
   // session id, only valid in this server and to identify the sessions.It will
