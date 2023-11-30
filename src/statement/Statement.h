@@ -8,7 +8,7 @@
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
 #include "../header.h"
-#include "../resultset/IResultSet.h"
+#include "../result/IResultSet.h"
 #include "../transaction/TranType.h"
 #include "../transaction/Transaction.h"
 #include "../utils/ErrorID.h"

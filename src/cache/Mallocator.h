@@ -45,20 +45,20 @@ public:
   }
 };
 
-template <class Key, class T>
-using MHashMap = std::unordered_map<Key, T, std::hash<Key>, std::equal_to<Key>,
+template <class Key, class T, class Hash = std::hash<Key>,
+          class KeyEqual = std::equal_to<Key>>
+using MHashMap = std::unordered_map<Key, T, Hash, KeyEqual,
                                     Mallocator<std::pair<const Key, T>>>;
 
-template <class Key>
-using MHashSet = std::unordered_set<Key, std::hash<Key>, std::equal_to<Key>,
-                                    Mallocator<Key>>;
+template <class Key, class Hash = std::hash<Key>,
+          class KeyEqual = std::equal_to<Key>>
+using MHashSet = std::unordered_set<Key, Hash, KeyEqual, Mallocator<Key>>;
 
-template <class Key, class T>
-using MTreeMap =
-    std::map<Key, T, std::less<Key>, Mallocator<std::pair<const Key, T>>>;
+template <class Key, class T, class Compare = std::less<Key>>
+using MTreeMap = std::map<Key, T, Compare, Mallocator<std::pair<const Key, T>>>;
 
-template <class Key>
-using MTreeSet = std::set<Key, std::less<Key>, Mallocator<Key>>;
+template <class Key, class Compare = std::less<Key>>
+using MTreeSet = std::set<Key, Compare, Mallocator<Key>>;
 
 template <class T> using MList = std::list<T, Mallocator<T>>;
 template <class T> using MDeque = std::deque<T, Mallocator<T>>;
@@ -117,26 +117,37 @@ inline bool MStringEqualIgnoreCase(const MString &lhs, const MString &rhs) {
 
   return true;
 }
+
+struct MStrHash {
+  std::size_t operator()(const MString &str) const noexcept {
+    return BytesHash((const Byte *)str.c_str(), str.size());
+  }
+};
+
+struct MStrEqual {
+  bool operator()(const MString &lhs, const MString &rhs) const noexcept {
+    return BytesEqual((Byte *)lhs.c_str(), lhs.size(), (Byte *)rhs.c_str(),
+                      rhs.size());
+  }
+};
+
+struct MStrLess {
+  bool operator()(const MString &lhs, const MString &rhs) const noexcept {
+    return (BytesCompare((Byte *)lhs.c_str(), lhs.size(), (Byte *)rhs.c_str(),
+                         rhs.size()) <= 0);
+  }
+};
+
+template <class T>
+using MStrHashMap = std::unordered_map<MString, T, MStrHash, MStrEqual,
+                                       Mallocator<std::pair<const MString, T>>>;
+
+using MStrHashSet =
+    std::unordered_set<MString, MStrHash, MStrEqual, Mallocator<MString>>;
+
+template <class T>
+using MStrTreeMap =
+    std::map<MString, T, MStrLess, Mallocator<std::pair<const MString, T>>>;
+
+using MStrTreeSet = std::set<MString, MStrLess, Mallocator<MString>>;
 } // namespace storage
-
-template <> struct std::hash<const storage::MString> {
-  std::size_t operator()(const storage::MString &str) const noexcept {
-    return storage::BytesHash((const Byte *)str.c_str(), str.size());
-  }
-};
-
-template <> struct std::equal_to<const storage::MString> {
-  bool operator()(const storage::MString &lhs,
-                  const storage::MString &rhs) const noexcept {
-    return storage::BytesEqual((Byte *)lhs.c_str(), lhs.size(),
-                               (Byte *)rhs.c_str(), rhs.size());
-  }
-};
-
-template <> struct std::less<const storage::MString> {
-  bool operator()(const storage::MString &lhs,
-                  const storage::MString &rhs) const noexcept {
-    return (storage::BytesCompare((Byte *)lhs.c_str(), lhs.size(),
-                                  (Byte *)rhs.c_str(), rhs.size()) <= 0);
-  }
-};

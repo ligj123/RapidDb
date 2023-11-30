@@ -39,7 +39,7 @@ struct IndexProp {
 
   uint32_t Write(Byte *bys);
   uint32_t Read(Byte *bys, uint32_t pos,
-                const MHashMap<MString, uint32_t> &mapColumnPos);
+                const MStrHashMap<uint32_t> &mapColumnPos);
   /** @brief To calculate the length to save this index
    * 1) 2 + n bytes: index name length + contents
    * 2) 1 byte: Index type
@@ -110,7 +110,7 @@ public:
       return &_vctColumn[pos];
     }
   }
-  const MHashMap<MString, uint32_t> GetMapColumnPos() { return _mapColumnPos; }
+  const MStrHashMap<uint32_t> GetMapColumnPos() { return _mapColumnPos; }
   // const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
   //   return _mapIndexFirstField;
   // }
@@ -219,11 +219,11 @@ protected:
    * the table.*/
   MVector<PhysColumn> _vctColumn;
   /** The map for column name and their position in column list */
-  MHashMap<MString, uint32_t> _mapColumnPos;
+  MStrHashMap<uint32_t> _mapColumnPos;
   /**All index, the primary key must be the first.*/
   MVector<IndexProp> _vctIndex;
   // The map for index with index name and position
-  MHashMap<MString, uint32_t> _mapIndexNamePos;
+  MStrHashMap<uint32_t> _mapIndexNamePos;
   /**The map for index with first column's position in _vctColumn and index
    * position in _vctIndex*/
   // MHashMap<uint32_t, uint32_t> _mapIndexFirstField;

@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-SET(CMAKE_C_COMPILER /usr/bin/clang)
-SET(CMAKE_CXX_COMPILER /usr/bin/clang++)
+#if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+#SET(CMAKE_C_COMPILER /usr/bin/clang)
+#SET(CMAKE_CXX_COMPILER /usr/bin/clang++)
 #elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
 #SET(CMAKE_C_COMPILER C:/LLVM/bin/clang)
 #SET(CMAKE_CXX_COMPILER C:/LLVM/bin/clang++)
-endif()
+#endif()
 
 #add_definitions(-DCACHE_TRACE -DDEBUG_WITHOUT_BIN_LOG)
 set(CMAKE_EXPORT_COMPILECOMMANDS ON)

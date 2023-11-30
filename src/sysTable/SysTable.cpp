@@ -34,7 +34,7 @@ static string SYS_TABLE_SQL[] = {CREATE_DB_SQL, CREATE_TABLE_SQL,
                                  CREATE_VARS_SQL};
 
 bool SysTable::GenerateSysTables(Database *sysDb,
-                                 MHashMap<MString, PhysTable *> &mapTable) {
+                                 MStrHashMap<PhysTable *> &mapTable) {
   uint32_t tid = 0;
 
   for (string &str : SYS_TABLE_SQL) {
@@ -96,7 +96,7 @@ bool SysTable::CreateSystemTable() {
 
   Database dbSys(0, path.string().c_str(), "rapid", MilliSecTime(),
                  MilliSecTime());
-  MHashMap<MString, PhysTable *> mapTable;
+  MStrHashMap<PhysTable *> mapTable;
   bool b = GenerateSysTables(&dbSys, mapTable);
   if (!b) {
     LOG_ERROR << "Failed to generate system table.";

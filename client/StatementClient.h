@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "../cache/Ma /Mallocator.h"
+#include "../cache/Mallocator.h"
 #include "../core/ActionType.h"
 #include "../dataType/DataType.h"
 #include "../dataType/DataValueBlob.h"
@@ -8,7 +8,7 @@
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
 #include "../header.h"
-#include "../resultset/IResultSet.h"
+#include "../result/IResultSet.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"

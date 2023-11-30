@@ -39,7 +39,7 @@ uint32_t IndexProp::Write(Byte *bys) {
 }
 
 uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
-                         const MHashMap<MString, uint32_t> &mapColumnPos) {
+                         const MStrHashMap<uint32_t> &mapColumnPos) {
   _position = pos;
   Byte *tmp = bys;
   uint16_t sz = *(uint16_t *)bys;
@@ -142,7 +142,7 @@ bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
   }
 
   MVector<IndexColumn> vctCol;
-  MHashSet<MString> mset;
+  MStrHashSet mset;
   for (const MString &cname : colNames) {
     if (mset.contains(cname)) {
       _threadErrorMsg.reset(new ErrorMsg(TB_REPEATED_COLUMN_NAME, {cname}));

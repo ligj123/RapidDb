@@ -32,7 +32,7 @@ bool DatabaseManager::LoadDb(PhysTable *dbTable) {
                                   (DT_MilliSec) * (DataValueDateTime *)vdv[3],
                                   (DT_MilliSec) * (DataValueDateTime *)vdv[4]);
       _mapDb.insert({db->GetDbName(), db});
-      size_t hash = std::hash<storage::MString>{}(db->GetDbName());
+      size_t hash = MStrHash{}(db->GetDbName());
       assert(_fastDbCache[hash % FAST_SIZE] == nullptr);
       _fastDbCache[hash % FAST_SIZE] = db;
     }
@@ -54,7 +54,7 @@ bool DatabaseManager::AddDb(Database *db) {
     return false;
 
   _mapDb.insert({db->GetDbName(), db});
-  size_t hash = std::hash<storage::MString>{}(db->GetDbName());
+  size_t hash = MStrHash{}(db->GetDbName());
   if (_fastDbCache[hash % FAST_SIZE] == nullptr)
     _fastDbCache[hash % FAST_SIZE] = db;
 
@@ -69,7 +69,7 @@ bool DatabaseManager::DelDb(MString dbName) {
 
   Database *db = iter->second;
   db->SetDropped();
-  size_t hash = std::hash<storage::MString>{}(dbName);
+  size_t hash = MStrHash{}(dbName);
   if (_fastDbCache[hash % FAST_SIZE] == nullptr)
     _fastDbCache[hash % FAST_SIZE] = db;
 
@@ -89,7 +89,7 @@ bool DatabaseManager::ListDb(MVector<MString> &vctDb) {
 }
 
 Database *DatabaseManager::FindDb(MString dbName) {
-  size_t hash = std::hash<storage::MString>{}(dbName);
+  size_t hash = MStrHash{}(dbName);
   if (_fastDbCache[hash % FAST_SIZE] != nullptr &&
       _fastDbCache[hash % FAST_SIZE]->GetDbName() == dbName) {
     return _fastDbCache[hash % FAST_SIZE];

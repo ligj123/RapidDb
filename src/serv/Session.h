@@ -68,7 +68,7 @@ protected:
   // The current transaction in this session, or nullptr if not exist.
   Transaction *_currTransaction{nullptr};
   // The map of <Sql, parsed ExprStatement> in this session
-  MHashMap<MString, ExprStatement *> _mapSqlExprStatement;
+  MStrHashMap<ExprStatement *> _mapSqlExprStatement;
   // The map of <id, parsed ExprStatement> in this session, duplicate of above
   // map.
   MHashMap<uint64_t, ExprStatement *> _mapIdExprStatement;
