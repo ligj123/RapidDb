@@ -31,18 +31,14 @@ public:
   Statement *GetCurrStatement() { return _currStatement; }
   Transaction *GetCurrTransaction() { return _currTransaction; }
 
-  /** @brief Create a new statement and send it to queue to wait for execute.
+  /** @brief Create a new statement and send it to queue and wait it to execute.
    * @param sql The sql string
    * @param paras One or multi group of parameters that wait to fill statement.
+   * @return True, this session is free and passed to parse this ql, False,
+   * failed to parse this sql or the session is busy.
    */
-  bool CreateStatement(MString sql, VectorRow &paras);
-  /**
-   * @brief Parser the sql string and assign ExprStatement with united id.
-   * @param sql the sql string to create statement.
-   * @return return the id of this statement and used for following
-   * AddStatement.
-   */
-  uint64_t PrepareStatement(MString sql);
+  bool CreateStatement(MString &&sql, VectorRow &paras);
+
   /**
    * @brief The new statement with prepared statement, use id to identify
    * statement.
@@ -56,6 +52,10 @@ public:
    * @return True: No statement is running, False: One statement is running.
    */
   bool IsFree();
+
+  bool BeginTran();
+  bool CommitTran();
+  bool RollbackTran();
 
 protected:
   // session id, only valid in this server and to identify the sessions.It will
