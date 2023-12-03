@@ -3,11 +3,16 @@
 #include "../statement/Statement.h"
 #include "../table/Database.h"
 #include "../transaction/Transaction.h"
+#include "../utils/ResStatus.h"
+
 #include <atomic>
 #include <unordered_map>
 
 namespace storage {
 using namespace std;
+enum class SessionStatus {
+
+};
 
 /**
  * The client create a connection and connect to server, the server will create
@@ -25,13 +30,18 @@ public:
   }
 
 public:
-  Session(uint32_t id, function<void()> hookFunc) : _id(id) {}
+  Session(uint32_t id, function<void()> hookFunc) : _id(id) {
+    _resStatus = ResStatus::Valid;
+  }
+  uint32_t SessionID() { return _id; }
   const Database *GetCurrDb() const { return _currDb; }
   void SetCurrDb(Database *db) { _currDb = db; }
   Statement *GetCurrStatement() { return _currStatement; }
   Transaction *GetCurrTransaction() { return _currTransaction; }
+  void SetAutoCommit(bool b) { _bAutoCommit = b; }
 
-  /** @brief Create a new statement and send it to queue and wait it to execute.
+  /** @brief Parse sql to ExprStatement, assign a new id to this statement. Then
+   * create a new statement to execute the sql.
    * @param sql The sql string
    * @param paras One or multi group of parameters that wait to fill statement.
    * @return True, this session is free and passed to parse this ql, False,
@@ -40,12 +50,14 @@ public:
   bool CreateStatement(MString &&sql, VectorRow &paras);
 
   /**
-   * @brief The new statement with prepared statement, use id to identify
+   * @brief The sql has been parse in previous call, this time will reuse the
    * statement.
    * @param sid The statement id.
    * @param paras One or multi group of parameters that wait to fill statement.
+   * @return True, this session is free and passed to parse this ql, False,
+   * failed to parse this sql or the session is busy.
    */
-  bool AddStatement(uint64_t sid, VectorRow &paras);
+  bool AddStatement(uint64_t stmt_id, VectorRow &paras);
   /**
    * @brief To judge if this session is running statement or has finished,
    * without statement.
@@ -57,10 +69,16 @@ public:
   bool CommitTran();
   bool RollbackTran();
 
+  void Close();
+
 protected:
   // session id, only valid in this server and to identify the sessions.It will
   // start from 0, and add 1 every time. If exceed 2^32, it will restart from 0.
   uint32_t _id;
+  // Auto commit the transaction or need client call commit.
+  bool _bAutoCommit;
+  // The session status.
+  ResStatus _resStatus;
   // To record the current database switched by use database name
   Database *_currDb{nullptr};
   // The running statement in this session, or nullptr if not exist.
@@ -71,7 +89,7 @@ protected:
   MStrHashMap<ExprStatement *> _mapSqlExprStatement;
   // The map of <id, parsed ExprStatement> in this session, duplicate of above
   // map.
-  MHashMap<uint64_t, ExprStatement *> _mapIdExprStatement;
+  MHashMap<uint32_t, ExprStatement *> _mapIdExprStatement;
   // The hook function that willbe called when the statement finished.
   function<void()> _hookFunc;
 };

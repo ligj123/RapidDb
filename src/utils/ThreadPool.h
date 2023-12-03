@@ -58,6 +58,14 @@ class ThreadPool;
 // All tasks that run in thread pool must inherit this class.
 class Task {
 public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+public:
   virtual ~Task() {}
   virtual void Run() = 0;
   inline TaskStatus Status() { return _status; }
@@ -72,19 +80,13 @@ public:
   }
 
   MVector<Task *> &GetWaitTasks() { return _vctWaitTasks; }
-  static void *operator new(size_t size) {
-    return CachePool::Apply((uint32_t)size);
-  }
-  static void operator delete(void *ptr, size_t size) {
-    CachePool::Release((Byte *)ptr, (uint32_t)size);
-  }
 
 protected:
   /**The tasks waiting for this task, they will be added into pool when current
    * has been finished*/
   MVector<Task *> _vctWaitTasks;
   TaskStatus _status = TaskStatus::UNINIT;
-  coroutine<TaskStatus>::pull_type *_coroutine;
+  coroutine<TaskStatus>::pull_type *_coroutine{nullptr};
 };
 
 template <class T, uint32_t SZ> class FastQueue;

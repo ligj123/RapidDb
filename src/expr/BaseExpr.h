@@ -152,8 +152,13 @@ public:
   virtual bool Preprocess(Session *session) = 0;
 
 public:
-  // The vector of parameters. Params are duplications, do not need free.
+  // The vector of parameters. Params are duplications of its child class
+  // variable, do not need free.
   MVector<ExprParameter *> _vctPara;
+  // Global expr statement start from 0x100000000000000, increment 1 every time.
+  // Every seesion has its unify id, start from 1 and can not exceed
+  // 0x0FFFFFFFFFFFFFFF. 0 means unitialization id and need to assign an id.
+  uint32_t _exprId{0};
 };
 
 } // namespace storage

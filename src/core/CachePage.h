@@ -21,6 +21,8 @@ enum class PageStatus : uint8_t {
   EMPTY = 0,
   // The page has been loaded and the data is valid
   VALID,
+  // This page has marked as obsolete and can not be visit again.
+  OBSOLETE,
   // The page has been loaded and failed the crc32 verify, need to fix
   INVALID
 };
