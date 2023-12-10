@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿/*
+#pragma once
 #include "../cache/Mallocator.h"
 #include "../core/ActionType.h"
 #include "../core/LeafRecord.h"
@@ -123,3 +124,4 @@ protected:
   SpinMutex _spinMutex;
 };
 } // namespace storage
+*/

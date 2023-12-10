@@ -10,8 +10,12 @@
 
 namespace storage {
 using namespace std;
-enum class SessionStatus {
-
+enum class SessionStatus : uint8_t {
+  Free = 0, // No statement running or wait to get result
+  Waiting,  // The sql has been added and waiting to execute.
+  Busy,     // One statement is running
+  Finished, // The statement has finished and wait client to get result.
+  Obsolete  // The session has been closed and obsolete.
 };
 
 /**
@@ -20,7 +24,7 @@ enum class SessionStatus {
  * server will communicate by connection and session. All operations will run
  * one by one with order.
  */
-class Session {
+struct Session {
 public:
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
@@ -30,68 +34,70 @@ public:
   }
 
 public:
-  Session(uint32_t id, function<void()> hookFunc) : _id(id) {
-    _resStatus = ResStatus::Valid;
+  Session(uint32_t id, function<void()> hookFunc)
+      : _id(id), _hookFunc(hookFunc) {}
+
+  /**
+   * @brief Add a statement into session.
+   * @param sql The sql string to executed. If the second time to run this sql
+   * and client has got the statement id, this value should be empty.
+   * @param sid The statement id, it was create the first time. The id only
+   * valid in this session.
+   * @param paras One or multi group of parameters that wait to fill statement.
+   * @return True: this session is free and added this statement into session;
+   * False, failed to add into session.
+   */
+  bool AddStatement(MString &&sql, uint32_t stmtId, VectorRow &&paras) {
+    if (_status != SessionStatus::Free) {
+      return false;
+    }
+
+    _sql = move(sql);
+    _stmtId = stmtId;
+    _paras = paras;
+    return true;
   }
-  uint32_t SessionID() { return _id; }
-  const Database *GetCurrDb() const { return _currDb; }
-  void SetCurrDb(Database *db) { _currDb = db; }
-  Statement *GetCurrStatement() { return _currStatement; }
-  Transaction *GetCurrTransaction() { return _currTransaction; }
-  void SetAutoCommit(bool b) { _bAutoCommit = b; }
 
-  /** @brief Parse sql to ExprStatement, assign a new id to this statement. Then
-   * create a new statement to execute the sql.
-   * @param sql The sql string
-   * @param paras One or multi group of parameters that wait to fill statement.
-   * @return True, this session is free and passed to parse this ql, False,
-   * failed to parse this sql or the session is busy.
-   */
-  bool CreateStatement(MString &&sql, VectorRow &paras);
-
-  /**
-   * @brief The sql has been parse in previous call, this time will reuse the
-   * statement.
-   * @param sid The statement id.
-   * @param paras One or multi group of parameters that wait to fill statement.
-   * @return True, this session is free and passed to parse this ql, False,
-   * failed to parse this sql or the session is busy.
-   */
-  bool AddStatement(uint64_t stmt_id, VectorRow &paras);
-  /**
-   * @brief To judge if this session is running statement or has finished,
-   * without statement.
-   * @return True: No statement is running, False: One statement is running.
-   */
-  bool IsFree();
-
-  bool BeginTran();
-  bool CommitTran();
-  bool RollbackTran();
-
-  void Close();
-
-protected:
+public:
   // session id, only valid in this server and to identify the sessions.It will
   // start from 0, and add 1 every time. If exceed 2^32, it will restart from 0.
   uint32_t _id;
   // Auto commit the transaction or need client call commit.
-  bool _bAutoCommit;
-  // The session status.
-  ResStatus _resStatus;
+  bool _bAutoCommit{true};
+  // After create this session, it will always true to sign this session is
+  // valid. If it will set false if the session is droped and the session will
+  // be move to obsolete vector.
+  SessionStatus _status{SessionStatus::Free};
+
+  // The transaction information.
+  Transaction _transaction;
+
   // To record the current database switched by use database name
   Database *_currDb{nullptr};
   // The running statement in this session, or nullptr if not exist.
   Statement *_currStatement{nullptr};
-  // The current transaction in this session, or nullptr if not exist.
-  Transaction *_currTransaction{nullptr};
   // The map of <Sql, parsed ExprStatement> in this session
   MStrHashMap<ExprStatement *> _mapSqlExprStatement;
-  // The map of <id, parsed ExprStatement> in this session, duplicate of above
-  // map.
+  // The map of <exprstatement id, parsed ExprStatement> in this session,
+  // duplicate of _mapSqlExprStatement.
   MHashMap<uint32_t, ExprStatement *> _mapIdExprStatement;
-  // The hook function that willbe called when the statement finished.
+  // The hook function that will be called when the statement finished.
   function<void()> _hookFunc;
+  // The create time for this session
+  DT_MicroSec _createTime;
+  // The last time to visit this session
+  DT_MicroSec _lastVisitTime = 0;
+  // The current statement id that will assign to new statement in this session.
+  uint32_t _currStatementId;
+
+  // Below 3 variable are only used for client and server in one process.
+  //  The sql string to parse and execute.
+  MString _sql;
+  // The statement id that just added if it is parpre statement and second
+  // input.
+  uint32_t _stmtId;
+  // Multi rows of the parameters
+  VectorRow _paras;
 };
 
 } // namespace storage
