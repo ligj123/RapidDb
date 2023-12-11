@@ -34,7 +34,7 @@ public:
   }
 
 public:
-  Session(uint32_t id, function<void()> hookFunc)
+  Session(uint32_t id, function<void()> hookFunc = nullptr)
       : _id(id), _hookFunc(hookFunc) {}
 
   /**

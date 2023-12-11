@@ -20,11 +20,13 @@ struct SessionTask {
   }
 
   virtual STaskType TaskType() const = 0;
+  virtual void Exec() = 0;
   uint32_t _sid; // session id
 };
 
 struct CreateSession : public SessionTask {
   STaskType TaskType() override const { return STaskType::Create; }
+  void Exec() override {}
   Session *_session;
 };
 
@@ -43,7 +45,7 @@ struct SessionGroup {
   thread *_thread{nullptr};
   // The current transaction id to assign
   uint64_t _currTranId{0};
-  // The task need to run
+  // The tasks need to run
   vector<SessionTask *> _vctTask;
 };
 
@@ -59,6 +61,9 @@ public:
   uint32_t CreateSession();
   void CloseSession(uint32_t sid);
   Session *GetSession(uint32_t sid);
+  SessionGroup &GetSessionGroup(uint32_t sid) {
+    return _vctGroup[sid % _threadNum];
+  }
 
 protected:
   static void Run(uint16_t thdId);
