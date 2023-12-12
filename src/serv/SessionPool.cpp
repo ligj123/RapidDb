@@ -1,6 +1,7 @@
 #include "SessionPool.h"
 #include "utils/"
 namespace storage {
+bool SessionPool::__bStoped{false};
 atomic<uint64_t> SessionPool::_sessionId{0};
 atomic<uint64_t> SessionPool::_tranId{0};
 uint16_t SessionPool::_threadNum{0};
@@ -40,6 +41,31 @@ void SessionPool::Run(uint16_t thdId) {
   sg._currTranId = _tranId.fetch_add(_tranRangeId, memory_order_relaxed);
 
   while (true) {
+    for (SessionTask &task : sg._vctTask) {
+      task.Exec();
+    }
+
+    size_t freeSession = 0;
+    for (auto iter = sg._mapSession.begin(); iter != sg._mapSession.end();
+         iter++) {
+      Session *session = iter->second;
+      switch (session->_status) {
+      case SessionStatus::Added:
+        session->GenStatement();
+        break;
+      case SessionStatus::Executed:
+        break;
+      case SessionStatus::Logged:
+        break;
+      case SessionStatus::Finished:
+
+        break;
+      case SessionStatus::Free:
+        break;
+      default:
+        break;
+      }
+    }
   }
 }
 } // namespace storage

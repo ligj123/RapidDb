@@ -26,12 +26,13 @@ struct SessionTask {
 
 struct CreateSession : public SessionTask {
   STaskType TaskType() override const { return STaskType::Create; }
-  void Exec() override {}
+  void Exec() override;
   Session *_session;
 };
 
 struct CloseSession : public SessionTask {
   STaskType TaskType() override const { return STaskType::Close; }
+  void Exec() override;
 };
 
 // In this pool, every thread has its data structor and it
@@ -40,7 +41,7 @@ struct SessionGroup {
   // The session map that the sessions are alive.
   MHashMap<uint32_t, Session *> _mapSession;
   // The session that have closed, they will be
-  MVector<Session> _discardSession;
+  MVector<Session *> _discardSession;
   // The thread for current group
   thread *_thread{nullptr};
   // The current transaction id to assign
@@ -69,6 +70,7 @@ protected:
   static void Run(uint16_t thdId);
 
 protected:
+  static bool _bStoped;
   // Create how much threads to run session.
   static uint16_t _threadNum;
   // The vector of session groups

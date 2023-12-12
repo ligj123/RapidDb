@@ -11,11 +11,27 @@
 namespace storage {
 using namespace std;
 enum class SessionStatus : uint8_t {
-  Free = 0, // No statement running or wait to get result
-  Waiting,  // The sql has been added and waiting to execute.
-  Busy,     // One statement is running
-  Finished, // The statement has finished and wait client to get result.
-  Obsolete  // The session has been closed and obsolete.
+  // No statement or transaction in this session
+  Free = 0,
+  // The sql has been added and waiting to execute.
+  Added,
+  // The statement is running
+  Executing,
+  // The statement has executed and waiting to write log.
+  Executed,
+  // Writting log. If autocommit, need commit, then finish and return
+  // result to client,
+  Logging,
+  // Finished log
+  Logged,
+  // Commit this transaction
+  Committing,
+  // The statement has finished and wait client to get result.
+  Finished,
+  // Waitting next statement or commit transaction
+  Waiting,
+  // The session has been closed and obsolete.
+  Obsolete
 };
 
 /**
@@ -48,15 +64,18 @@ public:
    * False, failed to add into session.
    */
   bool AddStatement(MString &&sql, uint32_t stmtId, VectorRow &&paras) {
-    if (_status != SessionStatus::Free) {
+    if (_status != SessionStatus::Free && _status != SessionStatus::Waiting) {
       return false;
     }
 
     _sql = move(sql);
     _stmtId = stmtId;
     _paras = paras;
+    _status = SessionStatus::Waiting;
     return true;
   }
+
+  void GenStatement() {}
 
 public:
   // session id, only valid in this server and to identify the sessions.It will
