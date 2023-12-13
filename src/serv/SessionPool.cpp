@@ -3,11 +3,10 @@
 namespace storage {
 bool SessionPool::__bStoped{false};
 atomic<uint64_t> SessionPool::_sessionId{0};
-atomic<uint64_t> SessionPool::_tranId{0};
+atomic<uint64_t> SessionPool::_tranId;
+uint64_t SessionPool::_tranInitId;
 uint16_t SessionPool::_threadNum{0};
 vector<SessionGroup> SessionPool::_vctGroup;
-uint64_t SessionPool::_sessionRangeId{0xff};
-uint64_t SessionPool::_tranRangeId{0xff};
 
 void CreateSession::Exec() {
   SessionGroup &sg = GetSessionGroup(_sid);
@@ -30,6 +29,11 @@ bool SessionPool::InitPool(uint16_t threadNum) {
   assert(threadNum > 0);
   _threadNum = threadNum;
   _vctGroup.resize(_threadNum);
+
+  // Init _tranId. read value from system variable table, and add restart time
+  // then save it to system variable table.
+  _tranId.store(0, memory_order_relaxed);
+  _tranInitId = 0;
 
   for (uint16_t i = 0; i < _threadNum; i++) {
     _vctGroup[i]._thread = new thread([i]() { Run(i); });

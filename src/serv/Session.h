@@ -63,19 +63,19 @@ public:
    * @return True: this session is free and added this statement into session;
    * False, failed to add into session.
    */
-  bool AddStatement(MString &&sql, uint32_t stmtId, VectorRow &&paras) {
+  bool AddStatement(VectorRow &&paras, MString &&sql, uint32_t exprId) {
     if (_status != SessionStatus::Free && _status != SessionStatus::Waiting) {
       return false;
     }
 
     _sql = move(sql);
-    _stmtId = stmtId;
+    _exprId = exprId;
     _paras = paras;
     _status = SessionStatus::Waiting;
     return true;
   }
 
-  void GenStatement() {}
+  void GenStatement();
 
 public:
   // session id, only valid in this server and to identify the sessions.It will
@@ -112,9 +112,9 @@ public:
   // Below 3 variable are only used for client and server in one process.
   //  The sql string to parse and execute.
   MString _sql;
-  // The statement id that just added if it is parpre statement and second
+  // The expr statement id that just added if it is parpre statement and second
   // input.
-  uint32_t _stmtId;
+  uint32_t _exprId;
   // Multi rows of the parameters
   VectorRow _paras;
 };

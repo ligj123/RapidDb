@@ -1,3 +1,8 @@
 #include "Session.h"
 
-namespace storage {} // namespace storage
+namespace storage {
+void Session::GenStatement() {
+  if (_stmtId != UINT32_MAX) {
+  }
+}
+} // namespace storage

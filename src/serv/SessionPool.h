@@ -3,6 +3,9 @@
 #include <atomic>
 #include <thread>
 
+#define TRAN_ID_RANGE 0x1000
+#define SESSION_ID_RANGE 0x100
+
 namespace storage {
 using namespace std;
 
@@ -65,6 +68,31 @@ public:
   SessionGroup &GetSessionGroup(uint32_t sid) {
     return _vctGroup[sid % _threadNum];
   }
+  // Apply a new transaction id. For efficiency, Every group will apply a range
+  // of id pointed by TRAN_ID_RANGE, then every session will apply a transaction
+  // from this range. If the ids in this range hasve been exhaust, it will apply
+  // next range ids again.
+  uint64_t ApplyTranId(uint32_t sid) {
+    uint64_t &currTranId = _vctGroup[sid % _threadNum]._currTranId;
+    uint64_t id = currTranId;
+    currTranId++;
+
+    if ((currTranId % TRAN_ID_RANGE) == 0) {
+      currTranId = _tranId.fetch_add(TRAN_ID_RANGE, memory_order_relaxed);
+      if (currTranId > (_tranInitId + 0xffffffffff - _tranRangeId)) {
+        unique_lock<SpinMutex> lock(_spinMutex);
+        if (_tranId.load(memory_order_relaxed) >
+            (_tranInitId + 0xffffffffff - _tranRangeId)) {
+          _tranId.store(_tranInitId, memory_order_relaxed);
+          currTranId = _tranInitId;
+        } else {
+          currTranId = _tranId.fetch_add(TRAN_ID_RANGE, memory_order_relaxed);
+        }
+      }
+    }
+
+    return id;
+  }
 
 protected:
   static void Run(uint16_t thdId);
@@ -82,8 +110,8 @@ protected:
   // how many times to restart db, it will be saved in system variable table.
   // The other 40 bits is the session id incremented 1 every time.
   static atomic<uint64_t> _tranId;
-
-  // The transaction range that the group to get every time.
-  static uint64_t _tranRangeId;
+  // The init transaction this time
+  static uint64_t _tranInitId;
+  static SpinMutex _spinMutex;
 };
 } // namespace storage
