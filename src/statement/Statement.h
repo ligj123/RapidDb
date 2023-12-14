@@ -2,18 +2,13 @@
 #include "../cache/Mallocator.h"
 #include "../core/ActionType.h"
 #include "../dataType/DataType.h"
-#include "../dataType/DataValueBlob.h"
-#include "../dataType/DataValueDigit.h"
-#include "../dataType/DataValueFixChar.h"
-#include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
-#include "../header.h"
-#include "../result/IResultSet.h"
-#include "../transaction/TranType.h"
-#include "../transaction/Transaction.h"
+#include "../expr/BaseExpr.h"
+#include "../serv/Transaction.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
+
 #include <atomic>
 #include <chrono>
 #include <future>
@@ -31,13 +26,9 @@ public:
    * @param bTran If need transaction. For normal select, it is not need
    * transaction.
    */
-  Statement(Transaction *tran, const VectorDataValue *paraTmpl,
-            bool bTran = true)
-      : _tran(tran), _bAutoTran(tran == nullptr), _vctParaTmpl(paraTmpl) {
-    if (bTran && _tran == nullptr) {
-      _tran = new Transaction(TranType::AUTOMATE,
-                              (uint32_t)Configure::GetAutoTaskOvertime());
-    }
+  Statement(uint32_t id, Transaction *tran, ExprStatement *exprStmt,
+            const VectorDataValue *paraTmpl)
+      : _id(id), _tran(tran), _vctParaTmpl(paraTmpl) {
 
     _id = _tran->GetTranId() + _tran->GetStatements().size();
     _createTime = TimerThread::GetCurrTime();
@@ -95,7 +86,6 @@ public:
   DT_MicroSec GetStopTime() { return _stopTime; }
   bool IsFinished() { return _tinyTasks == _finishedTask; }
   uint64_t GetTranId() { return _tran->GetTranId(); }
-  TranStatus GetTransactionStatus() { return _tran->GetTransactionStatus(); }
 
   /**
    * load parameters from byte array, maybe 1~N rows.
@@ -146,32 +136,20 @@ public:
   }
 
 protected:
-  // If automate transaction, it equal transaction id. If manual transaction, it
-  // will start from transaction id to tid+0xffff
-  uint64_t _id;
-  // The vactor of data value from sql expression
-  const VectorDataValue *_vctParaTmpl;
+  // Id will auto increment 1 every time in self session.
+  uint32_t _id;
+  // The expr statement
+  ExprStatement *_exprStmt;
   // To save multi rows of parameters loaded from client byte array
   VectorRow _vctParas;
   // The create time for this statement
   DT_MicroSec _createTime;
-  // The start time to execute for this statement
-  DT_MicroSec _startTime = 0;
   // The finished or abort time to execute for this statement
   DT_MicroSec _stopTime = 0;
-  // The number of tiny taks. One statement maybe splite serveral tiny tasks to
-  // run. Here used to save how much tiny tasks in total.
-  atomic_uint32_t _tinyTasks = 0;
-  // The number of finished tiny tasks.
-  atomic_uint32_t _finishedTask = 0;
   // The transaction to run this task, no nullable.
   Transaction *_tran;
   // If current statement meet error, save the reason here
   unique_ptr<ErrorMsg> _errorMsg = nullptr;
-  // False, it will input the transaction from outside when construct this
-  // statement; True , no transaction incoming and need this statement to create
-  // a new transaction.
-  bool _bAutoTran = false;
   // All inserted, updated or locked records in this statement
   VectorLeafRecord _vctRecord;
 };

@@ -52,10 +52,16 @@ public:
 protected:
   /** the byte array that save key and value's content */
   Byte *_bysVal;
-  /** the parent page included this record */
-  IndexPage *_parentPage;
-  /**index tree*/
-  IndexTree *_indexTree;
+  // Only one is valid, if just create a record and not added into a page,
+  // _indexTree is valid, if has added into a page, _parentPage is valid.
+  union {
+    /** the parent page included this record */
+    IndexPage *_parentPage;
+    /**index tree*/
+    IndexTree *_indexTree;
+  };
+  // True: _parentPage is valid, False: _indexTree is valid
+  bool _InPage;
   /**If this record' value is saved into solely buffer or into index page*/
   bool _bSole;
   // Below is used in LeafRecord, put here to save space. Only vaild when

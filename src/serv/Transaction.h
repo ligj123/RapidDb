@@ -21,5 +21,9 @@ public:
   DT_MicroSec _stopTime{UINT64_MAX};
   // The statements executed in this transaction
   MVector<Statement *> _vctStatement;
+  // spin lock
+  SpinMutex _spinMutex;
+  // The session own this transaction
+  Session *_session;
 };
 } // namespace storage
