@@ -214,12 +214,7 @@ protected:
   // Vector to contain overflow page
   OverflowPage *_overflowPage = nullptr;
   friend std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
-  friend bool operator<(const LeafRecord &llr, const LeafRecord &rlr);
 };
-
-inline bool operator<(const LeafRecord &llr, const LeafRecord &rlr) {
-  return llr < rlr;
-}
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
 class VectorLeafRecord : public MVector<LeafRecord *> {

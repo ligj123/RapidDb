@@ -71,7 +71,7 @@ public:
     _sql = move(sql);
     _exprId = exprId;
     _paras = paras;
-    _status = SessionStatus::Waiting;
+    _status = SessionStatus::Added;
     return true;
   }
 
