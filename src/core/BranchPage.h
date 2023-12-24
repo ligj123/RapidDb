@@ -44,5 +44,8 @@ protected:
   }
   int CompareTo(uint32_t recPos, const BranchRecord &rr) const;
   int CompareTo(uint32_t recPos, const RawKey &key) const;
+
+  // The Children page, every child page response to a branch record
+  MVector<IndexPage *> _children;
 };
 } // namespace storage

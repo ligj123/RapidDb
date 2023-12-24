@@ -17,14 +17,6 @@ namespace storage {
 using namespace std;
 class LeafPage;
 
-struct PageLock {
-  PageLock() : _sm(new SpinMutex), _refCount(0) {}
-  ~PageLock() { delete _sm; }
-
-  SpinMutex *_sm;
-  int _refCount;
-};
-
 class IndexTree {
 public:
   // For test purpose, close the index tree and wait until all pages are saved.
@@ -98,10 +90,6 @@ public:
   inline bool IsClosed() { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
   void Close(function<void()> funcDestory = nullptr);
-  inline void ReleasePageFile(PageFile *rpf) {
-    lock_guard<SpinMutex> lock(_fileMutex);
-    _fileQueue.push(rpf);
-  }
 
   inline HeadPage *GetHeadPage() { return _headPage; }
   inline void IncPages() { _pagesInMem.fetch_add(1, memory_order_relaxed); }
@@ -129,7 +117,7 @@ protected:
 protected:
   MString _indexName;
   MString _fileName;
-  std::queue<PageFile *> _fileQueue;
+  vector<PageFile *> _vctPageFile;
   SpinMutex _fileMutex;
   condition_variable_any _fileCv;
   /**How much page files were opened for this index tree*/
@@ -146,8 +134,6 @@ protected:
   VectorDataValue _vctKey;
   VectorDataValue _vctValue;
   SpinMutex _pageMutex;
-  MHashMap<uint64_t, PageLock *> _mapMutex;
-  queue<PageLock *> _queueMutex;
   /**To lock for root page*/
   SharedSpinMutex _rootSharedMutex;
   IndexPage *_rootPage = nullptr;

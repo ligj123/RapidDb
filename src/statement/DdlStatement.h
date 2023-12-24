@@ -13,5 +13,7 @@ public:
   void WriteLog() override {}
 
   void Commit() override {}
+
+  void ReplayLog() override {}
 };
 } // namespace storage

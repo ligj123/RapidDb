@@ -4,7 +4,6 @@
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
 #include "../expr/BaseExpr.h"
-#include "../serv/Transaction.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
@@ -15,6 +14,8 @@
 
 namespace storage {
 class Transaction;
+class LeafRecord;
+
 class Statement {
 public:
   /**
@@ -38,11 +39,10 @@ public:
   virtual void Exec() = 0;
   virtual void WriteLog() = 0;
   virtual void Commit() = 0;
+  virtual void ReplayLog() = 0;
 
   DT_MicroSec GetCreateTime() { return _createTime; }
-  DT_MicroSec GetStartTime() { return _startTime; }
   DT_MicroSec GetStopTime() { return _stopTime; }
-  uint64_t GetTranId() { return _tran->GetTranId(); }
 
 public:
   static void *operator new(size_t size) {
@@ -68,6 +68,6 @@ protected:
   // If current statement meet error, save the reason here
   unique_ptr<ErrorMsg> _errorMsg = nullptr;
   // All inserted, updated or locked records in this statement
-  VectorLeafRecord _vctRecord;
+  MVector<LeafRecord *> _vctRecord;
 };
 } // namespace storage

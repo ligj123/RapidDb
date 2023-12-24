@@ -14,6 +14,34 @@ namespace storage {
 static const Byte REC_OVERFLOW = 0x80;
 static const Byte VERSION_NUM = 0x0f;
 
+enum class ActionType : uint8_t {
+  QUERY_SHARE = 0,    // Query and read lock
+  QUERY_UPDATE = 0x1, // Query and write lock
+  INSERT = 0x10,      // Insert this record and write lock
+  UPDATE = 0x11,      // Update this record and write lock
+  DELETE = 0x12,      // Delete this record and write lock
+};
+
+enum class RecordStatus : uint8_t {
+  INIT = 0, // Just create and wait to add LeafPage
+  SEAT,     // The record has insert its seat in LeafPage
+  COMMIT,   // The related transaction has commited, only valid for WriteLock
+  ROLLBACK  // The related statement has abort, only valid for WriteLock
+};
+
+class Statement;
+class LeafRecord;
+
+// LeafRecord lock
+struct RecordLock {
+  ActionType _actType;
+  RecordStatus _status;
+  bool _bGapLock; // True: locked the range between this and previous record,
+                  // only valid repeatable read isolation level.
+  MVector<Statement *> _vctStmt; // The statements locked this record
+  LeafRecord *_undoRec;          // To save old version for rollback statement.
+};
+
 // Only for primary index
 struct RecStruct {
   RecStruct(Byte *bys, uint16_t keyLen, Byte verNum,
@@ -185,8 +213,11 @@ protected:
     }
 
     if (lenKey > Configure::GetMaxKeyLength()) {
-      throw ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)});
+      _threadErrorMsg.reset(
+          new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)}));
+      return UINT32_MAX;
     }
+
     return lenKey;
   }
   // To calc a version's value length
@@ -205,14 +236,11 @@ protected:
                                 MVector<Byte> &vctSN);
 
 protected:
-  // If update this record, save old version for transaction rollback. If it
-  // has been updated more than one time. old rec can recursively contain an
-  // old rec.
-  LeafRecord *_undoRec = nullptr;
-  // Write statement, when insert, update or delete,
-  Statement *_statement = nullptr;
+  // Default is nullptr, If a statement locked this record, set this variable to
+  // save related information
+  RecordLock *_recordLock{nullptr};
   // Vector to contain overflow page
-  OverflowPage *_overflowPage = nullptr;
+  OverflowPage *_overflowPage{nullptr};
   friend std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
 };
 
