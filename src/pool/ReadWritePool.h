@@ -1,2 +1,0 @@
-
-namespace storage {} // namespace storage
