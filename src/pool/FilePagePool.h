@@ -18,7 +18,22 @@ using namespace std;
 
 class FilePagePool {
 public:
+  static void Start();
+  static void Stop();
+
+public:
+  void AddReadPage(uint16_t tid, CachePage *page) {
+    _readQueue.Push(tid, page, true);
+  }
+  void AddWritePage(uint16_t tid, CachePage *page) {
+    _writeQueue.Push(tid, page, true);
+  }
+
 protected:
+  void Run();
+
+protected:
+  static FilePagePool *_pool;
   thread _thread;
   // The cache page that need to read
   FastQueue<CachePage, 1000> _readQueue;

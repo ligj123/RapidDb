@@ -19,6 +19,10 @@ class IndexTree;
 enum class PageStatus : uint8_t {
   // Not load data from disk
   EMPTY = 0,
+  // This page has added reading queue and wait to read
+  READING,
+  // This page has finished to read and
+  READED,
   // The page has been loaded and the data is valid
   VALID,
   // This page has marked as obsolete and can not be visit again.
@@ -130,39 +134,11 @@ public:
 
   inline PageStatus GetPageStatus() { return _pageStatus; }
   inline void SetPageStatus(PageStatus ps) { _pageStatus = ps; }
-  inline bool PushWaitTask(Task *task) {
-    if (_pageStatus != PageStatus::EMPTY)
-      return false;
-
-    unique_lock<SpinMutex> lock(_taskLock);
-    if (_pageStatus != PageStatus::EMPTY) {
-      return false;
-    }
-    _waitTasks.push_back(task);
-
-    return true;
-  }
-  inline MVector<Task *> &GetWaitTasks() { return _waitTasks; }
-  inline void SetInDivid(bool b) { _bInDivid.store(b, memory_order_relaxed); }
-  inline bool IsInDivid() { return _bInDivid.load(memory_order_relaxed); }
-  inline void SetInStorage(bool b) {
-    _bInStorage.store(b, memory_order_relaxed);
-  }
-  inline bool IsInStorage() { return _bInStorage.load(memory_order_relaxed); }
-  inline void WaitRead() {
-    if (_pageStatus == PageStatus::VALID)
-      return;
-
-    std::unique_lock<SpinMutex> lk(_pageLock);
-    _pageCv.wait(lk, [this]() { return _pageStatus == PageStatus::VALID; });
-  }
 
 protected:
   virtual ~CachePage();
 
 protected:
-  // To save waiting tasks when reading from disk
-  MVector<Task *> _waitTasks;
   // Mutexes when task adding or removing
   SpinMutex _taskLock;
   // The page block, it is equal pages in disk
@@ -201,24 +177,4 @@ protected:
   atomic_bool _bInStorage = false;
 };
 
-class ReadPageTask : public Task {
-public:
-  ReadPageTask(CachePage *page) : _page(page) { page->IncRef(); }
-  bool IsSmallTask() { return false; }
-  void Run() {
-    _status = TaskStatus::RUNNING;
-    _page->ReadPage(nullptr);
-
-    if (_page->GetPageStatus() != PageStatus::VALID) {
-      // In following time will add code to fix page;
-      abort();
-    }
-
-    _status = TaskStatus::FINISHED;
-    _page->DecRef();
-  }
-
-protected:
-  CachePage *_page;
-};
 } // namespace storage
