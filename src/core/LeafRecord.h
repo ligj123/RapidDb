@@ -15,18 +15,20 @@ static const Byte REC_OVERFLOW = 0x80;
 static const Byte VERSION_NUM = 0x0f;
 
 enum class ActionType : uint8_t {
-  QUERY_SHARE = 0,    // Query and read lock
-  QUERY_UPDATE = 0x1, // Query and write lock
-  INSERT = 0x10,      // Insert this record and write lock
-  UPDATE = 0x11,      // Update this record and write lock
-  DELETE = 0x12,      // Delete this record and write lock
+  QUERY_SHARE = 0,    // Query with read lock
+  QUERY_UPDATE = 0x1, // Query with write lock
+  INSERT = 0x10,      // Insert this record with write lock
+  UPDATE = 0x11,      // Update this record with write lock
+  DELETE = 0x12,      // Delete this record with write lock
+  NO_ACTION = 0xFF    // No action to do for this record.
 };
 
 enum class RecordStatus : uint8_t {
-  INIT = 0, // Just create and wait to add LeafPage
-  SEAT,     // The record has insert its seat in LeafPage
-  COMMIT,   // The related transaction has commited, only valid for WriteLock
-  ROLLBACK  // The related statement has abort, only valid for WriteLock
+  INIT = 0,  // Just create and wait to add LeafPage
+  LOCK_ONLY, // Only lock current record, ActionType=QUERY_SHARE or QUERY_UPDATE
+  INSERTED,  // The record has inserted its seat in LeafPage
+  COMMIT,    // The related transaction has commited, only valid for WriteLock
+  ROLLBACK   // The related statement has abort, only valid for WriteLock
 };
 
 class Statement;
@@ -38,8 +40,16 @@ struct RecordLock {
   RecordStatus _status;
   bool _bGapLock; // True: locked the range between this and previous record,
                   // only valid repeatable read isolation level.
-  MVector<Statement *> _vctStmt; // The statements locked this record
-  LeafRecord *_undoRec;          // To save old version for rollback statement.
+  MVector<Statement *> _vctStmt; // The statements locked this record, If write
+                                 // lock, should have only one statement.
+  LeafRecord *_undoRec{nullptr}; // To save old version for rollback statement.
+
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
 };
 
 // Only for primary index
@@ -56,9 +66,10 @@ struct RecStruct {
   // To save key length, include the bytes to save variable fileds length and
   // key content.
   uint16_t *_keyLen;
-  // The byte to save the number of versions(low 4bits) and if overflow or not
-  // (the highest bit)
-  Byte *_byVerNum;
+  // The byte to save the number of versions(low 4bits) and if it has overflow
+  // page or not (the highest bit). For single version, only the highest bit is
+  // valid.
+  Byte *_byVerFlow;
   // The start position to save variable fileds length in key, this is an array
   // with 0~N elements.
   // uint16_t *_varKeyLen;
@@ -113,8 +124,6 @@ public:
   int32_t UpdateRecord(const VectorDataValue &newVal, uint64_t recStamp,
                        Statement *stmt, ActionType type, bool gapLock);
 
-  // void GetListKey(VectorDataValue &vct) const;
-
   inline int GetListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX,
                           Statement *stmt = nullptr, bool bQuery = true) const {
     return GetListValue({}, vct, verStamp, stmt, bQuery);
@@ -123,17 +132,12 @@ public:
                    uint64_t verStamp = UINT64_MAX, Statement *stmt = nullptr,
                    bool bQuery = true) const;
   RawKey *GetKey() const;
-  /**Only for secondary index, Get the value as primary key*/
+  /**Only for secondary index, Get the primary key, deep copy.*/
   RawKey *GetPrimayKey() const;
 
   int CompareTo(const LeafRecord &lr) const;
   int CompareKey(const RawKey &key) const;
   int CompareKey(const LeafRecord &lr) const;
-
-  // When insert or upsert, if there has old record in leaf page, replace old
-  // record with this and call below method to set old record
-  void SaveUndoRecord(LeafRecord *undoRec) { _undoRec = undoRec; }
-  LeafRecord *GetUndoRecord() { return _undoRec; }
 
   // Get the value's length. If there have more than one version, return the
   // first version's length.
@@ -146,31 +150,35 @@ public:
   }
 
   bool IsSole() const override {
-    return _undoRec == nullptr ? _bSole : _undoRec->IsSole();
+    return _recLock == nullptr ? _bSole : _recLock->_undoRec->IsSole();
   }
-  bool IsTransaction() const override { return _statement != nullptr; }
 
-  inline LeafRecord *AddRef() {
-    _refCount++;
-    assert(_refCount < UINT16_MAX - 1);
-    return this;
-  }
-  void DecRef(bool bUndo = false);
+  bool IsTransaction() const override { return _recLock != nullptr; }
+  /**
+   * @brief Lock current record, only valid for primary key
+   * @param type Its value can only be QUERY_SHARE or QUERY_UPDATE
+   * @param stmt The statement to lock this current
+   * @param gapLock If lock it with gap lock
+   * @return True: passed to lock; False: failed to lock
+   */
+  inline bool LockRecord(ActionType type, Statement *stmt, bool gapLock) {
+    assert(type == ActionType::QUERY_SHARE || type == ActionType::QUERY_UPDATE);
+    if (_recLock != nullptr) {
+      if (type == ActionType::QUERY_UPDATE)
+        return false;
+      if (_recLock->_actType != ActionType::QUERY_SHARE)
+        return false;
+    } else {
+      _recLock = new RecordLock();
+    }
 
-  inline void LockForUpdate(Statement *stam, bool gapLock) {
-    _statement = stam;
-    _actionType = ActionType::QUERY_UPDATE;
-    _gapLock = gapLock;
+    _recLock->_actType = type;
+    _recLock->_vctStmt.push_back(stmt);
+    _recLock->_bGapLock = gapLock;
+    _recLock->_status = RecordStatus::LOCK_ONLY;
   }
-  inline void ClearLock() {
-    _statement = nullptr;
-    _actionType = ActionType::UNKNOWN;
-    _gapLock = false;
-  }
-  bool IsTransaction() {
-    return _statement != nullptr && _actionType != ActionType::UNKNOWN;
-  }
-  bool IsGapLock() { return _statement != nullptr && _gapLock; }
+  bool IsTransaction() { return _recLock != nullptr; }
+  bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
   bool FillOverPage() {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     Byte ver = *(_bysVal + UI16_2_LEN + keyLen);
@@ -202,7 +210,9 @@ public:
       vctStamp.push_back(arrStamp[ii]);
     }
   }
-  ActionType GetAction() { return _actionType; }
+  ActionType GetAction() {
+    return _recLock == nullptr ? ActionType::NO_ACTION : _recLock->_actType;
+  }
 
 protected:
   // To calc key length
@@ -238,37 +248,12 @@ protected:
 protected:
   // Default is nullptr, If a statement locked this record, set this variable to
   // save related information
-  RecordLock *_recordLock{nullptr};
+  RecordLock *_recLock{nullptr};
   // Vector to contain overflow page
   OverflowPage *_overflowPage{nullptr};
   friend std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
 };
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
-class VectorLeafRecord : public MVector<LeafRecord *> {
-public:
-  using vector::vector;
-
-  VectorLeafRecord(VectorLeafRecord &&src) noexcept { swap(src); }
-
-  ~VectorLeafRecord() {
-    for (auto iter = begin(); iter != end(); iter++) {
-      (*iter)->DecRef();
-    }
-  }
-
-  void RemoveAll() {
-    for (auto iter = begin(); iter != end(); iter++) {
-      (*iter)->DecRef();
-    }
-
-    clear();
-  }
-
-  VectorLeafRecord &operator=(VectorLeafRecord &&other) noexcept {
-    RemoveAll();
-    swap(other);
-    return *this;
-  }
-};
+using VectorLeafRecord = MVector<LeafRecord *>;
 } // namespace storage

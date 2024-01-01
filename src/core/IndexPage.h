@@ -10,33 +10,6 @@
 #define NOT_END_PAGE 0xBF
 
 namespace storage {
-class AbsoleteBuffer {
-public:
-  AbsoleteBuffer(Byte *bys, int refCount) : _bys(bys), _refCount(refCount) {}
-  void ReleaseCount(int num) {
-    int val = _refCount.fetch_sub(num);
-    assert(val >= num);
-    if (val == num) {
-      CachePool::ReleasePage(_bys);
-      delete this;
-    }
-  }
-
-  bool IsDiffBuff(Byte *buf) const { return (buf != _bys); }
-
-public:
-  static void *operator new(size_t size) {
-    return CachePool::Apply((uint32_t)size);
-  }
-  static void operator delete(void *ptr, size_t size) {
-    CachePool::Release((Byte *)ptr, (uint32_t)size);
-  }
-
-protected:
-  Byte *_bys;
-  std::atomic<int> _refCount;
-};
-
 class IndexPage : public CachePage {
 public:
   // Percentage for a page to used. if surpass, will split the following records
@@ -70,8 +43,8 @@ public:
   ~IndexPage();
   void Init() override;
   inline uint16_t GetMaxDataLength() const {
-    return GetPageType() == PageType::LEAF_PAGE ? MAX_DATA_LENGTH_LEAF
-                                                : MAX_DATA_LENGTH_BRANCH;
+    return _pageType == PageType::LEAF_PAGE ? MAX_DATA_LENGTH_LEAF
+                                            : MAX_DATA_LENGTH_BRANCH;
   };
   virtual bool SaveRecords() = 0;
   bool PageDivide();
@@ -84,7 +57,9 @@ public:
   inline Byte GetPageLevel() { return _bysPage[PAGE_LEVEL_OFFSET]; }
   inline uint32_t GetTotalDataLength() { return _totalDataLength; }
   inline uint32_t GetRecordNumber() { return _recordNum; }
-  bool Releaseable() override { return _refCount == 1 && _tranCount == 0; }
+  bool Releaseable() override {
+    return _pageStatus == PageStatus::VALID && _tranCount == 0;
+  }
   inline bool IsBeginPage() {
     return _bysPage[PAGE_BEGIN_END_OFFSET] & BEGIN_PAGE;
   }
@@ -102,10 +77,6 @@ public:
   inline uint32_t GetTranCount() { return _tranCount; }
 
 protected:
-  // When split this page into several pages, the records saved in _bysPage will
-  // copy into new pages when new page call WritePage. So only after all related
-  // pages has been saved, the old _bysPage can be released.
-  AbsoleteBuffer *_absoBuf = nullptr;
   // The vector to save records in this page
   MVector<RawRecord *> _vctRecord;
   // Parent page ID

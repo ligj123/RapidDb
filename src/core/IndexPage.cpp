@@ -26,6 +26,8 @@ IndexPage::IndexPage(IndexTree *indexTree, uint32_t pageId, uint8_t pageLevel,
     : CachePage(indexTree, pageId, type) {
   _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
   _parentPageId = parentPageId;
+  // New page, do not need init.
+  _pageStatus = PageStatus::VALID;
 }
 
 IndexPage::~IndexPage() {}

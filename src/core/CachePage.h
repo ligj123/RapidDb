@@ -23,6 +23,8 @@ enum class PageStatus : uint8_t {
   READING,
   // This page has finished to read and
   READED,
+  // This page has added writing queue and wait to write
+  WRITING,
   // The page has been loaded and the data is valid
   VALID,
   // This page has marked as obsolete and can not be visit again.
@@ -52,27 +54,31 @@ public:
 
 public:
   CachePage(IndexTree *indexTree, PageID pageId, PageType type);
-  void DecRef(int num = 1);
-  virtual void ReadPage(PageFile *pageFile = nullptr);
-  virtual void WritePage(PageFile *pageFile = nullptr);
+  virtual ~CachePage();
+  // Save contents into page buffer
+  virtual bool SaveToBuffer() {
+    assert(false);
+    return false;
+  }
+  virtual void AfterRead();
+  virtual void AfterWrite() {
+    _bDirty = false;
+    _pageStatus = PageStatus::VALID;
+  }
   virtual void Init() {}
+  virtual uint32_t PageSize() const = 0;
 
-  inline ReentrantSharedSpinMutex &GetLock() { return _rwLock; }
   inline bool IsDirty() const { return _bDirty; }
-  inline void SetDirty(bool b) { _bDirty = b; }
   inline PageID GetPageId() const { return _pageId; }
   inline void UpdateAccessTime() { _dtPageLastAccess = MicroSecTime(); }
-  inline uint64_t GetAccessTime() const { return _dtPageLastAccess; }
+  inline DT_MicroSec GetAccessTime() const { return _dtPageLastAccess; }
   inline uint64_t HashCode() const { return CalcHashCode(_fileId, _pageId); }
-  inline void UpdateWriteTime() { _dtPageLastWrite = MicroSecTime(); }
-  inline uint64_t GetWriteTime() const { return _dtPageLastWrite; }
-  inline void UpdateDividTime() { _dtPageLastDivid = MicroSecTime(); }
-  inline uint64_t GetDividTime() const { return _dtPageLastDivid; }
   inline uint64_t GetFileId() const { return _fileId; }
   inline IndexTree *GetIndexTree() const { return _indexTree; }
   inline Byte *GetBysPage() const { return _bysPage; }
   inline PageType GetPageType() const { return _pageType; }
-  virtual bool Releaseable() { return _refCount == 1; }
+
+  inline SharedSpinMutex &GetLock() { return _rwLock; }
   inline bool IsLocked() const { return _rwLock.is_locked(); }
   inline void ReadLock() { _rwLock.lock_shared(); }
   inline bool ReadTryLock() { return _rwLock.try_lock_shared(); }
@@ -80,16 +86,11 @@ public:
   inline void WriteLock() { _rwLock.lock(); }
   inline bool WriteTryLock() { return _rwLock.try_lock(); }
   inline void WriteUnlock() { _rwLock.unlock(); }
-  inline int32_t GetRefCount() { return _refCount.load(memory_order_relaxed); }
-  inline bool IsWriteOverTime(uint64_t microSecs) {
-    return MicroSecTime() - _dtPageLastWrite > microSecs;
-  }
-  inline bool IsDividOverTime(uint64_t microSecs) {
-    return MicroSecTime() - _dtPageLastDivid > microSecs;
-  }
-  void IncRef(int num = 1) {
-    assert(num > 0);
-    _refCount.fetch_add(num, memory_order_relaxed);
+
+  inline bool IsRefer() { return _bRefer; }
+  inline void SetRefer(bool b) { _bRefer = b; }
+  virtual bool Releaseable() {
+    return !_bRefer && _pageStatus == PageStatus::VALID;
   }
 
   inline Byte ReadByte(uint32_t pos) const {
@@ -133,48 +134,31 @@ public:
   }
 
   inline PageStatus GetPageStatus() { return _pageStatus; }
-  inline void SetPageStatus(PageStatus ps) { _pageStatus = ps; }
 
 protected:
-  virtual ~CachePage();
-
-protected:
-  // Mutexes when task adding or removing
-  SpinMutex _taskLock;
   // The page block, it is equal pages in disk
   Byte *_bysPage = nullptr;
   // Read write lock.
-  ReentrantSharedSpinMutex _rwLock;
-  // Locked when read from or write to disk
-  SpinMutex _pageLock;
-  condition_variable_any _pageCv;
-  // The last time to divid this page
-  DT_MicroSec _dtPageLastDivid = 0;
-  // The last time to update _bysPage
-  DT_MicroSec _dtPageLastWrite = 0;
+  SharedSpinMutex _rwLock;
   // The last time to visit this page, Now only used when get from
   // PageBufferPool
-  DT_MicroSec _dtPageLastAccess = 0;
+  DT_MicroSec _dtPageLastAccess{0};
   // Index Tree
-  IndexTree *_indexTree = nullptr;
+  IndexTree *_indexTree;
   // ID for this page
-  PageID _pageId = 0;
-  // How many times has this page been referenced
-  atomic<int32_t> _refCount = {2};
+  PageID _pageId;
   // Copy from IndexTree's same name variable
   uint32_t _fileId;
   // If this page has been changed
-  bool _bDirty = false;
+  bool _bDirty{false};
   // used only in IndexPage, point out if there have records added or deleted
-  bool _bRecordUpdate = false;
+  bool _bRecordUpdate{false};
   // Page status, to mark if this page has been loaded and the data is valid.
-  PageStatus _pageStatus = PageStatus::EMPTY;
-  // Page Type
+  PageStatus _pageStatus{PageStatus::EMPTY};
+  // Page type
   PageType _pageType;
-  // If this page has been added PageDividPool queue.
-  atomic_bool _bInDivid = false;
-  // If this page has been added StoragePool queue.
-  atomic_bool _bInStorage = false;
+  // If this page has been refer by index tree or only used in PageBufferPool.
+  bool _bRefer{false};
 };
 
 } // namespace storage

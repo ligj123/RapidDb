@@ -64,18 +64,5 @@ protected:
   bool _InPage;
   /**If this record' value is saved into solely buffer or into index page*/
   bool _bSole;
-  // Below is used in LeafRecord, put here to save space. Only vaild when
-  // Transaction is not null
-  // ActionType
-  ActionType _actionType = ActionType::UNKNOWN;
-  // This record marked as delete. only use when it has not multi versions and
-  // this record will be removed thoroughly.
-  bool _bRemoved = false;
-  // Gap lock to previous record. NOT NEXT RECORD is due to page will split by
-  // last record, the new record will be insert into ahead of the found record.
-  bool _gapLock = false;
-  /**How many times this record is referenced, it only can be used when the page
-   * has been locked. Only valid for LeafPage*/
-  uint16_t _refCount = 1;
 };
 } // namespace storage

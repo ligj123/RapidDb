@@ -12,7 +12,7 @@ static thread_local boost::crc_32_type crc32;
 
 void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
                     uint32_t fieldNum, uint32_t valVarLen, Byte ver) {
-  Byte verNum = (*recStru._byVerNum) & VERSION_NUM;
+  Byte verNum = (*recStru._byVerFlow) & VERSION_NUM;
   uint32_t byNum = (fieldNum + 7) >> 3;
   Byte *bys = recStru._bysValStart;
   uint32_t offset = 0;
@@ -36,8 +36,8 @@ RecStruct::RecStruct(Byte *bys, uint16_t keyLen, Byte verNum,
   _totalLen = (uint16_t *)bys;
   _keyLen = (uint16_t *)(bys + UI16_LEN);
   _bysKey = bys + UI16_2_LEN;
-  _byVerNum = bys + UI16_2_LEN + keyLen;
-  _arrStamp = (uint64_t *)(_byVerNum + 1);
+  _byVerFlow = bys + UI16_2_LEN + keyLen;
+  _arrStamp = (uint64_t *)(_byVerFlow + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
 
   if (overPage != nullptr) {
@@ -60,12 +60,12 @@ RecStruct::RecStruct(Byte *bys, OverflowPage *overPage) {
   _keyLen = (uint16_t *)(bys + UI16_LEN);
   uint16_t keyLen = *_keyLen;
   _bysKey = bys + UI16_2_LEN;
-  _byVerNum = bys + UI16_2_LEN + keyLen;
-  Byte verNum = (*_byVerNum) & VERSION_NUM;
-  _arrStamp = (uint64_t *)(_byVerNum + 1);
+  _byVerFlow = bys + UI16_2_LEN + keyLen;
+  Byte verNum = (*_byVerFlow) & VERSION_NUM;
+  _arrStamp = (uint64_t *)(_byVerFlow + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
 
-  if ((*_byVerNum) & REC_OVERFLOW) {
+  if ((*_byVerFlow) & REC_OVERFLOW) {
     assert(overPage != nullptr);
     _arrCrc32 = (uint32_t *)(((Byte *)_arrValLen) + UI32_LEN * verNum);
     _pidStart = (PageID *)(((Byte *)_arrCrc32) + UI32_LEN * verNum);
@@ -112,8 +112,12 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
 LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
                        Statement *stmt)
-    : RawRecord(indexTree, nullptr, nullptr, true), _statement(stmt) {
-  _actionType = ActionType::INSERT;
+    : RawRecord(indexTree, nullptr, nullptr, true) {
+  _recLock = new RecordLock();
+  _recLock->_actType = ActionType::INSERT;
+  _recLock->_vctStmt.push_back(stmt);
+  _recLock->_bGapLock = false;
+  _recLock->_status = RecordStatus::INIT;
 
   uint32_t lenKey = CalcKeyLength(vctKey);
   uint32_t lenVal = CalcValueLength(vctVal, ActionType::INSERT);
@@ -275,7 +279,7 @@ uint32_t LeafRecord::CalcValidValueLength(RecStruct &recStru, bool bUpdate,
     return 0;
 
   uint32_t len = 0;
-  Byte verNum = (*recStru._byVerNum) & 0x0f;
+  Byte verNum = (*recStru._byVerFlow) & 0x0f;
 
   auto iter = setVer.begin();
   if (!bUpdate || *iter > recStru._arrStamp[0]) {
@@ -348,7 +352,7 @@ int LeafRecord::GetListValue(const MVector<int> &vctPos,
 
   RecStruct recStru(lr->_bysVal, lr->_overflowPage);
   Byte ver = 0;
-  Byte verNum = *(recStru._byVerNum) & 0x0f;
+  Byte verNum = *(recStru._byVerFlow) & 0x0f;
   for (; ver < verNum; ver++) {
     if (recStru._arrStamp[ver] <= verStamp) {
       break;
@@ -381,7 +385,7 @@ int LeafRecord::GetListValue(const MVector<int> &vctPos,
   const VectorDataValue &vdSrc = _indexTree->GetVctValue();
   SetValueStruct(recStru, &valStru, (uint32_t)vdSrc.size(),
                  _indexTree->GetValVarLen(), ver);
-  assert((*recStru._byVerNum & REC_OVERFLOW) == 0 || _overflowPage != nullptr);
+  assert((*recStru._byVerFlow & REC_OVERFLOW) == 0 || _overflowPage != nullptr);
 
   int varField = -1;
   Byte *bys = valStru.bysValue;
@@ -451,7 +455,7 @@ void LeafRecord::FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
                                 uint32_t valLen) {
   *recStru._totalLen = totalLen;
   *recStru._keyLen = keyLen;
-  *recStru._byVerNum =
+  *recStru._byVerFlow =
       (recStru._pidStart == nullptr ? 0 : REC_OVERFLOW) + verNum;
   recStru._arrStamp[0] = stamp;
   recStru._arrValLen[0] = valLen;

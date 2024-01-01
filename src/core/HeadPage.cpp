@@ -20,15 +20,11 @@ const uint16_t HeadPage::ROOT_PAGE_OFFSET = 32;
 const uint16_t HeadPage::BEGIN_LEAF_PAGE_OFFSET = 36;
 const uint16_t HeadPage::END_LEAF_PAGE_OFFSET = 40;
 const uint16_t HeadPage::TOTAL_RECORD_COUNT_OFFSET = 48;
-const uint16_t HeadPage::AUTO_INCREMENT_KEY = 56;
-const uint16_t HeadPage::AUTO_INCREMENT_KEY2 = 64;
-const uint16_t HeadPage::AUTO_INCREMENT_KEY3 = 72;
-const uint16_t HeadPage::CURRENT_RECORD_STAMP_OFFSET = 80;
+const uint16_t HeadPage::AUTO_INCREMENT_KEY_OFFSET = 56;
+const uint16_t HeadPage::CURRENT_RECORD_STAMP_OFFSET = 64;
 const uint16_t HeadPage::RECORD_VERSION_STAMP_OFFSET = 128;
 
-void HeadPage::ReadPage(PageFile *pageFile) {
-  lock_guard<SpinMutex> lock(_spinMutex);
-  CachePage::ReadPage(pageFile);
+void HeadPage::Init() {
   assert((PageType)ReadByte(PAGE_TYPE_OFFSET) == PageType::HEAD_PAGE);
   assert(CURRENT_FILE_VERSION == ReadFileVersion());
 
@@ -36,18 +32,13 @@ void HeadPage::ReadPage(PageFile *pageFile) {
   _keyAlterableFieldCount = ReadShort(KEY_ALTERABLE_FIELD_COUNT_OFFSET);
   _valueAlterableFieldCount = ReadShort(VALUE_ALTERABLE_FIELD_COUNT_OFFSET);
 
-  _totalPageCount.store(ReadInt(TOTAL_PAGES_COUNT_OFFSET),
-                        memory_order_relaxed);
-  _rootPageId.store(ReadInt(ROOT_PAGE_OFFSET), memory_order_relaxed);
-  _beginLeafPageId.store(ReadInt(BEGIN_LEAF_PAGE_OFFSET), memory_order_relaxed);
-  _endLeafPageId.store(ReadInt(END_LEAF_PAGE_OFFSET), memory_order_relaxed);
-  _totalRecordCount.store(ReadLong(TOTAL_RECORD_COUNT_OFFSET),
-                          memory_order_relaxed);
-  _currRecordStamp.store(ReadLong(CURRENT_RECORD_STAMP_OFFSET),
-                         memory_order_relaxed);
-  _autoIncrementKey1.store(ReadLong(AUTO_INCREMENT_KEY), memory_order_relaxed);
-  _autoIncrementKey2.store(ReadLong(AUTO_INCREMENT_KEY2), memory_order_relaxed);
-  _autoIncrementKey3.store(ReadLong(AUTO_INCREMENT_KEY3), memory_order_relaxed);
+  _totalPageCount = ReadInt(TOTAL_PAGES_COUNT_OFFSET);
+  _rootPageId = ReadInt(ROOT_PAGE_OFFSET);
+  _beginLeafPageId = ReadInt(BEGIN_LEAF_PAGE_OFFSET);
+  _endLeafPageId = ReadInt(END_LEAF_PAGE_OFFSET);
+  _totalRecordCount = ReadLong(TOTAL_RECORD_COUNT_OFFSET);
+  _currRecordStamp = ReadLong(CURRENT_RECORD_STAMP_OFFSET);
+  _autoIncrementKey = ReadLong(AUTO_INCREMENT_KEY);
 
   if (_indexType == IndexType::PRIMARY) {
     Byte n = ReadByte(RECORD_VERSION_COUNT_OFFSET) * 2;
@@ -64,25 +55,18 @@ void HeadPage::ReadPage(PageFile *pageFile) {
   _pageStatus = PageStatus::VALID;
 }
 
-void HeadPage::WritePage(PageFile *pageFile) {
-  lock_guard<SpinMutex> lock(_spinMutex);
+bool HeadPage::SaveToBuffer() {
   WriteByte(PAGE_TYPE_OFFSET, (Byte)PageType::HEAD_PAGE);
   WriteByte(RECORD_VERSION_COUNT_OFFSET, (Byte)_mapVerStamp.size());
-  WriteLong(TOTAL_PAGES_COUNT_OFFSET,
-            _totalPageCount.load(memory_order_relaxed));
+  WriteLong(TOTAL_PAGES_COUNT_OFFSET, _totalPageCount);
   WriteFileVersion();
-  WriteLong(ROOT_PAGE_OFFSET, _rootPageId.load(memory_order_relaxed));
-  WriteLong(BEGIN_LEAF_PAGE_OFFSET,
-            _beginLeafPageId.load(memory_order_relaxed));
-  WriteLong(END_LEAF_PAGE_OFFSET, _endLeafPageId.load(memory_order_relaxed));
-  WriteLong(TOTAL_RECORD_COUNT_OFFSET,
-            _totalRecordCount.load(memory_order_relaxed));
-  WriteLong(CURRENT_RECORD_STAMP_OFFSET,
-            _currRecordStamp.load(memory_order_relaxed));
+  WriteLong(ROOT_PAGE_OFFSET, _rootPageId);
+  WriteLong(BEGIN_LEAF_PAGE_OFFSET, _beginLeafPageId);
+  WriteLong(END_LEAF_PAGE_OFFSET, _endLeafPageId);
+  WriteLong(TOTAL_RECORD_COUNT_OFFSET, _totalRecordCount);
+  WriteLong(CURRENT_RECORD_STAMP_OFFSET, _currRecordStamp);
 
-  WriteLong(AUTO_INCREMENT_KEY, _autoIncrementKey1.load(memory_order_relaxed));
-  WriteLong(AUTO_INCREMENT_KEY2, _autoIncrementKey2.load(memory_order_relaxed));
-  WriteLong(AUTO_INCREMENT_KEY3, _autoIncrementKey3.load(memory_order_relaxed));
+  WriteLong(AUTO_INCREMENT_KEY, _autoIncrementKey);
 
   int i = 0;
   for (auto iter = _mapVerStamp.begin(); iter != _mapVerStamp.end(); iter++) {
@@ -111,7 +95,6 @@ FileVersion HeadPage::ReadFileVersion() {
 }
 
 void HeadPage::WriteKeyVariableFieldCount(uint16_t num) {
-  lock_guard<SpinMutex> lock(_spinMutex);
   _keyAlterableFieldCount = num;
   WriteShort(KEY_ALTERABLE_FIELD_COUNT_OFFSET, num);
   _bDirty = true;
@@ -119,7 +102,6 @@ void HeadPage::WriteKeyVariableFieldCount(uint16_t num) {
 }
 
 void HeadPage::WriteValueVariableFieldCount(uint16_t num) {
-  lock_guard<SpinMutex> lock(_spinMutex);
   _valueAlterableFieldCount = num;
   WriteShort(VALUE_ALTERABLE_FIELD_COUNT_OFFSET, num);
   _bDirty = true;

@@ -19,7 +19,7 @@ CachePage::CachePage(IndexTree *indexTree, PageID pageId, PageType type)
       _fileId(indexTree->GetFileId()) {
   if (type == PageType::HEAD_PAGE) {
     _bysPage = CachePool::Apply(HEAD_PAGE_SIZE);
-  } else if (type != PageType::OVERFLOW_PAGE) {
+  } else if (type == PageType::BRANCH_PAGE || type == PageType::LEAF_PAGE) {
     _bysPage = CachePool::ApplyPage();
   }
 }
@@ -27,96 +27,33 @@ CachePage::CachePage(IndexTree *indexTree, PageID pageId, PageType type)
 CachePage::~CachePage() {
   if (_pageType == PageType::HEAD_PAGE) {
     CachePool::Release(_bysPage, HEAD_PAGE_SIZE);
-  } else if (_pageType != PageType::OVERFLOW_PAGE) {
+  } else if (type == PageType::BRANCH_PAGE || type == PageType::LEAF_PAGE) {
     CachePool::ReleasePage(_bysPage);
   }
 }
 
-void CachePage::DecRef(int num) {
-  if (_pageType == PageType::HEAD_PAGE)
-    return;
-  assert(num > 0);
-  int32_t rc = _refCount.fetch_sub(num, memory_order_relaxed);
-
-  assert(rc - num >= 0);
-  if (rc - num == 0) {
-    _indexTree->DecPages();
-    delete this;
-  }
-}
-
-void CachePage::ReadPage(PageFile *pageFile) {
-  unique_lock<SpinMutex> lock(_pageLock);
-
-  PageFile *pFile =
-      (pageFile == nullptr ? _indexTree->ApplyPageFile() : pageFile);
-  if (_pageId != PAGE_NULL_POINTER) {
-    pFile->ReadPage(Configure::GetDiskClusterSize() +
-                        _pageId * Configure::GetCachePageSize(),
-                    (char *)_bysPage, (uint32_t)Configure::GetCachePageSize());
-
-    if (_pageType != PageType::OVERFLOW_PAGE) {
-      crc32.reset();
-      crc32.process_bytes(_bysPage, CRC32_PAGE_OFFSET);
-      if (crc32.checksum() != (uint32_t)ReadInt(CRC32_PAGE_OFFSET)) {
-        _pageStatus = PageStatus::INVALID;
-      } else {
-        _pageStatus = PageStatus::VALID;
-      }
-    }
-  } else {
-    pFile->ReadPage(0, (char *)_bysPage,
-                    (uint32_t)Configure::GetDiskClusterSize());
+void CachePage::AfterRead() {
+  bool bvalid = true;
+  if (_pageType == PageType::HEAD_PAGE) {
     crc32.reset();
     crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
     if (crc32.checksum() != (uint32_t)ReadInt(CRC32_HEAD_OFFSET)) {
-      _pageStatus = PageStatus::INVALID;
-    } else {
-      _pageStatus = PageStatus::VALID;
+      bvalid = false;
+    }
+  } else if (_pageType != PageType::OVERFLOW_PAGE) {
+    crc32.reset();
+    crc32.process_bytes(_bysPage, CRC32_PAGE_OFFSET);
+    if (crc32.checksum() != (uint32_t)ReadInt(CRC32_PAGE_OFFSET)) {
+      bvalid = false;
     }
   }
 
-  if (pageFile == nullptr) {
-    _indexTree->ReleasePageFile(pFile);
-  }
-
-  if (_pageStatus == PageStatus::VALID) {
+  if (bvalid) {
     _bDirty = false;
     Init();
-    ThreadPool::InstMain().AddTasks(_waitTasks);
-    _waitTasks.clear();
-  }
-
-  lock.unlock();
-  _pageCv.notify_all();
-}
-
-void CachePage::WritePage(PageFile *pageFile) {
-  PageFile *pFile =
-      (pageFile == nullptr ? _indexTree->ApplyPageFile() : pageFile);
-  unique_lock<SpinMutex> lock(_pageLock);
-  _bDirty = false;
-
-  if (_pageId != PAGE_NULL_POINTER) {
-    if (_pageType != PageType::OVERFLOW_PAGE) {
-      crc32.reset();
-      crc32.process_bytes(_bysPage, CRC32_PAGE_OFFSET);
-      *((int *)&_bysPage[CRC32_PAGE_OFFSET]) = crc32.checksum();
-    }
-
-    pFile->WritePage(Configure::GetDiskClusterSize() +
-                         _pageId * Configure::GetCachePageSize(),
-                     (char *)_bysPage, (uint32_t)Configure::GetCachePageSize());
+    _pageStatus = PageStatus::VALID;
   } else {
-    crc32.reset();
-    crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
-    *((int *)&_bysPage[CRC32_HEAD_OFFSET]) = crc32.checksum();
-
-    pFile->WritePage(0, (char *)_bysPage,
-                     (uint32_t)Configure::GetDiskClusterSize());
-  }
-  if (pageFile == nullptr) {
-    _indexTree->ReleasePageFile(pFile);
+    _pageStatus = PageStatus::INVALID;
   }
 }
 } // namespace storage
