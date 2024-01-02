@@ -36,6 +36,10 @@ class LeafRecord;
 
 // LeafRecord lock
 struct RecordLock {
+  RecordLock(ActionType t, RecordStatus s, bool gapLock, Statement *stmt)
+      : _actType(t), _status(s), _bGapLock(gapLock) {
+    _vctStmt.push_back(stmt);
+  }
   ActionType _actType;
   RecordStatus _status;
   bool _bGapLock; // True: locked the range between this and previous record,
@@ -106,17 +110,24 @@ class LeafPage;
 class Statement;
 class LeafRecord : public RawRecord {
 protected:
-  ~LeafRecord() {}
+  ~LeafRecord() {
+    if (_recLock != nullptr)
+      delete _recLock;
+
+    if (_overflowPage != nullptr)
+      delete _overflowPage;
+  }
 
 public:
   // Load LeafRecord from LeafPage
   LeafRecord(LeafPage *indexPage, Byte *bys);
   // No use now, only for test
   LeafRecord(IndexTree *indexTree, Byte *bys);
-  LeafRecord(LeafRecord &src);
+  LeafRecord(LeafRecord &&src);
   // Constructor for secondary index LeafRecord
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey, Byte *bysPri,
-             uint32_t lenPri, ActionType type, Statement *stmt);
+             uint32_t lenPri, ActionType type, Statement *stmt,
+             uint64_t recStamp);
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
              const VectorDataValue &vctVal, uint64_t recStamp, Statement *stmt);
@@ -139,6 +150,13 @@ public:
   int CompareKey(const RawKey &key) const;
   int CompareKey(const LeafRecord &lr) const;
 
+  /**Only the bytes' length in IndexPage, key length + value length without
+   * overflow page content*/
+  uint16_t GetTotalLength() const override {
+    return (_recLock == nullptr || _recLock->_actType != ActionType::DELETE)
+               ? *((uint16_t *)_bysVal)
+               : 0;
+  }
   // Get the value's length. If there have more than one version, return the
   // first version's length.
   uint16_t GetValueLength() const override;
@@ -168,15 +186,13 @@ public:
         return false;
       if (_recLock->_actType != ActionType::QUERY_SHARE)
         return false;
-    } else {
-      _recLock = new RecordLock();
-    }
 
-    _recLock->_actType = type;
-    _recLock->_vctStmt.push_back(stmt);
-    _recLock->_bGapLock = gapLock;
-    _recLock->_status = RecordStatus::LOCK_ONLY;
+      _recLock->_vctStmt.push_back(stmt);
+    } else {
+      _recLock = new RecordLock(type, RecordStatus::LOCK_ONLY, gapLock, stmt);
+    }
   }
+
   bool IsTransaction() { return _recLock != nullptr; }
   bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
   bool FillOverPage() {

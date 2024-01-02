@@ -71,7 +71,7 @@ RecStruct::RecStruct(Byte *bys, OverflowPage *overPage) {
   _bysKey = bys + UI16_2_LEN;
   _byVerFlow = bys + UI16_2_LEN + keyLen;
 #ifdef SINGLE_VERSION
-  Byte verNum = 1;
+  const Byte verNum = 1;
 #else
   Byte verNum = (*_byVerFlow) & VERSION_NUM;
 #endif
@@ -93,44 +93,44 @@ RecStruct::RecStruct(Byte *bys, OverflowPage *overPage) {
 }
 
 LeafRecord::LeafRecord(LeafPage *parentPage, Byte *bys)
-    : RawRecord(parentPage->GetIndexTree(), parentPage, bys, false) {}
+    : RawRecord(parentPage, bys, false) {}
 
 LeafRecord::LeafRecord(IndexTree *indexTree, Byte *bys)
-    : RawRecord(indexTree, nullptr, bys, false) {}
+    : RawRecord(indexTree, bys, false) {}
 
 LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
                        Byte *bysPri, uint32_t lenPri, ActionType type,
-                       Statement *stmt)
-    : RawRecord(indexTree, nullptr, nullptr, true), _statement(stmt) {
-  _actionType = type;
+                       Statement *stmt, uint64_t recStamp)
+    : RawRecord(indexTree, nullptr, true) {
+  _recLock =
+      new RecordLock(ActionType::INSERT, RecordStatus::INIT, false, stmt);
 
   int i;
   uint16_t lenKey = CalcKeyLength(vctKey);
 
-  int totalLen = lenKey + lenPri + UI16_2_LEN;
+  int totalLen = lenKey + lenPri + UI16_2_LEN + UI64_LEN;
   _bysVal = CachePool::Apply(totalLen);
-  *((uint16_t *)_bysVal) = totalLen;
-  *((uint16_t *)(_bysVal + UI16_LEN)) = lenKey;
+  Byte *bys = _bysVal;
+  *((uint16_t *)bys) = totalLen;
+  bys += UI16_LEN;
+  *((uint16_t *)bys) = lenKey;
 
-  uint16_t pos = UI16_2_LEN;
   for (i = 0; i < vctKey.size(); i++) {
-    uint16_t len = vctKey[i]->WriteData(_bysVal + pos, SavePosition::KEY);
-    pos += len;
+    uint16_t len = vctKey[i]->WriteData(bys, SavePosition::KEY);
+    bys += len;
   }
 
-  pos = UI16_2_LEN + lenKey;
-  BytesCopy(_bysVal + pos, bysPri, lenPri);
+  BytesCopy(bys, bysPri, lenPri);
+  bys += lenPri;
+  *((uint64_t *)bys) = recStamp;
 }
 
 LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
                        Statement *stmt)
-    : RawRecord(indexTree, nullptr, nullptr, true) {
-  _recLock = new RecordLock();
-  _recLock->_actType = ActionType::INSERT;
-  _recLock->_vctStmt.push_back(stmt);
-  _recLock->_bGapLock = false;
-  _recLock->_status = RecordStatus::INIT;
+    : RawRecord(indexTree, nullptr, true) {
+  _recLock =
+      new RecordLock(ActionType::INSERT, RecordStatus::INIT, false, stmt);
 
   uint32_t lenKey = CalcKeyLength(vctKey);
   uint32_t lenVal = CalcValueLength(vctVal, ActionType::INSERT);
@@ -164,34 +164,15 @@ LeafRecord::LeafRecord(IndexTree *indexTree, const VectorDataValue &vctKey,
     crc32.reset();
     crc32.process_bytes(recStru._bysValStart, lenVal);
     recStru._arrCrc32[0] = crc32.checksum();
-    StoragePool::AddPage(_overflowPage, true);
+    // Write overflow page
+    // StoragePool::AddPage(_overflowPage, true);
   }
 }
 
-void LeafRecord::DecRef(bool bUndo) {
-  assert(_refCount >= 1);
-  _refCount--;
-
-  if (_refCount == 0) {
-    if (_undoRec != nullptr) {
-      _undoRec->DecRef(bUndo);
-    }
-    if (_overflowPage != nullptr) {
-      if (bUndo) {
-        _indexTree->ReleasePageId(_overflowPage->GetPageId(),
-                                  _overflowPage->GetPageNum());
-      }
-      _overflowPage->DecRef();
-    }
-    delete this;
-  }
-}
-
-LeafRecord::LeafRecord(LeafRecord &src)
-    : RawRecord(src), _undoRec(src._undoRec), _statement(src._statement),
+LeafRecord::LeafRecord(LeafRecord &&src)
+    : RawRecord(std::move(src)), _recLock(src._recLock),
       _overflowPage(src._overflowPage) {
-  src._undoRec = nullptr;
-  src._statement = nullptr;
+  src._recLock = nullptr;
   src._overflowPage = nullptr;
 }
 

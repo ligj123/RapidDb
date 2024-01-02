@@ -17,12 +17,12 @@ public:
       _pageStatus = PageStatus::VALID;
     }
   }
+  ~OverflowPage() { CachePool::Release(_bysPage, CACHE_PAGE_SIZE * _pageNum); }
   void ReadPage(PageFile *pageFile) override;
   void WritePage(PageFile *pageFile) override;
   uint16_t GetPageNum() const { return _pageNum; }
 
 protected:
-  ~OverflowPage() { CachePool::Release(_bysPage, CACHE_PAGE_SIZE * _pageNum); }
   // How much pages for this overflow page
   uint16_t _pageNum;
 };
