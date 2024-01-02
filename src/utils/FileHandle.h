@@ -27,7 +27,7 @@ public:
       return nullptr;
     }
 
-    return nullptr;
+    return fh;
   }
 
   FILE_HANDLE FileDescriptor() { return _fd; }

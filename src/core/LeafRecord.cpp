@@ -10,25 +10,33 @@
 namespace storage {
 static thread_local boost::crc_32_type crc32;
 
-void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
+void SetValueStruct(RecStruct &recStru, ValueStruct *arValStr,
                     uint32_t fieldNum, uint32_t valVarLen, Byte ver) {
+#ifdef SINGLE_VERSION
+  uint32_t byNum = (fieldNum + 7) >> 3;
+  Byte *bys = recStru._bysValStart;
+  arValStr[0].bysNull = bys;
+  arValStr[0].varFiledsLen = (uint32_t *)(bys + byNum);
+  arValStr[0].bysValue = bys + byNum + valVarLen;
+#else
   Byte verNum = (*recStru._byVerFlow) & VERSION_NUM;
   uint32_t byNum = (fieldNum + 7) >> 3;
   Byte *bys = recStru._bysValStart;
   uint32_t offset = 0;
   for (Byte i = 0; i < verNum; i++) {
     if (ver == 0xff) {
-      arvalStr[i].bysNull = bys + offset;
-      arvalStr[i].varFiledsLen = (uint32_t *)(bys + offset + byNum);
-      arvalStr[i].bysValue = bys + offset + byNum + valVarLen;
+      arValStr[i].bysNull = bys + offset;
+      arValStr[i].varFiledsLen = (uint32_t *)(bys + offset + byNum);
+      arValStr[i].bysValue = bys + offset + byNum + valVarLen;
     } else if (i == ver) {
-      arvalStr[0].bysNull = bys + offset;
-      arvalStr[0].varFiledsLen = (uint32_t *)(bys + offset + byNum);
-      arvalStr[0].bysValue = bys + offset + byNum + valVarLen;
+      arValStr[0].bysNull = bys + offset;
+      arValStr[0].varFiledsLen = (uint32_t *)(bys + offset + byNum);
+      arValStr[0].bysValue = bys + offset + byNum + valVarLen;
       break;
     }
     offset += recStru._arrValLen[i];
   }
+#endif
 }
 
 RecStruct::RecStruct(Byte *bys, uint16_t keyLen, Byte verNum,
@@ -40,7 +48,8 @@ RecStruct::RecStruct(Byte *bys, uint16_t keyLen, Byte verNum,
   _arrStamp = (uint64_t *)(_byVerFlow + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
 
-  if (overPage != nullptr) {
+  if ((*_byVerFlow) & REC_OVERFLOW) {
+    assert(overPage != nullptr);
     _arrCrc32 = (uint32_t *)(((Byte *)_arrValLen) + UI32_LEN * verNum);
     _pidStart = (PageID *)(((Byte *)_arrCrc32) + UI32_LEN);
     _pageNum = (uint16_t *)(((Byte *)_pidStart) + UI32_LEN);
@@ -61,7 +70,11 @@ RecStruct::RecStruct(Byte *bys, OverflowPage *overPage) {
   uint16_t keyLen = *_keyLen;
   _bysKey = bys + UI16_2_LEN;
   _byVerFlow = bys + UI16_2_LEN + keyLen;
+#ifdef SINGLE_VERSION
+  Byte verNum = 1;
+#else
   Byte verNum = (*_byVerFlow) & VERSION_NUM;
+#endif
   _arrStamp = (uint64_t *)(_byVerFlow + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
 
