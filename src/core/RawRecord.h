@@ -30,9 +30,13 @@ public:
   inline uint16_t GetKeyLength() const {
     return *((uint16_t *)(_bysVal + UI16_LEN));
   }
-  inline void SetParentPage(IndexPage *page) { _parentPage = page; }
-  inline IndexPage *GetParentPage() const { return _parentPage; }
-  inline IndexTree *GetTreeFile() const { return _indexTree; }
+  inline void SetParentPage(IndexPage *page) {
+    _parentPage = page;
+    _bInPage = true;
+  }
+  inline IndexPage *GetParentPage() const {
+    return _bInPage ? _parentPage : nullptr;
+  }
   virtual uint16_t GetTotalLength() const = 0;
   virtual uint16_t GetValueLength() const = 0;
   virtual bool IsSole() const { return _bSole; }

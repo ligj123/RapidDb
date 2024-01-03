@@ -507,6 +507,14 @@ uint16_t LeafRecord::GetValueLength() const {
   }
 }
 
+void LeafRecord::ReleaseOverflowPageID() {
+  assert(_overflowPage != nullptr);
+  GetTreeFile()->ReleasePageId(_overflowPage->GetPageId(),
+                               _overflowPage->GetPageNum());
+  delete _overflowPage;
+  _overflowPage = nullptr;
+}
+
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr) {
   os << "TotalLen=" << lr.GetTotalLength() << "  Keys=";
 

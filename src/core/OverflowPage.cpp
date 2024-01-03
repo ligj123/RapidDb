@@ -13,31 +13,7 @@ OverflowPage *OverflowPage::GetPage(IndexTree *indexTree, PageID startId,
   }
 
   OverflowPage *ovp = new OverflowPage(indexTree, startId, pageNum, bNew);
-  indexTree->IncPages();
-  PageBufferPool::AddPage(ovp);
   return ovp;
 }
 
-void OverflowPage::ReadPage(PageFile *pageFile) {
-  PageFile *pFile =
-      (pageFile == nullptr ? _indexTree->ApplyPageFile() : pageFile);
-  pFile->ReadPage(HEAD_PAGE_SIZE + _pageId * CACHE_PAGE_SIZE, (char *)_bysPage,
-                  CACHE_PAGE_SIZE * _pageNum);
-
-  if (pageFile == nullptr) {
-    _indexTree->ReleasePageFile(pFile);
-  }
-  _pageStatus = PageStatus::VALID;
-}
-
-void OverflowPage::WritePage(PageFile *pageFile) {
-  PageFile *pFile =
-      (pageFile == nullptr ? _indexTree->ApplyPageFile() : pageFile);
-  pFile->WritePage(HEAD_PAGE_SIZE + _pageId * CACHE_PAGE_SIZE, (char *)_bysPage,
-                   CACHE_PAGE_SIZE * _pageNum);
-
-  if (pageFile == nullptr) {
-    _indexTree->ReleasePageFile(pFile);
-  }
-}
 } // namespace storage

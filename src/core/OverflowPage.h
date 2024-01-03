@@ -18,9 +18,10 @@ public:
     }
   }
   ~OverflowPage() { CachePool::Release(_bysPage, CACHE_PAGE_SIZE * _pageNum); }
-  void ReadPage(PageFile *pageFile) override;
-  void WritePage(PageFile *pageFile) override;
+  void AfterRead() override { _pageStatus = PageStatus::READED; }
+  void AfterWrite() override { _pageStatus = PageStatus::VALID; }
   uint16_t GetPageNum() const { return _pageNum; }
+  uint32_t PageSize() const override { return CACHE_PAGE_SIZE * _pageNum; }
 
 protected:
   // How much pages for this overflow page

@@ -4,9 +4,11 @@
 #include "../transaction/TranStatus.h"
 #include "../utils/BytesFuncs.h"
 #include "../utils/ErrorMsg.h"
+#include "IndexPage.h"
 #include "OverflowPage.h"
 #include "RawKey.h"
 #include "RawRecord.h"
+
 #include <cstring>
 
 using namespace std;
@@ -228,6 +230,11 @@ public:
   }
   ActionType GetAction() {
     return _recLock == nullptr ? ActionType::NO_ACTION : _recLock->_actType;
+  }
+  void ReleaseOverflowPageID();
+
+  inline IndexTree *GetTreeFile() const {
+    return _bInPage ? _parentPage->GetIndexTree() : _indexTree;
   }
 
 protected:
