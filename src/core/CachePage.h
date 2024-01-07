@@ -21,7 +21,7 @@ enum class PageStatus : uint8_t {
   EMPTY = 0,
   // This page has added reading queue and wait to read
   READING,
-  // This page has finished to read and
+  // This page has just finished to read and sync memory
   READED,
   // This page has added writing queue and wait to write
   WRITING,
@@ -134,6 +134,7 @@ public:
   }
 
   inline PageStatus GetPageStatus() { return _pageStatus; }
+  inline void SetPageStatus(PageStatus s) { _pageStatus = s; }
 
 protected:
   // The page block, it is equal pages in disk

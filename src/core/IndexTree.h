@@ -46,8 +46,8 @@ public:
     return pid;
   }
 
-  void ReleasePageId(PageID firstId, uint16_t num) {
-    _garbageOwner->ReleasePage(firstId, num);
+  void RecyclePageId(PageID firstId, uint16_t num) {
+    _garbageOwner->RecyclePage(firstId, num);
   }
 
   PageFile *ApplyPageFile();

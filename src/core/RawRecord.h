@@ -11,13 +11,10 @@ class IndexTree;
 
 class RawRecord {
 public:
-  RawRecord(IndexTree *indexTree, Byte *bys, bool bSole)
-      : _bysVal(bys), _indexTree(indexTree), _bInPage(false), _bSole(bSole) {}
-  RawRecord(IndexPage *parentPage, Byte *bys, bool bSole)
-      : _bysVal(bys), _parentPage(parentPage), _bInPage(true), _bSole(bSole) {}
+  RawRecord(Byte *bys, bool bSole, IndexType type)
+      : _bysVal(bys), _bSole(bSole), _indexType(type) {}
   RawRecord(RawRecord &&src)
-      : _bysVal(src._bysVal), _parentPage(src._parentPage),
-        _bInPage(src._bInPage), _bSole(src._bSole) {
+      : _bysVal(src._bysVal), _bSole(src._bSole), _indexType(src._indexType) {
     src._bysVal = nullptr;
   }
   virtual ~RawRecord() {
@@ -29,13 +26,6 @@ public:
 
   inline uint16_t GetKeyLength() const {
     return *((uint16_t *)(_bysVal + UI16_LEN));
-  }
-  inline void SetParentPage(IndexPage *page) {
-    _parentPage = page;
-    _bInPage = true;
-  }
-  inline IndexPage *GetParentPage() const {
-    return _bInPage ? _parentPage : nullptr;
   }
   virtual uint16_t GetTotalLength() const = 0;
   virtual uint16_t GetValueLength() const = 0;
@@ -53,17 +43,9 @@ public:
 protected:
   /** the byte array that save key and value's content */
   Byte *_bysVal;
-  // Only one is valid, if just create a record and not added into a page,
-  // _indexTree is valid, if has added into a page, _parentPage is valid.
-  union {
-    /** the parent page included this record */
-    IndexPage *_parentPage;
-    /**index tree*/
-    IndexTree *_indexTree;
-  };
-  // True: _parentPage is valid, False: _indexTree is valid
-  bool _bInPage;
   /**If this record' value is saved into solely buffer or into index page*/
   bool _bSole;
+  /**IndexType*/
+  IndexType _indexType;
 };
 } // namespace storage

@@ -7,18 +7,13 @@
 namespace storage {
 const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(PageID);
 
-BranchRecord::BranchRecord(BranchPage *parentPage, Byte *bys)
-    : RawRecord(parentPage == nullptr ? nullptr : parentPage->GetIndexTree(),
-                parentPage, bys, false) {}
+BranchRecord::BranchRecord(IndexType type, BranchPage *parentPage, Byte *bys)
+    : RawRecord(bys, false, type) {}
 
-BranchRecord::BranchRecord(IndexTree *indexTree, RawRecord *rec,
-                           uint32_t childPageId)
-    : RawRecord(indexTree, nullptr, nullptr, true) {
+BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId)
+    : RawRecord(nullptr, true, type) {
   uint16_t lenKey = rec->GetKeyLength();
-  uint16_t lenVal =
-      (_indexTree->GetHeadPage()->ReadIndexType() == IndexType::NON_UNIQUE
-           ? rec->GetValueLength()
-           : 0);
+  uint16_t lenVal = (type == IndexType::NON_UNIQUE ? rec->GetValueLength() : 0);
   uint16_t totalLen = lenKey + lenVal + PAGE_ID_LEN + UI16_2_LEN;
   _bysVal = CachePool::Apply(totalLen);
 
@@ -31,42 +26,34 @@ BranchRecord::BranchRecord(IndexTree *indexTree, RawRecord *rec,
 }
 
 RawKey *BranchRecord::GetKey() const {
-  return new RawKey(_bysVal + _indexTree->GetKeyOffset(),
-                    GetKeyLength() - _indexTree->GetKeyVarLen());
+  return new RawKey(_bysVal + UI16_2_LEN, GetKeyLength());
 }
 
-int BranchRecord::CompareTo(const RawRecord &rr) const {
-  if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE) {
-    return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                        GetKeyLength() - _indexTree->GetKeyVarLen(),
-                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                        rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+int BranchRecord::CompareTo(const RawRecord &rr, IndexType type) const {
+  if (type != IndexType::NON_UNIQUE) {
+    return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(),
+                        rr.GetBysValue() + UI16_2_LEN, rr.GetKeyLength());
   } else {
-    return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                        GetTotalLength() - _indexTree->GetKeyOffset(),
-                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                        rr.GetTotalLength() - _indexTree->GetKeyOffset());
+    return BytesCompare(_bysVal + UI16_2_LEN,
+                        GetTotalLength() - UI16_2_LEN - PAGE_ID_LEN,
+                        rr.GetBysValue() + UI16_2_LEN,
+                        rr.GetTotalLength() - UI16_2_LEN - PAGE_ID_LEN);
   }
 }
 
 int BranchRecord::CompareKey(const RawKey &key) const {
-  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                      GetKeyLength() - _indexTree->GetKeyVarLen(),
-                      key.GetBysVal(), key.GetLength());
+  return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(), key.GetBysVal(),
+                      key.GetLength());
 }
 
 int BranchRecord::CompareKey(const RawRecord &rr) const {
-  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                      GetKeyLength() - _indexTree->GetKeyVarLen(),
-                      rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                      rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+  return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(),
+                      rr.GetBysValue() + UI16_2_LEN, rr.GetKeyLength());
 }
 
 bool BranchRecord::EqualPageId(const BranchRecord &br) const {
-  return (BytesCompare(_bysVal + GetKeyLength() + GetValueLength() + UI16_2_LEN,
-                       PAGE_ID_LEN,
-                       br._bysVal + br.GetKeyLength() + br.GetValueLength() +
-                           UI16_2_LEN,
+  return (BytesCompare(_bysVal + GetTotalLength() - PAGE_ID_LEN, PAGE_ID_LEN,
+                       br._bysVal + br.GetTotalLength() - PAGE_ID_LEN,
                        PAGE_ID_LEN) == 0);
 }
 
@@ -81,7 +68,7 @@ std::ostream &operator<<(std::ostream &os, const BranchRecord &br) {
       os << ' ';
   }
 
-  if (br._indexTree->GetHeadPage()->ReadIndexType() == IndexType::NON_UNIQUE) {
+  if (br._indexType == IndexType::NON_UNIQUE) {
     os << "\nValues=";
     for (uint32_t i = 0; i < br.GetValueLength(); i++) {
       os << std::setw(2) << bys++;

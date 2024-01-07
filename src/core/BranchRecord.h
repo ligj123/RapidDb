@@ -14,21 +14,19 @@ public:
   static const uint32_t PAGE_ID_LEN;
 
 public:
-  BranchRecord(BranchPage *parentPage, Byte *bys);
-  BranchRecord(IndexTree *indexTree, RawRecord *rec, uint32_t childPageId);
+  BranchRecord(IndexType type, BranchPage *parentPage, Byte *bys);
+  BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId);
   BranchRecord(const BranchRecord &src) = delete;
   ~BranchRecord() {}
 
   RawKey *GetKey() const;
-  int CompareTo(const RawRecord &other) const;
+  int CompareTo(const RawRecord &other, IndexType type) const;
   int CompareKey(const RawKey &key) const;
   int CompareKey(const RawRecord &other) const;
   bool EqualPageId(const BranchRecord &br) const;
 
+  uint16_t GetTotalLength() const override { return *((uint16_t *)_bysVal); }
   uint16_t GetValueLength() const override {
-    if (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE)
-      return 0;
-
     return (uint16_t)(*((uint16_t *)_bysVal) - UI16_2_LEN - PAGE_ID_LEN -
                       *((uint16_t *)(_bysVal + sizeof(uint16_t))));
   }

@@ -43,7 +43,7 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree)
  * PageId: the first page id
  * num: the pages number of this range
  */
-void GarbageOwner::ReleasePage(PageID pid, uint16_t num) {
+void GarbageOwner::RecyclePage(PageID pid, uint16_t num) {
   struct {
     bool merge = false;
     PageID id;

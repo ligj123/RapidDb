@@ -14,7 +14,7 @@ public:
   GarbageOwner(IndexTree *indexTree);
   ~GarbageOwner() {}
 
-  void ReleasePage(PageID pid, uint16_t num);
+  void RecyclePage(PageID pid, uint16_t num);
   PageID ApplyPage(uint16_t num);
   void SavePage();
 

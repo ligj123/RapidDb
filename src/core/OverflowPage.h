@@ -15,6 +15,9 @@ public:
     _bysPage = CachePool::Apply(CACHE_PAGE_SIZE * pageNum);
     if (bNew) {
       _pageStatus = PageStatus::VALID;
+    } else {
+      _pageStatus = PageStatus::READING;
+      // TO DO (Add into FilePagePool)
     }
   }
   ~OverflowPage() { CachePool::Release(_bysPage, CACHE_PAGE_SIZE * _pageNum); }
