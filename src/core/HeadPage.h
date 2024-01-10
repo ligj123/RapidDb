@@ -100,7 +100,8 @@ public:
       : CachePage(indexTree, UINT32_MAX, PageType::HEAD_PAGE) {}
 
   bool SaveToBuffer() override;
-  void Init();
+  void Init() override;
+  uint32_t PageSize() const override { return HEAD_PAGE_SIZE; }
 
   void WriteFileVersion();
   FileVersion ReadFileVersion();

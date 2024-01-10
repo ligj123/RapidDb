@@ -11,6 +11,14 @@
 namespace storage {
 using namespace std;
 template <class T, uint32_t SZ> struct InnerQueue {
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
   array<T *, SZ> _arr{};
   uint32_t _head{0};
   uint32_t _submited{0};
@@ -30,6 +38,14 @@ template <class T, uint32_t SZ> struct InnerQueue {
 // be -1 and do not use inner queue to avlid lock.
 template <class T, uint32_t SZ = 1000> class FastQueue {
 public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
   // threadCount: The total threads in all related ThreadPool
   FastQueue(uint16_t tNum)
       : _aliveMaxThreads(tNum), _threadTotalNum(tNum), _aliveLastThreads(tNum) {

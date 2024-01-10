@@ -22,11 +22,11 @@ public:
   static void Stop();
 
 public:
-  void AddReadPage(uint16_t tid, CachePage *page) {
-    _readQueue.Push(tid, page, true);
+  static void AddReadPage(uint16_t tid, CachePage *page) {
+    _pool->_readQueue.Push(tid, page, true);
   }
-  void AddWritePage(uint16_t tid, CachePage *page) {
-    _writeQueue.Push(tid, page, true);
+  static void AddWritePage(uint16_t tid, CachePage *page) {
+    _pool->_writeQueue.Push(tid, page, true);
   }
 
 protected:
@@ -41,6 +41,8 @@ protected:
   FastQueue<CachePage, 1000> _writeQueue;
 
 #ifdef LINUX_OS
+  void InitHandle();
+  void RWPage(MDeque<CachePage *> &readQueue, MDeque<CachePage *> &writeQueue);
   io_context_t _context;
   struct iocb _iocb[100];
   struct io_event _event[100];
