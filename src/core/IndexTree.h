@@ -1,13 +1,14 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
-#include "../file/PageFile.h"
 #include "../header.h"
 #include "../utils/ErrorMsg.h"
+#include "../utils/FileHandle.h"
 #include "../utils/SpinMutex.h"
 #include "GarbageOwner.h"
 #include "HeadPage.h"
 #include "LeafRecord.h"
 #include "RawKey.h"
+
 #include <atomic>
 #include <queue>
 #include <unordered_map>
@@ -110,6 +111,7 @@ public:
     PageID pid = _headPage->ReadBeginLeafPagePointer();
     return (LeafPage *)GetPage(pid, PageType::LEAF_PAGE, true);
   }
+  inline FILE_HANDLE GetFileHandle() { return _fileHandle.FileDescriptor(); }
 
 protected:
   ~IndexTree();
@@ -117,7 +119,7 @@ protected:
 protected:
   MString _indexName;
   MString _fileName;
-  vector<PageFile *> _vctPageFile;
+  FileHandle _fileHandle;
   SpinMutex _fileMutex;
   condition_variable_any _fileCv;
   /**How much page files were opened for this index tree*/

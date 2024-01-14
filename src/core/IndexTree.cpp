@@ -1,4 +1,5 @@
 ﻿#include "IndexTree.h"
+#include "../FilePagePool.h"
 #include "../pool/PageBufferPool.h"
 #include "../pool/PageDividePool.h"
 #include "../pool/StoragePool.h"
@@ -103,8 +104,7 @@ bool IndexTree::InitIndex(const MString &indexName, const MString &fileName,
   }
 
   _headPage = new HeadPage(this);
-
-  _headPage->ReadPage();
+  FilePagePool::SyncReadPage(_headPage);
   FileVersion &&fv = _headPage->ReadFileVersion();
   if (!(fv == CURRENT_FILE_VERSION)) {
     _threadErrorMsg.reset(

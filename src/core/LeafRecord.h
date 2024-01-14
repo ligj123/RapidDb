@@ -17,13 +17,13 @@ static const Byte REC_OVERFLOW = 0x80;
 static const Byte REC_DELETE = 0x40;
 static const Byte VERSION_NUM = 0x0f;
 
-enum class ActionType : uint8_t {
+enum class ActionType : int8_t {
+  NO_ACTION = -1,     // No Lock for this record, but maybe has gap lock.
   QUERY_SHARE = 0,    // Query with read lock
   QUERY_UPDATE = 0x1, // Query with write lock
   INSERT = 0x10,      // Insert this record with write lock
   UPDATE = 0x11,      // Update this record with write lock
-  DELETE = 0x12,      // Delete this record with write lock
-  NO_ACTION = 0xFF    // No action to do for this record.
+  DELETE = 0x12       // Delete this record with write lock
 };
 
 enum class RecordStatus : uint8_t {
@@ -35,11 +35,11 @@ enum class RecordStatus : uint8_t {
 };
 
 /**The result to read list value*/
-enum class ResultReadValue {
+enum class RstReadValue {
   // No version to fit and failed to read
   INVALID_VERSION = -2,
-  // Failed to read values due to no right to visit it or be locked;
-  NO_RIGHT = -1,
+  // Failed to read values due to it has been locked by other transaction;
+  LOCKED = -1,
   // Passed to read values with all fields.
   OK = 0,
   // The record has been deleted
@@ -153,18 +153,14 @@ public:
                        uint64_t recStamp, Statement *stmt, ActionType type,
                        bool gapLock);
 
-  inline ResultReadValue
-  ReadListValue(VectorDataValue &vct, uint64_t verStamp = UINT64_MAX,
-                Statement *stmt = nullptr,
-                ActionType atype = ActionType::NO_ACTION) const {
-    return ReadListValue({}, vct, verStamp, stmt, atype);
-  }
-  ResultReadValue ReadListValue(const MVector<int> &vctPos,
-                                VectorDataValue &vct,
-                                uint64_t verStamp = UINT64_MAX,
-                                Statement *stmt = nullptr,
-                                ActionType atype = ActionType::NO_ACTION) const;
-  RawKey *GetKey() const;
+#ifdef SINGLE_VERSION
+  RstReadValue ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
+                             VectorDataValue &vct, IndexTree *idxTree,
+                             Statement *stmt = nullptr,
+                             ActionType atype = ActionType::NO_ACTION) const;
+#endif
+
+  RawKey *GetKey(IndexTree *idxTree) const;
   /**Only for secondary index, Get the primary key, deep copy.*/
   RawKey *GetPrimayKey() const;
 
@@ -218,7 +214,7 @@ public:
 
   bool IsTransaction() { return _recLock != nullptr; }
   bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
-  void LoadOverflowPage(IndexTree *idxTree);
+  bool LoadOverflowPage(IndexTree *idxTree);
 
   Byte GetVersionNumber() const {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
@@ -256,7 +252,8 @@ protected:
     return lenKey;
   }
   // To calc a version's value length
-  uint32_t CalcValueLength(const VectorDataValue &vctVal, ActionType type);
+  uint32_t CalcValueLength(IndexTree *idxTree, const VectorDataValue &vctVal,
+                           ActionType type);
 
   // Save key and infor into buffer
   void FillHeaderBuff(RecStruct &recStru, uint32_t totalLen, uint32_t keyLen,

@@ -168,7 +168,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
       new RecordLock(ActionType::INSERT, RecordStatus::INIT, false, stmt);
 
   uint32_t lenKey = CalcKeyLength(vctKey);
-  uint32_t lenVal = CalcValueLength(vctVal, ActionType::INSERT);
+  uint32_t lenVal = CalcValueLength(idxTree, vctVal, ActionType::INSERT);
   uint16_t infoLen = 1 + UI64_LEN + UI32_LEN;
   uint32_t max_lenVal =
       (uint32_t)Configure::GetMaxRecordLength() - lenKey - UI16_2_LEN - infoLen;
@@ -236,7 +236,7 @@ int32_t LeafRecord::UpdateRecord(IndexTree *idxTree,
   recLock->_undoRec = new LeafRecord(move(*this));
   _recLock = recLock;
 #ifdef SINGLE_VERSION
-  uint32_t lenVal = CalcValueLength(vctVal, type);
+  uint32_t lenVal = CalcValueLength(idxTree, vctVal, type);
   uint32_t lenInfo = 1 + (UI64_LEN + UI32_LEN);
   uint32_t max_lenVal = (uint32_t)Configure::GetMaxRecordLength() -
                         *recStruOld._keyLen - UI16_2_LEN - lenInfo;
@@ -381,88 +381,50 @@ uint32_t LeafRecord::CalcValidValueLength(IndexTree *idxTree,
   return len;
 }
 
+#ifdef SINGLE_VERSION
 /**
- * @brief Read the value to data value list, only used for parmary index
- * @param vctPos the fields positions in record that need to read
+ * @brief Read the value to data value list, only used for parmary index.
+ * @param mapPos HashMap<fields positions, result position> in record that need
+ * to read. if size=0, will read all fields. If field position=UINT32_MAX, means
+ * to read Record Stamp.
  * @param vctVal The vector to save the data values.
- * @param verStamp The version stamp for primary index.
- * @param tran To judge if it is the same transaction
- * @param bQuery If it is only query. If not only query, it will return record
- * with same transaction or return fail. If only query, it will return old
- * record with different transaction and new record with same transaction.
- * @return -1: Failed to read values due to no right to visit it or be locked;
- *         -2: No version to fit and failed to read
- *         0: Passed to read values with all fields.
- *         1: The record has been deleted
+ * @param stmt The statement to read list value.
+ * @param atype ActionType
+ * @return RstReadValue
  */
-ResultReadValue LeafRecord::ReadListValue(const MVector<int> &vctPos,
-                                          VectorDataValue &vctVal,
-                                          uint64_t verStamp, Statement *stmt,
-                                          ActionType atype) const {
+RstReadValue
+LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
+                          VectorDataValue &vctVal, IndexTree *idxTree,
+                          Statement *stmt, ActionType atype) const {
   assert(_indexType == IndexType::PRIMARY);
-
   const LeafRecord *lr = nullptr;
-  if (_statement == nullptr || _statement == stmt ||
-      _statement->GetTransactionStatus() == TranStatus::CLOSED ||
-      (bQuery && _actionType == ActionType::QUERY_UPDATE) ||
-      (_bRemoved && _undoRec == nullptr)) {
-    lr = this;
-  } else if (_statement->GetTransactionStatus() == TranStatus::FAILED ||
-             _statement->GetTransactionStatus() == TranStatus::ROLLBACK ||
-             (bQuery && (_actionType == ActionType::UPDATE ||
-                         _actionType == ActionType::DELETE))) {
-    lr = this;
-    while (lr->_undoRec != nullptr) {
-      lr = lr->_undoRec;
+
+  if (_recLock != nullptr && _recLock->_actType >= ActionType::INSERT &&
+      _recLock->_vctStmt[0]->GetTransaction() != stmt->GetTransaction()) {
+    lr = _recLock->_undoRec;
+    while (lr != nullptr && lr->_recLock != nullptr &&
+           lr->_recLock->_actType >= ActionType::INSERT) {
+      lr = lr->_recLock->_undoRec;
     }
-    if (lr->_statement != nullptr &&
-        lr->_actionType != ActionType::QUERY_UPDATE) {
-      return -1;
+
+    if (lr == nullptr) {
+      return RstReadValue::LOCKED;
     }
   } else {
-    return -1;
+    lr = this;
   }
 
   RecStruct recStru(lr->_bysVal, lr->_overflowPage);
-  Byte ver = 0;
-  Byte verNum = *(recStru._byVerFlow) & 0x0f;
-  for (; ver < verNum; ver++) {
-    if (recStru._arrStamp[ver] <= verStamp) {
-      break;
-    }
-  }
-
-  if (ver == verNum) {
-    return -2;
-  }
-
-  VersionStamp verSt = 0;
-  set<VersionStamp, KeyCmp> setVer =
-      _indexTree->GetHeadPage()->GetSetVerStamp();
-  auto iter = setVer.lower_bound(recStru._arrStamp[ver]);
-  if (iter != setVer.end()) {
-    verSt = *iter;
-  }
-  for (; ver < verNum; ver++) {
-    if (verSt > recStru._arrStamp[ver])
-      break;
-  }
-
-  ver--;
-  vctVal.clear();
-  if (recStru._arrValLen[ver] == 0) {
-    return 1;
-  }
-
   ValueStruct valStru;
-  const VectorDataValue &vdSrc = _indexTree->GetVctValue();
+  const VectorDataValue &vdSrc = idxTree->GetVctValue();
   SetValueStruct(recStru, &valStru, (uint32_t)vdSrc.size(),
-                 _indexTree->GetValVarLen(), ver);
+                 idxTree->GetValVarLen(), 1);
   assert((*recStru._byVerFlow & REC_OVERFLOW) == 0 || _overflowPage != nullptr);
 
   int varField = -1;
   Byte *bys = valStru.bysValue;
-  int ipos = 0;
+  vctVal.resize(mapPos.size() > 0 ? mapPos.size() : vdSrc.size());
+
   for (size_t i = 0; i < vdSrc.size(); i++) {
     uint32_t flen = 0;
     if (!vdSrc[i]->IsFixLength()) {
@@ -475,24 +437,32 @@ ResultReadValue LeafRecord::ReadListValue(const MVector<int> &vctPos,
     if (valStru.bysNull[i / 8] & (1 << i % 8)) {
       flen = 0;
     }
-    if (vctPos.size() == 0 || vctPos[ipos] == i) {
+    uint32_t pos;
+    if (mapPos.size() == 0) {
+      pos = i;
+    } else {
+      auto iter = mapPos.find(i);
+      pos = (iter == mapPos.end() ? UINT32_MAX : iter->second);
+    }
+
+    if (mapPos.size() == 0 || mapPos.find(i) != mapPos.end()) {
       IDataValue *dv = vdSrc[i]->Clone();
       if (flen > 0)
         dv->ReadData(bys, flen, SavePosition::VALUE);
 
-      vctVal.push_back(dv);
-      ipos++;
+      vctVal[pos] = dv;
     }
 
     bys += flen;
   }
 
-  return 0;
+  return RstReadValue::OK;
 }
+#endif
 
-RawKey *LeafRecord::GetKey() const {
-  return new RawKey(_bysVal + _indexTree->GetKeyOffset(),
-                    GetKeyLength() - _indexTree->GetKeyVarLen());
+RawKey *LeafRecord::GetKey(IndexTree *idxTree) const {
+  return new RawKey(_bysVal + UI16_2_LEN,
+                    GetKeyLength() - idxTree->GetKeyVarLen());
 }
 
 RawKey *LeafRecord::GetPrimayKey() const {
@@ -504,23 +474,20 @@ RawKey *LeafRecord::GetPrimayKey() const {
 }
 
 int LeafRecord::CompareTo(const LeafRecord &lr) const {
-  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                      GetTotalLength() - _indexTree->GetKeyOffset(),
-                      lr._bysVal + _indexTree->GetKeyOffset(),
-                      lr.GetTotalLength() - _indexTree->GetKeyOffset());
+  return BytesCompare(_bysVal + UI16_2_LEN, GetTotalLength() - UI16_2_LEN,
+                      lr._bysVal + UI16_2_LEN,
+                      lr.GetTotalLength() - UI16_2_LEN);
 }
 
 int LeafRecord::CompareKey(const RawKey &key) const {
-  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                      GetKeyLength() - _indexTree->GetKeyVarLen(),
+  return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength() - UI16_2_LEN,
                       key.GetBysVal(), key.GetLength());
 }
 
 int LeafRecord::CompareKey(const LeafRecord &lr) const {
-  return BytesCompare(_bysVal + _indexTree->GetKeyOffset(),
-                      GetKeyLength() - _indexTree->GetKeyVarLen(),
-                      lr.GetBysValue() + _indexTree->GetKeyOffset(),
-                      lr.GetKeyLength() - _indexTree->GetKeyVarLen());
+  return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength() - UI16_2_LEN,
+                      lr.GetBysValue() + UI16_2_LEN,
+                      lr.GetKeyLength() - UI16_2_LEN);
 }
 
 void LeafRecord::FillHeaderBuff(RecStruct &recStru, uint32_t totalLen,
@@ -565,14 +532,14 @@ void LeafRecord::FillValueBuff(ValueStruct &valStru,
   }
 }
 
-uint32_t LeafRecord::CalcValueLength(const VectorDataValue &vctVal,
+uint32_t LeafRecord::CalcValueLength(IndexTree *idxTree,
+                                     const VectorDataValue &vctVal,
                                      ActionType type) {
   assert(_indexType == IndexType::PRIMARY);
   if (type == ActionType::DELETE)
     return 0;
 
-  uint32_t lenVal =
-      (uint32_t)(vctVal.size() + 7) / 8 + _indexTree->GetValVarLen();
+  uint32_t lenVal = (uint32_t)(vctVal.size() + 7) / 8 + idxTree->GetValVarLen();
   for (size_t i = 0; i < vctVal.size(); i++) {
     lenVal += vctVal[i]->GetPersistenceLength(SavePosition::VALUE);
   }
@@ -616,7 +583,7 @@ bool LeafRecord::LoadOverflowPage(IndexTree *idxTree) {
 #endif
   PageID pid = *(PageID *)(bys);
   uint16_t pnum = *(uint16_t *)(bys + UI32_LEN);
-  _overflowPage = OverflowPage::GetPage(_indexTree, pid, pnum, false);
+  _overflowPage = OverflowPage::GetPage(idxTree, pid, pnum, false);
   return true;
 }
 
@@ -629,13 +596,6 @@ std::ostream &operator<<(std::ostream &os, const LeafRecord &lr) {
     os << std::setw(2) << bys++;
     if (i % 4 == 0)
       os << ' ';
-  }
-
-  VectorDataValue vctVal;
-  lr.GetListValue(vctVal);
-  os << "  Values=";
-  for (IDataValue *dv : vctVal) {
-    os << *dv << "; ";
   }
 
   return os;

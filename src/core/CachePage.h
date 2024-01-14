@@ -67,6 +67,13 @@ public:
   }
   virtual void Init() {}
   virtual uint32_t PageSize() const = 0;
+  uint64_t FileOffset() const {
+    if (_pageType == PageType::HEAD_PAGE) {
+      return 0;
+    } else {
+      return HEAD_PAGE_SIZE + (uint64_t)CACHE_PAGE_SIZE * _pageId;
+    }
+  }
 
   inline bool IsDirty() const { return _bDirty; }
   inline PageID GetPageId() const { return _pageId; }

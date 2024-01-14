@@ -43,6 +43,7 @@ public:
 
   DT_MicroSec GetCreateTime() { return _createTime; }
   DT_MicroSec GetStopTime() { return _stopTime; }
+  Transaction *GetTransaction() { return _tran; }
 
 public:
   static void *operator new(size_t size) {

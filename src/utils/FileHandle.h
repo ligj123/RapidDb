@@ -15,6 +15,7 @@
 typedef int FILE_HANDLE;
 #endif
 
+#define
 namespace storage {
 using namespace std;
 
