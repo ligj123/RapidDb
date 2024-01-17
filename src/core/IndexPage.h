@@ -22,10 +22,10 @@ public:
   // To save if this page is the last page in current level. The highest bit is
   // for begin page mark, the second bit is for end page mark.
   static const uint16_t PAGE_BEGIN_END_OFFSET;
-  // Used in future. For large transaction, to save how much record in
+  // Used in future. For large transaction, to save how much records in
   // transaction status, only used in LeafPage.
   static const uint16_t PAGE_TRAN_COUNT;
-  // Recors number in this page
+  // Records number in this page
   static const uint16_t NUM_RECORD_OFFSET;
   // Total data length in this page
   static const uint16_t TOTAL_DATA_LENGTH_OFFSET;

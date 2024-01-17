@@ -130,9 +130,13 @@ protected:
   static uint32_t CalcBufSize(uint32_t sz) {
     if (sz <= 64)
       return ((sz + 15) & 0xFFF0);
-    if (sz <= 256)
-      return ((sz + 31) & 0xFFE0);
-    if (sz > 16384)
+    else if (sz <= 256)
+      return ((sz + 63) & 0xFFC0);
+    else if (sz <= 1024)
+      return ((sz + 255) & 0xFF00);
+    else if (sz <= 4096)
+      return ((sz + 1023) & 0xFC00);
+    else if (sz > 16384)
       return UINT32_MAX;
 
     uint32_t x = sz | (sz >> 1);

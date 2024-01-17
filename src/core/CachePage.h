@@ -21,7 +21,7 @@ enum class PageStatus : uint8_t {
   EMPTY = 0,
   // This page has added reading queue and wait to read
   READING,
-  // This page has just finished to read and sync memory
+  // This page has just finished to read and need to sync memory
   READED,
   // This page has added writing queue and wait to write
   WRITING,
@@ -159,14 +159,14 @@ protected:
   uint32_t _fileId;
   // If this page has been changed
   bool _bDirty{false};
-  // used only in IndexPage, point out if there have records added or deleted
-  bool _bRecordUpdate{false};
   // Page status, to mark if this page has been loaded and the data is valid.
   PageStatus _pageStatus{PageStatus::EMPTY};
   // Page type
   PageType _pageType;
   // If this page has been refer by index tree or only used in PageBufferPool.
   bool _bRefer{false};
+  // used only in IndexPage, point out if there have records added or deleted
+  bool _bRecordUpdate{false};
 };
 
 } // namespace storage
