@@ -14,7 +14,7 @@ public:
   static const uint32_t PAGE_ID_LEN;
 
 public:
-  BranchRecord(IndexType type, BranchPage *parentPage, Byte *bys);
+  BranchRecord(IndexType type, Byte *bys);
   BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId);
   BranchRecord(const BranchRecord &src) = delete;
   ~BranchRecord() {}

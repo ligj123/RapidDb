@@ -127,7 +127,7 @@ protected:
                            bool bAll = false);
 
 protected:
-  static uint32_t CalcBufSize(uint32_t sz) {
+  static inline uint32_t CalcBufSize(uint32_t sz) {
     if (sz <= 64)
       return ((sz + 15) & 0xFFF0);
     else if (sz <= 256)
@@ -136,15 +136,10 @@ protected:
       return ((sz + 255) & 0xFF00);
     else if (sz <= 4096)
       return ((sz + 1023) & 0xFC00);
-    else if (sz > 16384)
+    else if (sz <= 16384)
+      return ((sz + 4095) & 0xF000);
+    else
       return UINT32_MAX;
-
-    uint32_t x = sz | (sz >> 1);
-    x = x | (x >> 2);
-    x = x | (x >> 4);
-    x = x | (x >> 8);
-    x = x + 1;
-    return ((x >> 1) ^ sz) != 0 ? x : (x >> 1);
   }
   static thread_local LocalMap _localMap;
   static CachePool *_gCachePool;

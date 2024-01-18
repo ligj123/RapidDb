@@ -101,9 +101,7 @@ public:
     }
   }
 
-  inline uint16_t GetKeyVarLen() { return 0; }
   inline uint16_t GetValVarLen() { return _valVarLen; }
-  inline uint16_t GetKeyOffset() { return UI16_2_LEN; }
   inline uint16_t GetValOffset() { return _valOffset; }
   inline const VectorDataValue &GetVctKey() const { return _vctKey; }
   inline const VectorDataValue &GetVctValue() const { return _vctValue; }

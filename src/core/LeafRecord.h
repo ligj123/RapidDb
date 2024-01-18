@@ -114,7 +114,7 @@ struct RecStruct {
 
 struct ValueStruct {
   // (n+7)/8 bytes to save if the related fields are null or not, every field
-  // occupys a bit.
+  // occupys a bit. n fields number.
   Byte *bysNull;
   // The postion to save variable length fields' lengths in buffer, only
   // variable length fields, do not need to consider other type fields.
