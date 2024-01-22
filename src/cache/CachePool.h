@@ -49,7 +49,7 @@ public:
       bys = pool->_queueFreeBlock.front();
       pool->_queueFreeBlock.pop();
     } else {
-      bys = new Byte[Configure::GetResultBlockSize()];
+      bys = new Byte[Configure::GetResultPageSize()];
       pool->_totalBlockNum++;
     }
 
@@ -59,8 +59,7 @@ public:
   static void ReleaseBlock(Byte *bys) {
     CachePool *pool = GetInstance();
     unique_lock<SpinMutex> lock(pool->_blockMutex);
-    if (pool->_queueFreeBlock.size() >
-        Configure::GetMaxNumberFreeResultBlock()) {
+    if (pool->_queueFreeBlock.size() > Configure::GetMaxFreeResultBlock()) {
       pool->_totalBlockNum--;
       delete bys;
     } else {
@@ -71,13 +70,13 @@ public:
   /**Apply a menory block for an index page*/
   static Byte *ApplyPage() {
     CachePool *pool = GetInstance();
-    return pool->_localMap.Pop((uint16_t)Configure::GetCachePageSize());
+    return pool->_localMap.Pop((uint16_t)Configure::GetIndexPageSize());
   }
 
   /**Release a memory block for an index page*/
   static void ReleasePage(Byte *page) {
     CachePool *pool = GetInstance();
-    pool->_localMap.Push(page, (uint16_t)Configure::GetCachePageSize());
+    pool->_localMap.Push(page, (uint16_t)Configure::GetIndexPageSize());
   }
 
   /**Apply a memory block from cache*/

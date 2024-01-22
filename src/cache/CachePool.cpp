@@ -159,7 +159,7 @@ Byte *CachePool::ApplyBlock() {
     bys = pool->_queueFreeBlock.front();
     pool->_queueFreeBlock.pop();
   } else {
-    bys = new Byte[Configure::GetResultBlockSize()];
+    bys = new Byte[Configure::GetResultPageSize()];
     pool->_totalBlockNum++;
   }
 
@@ -172,7 +172,7 @@ Byte *CachePool::ApplyBlock() {
 void CachePool::ReleaseBlock(Byte *bys) {
   CachePool *pool = GetInstance();
   unique_lock<SpinMutex> lock(pool->_blockMutex);
-  if (pool->_queueFreeBlock.size() > Configure::GetMaxNumberFreeResultBlock()) {
+  if (pool->_queueFreeBlock.size() > Configure::GetMaxFreeResultBlock()) {
     pool->_totalBlockNum--;
     delete bys;
   } else {
@@ -186,7 +186,7 @@ void CachePool::ReleaseBlock(Byte *bys) {
 /**Apply a menory block for an index page*/
 Byte *CachePool::ApplyPage() {
   CachePool *pool = GetInstance();
-  Byte *bys = pool->_localMap.Pop((uint16_t)Configure::GetCachePageSize());
+  Byte *bys = pool->_localMap.Pop((uint16_t)Configure::GetIndexPageSize());
 
   string str = StackTrace();
   unique_lock<SpinMutex> lock(CachePool::_spinLocal);
@@ -197,7 +197,7 @@ Byte *CachePool::ApplyPage() {
 /**Release a memory block for an index page*/
 void CachePool::ReleasePage(Byte *page) {
   CachePool *pool = GetInstance();
-  pool->_localMap.Push(page, (uint16_t)Configure::GetCachePageSize());
+  pool->_localMap.Push(page, (uint16_t)Configure::GetIndexPageSize());
 
   unique_lock<SpinMutex> lock(CachePool::_spinLocal);
   size_t rt = _mapApply.erase(page);

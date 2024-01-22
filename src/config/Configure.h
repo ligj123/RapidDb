@@ -11,93 +11,73 @@ namespace storage {
  * a task for read and all tasks will be added into a queue and sort them with
  * page id, then read page blocks ordered by page ids and will pause write task.
  */
-enum class DiskType { UNKNOWN = 0, HDD, SSD };
+enum class DiskType : int8_t { UNKNOWN = 0, HDD, SSD };
+
+// Memory status
+enum class MemoryStatus : int8_t {
+  AMPLE = 0, // The used memory is less than 70%, do not release index page.
+  INTENSE,   // The used memory is less than 90 and more than 70%, the unused
+             // memory should be released.
+  CRITICAL,  // The used memory has exceed 90%, LeafPage and other block should
+             // be released soon after used.
+  FATAL // The used memory has exceed the assigned value, can not assign new
+        // memory.
+};
+
 class Configure {
 public:
-  /**The default memory block size used for result set*/
-  static const uint64_t DEFAULT_RESULT_BLOCK_SIZE;
-  /**The default size of disk cluster */
-  static const uint64_t DEFULT_DISK_CLUSTER_SIZE;
-  /**The default size of a cache page for index tree*/
-  static const uint64_t DEFAULT_CACHE_PAGE_SIZE;
-  /**The default total allocated memory size for cache*/
-  static const uint64_t DEFAULT_TOTAL_CACHE_SIZE;
-  /**The block size for memory cache, it will used IResultSet.*/
-  static const uint64_t DEFAULT_CACHE_BLOCK_SIZE;
-  /**The max memory size of blocks used to allocate buffer, For example
-   * IDataValue or Record.*/
-  static const uint64_t DEFAULT_MAX_BUFFER_SIZE;
-  /**The max size for a record, key length + the value data length without
-   * fields saved to overflow file. It can not exceed the half of cache page.*/
-  static const uint64_t DEFAULT_MAX_RECORD_LENGTH;
-  /**The max size of a record key. It can not excced the half of a record's
-   * size.*/
-  static const uint64_t DEFAULT_MAX_KEY_LENGTH;
-  /**The default max length for variable columns*/
-  static const uint64_t DEFAULT_MAX_COLUMN_LENGTH;
-  /**The free memory buffer in cache pool's queue*/
-  static const uint64_t DEFAULT_MAX_FREE_BUFFER_COUNT;
-  /**The max number of free blocks for result set */
-  static const uint64_t DEFAULT_MAX_FREE_BLOCK_COUNT;
-  /**The max instances to open a index tree for reading or writing*/
-  static const uint64_t MAX_PAGE_FILE_COUNT;
-  /**The max size for overflow file cache*/
-  static const uint64_t MAX_OVERFLOW_CACHE_SIZE;
-  // static const uint64_t WRITE_DELAY_MS = 10 * 1000;
-  // static const uint64_t MAX_QUEUE_SIZE = 10000;
-  // static const uint64_t DEFAULT_DISK_CACHE_PAGE_SIZE = 1024 * 1024;
-  // static const uint64_t MAX_DISK_CACHE_PAGE_COUNT = 2048;
-  // static const char* DEFAULT_DISK_CACHE_FILE = { "./" };
+  static bool LoadConfig(const string &cfg);
 
-  // The default wait time for automate transaction type, unit is millisecond.
-  static const uint64_t AUTOMATE_TASK_OVERTIME;
-  // The default wait time for manual transaction type, unit is millisecond.
-  static const uint64_t MANUAL_TASK_OVERTIME;
-  // If save the splited page's data into log file for database recovery.
-  static const bool LOG_SAVE_SPLIT_PAGE;
-  // Disk Type
-  static const DiskType DISK_TYPE;
-  // default bin log file size
-  static const uint32_t DEFAULT_BIN_LOG_FILE_SIZE;
+  // The following value defined in program, can not be update in configure.
+  //  The bytes of every disk cluster.
+  static uint64_t GetDiskClusterSize() { return 4 * 1024; }
+  // The page size in index, include primary and secondary index
+  static uint64_t GetIndexPageSize() { return 16 * 1024; }
+  // The page size to save result set
+  static uint64_t GetResultPageSize() { return 1024 * 1024; }
+  // The block size in cache pool
+  static uint64_t GetCacheBlockSize() { return 128 * 1024; }
+  // The max length of a record, include key and value saved in Index Page, if
+  // exceed this length, the value will be saved into overflowpage.
+  static uint64_t GetMaxRecordLength() { return 8180; }
+  // The max key length, the all column's length sum + 2 bytes to save key
+  // length
+  static uint64_t GetMaxKeyLength() { return 2000; }
+  // The max length of a column,
+  static uint64_t GetMaxColumnLength() { return 1024 * 1024 * 1024; }
+  // The max free memory block in CachePool. If exceed this number, the exceed
+  // block will be freed.
+  static uint64_t GetMaxFreeBufferCount() { return 128; }
+  // The max free blocks for result set. If exceed this number, the blocks will
+  // be free.
+  static uint64_t GetMaxFreeResultBlock() { return 64; }
 
-public:
-  Configure();
-
-  static uint64_t GetResultBlockSize() { return GetInstance()._szResultBlock; }
-  static uint64_t GetDiskClusterSize() { return GetInstance()._szDiskCluster; }
-  static uint64_t GetCachePageSize() { return GetInstance()._szCachePage; }
-  static uint64_t GetTotalCacheSize() { return GetInstance()._szTotalCache; }
-  static uint64_t GetCacheBlockSize() { return GetInstance()._szCacheBlock; }
-  static uint64_t GetMaxMemDataValueSize() {
-    return GetInstance()._szMaxBuffer;
+  // Following global variable can be update by configure file.
+  // The total memory size can be used by this software.
+  static uint64_t GetTotalMemorySize() { return GetInstance()._szTotalMemory; }
+  // Auto transaction timeout(microseconds)
+  static uint64_t GetAutoTaskTimeout() {
+    return GetInstance()._autoTranTimeout;
   }
-  static uint64_t GetMaxRecordLength() { return GetInstance()._lenMaxRecord; }
-  static uint64_t GetMaxKeyLength() { return GetInstance()._lenMaxKey; }
-  static uint64_t GetMaxColumnLength() { return GetInstance()._lenMaxColumn; }
-  static uint64_t GetMaxFreeBufferCount() {
-    return GetInstance()._countMaxFreeBuff;
+  // Manual transaction timeout(microseconds)
+  static uint64_t GetManualTaskTimeout() {
+    return GetInstance()._manualTranTimeout;
   }
-  static uint64_t GetMaxNumberFreeResultBlock() {
-    return GetInstance()._maxNumFreeBlock;
-  }
-  static uint64_t GetMaxPageFileCount() {
-    return GetInstance()._countMaxPageFile;
-  }
-  static uint64_t GetMaxOverflowCache() {
-    return GetInstance()._maxOverflowCache;
-  }
-  static uint64_t GetAutoTaskOvertime() {
-    return GetInstance()._autoTaskOvertime;
-  }
-  static uint64_t GetManualTaskOvertime() {
-    return GetInstance()._manualTaskOvertime;
-  }
+  // If save the original page content when write log for split index page
   static bool IsLogSaveSplitPage() { return GetInstance()._bLogSaveSplitPage; }
+  // Only used for distributed system. Will assign a unique id for a node. In
+  // single system, it will always be 0.
   static uint16_t GetNodeId() { return GetInstance()._nodeId; }
+  // The path to write log.
   static const string &GetLogPath() { return GetInstance()._strLogPath; }
+  // The max log file size.
   static uint32_t GetBinLogFileSize() { return GetInstance()._binLogFileSize; }
+  // Disk type
   static DiskType GetDiskType() { return GetInstance()._diskType; }
+  // The database root path, all db data will be saved into here
   static const string &GetDbRootPath() { return GetInstance()._strDbRootPath; }
+  static MemoryStatus GetMemoryStatus() { return GetInstance()._memStatus; }
+  static void SetMemoryStatus(MemoryStatus s) { GetInstance()._memStatus = s; }
 
 protected:
   static Configure &GetInstance() {
@@ -110,31 +90,23 @@ protected:
 protected:
   static Configure *instance;
 
-  uint64_t _szResultBlock;
-  uint64_t _szDiskCluster;
-  uint64_t _szCachePage;
-  uint64_t _szTotalCache;
-  uint64_t _szCacheBlock;
-  uint64_t _szMaxBuffer;
-  uint64_t _lenMaxRecord;
-  uint64_t _lenMaxKey;
-  uint64_t _lenMaxColumn;
-  uint64_t _countMaxFreeBuff;
-  uint64_t _maxNumFreeBlock;
-  uint64_t _countMaxPageFile;
-  uint64_t _maxOverflowCache;
+  uint64_t _szTotalMemory{8 * 1024 * 1024 * 1024LL};
+  // Auto transaction timeout(microseconds)
+  uint64_t _autoTranTimeout{100 * 1000000};
+  // Manual transaction timeout(microseconds)
+  uint64_t _manualTranTimeout{1800 * 1000000};
 
-  uint64_t _autoTaskOvertime;
-  uint64_t _manualTaskOvertime;
-
-  bool _bLogSaveSplitPage;
-  DiskType _diskType;
-  uint32_t _binLogFileSize;
+  bool _bLogSaveSplitPage{false};
+  DiskType _diskType{DiskType::SSD};
+  // The max log file size.
+  uint32_t _binLogFileSize{10 * 1024 * 1024};
   // For distribute, every node will assign a unique id to indentify the nodes.
   // In single environment, the node id=0
   uint16_t _nodeId;
   string _strLogPath;
   // The database root path, all db data will be saved into here
   string _strDbRootPath;
+  // Memory status
+  MemoryStatus _memStatus{MemoryStatus::AMPLE};
 };
 } // namespace storage

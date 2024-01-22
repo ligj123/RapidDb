@@ -101,42 +101,42 @@ public:
   }
 
   inline Byte ReadByte(uint32_t pos) const {
-    assert(Configure::GetCachePageSize() >= sizeof(Byte) + pos);
+    assert(Configure::GetIndexPageSize() >= sizeof(Byte) + pos);
     return _bysPage[pos];
   }
 
   inline void WriteByte(uint32_t pos, Byte value) {
-    assert(Configure::GetCachePageSize() >= sizeof(Byte) + pos);
+    assert(Configure::GetIndexPageSize() >= sizeof(Byte) + pos);
     _bysPage[pos] = value;
   }
 
   inline int16_t ReadShort(uint32_t pos) const {
-    assert(Configure::GetCachePageSize() >= UI16_LEN + pos);
+    assert(Configure::GetIndexPageSize() >= UI16_LEN + pos);
     return Int16FromBytes(_bysPage + pos);
   }
 
   inline void WriteShort(uint32_t pos, int16_t value) {
-    assert(Configure::GetCachePageSize() >= UI16_LEN + pos);
+    assert(Configure::GetIndexPageSize() >= UI16_LEN + pos);
     Int16ToBytes(value, _bysPage + pos);
   }
 
   inline int32_t ReadInt(uint32_t pos) const {
-    assert(Configure::GetCachePageSize() >= UI32_LEN + pos);
+    assert(Configure::GetIndexPageSize() >= UI32_LEN + pos);
     return Int32FromBytes(_bysPage + pos);
   }
 
   inline void WriteInt(uint32_t pos, int32_t value) {
-    assert(Configure::GetCachePageSize() >= UI32_LEN + pos);
+    assert(Configure::GetIndexPageSize() >= UI32_LEN + pos);
     Int32ToBytes(value, _bysPage + pos);
   }
 
   inline uint64_t ReadLong(uint32_t pos) const {
-    assert(Configure::GetCachePageSize() >= UI64_LEN + pos);
+    assert(Configure::GetIndexPageSize() >= UI64_LEN + pos);
     return Int64FromBytes(_bysPage + pos);
   }
 
   inline void WriteLong(uint32_t pos, int64_t value) {
-    assert(Configure::GetCachePageSize() >= UI64_LEN + pos);
+    assert(Configure::GetIndexPageSize() >= UI64_LEN + pos);
     Int64ToBytes(value, _bysPage + pos);
   }
 

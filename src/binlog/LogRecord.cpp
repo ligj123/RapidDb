@@ -6,8 +6,7 @@ namespace storage {
 static thread_local boost::crc_32_type crc32;
 
 LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
-                           PageID parentID,
-                           MVector<BranchRecord *> &vctLastRec,
+                           PageID parentID, MVector<BranchRecord *> &vctLastRec,
                            IndexPage *page)
     : LogBase(logId, buf, bufLen) {
   assert(vctLastRec.size() > 0);
@@ -29,7 +28,7 @@ LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
   }
 
   if (Configure::IsLogSaveSplitPage()) {
-    dLen += (uint32_t)Configure::GetCachePageSize();
+    dLen += (uint32_t)Configure::GetIndexPageSize();
   }
 
   if (bufLen < dLen) {
@@ -58,8 +57,8 @@ LogPageDivid::LogPageDivid(uint64_t logId, Byte *buf, uint32_t bufLen,
   }
 
   if (Configure::IsLogSaveSplitPage()) {
-    BytesCopy(buf, page->GetBysPage(), Configure::GetCachePageSize());
-    buf += Configure::GetCachePageSize();
+    BytesCopy(buf, page->GetBysPage(), Configure::GetIndexPageSize());
+    buf += Configure::GetIndexPageSize();
   }
 
   crc32.reset();
@@ -105,7 +104,7 @@ bool LogPageDivid::ReadData(uint64_t &logId, PageID &parentID,
 
   if (Configure::IsLogSaveSplitPage()) {
     assert(page != nullptr);
-    BytesCopy(page->GetBysPage(), buf, Configure::GetCachePageSize());
+    BytesCopy(page->GetBysPage(), buf, Configure::GetIndexPageSize());
   }
 
   return true;

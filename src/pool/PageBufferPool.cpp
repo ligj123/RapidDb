@@ -9,7 +9,7 @@
 namespace storage {
 SpinMutex PageBufferPool::_spinMutex;
 uint64_t PageBufferPool::_maxCacheSize =
-    Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
+    Configure::GetTotalMemorySize() / Configure::GetIndexPageSize();
 int64_t PageBufferPool::_prevDelNum = 100;
 // Initialize _mapCache and add lambad to increase page reference when call find
 // method

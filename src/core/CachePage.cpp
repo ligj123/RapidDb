@@ -6,11 +6,11 @@
 namespace storage {
 static thread_local boost::crc_32_type crc32;
 const uint32_t CachePage::CACHE_PAGE_SIZE =
-    (uint32_t)Configure::GetCachePageSize();
+    (uint32_t)Configure::GetIndexPageSize();
 const uint32_t CachePage::HEAD_PAGE_SIZE =
     (uint32_t)Configure::GetDiskClusterSize();
 const uint32_t CachePage::CRC32_PAGE_OFFSET =
-    (uint32_t)(Configure::GetCachePageSize() - sizeof(uint32_t));
+    (uint32_t)(Configure::GetIndexPageSize() - sizeof(uint32_t));
 const uint32_t CachePage::CRC32_HEAD_OFFSET =
     (uint32_t)(Configure::GetDiskClusterSize() - sizeof(uint32_t));
 

@@ -91,7 +91,7 @@ bool LeafPage::SaveRecords() {
 
     CleanRecord();
     if (_absoBuf == nullptr || _absoBuf->IsDiffBuff(tmp))
-      CachePool::Release(tmp, (uint32_t)Configure::GetCachePageSize());
+      CachePool::Release(tmp, (uint32_t)Configure::GetIndexPageSize());
     if (refCount > 0)
       _absoBuf->ReleaseCount(refCount);
 

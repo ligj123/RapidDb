@@ -5,7 +5,7 @@
 namespace storage {
 const uint32_t StoragePool::WRITE_DELAY_MS = 1 * 1000;
 const uint64_t StoragePool::MAX_QUEUE_SIZE =
-    Configure::GetTotalCacheSize() / Configure::GetCachePageSize();
+    Configure::GetTotalMemorySize() / Configure::GetIndexPageSize();
 StoragePool *StoragePool::_storagePool = nullptr;
 SpinMutex StoragePool::_spinMutex;
 

@@ -1,17 +1,17 @@
 #include "../core/IndexTree.h"
-#include "../utils/SingleQueue.h"
+#include "../table/Table.h"
+#include "../utils/FastQueue.h"
 #include "../utils/ThreadPool.h"
-#include "Table.h"
 
 namespace storage {
-enum class TableTaskIdx {
+enum class IndexTaskIdx {
   SINGLE = -1, // only one task for current index tree
   MAIN = 0,    // The main task for current index tree, it will assign statement
                // and LeafRecord into different task
   SECOND       // The second task to run statement or LeafRecord
 };
 
-class TableTask : public Task {
+class IndexTask : public Task {
 public:
   void Run() override;
 
@@ -20,7 +20,7 @@ protected:
   void HandleRecords();
 
 protected:
-  Table *_table;
+  PhysTable *_table;
   IndexTree *_indexTree;
   MDeque<Statement *> _vctStmt;
   MDeque<LeafRecord *> _vctRecord;
@@ -32,10 +32,10 @@ class TableSingleTask : public TableTask {
 public:
 protected:
   // Receive the statement from session
-  SingleQueue<Statement *> _queueStmt;
+  FastQueue<Statement *, 100> _queueStmt;
   // For secondary index, receive LeafRecord from primary index; No used for
   // primary index.
-  SingleQueue<LeafRecord *> _queueRecord;
+  FastQueue<LeafRecord *, 100> _queueRecord;
 };
 
 // If a table has too much statements to execute, it will create more than one

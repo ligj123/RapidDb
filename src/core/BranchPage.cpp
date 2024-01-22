@@ -7,7 +7,7 @@
 namespace storage {
 const uint16_t BranchPage::DATA_BEGIN_OFFSET = 12;
 const uint16_t IndexPage::MAX_DATA_LENGTH_BRANCH =
-    (uint16_t)(Configure::GetCachePageSize() - BranchPage::DATA_BEGIN_OFFSET -
+    (uint16_t)(Configure::GetIndexPageSize() - BranchPage::DATA_BEGIN_OFFSET -
                sizeof(uint32_t));
 
 BranchPage::~BranchPage() { CleanRecords(); }
