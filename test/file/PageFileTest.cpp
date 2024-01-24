@@ -15,7 +15,7 @@ BOOST_AUTO_TEST_CASE(PageFile_test) {
   const string pageName = ROOT_PATH + "/testPageFile" + StrMSTime() + ".dat";
   const string ovfName = ROOT_PATH + "/testOverflow" + StrMSTime() + ".dat";
 
-  uint32_t pageLen = (uint32_t)Configure::GetCachePageSize();
+  uint32_t pageLen = (uint32_t)Configure::GetIndexPageSize();
   string nofile = "./unexistdir/filename";
   PageFile errFile(nofile.c_str());
   BOOST_TEST(errFile.IsValid() == false);

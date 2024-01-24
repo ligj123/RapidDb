@@ -129,7 +129,6 @@ void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
 class LeafPage;
 class Statement;
 class LeafRecord : public RawRecord {
-
 public:
   // Load LeafRecord from LeafPage
   LeafRecord(IndexType idxType, Byte *bys);
@@ -199,7 +198,8 @@ public:
    * @return True: passed to lock; False: failed to lock
    */
   inline bool LockRecord(ActionType type, Statement *stmt, bool gapLock) {
-    assert(type == ActionType::QUERY_SHARE || type == ActionType::QUERY_UPDATE);
+    assert(type == ActionType::NO_ACTION || type == ActionType::QUERY_SHARE ||
+           type == ActionType::QUERY_UPDATE);
     if (_recLock != nullptr) {
       if (type == ActionType::QUERY_UPDATE)
         return false;

@@ -25,10 +25,6 @@ BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId)
   *((uint32_t *)(_bysVal + lenKey + lenVal + UI16_2_LEN)) = childPageId;
 }
 
-RawKey *BranchRecord::GetKey() const {
-  return new RawKey(_bysVal + UI16_2_LEN, GetKeyLength());
-}
-
 int BranchRecord::CompareTo(const RawRecord &rr, IndexType type) const {
   if (type != IndexType::NON_UNIQUE) {
     return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(),
