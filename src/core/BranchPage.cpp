@@ -20,7 +20,7 @@ void BranchPage::CleanRecords() {
   _vctRecord.clear();
 }
 
-void BranchPage::Init() {
+void BranchPage::LoadVars() {
   CleanRecords();
   IndexPage::Init();
 }

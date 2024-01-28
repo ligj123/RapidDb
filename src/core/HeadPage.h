@@ -23,7 +23,8 @@ public:
   static const uint16_t PAGE_TYPE_OFFSET;
   /**Offfset tosave index type*/
   static const uint16_t INDEX_TYPE_OFFSET;
-  /**Offset to save how many versions for record can saved to this table*/
+  /**Offset to save how many versions for record can saved to this table. For
+   * single version, it will always be 1*/
   static const uint16_t RECORD_VERSION_COUNT_OFFSET;
   /**Offset to save this file version*/
   static const uint16_t FILE_VERSION_OFFSET;
@@ -64,18 +65,18 @@ protected:
   uint16_t _keyAlterableFieldCount = 0;
   /**How many length alterable columns in value*/
   uint16_t _valueAlterableFieldCount = 0;
-  /**The versions that this table support in current time*/
+  /**The stamp versions that this table support in current time*/
   uint8_t _recordVerCount = 0;
   /**Index type, primary, unique or non-unique*/
   IndexType _indexType = IndexType::PRIMARY;
   /**the count of total pages in this index*/
   uint32_t _totalPageCount{0};
   /**The root page id for this index*/
-  PageID _rootPageId{0};
+  PageID _rootPageId{PAGE_NULL_POINTER};
   /**The begin leaf page for this index*/
-  PageID _beginLeafPageId{0};
+  PageID _beginLeafPageId{PAGE_NULL_POINTER};
   /**The end leaf page for this index*/
-  PageID _endLeafPageId{0};
+  PageID _endLeafPageId{PAGE_NULL_POINTER};
   /**The count of total records in this index*/
   uint64_t _totalRecordCount{0};
   /**To generate the auto increment ids, the value is current id*/
@@ -85,27 +86,27 @@ protected:
   // used for log transport, data snapshot etc.
   uint64_t _currRecordStamp{0};
 
-  /**The map contains the pair of timestamp and record stamps in this table,
-   * only valid for primary index in a table. It saved in head page after
-   * RECORD_VERSION_STAMP_OFFSET and save the pairs from small to big one by one
-   */
+/**The map contains the pair of timestamp and record stamps in this table,
+ * only valid for primary index in a table. It saved in head page after
+ * RECORD_VERSION_STAMP_OFFSET and save the pairs from small to big one by one
+ */
+#ifndef SINGLE_VERSION
   MTreeMap<DT_MicroSec, VersionStamp, KeyCmp> _mapVerStamp;
   MTreeSet<VersionStamp, KeyCmp> _setVerStamp;
-
-  // HeadPage has changed or not
-  bool _bHeadChanged = false;
+#endif
 
 public:
   HeadPage(IndexTree *indexTree)
       : CachePage(indexTree, UINT32_MAX, PageType::HEAD_PAGE) {}
-
+  void InitHeadPage(IndexType iType, const VectorDataValue &vctVal);
   bool SaveToBuffer() override;
-  void Init() override;
+  void LoadVars() override;
   uint32_t PageSize() const override { return HEAD_PAGE_SIZE; }
 
   void WriteFileVersion();
   FileVersion ReadFileVersion();
 
+#ifndef SINGLE_VERSION
   inline Byte ReadRecordVersionCount() { return (Byte)_mapVerStamp.size(); }
   // Only after the entire table was locked, here can update record version. so
   // here do not need lock
@@ -150,6 +151,7 @@ public:
       return 0;
     return _mapVerStamp.rbegin()->second;
   }
+#endif
   // Apply one or more stamps. If the index tree only has one task to execute,
   // every time apply one stamp. If there has too much statements and the index
   // tree split several task to execute, every task will apply a range of
@@ -162,14 +164,14 @@ public:
           .fetch_add(num, memory_order_relaxed);
     }
 
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline VersionStamp ReadRecordStamp() { return _currRecordStamp; }
 
   void WriteRecordStamp(VersionStamp recordStamp) {
     _currRecordStamp = recordStamp;
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline PageID GetAndIncTotalPageCount(uint32_t pageNum = 1,
@@ -182,21 +184,21 @@ public:
       return atomic_ref<uint32_t>(_totalPageCount)
           .fetch_add(pageNum, memory_order_relaxed);
     }
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline uint32_t ReadTotalPageCount() { return _totalPageCount; }
 
   void WriteTotalPageCount(uint32_t totalPage) {
     _totalPageCount = totalPage;
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline uint64_t ReadTotalRecordCount() { return _totalRecordCount; }
 
   inline void WriteTotalRecordCount(uint64_t totalRecNum) {
     _totalRecordCount = totalRecNum;
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline uint64_t IncAndGetTotalRecordCount(uint64_t recNum = 1,
@@ -213,30 +215,24 @@ public:
 
   inline void WriteRootPagePointer(uint32_t pointer) {
     _rootPageId = pointer;
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline uint32_t ReadRootPagePointer() { return _rootPageId; }
 
   inline void WriteBeginLeafPagePointer(uint32_t pointer) {
     _beginLeafPageId = pointer;
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline uint32_t ReadBeginLeafPagePointer() { return _beginLeafPageId; }
 
   inline void WriteEndLeafPagePointer(uint32_t pointer) {
     _endLeafPageId = pointer;
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline uint64_t ReadEndLeafPagePointer() { return _endLeafPageId; }
-
-  inline void WriteIndexType(IndexType type) {
-    _indexType = type;
-    WriteByte(INDEX_TYPE_OFFSET, (Byte)type);
-    _bHeadChanged = true;
-  }
 
   inline IndexType ReadIndexType() { return _indexType; }
 
@@ -252,27 +248,23 @@ public:
       return atomic_ref<uint64_t>(_autoIncrementKey)
           .fetch_add(step, memory_order_relaxed);
     }
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline uint64_t ReadAutoIncrementKey() { return _autoIncrementKey; }
 
   inline void WriteAutoIncrementKey(uint64_t key) {
     _autoIncrementKey = key;
-    _bHeadChanged = true;
+    _bDirty = true;
   }
 
   inline uint16_t ReadKeyVariableFieldCount() {
     return _keyAlterableFieldCount;
   }
 
-  void WriteKeyVariableFieldCount(uint16_t num);
-
   inline uint16_t ReadValueVariableFieldCount() {
     return _valueAlterableFieldCount;
   }
-
-  void WriteValueVariableFieldCount(uint16_t num);
 
   void ReadGarbage(uint32_t &totalPage, PageID &pageId, uint16_t &usedPage,
                    uint32_t &crc32) {
@@ -288,9 +280,7 @@ public:
     WriteShort(GARBAGE_PAGES_NUM_OFFSET, usedPage);
     WriteInt(GRABAGE_TOTAL_ITEMS_OFFSET, totalPage);
     WriteInt(GARBAGE_CRC32_OFFSET, crc32);
-    _bHeadChanged = true;
+    _bDirty = true;
   }
-
-  bool IsHeadChanged() { return _bHeadChanged; }
 };
 } // namespace storage

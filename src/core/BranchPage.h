@@ -36,7 +36,7 @@ public:
   BranchRecord *GetRecordByPos(int32_t pos, bool bAutoLast);
 
   bool IsPageFull() const { return _totalDataLength >= MAX_DATA_LENGTH_BRANCH; }
-  void Init() override;
+  void LoadVars() override;
 
 protected:
   inline BranchRecord *GetVctRecord(int pos) const {

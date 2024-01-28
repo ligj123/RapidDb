@@ -21,7 +21,7 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree)
   ovfPage->ReadPage(nullptr);
   boost::crc_32_type crc32;
   crc32.process_bytes(ovfPage->GetBysPage(),
-                      CachePage::CACHE_PAGE_SIZE * _usedPageNum);
+                      CachePage::INDEX_PAGE_SIZE * _usedPageNum);
   if (crc32.checksum() != c32) {
 
     LOG_ERROR << "Failed to verify garbage page. Index Name="
@@ -131,8 +131,8 @@ void GarbageOwner::SavePage() {
   // Every 6 bytes to save the first page id and range size, the last 4 bytes
   // save crc32 code for verify
   _usedPageNum =
-      (uint16_t)((_treeFreePage.size() * 6 + CachePage::CACHE_PAGE_SIZE - 1) /
-                 CachePage::CACHE_PAGE_SIZE);
+      (uint16_t)((_treeFreePage.size() * 6 + CachePage::INDEX_PAGE_SIZE - 1) /
+                 CachePage::INDEX_PAGE_SIZE);
   _firstPageId = ApplyPage(_usedPageNum);
   if (_firstPageId == PAGE_NULL_POINTER) {
     _firstPageId =

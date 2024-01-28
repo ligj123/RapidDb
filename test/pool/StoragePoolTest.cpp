@@ -42,7 +42,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
         CachePage *page = new CachePage(_indexTree, ii, PageType::UNKNOWN);
         page->WriteInt(0, ii);
         BytesCopy(page->GetBysPage() + 4, _pStrTest, _strSize);
-        BytesCopy(page->GetBysPage() + CachePage::CRC32_PAGE_OFFSET - _strSize,
+        BytesCopy(page->GetBysPage() + CachePage::CRC32_INDEX_OFFSET - _strSize,
                   _pStrTest, _strSize);
         page->SetDirty(true);
         _indexTree->IncPages();
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
       BOOST_TEST(memcmp(_pStrTest, _page->GetBysPage() + 4, _strSize) == 0);
       BOOST_TEST(
           memcmp(_pStrTest,
-                 _page->GetBysPage() + CachePage::CRC32_PAGE_OFFSET - _strSize,
+                 _page->GetBysPage() + CachePage::CRC32_INDEX_OFFSET - _strSize,
                  _strSize) == 0);
 
       _page->DecRef();

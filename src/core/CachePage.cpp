@@ -5,11 +5,12 @@
 
 namespace storage {
 static thread_local boost::crc_32_type crc32;
-const uint32_t CachePage::CACHE_PAGE_SIZE =
+
+const uint32_t CachePage::INDEX_PAGE_SIZE =
     (uint32_t)Configure::GetIndexPageSize();
 const uint32_t CachePage::HEAD_PAGE_SIZE =
     (uint32_t)Configure::GetDiskClusterSize();
-const uint32_t CachePage::CRC32_PAGE_OFFSET =
+const uint32_t CachePage::CRC32_INDEX_OFFSET =
     (uint32_t)(Configure::GetIndexPageSize() - sizeof(uint32_t));
 const uint32_t CachePage::CRC32_HEAD_OFFSET =
     (uint32_t)(Configure::GetDiskClusterSize() - sizeof(uint32_t));
@@ -42,8 +43,8 @@ void CachePage::AfterRead() {
     }
   } else if (_pageType != PageType::OVERFLOW_PAGE) {
     crc32.reset();
-    crc32.process_bytes(_bysPage, CRC32_PAGE_OFFSET);
-    if (crc32.checksum() != (uint32_t)ReadInt(CRC32_PAGE_OFFSET)) {
+    crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
+    if (crc32.checksum() != (uint32_t)ReadInt(CRC32_INDEX_OFFSET)) {
       bvalid = false;
     }
   }
@@ -54,6 +55,9 @@ void CachePage::AfterRead() {
     _pageStatus = PageStatus::VALID;
   } else {
     _pageStatus = PageStatus::INVALID;
+    // Now if cache page is invalid, it will abort; In following version, it
+    // will add the function to fix the invalid page
+    abort();
   }
 }
 } // namespace storage

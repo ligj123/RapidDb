@@ -175,7 +175,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
 
   if (lenVal > max_lenVal) {
     uint16_t num =
-        (lenVal + CachePage::CACHE_PAGE_SIZE - 1) / CachePage::CACHE_PAGE_SIZE;
+        (lenVal + CachePage::INDEX_PAGE_SIZE - 1) / CachePage::INDEX_PAGE_SIZE;
     _overflowPage =
         OverflowPage::GetPage(idxTree, idxTree->ApplyPageId(num), num, true);
     infoLen += UI32_LEN + UI32_LEN + UI16_LEN;
@@ -242,7 +242,7 @@ int32_t LeafRecord::UpdateRecord(IndexTree *idxTree,
                         *recStruOld._keyLen - UI16_2_LEN - lenInfo;
   if (lenVal > max_lenVal) {
     uint16_t num =
-        (lenVal + CachePage::CACHE_PAGE_SIZE - 1) / CachePage::CACHE_PAGE_SIZE;
+        (lenVal + CachePage::INDEX_PAGE_SIZE - 1) / CachePage::INDEX_PAGE_SIZE;
     _overflowPage =
         OverflowPage::GetPage(idxTree, idxTree->ApplyPageId(num), num, true);
     lenInfo += UI32_LEN + UI32_LEN + UI16_LEN;
@@ -284,8 +284,8 @@ int32_t LeafRecord::UpdateRecord(IndexTree *idxTree,
   uint32_t max_lenVal = (uint32_t)Configure::GetMaxRecordLength() -
                         *recStruOld._keyLen - UI16_2_LEN - lenInfo;
   if (lenVal + oldLenVal > max_lenVal) {
-    uint16_t num = (lenVal + oldLenVal + CachePage::CACHE_PAGE_SIZE - 1) /
-                   CachePage::CACHE_PAGE_SIZE;
+    uint16_t num = (lenVal + oldLenVal + CachePage::INDEX_PAGE_SIZE - 1) /
+                   CachePage::INDEX_PAGE_SIZE;
     _overflowPage = OverflowPage::GetPage(
         _indexTree, _indexTree->ApplyPageId(num), num, true);
     lenInfo += UI32_LEN + UI32_LEN + UI16_LEN;

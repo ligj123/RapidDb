@@ -35,9 +35,13 @@ enum class PageStatus : uint8_t {
 
 class CachePage {
 public:
-  static const uint32_t CACHE_PAGE_SIZE;
+  // Index page size
+  static const uint32_t INDEX_PAGE_SIZE;
+  // Head page size
   static const uint32_t HEAD_PAGE_SIZE;
-  static const uint32_t CRC32_PAGE_OFFSET;
+  // Offset to wrtie crc32 in index page
+  static const uint32_t CRC32_INDEX_OFFSET;
+  // Offset to write crc32 in head page
   static const uint32_t CRC32_HEAD_OFFSET;
 
   inline static uint64_t CalcHashCode(uint64_t fileId, uint32_t pageId) {
@@ -60,44 +64,41 @@ public:
     assert(false);
     return false;
   }
+  void SaveCrc();
   virtual void AfterRead();
-  virtual void AfterWrite() {
-    _bDirty = false;
-    _pageStatus = PageStatus::VALID;
-  }
-  virtual void Init() {}
+  virtual void AfterWrite() { _pageStatus = PageStatus::VALID; }
+  // Load page variable from page buffer after read page from disk.
+  virtual void LoadVars() {}
   virtual uint32_t PageSize() const = 0;
   uint64_t FileOffset() const {
     if (_pageType == PageType::HEAD_PAGE) {
       return 0;
     } else {
-      return HEAD_PAGE_SIZE + (uint64_t)CACHE_PAGE_SIZE * _pageId;
+      return HEAD_PAGE_SIZE + (uint64_t)INDEX_PAGE_SIZE * _pageId;
     }
   }
+  virtual void CalcScore() { assert(false); }
+  inline uint32_t GetScore() const { return _score; }
 
   inline bool IsDirty() const { return _bDirty; }
   inline PageID GetPageId() const { return _pageId; }
-  inline void UpdateAccessTime() { _dtPageLastAccess = MicroSecTime(); }
-  inline DT_MicroSec GetAccessTime() const { return _dtPageLastAccess; }
   inline uint64_t HashCode() const { return CalcHashCode(_fileId, _pageId); }
   inline uint64_t GetFileId() const { return _fileId; }
   inline IndexTree *GetIndexTree() const { return _indexTree; }
   inline Byte *GetBysPage() const { return _bysPage; }
   inline PageType GetPageType() const { return _pageType; }
 
-  inline SharedSpinMutex &GetLock() { return _rwLock; }
-  inline bool IsLocked() const { return _rwLock.is_locked(); }
-  inline void ReadLock() { _rwLock.lock_shared(); }
-  inline bool ReadTryLock() { return _rwLock.try_lock_shared(); }
-  inline void ReadUnlock() { _rwLock.unlock_shared(); }
-  inline void WriteLock() { _rwLock.lock(); }
-  inline bool WriteTryLock() { return _rwLock.try_lock(); }
-  inline void WriteUnlock() { _rwLock.unlock(); }
+  inline SpinMutex &GetLock() { return _spinLock; }
+  inline bool IsLocked() const { return _spinLock.is_locked(); }
+  inline void Lock() { _spinLock.lock(); }
+  inline bool TryLock() { return _spinLock.try_lock(); }
+  inline void Unlock() { _spinLock.unlock(); }
 
-  inline bool IsRefer() { return _bRefer; }
-  inline void SetRefer(bool b) { _bRefer = b; }
+  inline uint32_t IsRefered() { return _bRefered; }
+  inline void SetReferred(bool b) { _bRefered = b; }
   virtual bool Releaseable() {
-    return !_bRefer && _pageStatus == PageStatus::VALID;
+    return !_bRefered && (_pageStatus != PageStatus::READING ||
+                          _pageStatus != PageStatus::WRITING);
   }
 
   inline Byte ReadByte(uint32_t pos) const {
@@ -142,15 +143,17 @@ public:
 
   inline PageStatus GetPageStatus() { return _pageStatus; }
   inline void SetPageStatus(PageStatus s) { _pageStatus = s; }
+  inline uint32_t AddWaiting(uint32_t num) {
+    _waiting += num;
+    return _waiting;
+  }
+  inline uint32_t GetWaiting() { return _waiting; }
 
 protected:
   // The page block, it is equal pages in disk
   Byte *_bysPage = nullptr;
-  // Read write lock.
-  SharedSpinMutex _rwLock;
-  // The last time to visit this page, Now only used when get from
-  // PageBufferPool
-  DT_MicroSec _dtPageLastAccess{0};
+  // Spin lock.
+  SpinMutex _spinLock;
   // Index Tree
   IndexTree *_indexTree;
   // ID for this page
@@ -163,10 +166,18 @@ protected:
   PageStatus _pageStatus{PageStatus::EMPTY};
   // Page type
   PageType _pageType;
-  // If this page has been refer by index tree or only used in PageBufferPool.
-  bool _bRefer{false};
   // used only in IndexPage, point out if there have records added or deleted
   bool _bRecordUpdate{false};
+  // True: This page has been referred by IndexTask and can not be freed.
+  bool _bRefered{true};
+  // In current period this page has been visit how many time. It will be used
+  // to calc score and will clear to zero after calc score.
+  uint16_t _visit{0};
+  // Every time to scan the CachePagePool, it will calc the new score for every
+  // page according to last score and if it has been referred.
+  uint32_t _score{100000};
+  // How many statements are waiting for this page.
+  uint32_t _waiting{0};
 };
 
 } // namespace storage

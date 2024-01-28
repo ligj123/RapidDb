@@ -12,7 +12,7 @@ public:
                bool bNew)
       : CachePage(indexTree, startId, PageType::OVERFLOW_PAGE),
         _pageNum(pageNum) {
-    _bysPage = CachePool::Apply(CACHE_PAGE_SIZE * pageNum);
+    _bysPage = CachePool::Apply(INDEX_PAGE_SIZE * pageNum);
     if (bNew) {
       _pageStatus = PageStatus::VALID;
     } else {
@@ -20,11 +20,11 @@ public:
       // TO DO (Add into FilePagePool)
     }
   }
-  ~OverflowPage() { CachePool::Release(_bysPage, CACHE_PAGE_SIZE * _pageNum); }
+  ~OverflowPage() { CachePool::Release(_bysPage, INDEX_PAGE_SIZE * _pageNum); }
   void AfterRead() override { _pageStatus = PageStatus::READED; }
   void AfterWrite() override { _pageStatus = PageStatus::VALID; }
   uint16_t GetPageNum() const { return _pageNum; }
-  uint32_t PageSize() const override { return CACHE_PAGE_SIZE * _pageNum; }
+  uint32_t PageSize() const override { return INDEX_PAGE_SIZE * _pageNum; }
 
 protected:
   // How much pages for this overflow page

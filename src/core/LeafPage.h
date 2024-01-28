@@ -25,7 +25,7 @@ public:
   LeafPage(IndexTree *indexTree, PageID pageId, PageID parentPageId);
   LeafPage(IndexTree *indexTree, PageID pageId);
   ~LeafPage();
-  void Init() override;
+  void LoadVars() override;
 
   inline void SetPrevPageId(PageID id) { _prevPageId = id; }
   inline PageID GetPrevPageId() { return _prevPageId; }
