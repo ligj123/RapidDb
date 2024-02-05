@@ -32,7 +32,11 @@ void FilePagePool::Run() {
 
     _readFastQueue.Pop(_readMQueue);
     _writeFastQueue.Pop(_writeMQueue);
+#ifdef LINUX_OS
     RWPage();
+#else
+    abort();
+#endif
   }
 }
 
@@ -47,18 +51,22 @@ bool FilePagePool::SyncReadPage(CachePage *page) {
   if (rt < 0) {
     LOG_ERROR << "Failed to seek file, name="
               << page->GetIndexTree()->GetFileName() << "  ret=" << rt;
+    abort();
     return false;
   }
   rt = read(fh, (void *)bys, psz);
   if (rt != psz) {
     LOG_ERROR << "Failed to read file, name="
               << page->GetIndexTree()->GetFileName() << "  ret=" << rt;
+    abort();
     return false;
   }
-
+#else
+  abort();
 #endif
   return true;
 }
+
 bool FilePagePool::SyncWritePage(CachePage *page) {
   const Byte *bys = page->GetBysPage();
   int64_t psz = page->PageSize();
@@ -69,14 +77,18 @@ bool FilePagePool::SyncWritePage(CachePage *page) {
   if (rt < 0) {
     LOG_ERROR << "Failed to seek file, name="
               << page->GetIndexTree()->GetFileName() << "  ret=" << rt;
+    abort();
     return false;
   }
   rt = write(fh, (void *)bys, psz);
   if (rt != psz) {
     LOG_ERROR << "Failed to write file, name="
               << page->GetIndexTree()->GetFileName() << "  ret=" << rt;
+    abort();
     return false;
   }
+#else
+  abort();
 #endif
   return true;
 }

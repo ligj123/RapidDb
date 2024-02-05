@@ -64,7 +64,7 @@ public:
     assert(false);
     return false;
   }
-  void SaveCrc();
+  void SaveCrc32();
   virtual void AfterRead();
   virtual void AfterWrite() { _pageStatus = PageStatus::VALID; }
   // Load page variable from page buffer after read page from disk.
@@ -77,7 +77,10 @@ public:
       return HEAD_PAGE_SIZE + (uint64_t)INDEX_PAGE_SIZE * _pageId;
     }
   }
-  virtual void CalcScore() { assert(false); }
+  virtual uint32_t CalcScore() {
+    assert(false);
+    return _score;
+  }
   inline uint32_t GetScore() const { return _score; }
 
   inline bool IsDirty() const { return _bDirty; }
@@ -97,7 +100,8 @@ public:
   inline uint32_t IsRefered() { return _bRefered; }
   inline void SetReferred(bool b) { _bRefered = b; }
   virtual bool Releaseable() {
-    return !_bRefered && (_pageStatus != PageStatus::READING ||
+    return !_bRefered && (_pageStatus != PageStatus::VALID ||
+                          _pageStatus != PageStatus::READING ||
                           _pageStatus != PageStatus::WRITING);
   }
 

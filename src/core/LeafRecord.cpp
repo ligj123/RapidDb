@@ -11,34 +11,14 @@ namespace storage {
 static thread_local boost::crc_32_type crc32;
 
 void SetValueStruct(RecStruct &recStru, ValueStruct *arValStr,
-                    uint32_t fieldNum, uint32_t valVarLen, Byte ver) {
-#ifdef SINGLE_VERSION
+                    uint32_t fieldNum, uint32_t valVarLen) {
   uint32_t byNum = (fieldNum + 7) >> 3;
   Byte *bys = recStru._bysValStart;
   arValStr[0].bysNull = bys;
   arValStr[0].varFiledsLen = (uint32_t *)(bys + byNum);
   arValStr[0].bysValue = bys + byNum + valVarLen;
-#else
-  Byte verNum = (*recStru._byVerFlow) & VERSION_NUM;
-  uint32_t byNum = (fieldNum + 7) >> 3;
-  Byte *bys = recStru._bysValStart;
-  uint32_t offset = 0;
-  for (Byte i = 0; i < verNum; i++) {
-    if (ver == 0xff) {
-      arValStr[i].bysNull = bys + offset;
-      arValStr[i].varFiledsLen = (uint32_t *)(bys + offset + byNum);
-      arValStr[i].bysValue = bys + offset + byNum + valVarLen;
-    } else if (i == ver) {
-      arValStr[0].bysNull = bys + offset;
-      arValStr[0].varFiledsLen = (uint32_t *)(bys + offset + byNum);
-      arValStr[0].bysValue = bys + offset + byNum + valVarLen;
-      break;
-    }
-    offset += recStru._arrValLen[i];
-  }
-#endif
 }
-#ifdef SINGLE_VERSION
+
 RecStruct::RecStruct(Byte *bys, uint16_t keyLen, OverflowPage *ofPage) {
   _totalLen = (uint16_t *)bys;
   _keyLen = (uint16_t *)(bys + UI16_LEN);
@@ -61,31 +41,6 @@ RecStruct::RecStruct(Byte *bys, uint16_t keyLen, OverflowPage *ofPage) {
     _bysValStart = ((Byte *)_arrValLen) + UI32_LEN;
   }
 }
-#else
-RecStruct::RecStruct(Byte *bys, uint16_t keyLen, Byte verNum,
-                     OverflowPage *ofPage) {
-  _totalLen = (uint16_t *)bys;
-  _keyLen = (uint16_t *)(bys + UI16_LEN);
-  _bysKey = bys + UI16_2_LEN;
-  _byVerFlow = bys + UI16_2_LEN + keyLen;
-  _arrStamp = (uint64_t *)(_byVerFlow + 1);
-  _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
-
-  if ((*_byVerFlow) & REC_OVERFLOW) [[unlikely]] {
-    _arrCrc32 = (uint32_t *)(((Byte *)_arrValLen) + UI32_LEN * verNum);
-    _pidStart = (PageID *)(((Byte *)_arrCrc32) + UI32_LEN);
-    _pageNum = (uint16_t *)(((Byte *)_pidStart) + UI32_LEN);
-    if (ofPage != nullptr) {
-      _bysValStart = ofPage->GetBysPage();
-    }
-  } else {
-    _arrCrc32 = nullptr;
-    _pidStart = nullptr;
-    _pageNum = nullptr;
-    _bysValStart = ((Byte *)_arrValLen) + UI32_LEN * verNum;
-  }
-}
-#endif
 
 RecStruct::RecStruct(Byte *bys, OverflowPage *ofPage) {
   _totalLen = (uint16_t *)bys;
@@ -93,7 +48,6 @@ RecStruct::RecStruct(Byte *bys, OverflowPage *ofPage) {
   uint16_t keyLen = *_keyLen;
   _bysKey = bys + UI16_2_LEN;
   _byVerFlow = bys + UI16_2_LEN + keyLen;
-#ifdef SINGLE_VERSION
   _arrStamp = (uint64_t *)(_byVerFlow + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN);
 
@@ -109,25 +63,6 @@ RecStruct::RecStruct(Byte *bys, OverflowPage *ofPage) {
     _pageNum = nullptr;
     _bysValStart = ((Byte *)_arrValLen) + UI32_LEN;
   }
-#else
-  Byte verNum = (*_byVerFlow) & VERSION_NUM;
-  _arrStamp = (uint64_t *)(_byVerFlow + 1);
-  _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN * verNum);
-
-  if ((*_byVerFlow) & REC_OVERFLOW) [[unlikely]] {
-    assert(overPage != nullptr);
-    _arrCrc32 = (uint32_t *)(((Byte *)_arrValLen) + UI32_LEN * verNum);
-    _pidStart = (PageID *)(((Byte *)_arrCrc32) + UI32_LEN * verNum);
-    _pageNum = (uint16_t *)(((Byte *)_pidStart) + UI32_LEN);
-    assert(ofPage != nullptr);
-    _bysValStart = overPage->GetBysPage();
-  } else {
-    _arrCrc32 = nullptr;
-    _pidStart = nullptr;
-    _pageNum = nullptr;
-    _bysValStart = ((Byte *)_arrValLen) + UI32_LEN * verNum;
-  }
-#endif
 }
 
 LeafRecord::LeafRecord(IndexType idxType, Byte *bys)
@@ -186,11 +121,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
       (_overflowPage == nullptr ? lenVal : UI32_LEN * 2 + UI16_LEN);
 
   _bysVal = CachePool::Apply(totalLen);
-#ifdef SINGLE_VERSION
   RecStruct recStru(_bysVal, lenKey, _overflowPage);
-#else
-  RecStruct recStru(_bysVal, lenKey, 1, _overflowPage);
-#endif
   FillHeaderBuff(recStru, totalLen, lenKey, 1, recStamp, lenVal,
                  ActionType::INSERT);
   FillKeyBuff(recStru, vctKey);
@@ -207,13 +138,6 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
     _overflowPage->SetPageStatus(PageStatus::WRITING);
     // TO DO (Add to FilePagePool);
   }
-}
-
-LeafRecord::LeafRecord(LeafRecord &&src)
-    : RawRecord(std::move(src)), _recLock(src._recLock),
-      _overflowPage(src._overflowPage) {
-  src._recLock = nullptr;
-  src._overflowPage = nullptr;
 }
 
 /** @brief When update or delete this record, set new values into record and
@@ -235,7 +159,7 @@ int32_t LeafRecord::UpdateRecord(IndexTree *idxTree,
       new RecordLock(type, RecordStatus::SEATED, gapLock, stmt);
   recLock->_undoRec = new LeafRecord(move(*this));
   _recLock = recLock;
-#ifdef SINGLE_VERSION
+
   uint32_t lenVal = CalcValueLength(idxTree, vctVal, type);
   uint32_t lenInfo = 1 + (UI64_LEN + UI32_LEN);
   uint32_t max_lenVal = (uint32_t)Configure::GetMaxRecordLength() -
@@ -270,66 +194,6 @@ int32_t LeafRecord::UpdateRecord(IndexTree *idxTree,
     // TO DO (Add overflow page into FilePagePool)
     StoragePool::AddPage(_overflowPage, true);
   }
-#else
-  MVector<Byte> vctSn;
-  uint32_t oldLenVal = CalcValidValueLength(recStruOld, true, vctSn);
-
-  if (oldLenVal == 0 && type == ActionType::DELETE) {
-    _bRemoved = true;
-    return -(*recStruOld._totalLen);
-  }
-
-  uint32_t lenVal = CalcValueLength(vctVal, type);
-  uint32_t lenInfo = 1 + (UI64_LEN + UI32_LEN) * (1 + (uint32_t)vctSn.size());
-  uint32_t max_lenVal = (uint32_t)Configure::GetMaxRecordLength() -
-                        *recStruOld._keyLen - UI16_2_LEN - lenInfo;
-  if (lenVal + oldLenVal > max_lenVal) {
-    uint16_t num = (lenVal + oldLenVal + CachePage::INDEX_PAGE_SIZE - 1) /
-                   CachePage::INDEX_PAGE_SIZE;
-    _overflowPage = OverflowPage::GetPage(
-        _indexTree, _indexTree->ApplyPageId(num), num, true);
-    lenInfo += UI32_LEN + UI32_LEN + UI16_LEN;
-  }
-
-  uint16_t totalLen = UI16_2_LEN + *recStruOld._keyLen + lenInfo +
-                      (_overflowPage == nullptr ? lenVal + oldLenVal : 0);
-  _bysVal = CachePool::Apply(totalLen);
-  RecStruct recStru(_bysVal, *recStruOld._keyLen, 1 + (uint32_t)vctSn.size(),
-                    _overflowPage);
-  FillHeaderBuff(recStru, totalLen, *recStruOld._keyLen,
-                 1 + (uint32_t)vctSn.size(), recStamp, lenVal, type);
-  BytesCopy(recStru._bysKey, recStruOld._bysKey, *recStruOld._keyLen);
-
-  if (type == ActionType::UPDATE) {
-    ValueStruct valStru;
-    SetValueStruct(recStru, &valStru, (uint32_t)vctVal.size(),
-                   _indexTree->GetValVarLen(), 0);
-    FillValueBuff(valStru, vctVal);
-  }
-  if (vctSn.size() > 0) {
-    uint32_t count = lenVal;
-    ValueStruct arrStru[8];
-    SetValueStruct(recStruOld, arrStru, (uint32_t)vctVal.size(),
-                   _indexTree->GetValVarLen());
-
-    for (size_t i = 0; i < vctSn.size(); i++) {
-      Byte sn = vctSn[i];
-      recStru._arrStamp[i + 1] = recStruOld._arrStamp[sn];
-      recStru._arrValLen[i + 1] = recStruOld._arrValLen[sn];
-      BytesCopy(recStru._bysValStart + count, arrStru[sn].bysNull,
-                recStruOld._arrValLen[sn]);
-      count += recStruOld._arrValLen[sn];
-    }
-  }
-
-  if (_overflowPage != nullptr) {
-    crc32.reset();
-    crc32.process_bytes(recStru._bysValStart, lenVal + oldLenVal);
-    recStru._arrCrc32[0] = crc32.checksum();
-    // TO DO (Add overflow page into FilePagePool)
-    StoragePool::AddPage(_overflowPage, true);
-  }
-#endif
 
   return *recStru._totalLen - *recStruOld._totalLen;
 }
@@ -381,7 +245,6 @@ uint32_t LeafRecord::CalcValidValueLength(IndexTree *idxTree,
   return len;
 }
 
-#ifdef SINGLE_VERSION
 /**
  * @brief Read the value to data value list, only used for parmary index.
  * @param mapPos HashMap<fields positions, result position> in record that need
@@ -390,12 +253,12 @@ uint32_t LeafRecord::CalcValidValueLength(IndexTree *idxTree,
  * @param vctVal The vector to save the data values.
  * @param stmt The statement to read list value.
  * @param atype ActionType
- * @return RstReadValue
+ * @return ResultRead
  */
-RstReadValue
-LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
-                          VectorDataValue &vctVal, IndexTree *idxTree,
-                          Statement *stmt, ActionType atype) const {
+ResultRead LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
+                                     VectorDataValue &vctVal,
+                                     IndexTree *idxTree, Statement *stmt,
+                                     ActionType atype) const {
   assert(_indexType == IndexType::PRIMARY);
   const LeafRecord *lr = nullptr;
 
@@ -408,7 +271,7 @@ LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
     }
 
     if (lr == nullptr) {
-      return RstReadValue::LOCKED;
+      return ResultRead::LOCKED;
     }
   } else {
     lr = this;
@@ -456,9 +319,8 @@ LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
     bys += flen;
   }
 
-  return RstReadValue::OK;
+  return ResultRead::OK;
 }
-#endif
 
 RawKey *LeafRecord::GetKey(IndexTree *idxTree) const {
   return new RawKey(_bysVal + UI16_2_LEN,

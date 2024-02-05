@@ -1,9 +1,11 @@
 ﻿#pragma once
 #include "../dataType/IDataValue.h"
 #include "../utils/BytesFuncs.h"
+#include "IndexPage.h"
 #include "IndexTree.h"
 #include "RawKey.h"
 #include "RawRecord.h"
+
 #include <cstring>
 
 namespace storage {
@@ -16,8 +18,28 @@ public:
 public:
   BranchRecord(IndexType type, Byte *bys);
   BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId);
+  BranchRecord(BranchRecord &&src)
+      : RawRecord(src), _childPage(src._childPage) {
+    src._childPage = nullptr;
+  }
   BranchRecord(const BranchRecord &src) = delete;
-  ~BranchRecord() {}
+  ~BranchRecord() {
+    if (_childPage != nullptr) {
+      _childPage->_bRefered = false;
+      _childPage = nullptr;
+    }
+  }
+  BranchRecord() : RawRecord() {}
+  BrachRecord &operator=(BranchRecord &&src) {
+    _bysVal = src._bysVal;
+    src._bysVal = nullptr;
+    _bSole = src._bSole;
+    _indexType = src._indexType;
+    _childPage = src._childPage;
+    src._childPage = nullptr;
+    return *this;
+  }
+  BrachRecord &operator=(const BranchRecord &src) = delete;
 
   RawKey *GetKey() const;
   int CompareTo(const RawRecord &other, IndexType type) const;
@@ -40,6 +62,13 @@ public:
     return len;
   }
 
+  void SetChildPage(IndexPage *page) { _childPage = page; }
+  IndexPage *GetChildPage() { return _childPage; }
+  bool IsNull() { return _bysVal == nullptr; }
+
+protected:
+  // The related index page for this branch record
+  IndexPage *_childPage{nullptr};
   friend std::ostream &operator<<(std::ostream &os, const BranchRecord &br);
 };
 

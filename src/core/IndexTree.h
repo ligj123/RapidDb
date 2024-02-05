@@ -51,7 +51,6 @@ public:
     _garbageOwner->RecyclePage(firstId, num);
   }
 
-  PageFile *ApplyPageFile();
   /** @brief Search B+ tree from root according record's key, util find the
    * LeafPage.
    * @param key The record's key to search
@@ -118,10 +117,6 @@ protected:
   MString _indexName;
   MString _fileName;
   FileHandle _fileHandle;
-  SpinMutex _fileMutex;
-  condition_variable_any _fileCv;
-  /**How much page files were opened for this index tree*/
-  uint32_t _rpfCount = 0;
   uint32_t _fileId = 0;
   bool _bClosed = false;
   /** Head page */

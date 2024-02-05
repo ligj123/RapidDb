@@ -11,32 +11,38 @@ public:
   static const uint16_t DATA_BEGIN_OFFSET;
 
 public:
+  // Create new brance page
   BranchPage(IndexTree *indexTree, uint32_t pageId, Byte pageLevel,
              uint32_t parentId)
       : IndexPage(indexTree, pageId, pageLevel, parentId,
                   PageType::BRANCH_PAGE) {}
-
+  // Create for existed branch page and send to read queue
   BranchPage(IndexTree *indexTree, uint32_t pageId)
       : IndexPage(indexTree, pageId, PageType::BRANCH_PAGE) {}
   ~BranchPage();
-
+  /**
+   * @brief Save records from vector and variable into buffer
+   * @return If conditions is ok and saved successfully, return true, or false
+   */
   bool SaveRecords() override;
-
+  /**
+   * @brief clear vector of records and children
+   */
   void CleanRecords();
+  /**
+   * @brief Load records from buffer into vector and reset children
+   */
   void LoadRecords();
-  BranchRecord *DeleteRecord(uint16_t index);
-  BranchRecord *DeleteRecord(const BranchRecord &record);
+  void DeleteRecord(uint16_t index, BranchRecord &brDel);
 
-  void InsertRecord(BranchRecord *&record, int32_t pos = -1);
+  void InsertRecord(BranchRecord *&record, int32_t pos);
   bool AddRecord(BranchRecord *&record);
   bool RecordExist(const RawKey &key) const;
 
   int32_t SearchRecord(const BranchRecord &rr, bool &bFind) const;
   int32_t SearchKey(const RawKey &key, bool &bFind) const;
   BranchRecord *GetRecordByPos(int32_t pos, bool bAutoLast);
-
-  bool IsPageFull() const { return _totalDataLength >= MAX_DATA_LENGTH_BRANCH; }
-  void LoadVars() override;
+  bool SplitPage() override;
 
 protected:
   inline BranchRecord *GetVctRecord(int pos) const {
@@ -45,7 +51,8 @@ protected:
   int CompareTo(uint32_t recPos, const BranchRecord &rr) const;
   int CompareTo(uint32_t recPos, const RawKey &key) const;
 
-  // The Children page, every child page response to a branch record
-  MVector<IndexPage *> _children;
+protected:
+  // The vector to save records in this page
+  MVector<BranchRecord> _vctRecord;
 };
 } // namespace storage

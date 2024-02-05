@@ -209,33 +209,10 @@ void IndexTree::CloneValues(VectorDataValue &vct) {
   }
 }
 
-PageFile *IndexTree::ApplyPageFile() {
-  while (true) {
-    unique_lock<SpinMutex> lock(_fileMutex);
-    _fileCv.wait_for(lock, 1ms, [this] {
-      return _rpfCount < Configure::GetMaxPageFileCount();
-    });
-
-    if (_fileQueue.size() > 0) {
-      PageFile *rpf = _fileQueue.front();
-      _fileQueue.pop();
-      return rpf;
-    } else if (_rpfCount < Configure::GetMaxPageFileCount()) {
-      _rpfCount++;
-      return new PageFile(_fileName.c_str());
-    }
-  }
-}
-
 void IndexTree::UpdateRootPage(IndexPage *root) {
-  unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  _headPage->WriteRootPagePointer(root->GetPageId());
-  if (_rootPage != nullptr) {
-    _rootPage->DecRef();
-    _rootPage = root;
-    root->IncRef();
-  }
-  StoragePool::AddPage(_headPage, false);
+  assert(_rootPage != nullptr);
+  _headPage->SetRootPageID(root->GetPageId());
+  _rootPage = root;
 }
 
 IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {

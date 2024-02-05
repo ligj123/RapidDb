@@ -21,7 +21,7 @@ public:
     }
   }
   ~OverflowPage() { CachePool::Release(_bysPage, INDEX_PAGE_SIZE * _pageNum); }
-  void AfterRead() override { _pageStatus = PageStatus::READED; }
+  void AfterRead() override { _pageStatus = PageStatus::VALID; }
   void AfterWrite() override { _pageStatus = PageStatus::VALID; }
   uint16_t GetPageNum() const { return _pageNum; }
   uint32_t PageSize() const override { return INDEX_PAGE_SIZE * _pageNum; }

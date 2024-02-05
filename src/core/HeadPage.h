@@ -7,16 +7,10 @@
 
 namespace storage {
 
-struct KeyCmp {
-  bool operator()(const uint64_t lhs, const uint64_t rhs) const {
-    return !(lhs <= rhs);
-  }
-};
-
 /**The stamps only valid for primary index*/
 class HeadPage : public CachePage {
 public:
-  /**The max versions can be support at the same time in a table*/
+  /**The max stamp versions can be support at the same time in current version*/
   static const uint16_t MAX_RECORD_VERSION_COUNT;
 
   /**Offset to save page type*/
@@ -71,12 +65,14 @@ protected:
   IndexType _indexType = IndexType::PRIMARY;
   /**the count of total pages in this index*/
   uint32_t _totalPageCount{0};
+  // When create a table, its root page, begin leaf page and end leaf page
+  // shouble be 0.
   /**The root page id for this index*/
-  PageID _rootPageId{PAGE_NULL_POINTER};
+  PageID _rootPageId{0};
   /**The begin leaf page for this index*/
-  PageID _beginLeafPageId{PAGE_NULL_POINTER};
+  PageID _beginLeafPageId{0};
   /**The end leaf page for this index*/
-  PageID _endLeafPageId{PAGE_NULL_POINTER};
+  PageID _endLeafPageId{0};
   /**The count of total records in this index*/
   uint64_t _totalRecordCount{0};
   /**To generate the auto increment ids, the value is current id*/
@@ -86,96 +82,55 @@ protected:
   // used for log transport, data snapshot etc.
   uint64_t _currRecordStamp{0};
 
-/**The map contains the pair of timestamp and record stamps in this table,
- * only valid for primary index in a table. It saved in head page after
- * RECORD_VERSION_STAMP_OFFSET and save the pairs from small to big one by one
- */
-#ifndef SINGLE_VERSION
-  MTreeMap<DT_MicroSec, VersionStamp, KeyCmp> _mapVerStamp;
-  MTreeSet<VersionStamp, KeyCmp> _setVerStamp;
-#endif
-
 public:
   HeadPage(IndexTree *indexTree)
       : CachePage(indexTree, UINT32_MAX, PageType::HEAD_PAGE) {}
   void InitHeadPage(IndexType iType, const VectorDataValue &vctVal);
-  bool SaveToBuffer() override;
   void LoadVars() override;
+  bool SaveToBuffer() override;
   uint32_t PageSize() const override { return HEAD_PAGE_SIZE; }
 
   void WriteFileVersion();
   FileVersion ReadFileVersion();
 
-#ifndef SINGLE_VERSION
-  inline Byte ReadRecordVersionCount() { return (Byte)_mapVerStamp.size(); }
-  // Only after the entire table was locked, here can update record version. so
-  // here do not need lock
-  inline void AddNewRecordVersion(VersionStamp ver, DT_MicroSec timeStamp) {
-    assert(_mapVerStamp.size() < MAX_RECORD_VERSION_COUNT);
-    if (_mapVerStamp.size() > 0) {
-      auto iter = _mapVerStamp.rbegin();
-      assert(timeStamp > iter->first && ver > iter->second);
-    }
-
-    _mapVerStamp.insert({timeStamp, ver});
-    _setVerStamp.insert(ver);
-    _bHeadChanged = true;
-  }
-  /**Now only support input the time of version. It maybe change in following
-   * time*/
-  inline VersionStamp GetRecordVersionStamp(DT_MicroSec timeStamp) {
-    auto iter = _mapVerStamp.find(timeStamp);
-    assert(iter != _mapVerStamp.end());
-    return iter->second;
-  }
-
-  inline void RemoveRecordVersionStamp(Byte ver) {
-    assert(ver < _mapVerStamp.size());
-    for (auto iter = _mapVerStamp.begin(); iter != _mapVerStamp.end(); iter++) {
-      ver--;
-      if (ver == 0) {
-        _setVerStamp.erase(iter->second);
-
-        _mapVerStamp.erase(iter);
-        break;
-      }
-    }
-  }
-
-  inline const MTreeSet<VersionStamp, KeyCmp> &GetSetVerStamp() {
-    return _setVerStamp;
-  }
-
-  inline VersionStamp GetLastVersionStamp() {
-    if (_mapVerStamp.size() == 0)
-      return 0;
-    return _mapVerStamp.rbegin()->second;
-  }
-#endif
-  // Apply one or more stamps. If the index tree only has one task to execute,
-  // every time apply one stamp. If there has too much statements and the index
-  // tree split several task to execute, every task will apply a range of
-  // stamps every time and use atomic_ref to ensure the consistency.
+  /**
+   * @brief Apply one or more record stamps. For single task only one stamp to
+   * apply every time and does not need atomic. For multi tasks, should apply a
+   * batch of stamps every time to save time and need use atomic method.
+   * @param num The number of stamps to apply
+   * @return The start of record stamps.
+   */
   inline VersionStamp GetAndIncRecordStamp(uint64_t num = 1) {
+    _bDirty = true;
     if (num == 1) {
       return _currRecordStamp++;
     } else {
       return atomic_ref<VersionStamp>(_currRecordStamp)
           .fetch_add(num, memory_order_relaxed);
     }
-
-    _bDirty = true;
   }
-
+  /**
+   * @brief Here does not consider data consistency, the caller should consider
+   * it.
+   */
   inline VersionStamp ReadRecordStamp() { return _currRecordStamp; }
-
-  void WriteRecordStamp(VersionStamp recordStamp) {
+  // Set current record stamp when recover table from crash
+  void SetRecordStamp(VersionStamp recordStamp) {
     _currRecordStamp = recordStamp;
     _bDirty = true;
   }
-
+  /**
+   * @brief Change the total page count and return start page id.
+   * @param pageNum The number to change
+   * @param atm If use atomic method. For single task, only one thread to use
+   * this head page, do not need atomic method. For multi tasks, the related
+   * sttements split into multi groups and execute in multi task in one index
+   * tree.
+   * @return The start page id
+   */
   inline PageID GetAndIncTotalPageCount(uint32_t pageNum = 1,
                                         bool atm = false) {
+    _bDirty = true;
     if (!atm) {
       PageID id = _totalPageCount;
       _totalPageCount += pageNum;
@@ -184,25 +139,28 @@ public:
       return atomic_ref<uint32_t>(_totalPageCount)
           .fetch_add(pageNum, memory_order_relaxed);
     }
-    _bDirty = true;
   }
 
+  /**
+   * @brief Here does not consider data consistency, the caller should consider
+   * it.
+   */
   inline uint32_t ReadTotalPageCount() { return _totalPageCount; }
-
-  void WriteTotalPageCount(uint32_t totalPage) {
+  /**
+   * @brief Only used to recover table from crash
+   */
+  void SetTotalPageCount(uint32_t totalPage) {
     _totalPageCount = totalPage;
     _bDirty = true;
   }
-
-  inline uint64_t ReadTotalRecordCount() { return _totalRecordCount; }
-
-  inline void WriteTotalRecordCount(uint64_t totalRecNum) {
-    _totalRecordCount = totalRecNum;
-    _bDirty = true;
-  }
-
+  /**
+   * @brief Add the new record number and return the total numbers after added.
+   * @param recNum The record number to update.
+   * @param atm
+   */
   inline uint64_t IncAndGetTotalRecordCount(uint64_t recNum = 1,
                                             bool atm = false) {
+    _bDirty = true;
     if (atm) {
       uint64_t val = atomic_ref<uint64_t>(_totalRecordCount)
                          .fetch_add(recNum, memory_order_relaxed);
@@ -212,35 +170,73 @@ public:
       return _totalRecordCount;
     }
   }
-
-  inline void WriteRootPagePointer(uint32_t pointer) {
-    _rootPageId = pointer;
+  /**
+   * @brief Read total record count. Here does not consider data consistency,
+   * the caller should consider it.
+   */
+  inline uint64_t ReadTotalRecordCount() { return _totalRecordCount; }
+  /**
+   * @brief Only used to recover table from crash
+   */
+  inline void SetTotalRecordCount(uint64_t totalRecNum) {
+    _totalRecordCount = totalRecNum;
     _bDirty = true;
   }
-
-  inline uint32_t ReadRootPagePointer() { return _rootPageId; }
-
-  inline void WriteBeginLeafPagePointer(uint32_t pointer) {
-    _beginLeafPageId = pointer;
+  /**
+   * @brief Set root page. Here does not consider data consistency,
+   * the caller should consider it.
+   */
+  inline void SetRootPageID(PageID pid) {
+    _rootPageId = pid;
     _bDirty = true;
   }
-
-  inline uint32_t ReadBeginLeafPagePointer() { return _beginLeafPageId; }
-
-  inline void WriteEndLeafPagePointer(uint32_t pointer) {
-    _endLeafPageId = pointer;
+  /**
+   * @brief Get root page. Here does not consider data consistency,
+   * the caller should consider it.
+   */
+  inline PageID GetRootPageID() { return _rootPageId; }
+  /**
+   * @brief Set begin leaf page. Here does not consider data consistency,
+   * the caller should consider it.
+   */
+  inline void SetBeginLeafPageID(PageID pid) {
+    _beginLeafPageId = pid;
     _bDirty = true;
   }
+  /**
+   * @brief Get begin leaf page. Here does not consider data consistency,
+   * the caller should consider it.
+   */
+  inline PageID GetBeginLeafPageID() { return _beginLeafPageId; }
+  /**
+   * @brief Set end leaf page. Here does not consider data consistency,
+   * the caller should consider it.
+   */
+  inline void SetEndLeafPageID(PageID pid) {
+    _endLeafPageId = pid;
+    _bDirty = true;
+  }
+  /**
+   * @brief Get begin leaf page. Here does not consider data consistency,
+   * the caller should consider it.
+   */
+  inline uint64_t GetEndLeafPagePointer() { return _endLeafPageId; }
+  /**
+   * @brief Get Index Type.
+   */
+  inline IndexType GetIndexType() { return _indexType; }
 
-  inline uint64_t ReadEndLeafPagePointer() { return _endLeafPageId; }
-
-  inline IndexType ReadIndexType() { return _indexType; }
-
-  // Apply one or more auto increment key. If the index tree only has one task
-  // to execute, every time apply one key. If there has too much statements and
-  // the index tree split several task to execute, every task will apply a range
-  // of keys every time and use atomic_ref to ensure the consistency.
+  /**
+   * @brief Add auto increment key and return start key.
+   * @param pageNum The number to keys
+   * @param atm If use atomic method. For single task, only one thread to use
+   * this head page, do not need atomic method. For multi tasks, the related
+   * sttements split into multi groups and execute in multi task in one index
+   * tree.
+   * @return The start key
+   */
   inline uint64_t GetAndAddAutoIncrementKey(uint64_t step = 1) {
+    _bDirty = true;
     if (step == 1) {
       _autoIncrementKey++;
       return _autoIncrementKey;
@@ -248,24 +244,27 @@ public:
       return atomic_ref<uint64_t>(_autoIncrementKey)
           .fetch_add(step, memory_order_relaxed);
     }
-    _bDirty = true;
   }
+  /**
+   * @brief Get current auto increment key. Here does not consider data
+   * consistency, the caller should consider it.
+   */
+  inline uint64_t GetAutoIncrementKey() { return _autoIncrementKey; }
 
-  inline uint64_t ReadAutoIncrementKey() { return _autoIncrementKey; }
-
-  inline void WriteAutoIncrementKey(uint64_t key) {
+  inline void SetAutoIncrementKey(uint64_t key) {
     _autoIncrementKey = key;
     _bDirty = true;
   }
 
-  inline uint16_t ReadKeyVariableFieldCount() {
-    return _keyAlterableFieldCount;
-  }
+  inline uint16_t GetKeyVariableFieldCount() { return _keyAlterableFieldCount; }
 
-  inline uint16_t ReadValueVariableFieldCount() {
+  inline uint16_t GetValueVariableFieldCount() {
     return _valueAlterableFieldCount;
   }
-
+  /**
+   * @brief Read garbage information from buffer. The caller should make sure
+   * data consistency.
+   */
   void ReadGarbage(uint32_t &totalPage, PageID &pageId, uint16_t &usedPage,
                    uint32_t &crc32) {
     pageId = ReadInt(GARBAGE_PAGE_OFFSET);
@@ -273,7 +272,10 @@ public:
     totalPage = ReadInt(GRABAGE_TOTAL_ITEMS_OFFSET);
     crc32 = ReadInt(GARBAGE_CRC32_OFFSET);
   }
-
+  /**
+   * @brief Write garbage information from buffer. The caller should make sure
+   * data consistency.
+   */
   void WriteGabage(uint32_t totalPage, PageID pageId, int16_t usedPage,
                    uint32_t crc32) {
     WriteInt(GARBAGE_PAGE_OFFSET, pageId);

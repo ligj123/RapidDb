@@ -61,7 +61,7 @@ void PageDividePool::PoolManage() {
     auto page = iter->second;
     if (page->GetTranCount() > 0UL || page->GetWaitTasks().size() > 0 ||
         (unfull && !page->IsDividOverTime(BUFFER_FLUSH_INTEVAL_MS) &&
-         !page->IsOverlength() && !page->GetIndexTree()->IsClosed())) {
+         !page->IsOverLoadThreshold() && !page->GetIndexTree()->IsClosed())) {
       iter++;
       continue;
     }

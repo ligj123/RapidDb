@@ -35,7 +35,7 @@ enum class RecordStatus : uint8_t {
 };
 
 /**The result to read list value*/
-enum class RstReadValue {
+enum class ResultRead {
   // No version to fit and failed to read
   INVALID_VERSION = -2,
   // Failed to read values due to it has been locked by other transaction;
@@ -74,11 +74,7 @@ struct RecordLock {
 
 // Only for primary index
 struct RecStruct {
-#ifdef SINGLE_VERSION
   RecStruct(Byte *bys, uint16_t keyLen, OverflowPage *ofPage);
-#else
-  RecStruct(Byte *bys, uint16_t keyLen, Byte verNum, OverflowPage *ofPage);
-#endif
   // Load record struct from byte array,
   RecStruct(Byte *bys, OverflowPage *ofPage);
 
@@ -124,7 +120,7 @@ struct ValueStruct {
 };
 
 void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
-                    uint32_t fieldNum, uint32_t valVarLen, Byte ver = 0xff);
+                    uint32_t fieldNum, uint32_t valVarLen);
 
 class LeafPage;
 class Statement;
@@ -132,7 +128,6 @@ class LeafRecord : public RawRecord {
 public:
   // Load LeafRecord from LeafPage
   LeafRecord(IndexType idxType, Byte *bys);
-  LeafRecord(LeafRecord &&src);
   // Constructor for secondary index LeafRecord
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey, Byte *bysPri,
              uint32_t lenPri, ActionType actType, Statement *stmt,
@@ -140,6 +135,14 @@ public:
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
              const VectorDataValue &vctVal, uint64_t recStamp, Statement *stmt);
+  LeafRecord(LeafRecord &&src)
+      : RawRecord(src), _recLock(src._recLock),
+        _overflowPage(src._overflowPage) {
+    src._recLock = nullptr;
+    src._overflowPage = nullptr;
+  }
+  LeafRecord(const LeafRecord &src) = delete;
+  LeafRecord() : RawRecord() {}
   ~LeafRecord() {
     if (_recLock != nullptr)
       delete _recLock;
@@ -148,16 +151,25 @@ public:
       delete _overflowPage;
   }
 
+  LeafRecord &operator=(LeafRecord &&src) {
+    _bysVal = src._bysVal;
+    src._bysVal = nullptr;
+    _bSole = src._bSole;
+    _indexType = src._indexType;
+    _recLock = src._recLock;
+    _overflowPage = src._overflowPage;
+    src._recLock = nullptr;
+    src._overflowPage = nullptr;
+  }
+  LeafRecord &operator=(const LeafRecord &src) = delete;
   int32_t UpdateRecord(IndexTree *idxTree, const VectorDataValue &newVal,
                        uint64_t recStamp, Statement *stmt, ActionType type,
                        bool gapLock);
 
-#ifdef SINGLE_VERSION
-  RstReadValue ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
-                             VectorDataValue &vct, IndexTree *idxTree,
-                             Statement *stmt = nullptr,
-                             ActionType atype = ActionType::NO_ACTION) const;
-#endif
+  ResultRead ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
+                           VectorDataValue &vct, IndexTree *idxTree,
+                           Statement *stmt = nullptr,
+                           ActionType atype = ActionType::NO_ACTION) const;
 
   RawKey *GetKey(IndexTree *idxTree) const;
   /**Only for secondary index, Get the primary key, deep copy.*/

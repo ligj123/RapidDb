@@ -17,13 +17,22 @@ public:
       : _bysVal(src._bysVal), _bSole(src._bSole), _indexType(src._indexType) {
     src._bysVal = nullptr;
   }
+  RawRecord(const RawRecord &src) = delete;
+  RawRecord()
+      : _bysVal(nullptr), _bSole(false), _indexType(IndexType::UNKNOWN) {}
   virtual ~RawRecord() {
     if (_bSole && _bysVal != nullptr)
       CachePool::Release(_bysVal, *((uint16_t *)_bysVal));
   }
 
-  inline Byte *GetBysValue() const { return _bysVal; }
+  inline void UpdateBysValue(Byte *bys, bool sole = false) {
+    if (_bSole && _bysVal != nullptr)
+      CachePool::Release(_bysVal, *((uint16_t *)_bysVal));
 
+    _bysVal = bys;
+    _bSole = sole;
+  }
+  inline Byte *GetBysValue() const { return _bysVal; }
   inline uint16_t GetKeyLength() const {
     return *((uint16_t *)(_bysVal + UI16_LEN));
   }
