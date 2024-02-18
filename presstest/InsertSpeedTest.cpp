@@ -31,8 +31,8 @@ void InsertSpeedPrimaryTest(uint64_t row_count) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME, FILE_NAME, vctKey, vctVal, 256,
-                         IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME, FILE_NAME, vctKey, vctVal, 256,
+                             IndexType::PRIMARY);
 
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());

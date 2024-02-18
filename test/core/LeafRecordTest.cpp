@@ -26,8 +26,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  bool b = indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                                  vctVal, 1, IndexType::PRIMARY);
+  bool b = indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(),
+                                      vctKey, vctVal, 1, IndexType::PRIMARY);
   BOOST_TEST(b);
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
@@ -84,8 +84,8 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         1, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 1, IndexType::PRIMARY);
 
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
@@ -165,8 +165,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Multi_Version_test) {
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         1, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 1, IndexType::PRIMARY);
 
   HeadPage *hp = indexTree->GetHeadPage();
 
@@ -304,8 +304,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Second_test) {
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         0, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 0, IndexType::PRIMARY);
 
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true)};
@@ -315,8 +315,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Second_test) {
   VectorDataValue vctSec = {dvLKey.Clone(true), dvVar.Clone(true)};
   vctKey = {dvInt.Clone(), dvVar.Clone()};
   IndexTree *secTree = new IndexTree();
-  secTree->CreateIndex(TABLE_NAME2.c_str(), FILE_NAME2.c_str(), vctSec, vctKey,
-                       1, IndexType::UNIQUE);
+  secTree->CreateIndexTree(TABLE_NAME2.c_str(), FILE_NAME2.c_str(), vctSec,
+                           vctKey, 1, IndexType::UNIQUE);
 
   vctSec = {dvLong.Clone(true), dvVar.Clone(true)};
   Byte *bys = lr->GetBysValue() + UI16_2_LEN;

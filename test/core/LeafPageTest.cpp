@@ -30,8 +30,8 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         1000, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 1000, IndexType::PRIMARY);
   LeafPage *lp = (LeafPage *)indexTree->AllocateNewPage(1, (Byte)0);
 
   vctKey.push_back(dvKey->Clone(true));
@@ -113,8 +113,8 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         1001, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 1001, IndexType::PRIMARY);
   LeafPage *lp =
       (LeafPage *)indexTree->AllocateNewPage(PAGE_NULL_POINTER, (Byte)0);
 
@@ -143,8 +143,8 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   }
 
   indexTree = new IndexTree();
-  indexTree->InitIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                       1001);
+  indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                           vctVal, 1001);
   lp = new LeafPage(indexTree, 1);
   indexTree->IncPages();
   lp->DecRef();
@@ -184,8 +184,8 @@ BOOST_AUTO_TEST_CASE(LeafPageDivide_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         1002, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 1002, IndexType::PRIMARY);
   HeadPage *hp = indexTree->GetHeadPage();
   LeafPage *lp = (LeafPage *)indexTree->GetPage(0, PageType::LEAF_PAGE, true);
 

@@ -75,7 +75,7 @@ public:
    */
   bool AddRecord(LeafRecord &&record);
   /**
-   * @brief Get the Record in this LeafPage with position=pos   *
+   * @brief Get the Record in this LeafPage with position=pos
    * @param pos The position of records in this page
    * @return LeafRecord The leaf record to get
    */

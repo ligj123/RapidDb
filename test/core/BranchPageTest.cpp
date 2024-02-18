@@ -27,8 +27,8 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         2000, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 2000, IndexType::PRIMARY);
   BranchPage *bp =
       (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
@@ -103,8 +103,8 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         2001, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 2001, IndexType::PRIMARY);
   BranchPage *bp =
       (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
@@ -160,8 +160,8 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         2002, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 2002, IndexType::PRIMARY);
   BranchPage *bp =
       (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);
 
@@ -221,8 +221,8 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         2003, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 2003, IndexType::PRIMARY);
   indexTree->GetHeadPage()->WriteKeyVariableFieldCount((short)1);
   BranchPage *bp =
       (BranchPage *)indexTree->AllocateNewPage(UINT32_MAX, (Byte)1);

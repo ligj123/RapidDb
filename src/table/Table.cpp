@@ -361,10 +361,11 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
 
   prop._tree = new IndexTree();
   if (bCreate)
-    prop._tree->CreateIndex(prop._name, path, dvKey, dvVal,
-                            _tid + (uint32_t)idx, prop._type);
+    prop._tree->CreateIndexTree(prop._name, path, dvKey, dvVal,
+                                _tid + (uint32_t)idx, prop._type);
   else
-    prop._tree->InitIndex(prop._name, path, dvKey, dvVal, _tid + (uint32_t)idx);
+    prop._tree->LoadIndexTree(prop._name, path, dvKey, dvVal,
+                              _tid + (uint32_t)idx);
   return true;
 }
 

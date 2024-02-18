@@ -19,8 +19,8 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
   VectorDataValue vctKey;
   VectorDataValue vctVal;
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         1, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 1, IndexType::PRIMARY);
 
   HeadPage *headPage = indexTree->GetHeadPage();
   headPage->WriteFileVersion();

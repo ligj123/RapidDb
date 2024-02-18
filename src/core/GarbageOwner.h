@@ -17,7 +17,8 @@ public:
   ~GarbageOwner() {}
 
   void RecyclePage(PageID pid, uint16_t num, bool block);
-  PageID ApplyPage(uint16_t num, bool block);
+  PageID ApplyOvfPage(uint16_t num, bool block);
+  vector<PageID> ApplyIndexPages(uint16_t pnum, bool block);
   bool SavePage(bool block);
 
 protected:

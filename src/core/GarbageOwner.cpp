@@ -94,11 +94,12 @@ void GarbageOwner::RecyclePage(PageID pid, uint16_t num, bool block) {
   InsertPage(pid, num);
 }
 
-/** Apply a series of pages.
- * num: input the expected page number
- * return: the first page id
+/** @brief Apply a series of page ids for a overflow page.
+ * @param num: input the expected page number
+ * @param block: if lock spin mutex
+ * @return: the first page id
  */
-PageID GarbageOwner::ApplyPage(uint16_t num, bool block) {
+PageID GarbageOwner::ApplyOvfPage(uint16_t num, bool block) {
   if (_totalGarbagePages < num) {
     return PAGE_NULL_POINTER;
   }
@@ -112,7 +113,7 @@ PageID GarbageOwner::ApplyPage(uint16_t num, bool block) {
     return PAGE_NULL_POINTER;
   }
 
-  int16_t num2 = iter->first;
+  uint16_t num2 = iter->first;
   PageID id = *iter->second.begin();
   ErasePage(id, num2);
 
@@ -123,6 +124,44 @@ PageID GarbageOwner::ApplyPage(uint16_t num, bool block) {
   _bDirty = true;
   return id;
 }
+
+/** @brief Apply multi index pages' ids
+ * @param num: input the expected index page number
+ * @param block: if lock spin mutex
+ * @return: the vector of index page ids
+ */
+vector<PageID> GarbageOwner::ApplyIndexPages(uint16_t num, bool block) {
+  if (_totalGarbagePages == 0) {
+    return {};
+  }
+  unique_lock<SpinMutex> lock(_spinMutex, defer_lock);
+  if (block && !lock.try_lock()) {
+    return PAGE_NULL_POINTER;
+  }
+  vector<PageID> vct;
+  for (uint16_t i = 0; i < num;) {
+    auto iter = _rangePage.lower_bound(num);
+    if (iter == _rangePage.end()) {
+      break;
+    }
+
+    uint16_t num2 = iter->first;
+    PageID id = *iter->second.begin();
+    for (uint16_t j = 0; j < num2 && i < num; j++; i++) {
+      vct.push_back(id + j);
+    }
+
+    ErasePage(id, num2);
+    if (num2 > num) {
+      InsertPage(id + num, num2 - num);
+    }
+  }
+
+  _totalGarbagePages -= num;
+  _bDirty = true;
+  return id;
+}
+
 /**Every check point time will call this to save garbage page ids into disk*/
 bool GarbageOwner::SavePage(bool block) {
   if (_ovfPage != nullptr && _ovfPage->GetPageStatus() != PageStatus::VALID) {

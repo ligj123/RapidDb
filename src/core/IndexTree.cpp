@@ -14,20 +14,22 @@ namespace storage {
 void IndexTree::TestCloseWait(IndexTree *indexTree) {
   atomic_bool atomic{false};
   indexTree->Close([&atomic]() { atomic.store(true, memory_order_relaxed); });
-  while (PageBufferPool::GetCacheSize() > 0) {
-    this_thread::sleep_for(1ms);
-    PageDividePool::AddTimerTask();
-    StoragePool::AddTimerTask();
-    PageBufferPool::AddTimerTask();
-  }
+  // while (PageBufferPool::GetCacheSize() > 0) {
+  //   this_thread::sleep_for(1ms);
+  //   PageDividePool::AddTimerTask();
+  //   StoragePool::AddTimerTask();
+  //   PageBufferPool::AddTimerTask();
+  // }
   while (!atomic.load(memory_order_relaxed)) {
     std::this_thread::yield();
   }
 }
 
-bool IndexTree::CreateIndex(const MString &indexName, const MString &fileName,
-                            VectorDataValue &vctKey, VectorDataValue &vctVal,
-                            uint32_t indexId, IndexType iType) {
+bool IndexTree::CreateIndexTree(const MString &indexName,
+                                const MString &fileName,
+                                VectorDataValue &vctKey,
+                                VectorDataValue &vctVal, uint32_t indexId,
+                                IndexType iType) {
   assert(_headPage == nullptr);
   _indexName = indexName;
   _fileName = fileName;
@@ -74,7 +76,6 @@ bool IndexTree::CreateIndex(const MString &indexName, const MString &fileName,
   ((LeafPage *)_rootPage)->SetPrevPageId(PAGE_NULL_POINTER);
   ((LeafPage *)_rootPage)->SetNextPageId(PAGE_NULL_POINTER);
   _rootPage->SetDirty(true);
-  PageDividePool::AddPage(_rootPage, true);
 
   _vctKey.swap(vctKey);
   _vctValue.swap(vctVal);
@@ -92,9 +93,9 @@ bool IndexTree::CreateIndex(const MString &indexName, const MString &fileName,
   return true;
 }
 
-bool IndexTree::InitIndex(const MString &indexName, const MString &fileName,
-                          VectorDataValue &vctKey, VectorDataValue &vctVal,
-                          uint32_t indexId) {
+bool IndexTree::LoadIndexTree(const MString &indexName, const MString &fileName,
+                              VectorDataValue &vctKey, VectorDataValue &vctVal,
+                              uint32_t indexId) {
   assert(_headPage == nullptr);
   _indexName = indexName;
   _fileName = fileName;
@@ -118,13 +119,6 @@ bool IndexTree::InitIndex(const MString &indexName, const MString &fileName,
 
 #ifdef _DEBUG
   uint16_t count = 0;
-  for (IDataValue *dv : vctKey) {
-    if (!dv->IsFixLength())
-      count++;
-  }
-  assert(count == _headPage->ReadKeyVariableFieldCount());
-
-  count = 0;
   for (IDataValue *dv : vctVal) {
     if (!dv->IsFixLength())
       count++;
@@ -194,7 +188,7 @@ void IndexTree ::Close(function<void()> funcDestory) {
 }
 
 void IndexTree::CloneKeys(VectorDataValue &vct) {
-  vct.clear();
+  assert(vct.size() == 0);
   vct.reserve(_vctKey.size());
   for (IDataValue *dv : _vctKey) {
     vct.push_back(dv->Clone(false));
@@ -202,7 +196,7 @@ void IndexTree::CloneKeys(VectorDataValue &vct) {
 }
 
 void IndexTree::CloneValues(VectorDataValue &vct) {
-  vct.clear();
+  assert(vct.size() == 0);
   vct.reserve(_vctValue.size());
   for (IDataValue *dv : _vctValue) {
     vct.push_back(dv->Clone(false));
@@ -215,22 +209,32 @@ void IndexTree::UpdateRootPage(IndexPage *root) {
   _rootPage = root;
 }
 
-IndexPage *IndexTree::AllocateNewPage(PageID parentId, Byte pageLevel) {
-  PageID newPageId = (_garbageOwner == nullptr) ? PAGE_NULL_POINTER
-                                                : _garbageOwner->ApplyPage(1);
-  if (newPageId == PAGE_NULL_POINTER)
-    newPageId = _headPage->GetAndIncTotalPageCount();
-
-  IndexPage *page = nullptr;
-  if (0 != pageLevel) {
-    page = new BranchPage(this, newPageId, pageLevel, parentId);
-  } else {
-    page = new LeafPage(this, newPageId, parentId);
+vector<IndexPage *> IndexTree::ApplyIndexPages(PageID parentId, Byte pageLevel,
+                                               uint32_t pnum, bool block) {
+  vector<PageID> vctId = (_garbageOwner == nullptr)
+                             ? {}
+                             : _garbageOwner->ApplyIndexPages(pnum, block);
+  if (vctId.size() < (size_t)pnum) {
+    uint32_t len = pnum - vctId.size();
+    PageID pid = _headPage->GetAndIncTotalPageCount(len, block);
+    for (uint32_t i = 0; i < len; i++) {
+      vctId.push_back(pid + i);
+    }
   }
 
-  page->SetPageStatus(PageStatus::VALID);
-  page->GetBysPage()[IndexPage::PAGE_BEGIN_END_OFFSET] = 0;
-  PageBufferPool::AddPage(page);
+  vector<IndexPage *> vctPage;
+  for (PageID id : vctId) {
+    IndexPage *page = nullptr;
+    if (0 != pageLevel) {
+      page = new BranchPage(this, newPageId, pageLevel, parentId);
+    } else {
+      page = new LeafPage(this, newPageId, parentId);
+    }
+
+    page->SetPageStatus(PageStatus::VALID);
+    page->GetBysPage()[IndexPage::PAGE_BEGIN_END_OFFSET] = 0;
+    PageBufferPool::AddPage(page);
+  }
   IncPages();
 
   LOG_DEBUG << "Allocate new CachePage, pageLevel=" << (int)pageLevel
@@ -247,7 +251,6 @@ IndexPage *IndexTree::GetPage(PageID pageId, PageType type, bool wait) {
     return page;
   }
 
-  _pageMutex.lock();
   page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
   if (page == nullptr) {
     if (type == PageType::LEAF_PAGE) {
@@ -260,7 +263,6 @@ IndexPage *IndexTree::GetPage(PageID pageId, PageType type, bool wait) {
 
     PageBufferPool::AddPage(page);
     IncPages();
-    _pageMutex.unlock();
 
     if (Configure::GetDiskType() == DiskType::SSD) {
       if (wait) {
@@ -285,8 +287,6 @@ IndexPage *IndexTree::GetPage(PageID pageId, PageType type, bool wait) {
       // TO DO
       abort();
     }
-  } else {
-    _pageMutex.unlock();
   }
 
   if (wait)

@@ -25,24 +25,28 @@ public:
 
 public:
   IndexTree() {}
-  bool CreateIndex(const MString &indexName, const MString &fileName,
-                   VectorDataValue &vctKey, VectorDataValue &vctVal,
-                   uint32_t indexId, IndexType iType);
-  bool InitIndex(const MString &indexName, const MString &fileName,
-                 VectorDataValue &vctKey, VectorDataValue &vctVal,
-                 uint32_t indexId);
+  bool CreateIndexTree(const MString &indexName, const MString &fileName,
+                       VectorDataValue &vctKey, VectorDataValue &vctVal,
+                       uint32_t indexId, IndexType iType);
+  bool LoadIndexTree(const MString &indexName, const MString &fileName,
+                     VectorDataValue &vctKey, VectorDataValue &vctVal,
+                     uint32_t indexId);
 
   void UpdateRootPage(IndexPage *root);
-  IndexPage *AllocateNewPage(PageID parentId, Byte pageLevel);
+
+  vector<IndexPage *> ApplyIndexPages(PageID parentId, Byte pageLevel,
+                                      uint32_t pnum, bool block);
   IndexPage *GetPage(PageID pageId, PageType type, bool wait = false);
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
   // Apply a series of pages for overflow pages. It will search Garbage Pages
   // first. If no suitable, it will apply new page id
-  PageID ApplyPageId(uint16_t num) {
-    PageID pid = _garbageOwner->ApplyPage(num);
+  PageID ApplyOvfPageId(uint16_t num, bool block) {
+    PageID pid = (_garbageOwner == nullptr)
+                     ? PAGE_NULL_POINTER
+                     : _garbageOwner->ApplyPage(num, block);
     if (pid == PAGE_NULL_POINTER) {
-      pid = _headPage->GetAndIncTotalPageCount(num);
+      pid = _headPage->GetAndIncTotalPageCount(num, block);
     }
     return pid;
   }
@@ -82,19 +86,22 @@ public:
   bool SearchRecursively(const LeafRecord &lr, bool bEdit, IndexPage *&page,
                          bool bWait = false);
 
-  inline uint64_t GetRecordsCount() {
+  inline uint64_t GetRecordsCount() const {
     return _headPage->ReadTotalRecordCount();
   }
-  inline MString &GetFileName() { return _fileName; }
-  inline uint16_t GetFileId() { return _fileId; }
-  inline bool IsClosed() { return _bClosed; }
+  inline MString &GetFileName() const { return _fileName; }
+  inline uint16_t GetFileId() const { return _fileId; }
+  inline bool IsClosed() const { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
   void Close(function<void()> funcDestory = nullptr);
 
-  inline HeadPage *GetHeadPage() { return _headPage; }
-  inline void IncPages() { _pagesInMem.fetch_add(1, memory_order_relaxed); }
-  inline void DecPages() {
-    int ii = _pagesInMem.fetch_sub(1, memory_order_relaxed);
+  inline HeadPage *GetHeadPage() const { return _headPage; }
+  inline void IncPages(uint32_t pnum = 1) {
+    _pagesInMem.fetch_add(pnum, memory_order_relaxed);
+  }
+  inline void DecPages(uint32_t pnum = 1) {
+    int ii = _pagesInMem.fetch_sub(pnum, memory_order_relaxed);
+    assert(ii >= 1);
     if (ii == 1) {
       delete this;
     }
@@ -117,21 +124,20 @@ protected:
   MString _indexName;
   MString _fileName;
   FileHandle _fileHandle;
+  // Every index will assign a unique id, it is table id + index  seriel number
   uint32_t _fileId = 0;
   bool _bClosed = false;
   /** Head page */
   HeadPage *_headPage = nullptr;
   GarbageOwner *_garbageOwner = nullptr;
+  IndexPage *_rootPage = nullptr;
 
   /** To record how much pages of this index tree are in memory */
-  atomic<int32_t> _pagesInMem = 0;
+  atomic<uint32_t> _pagesInMem = 0;
 
   VectorDataValue _vctKey;
   VectorDataValue _vctValue;
-  SpinMutex _pageMutex;
-  /**To lock for root page*/
-  SharedSpinMutex _rootSharedMutex;
-  IndexPage *_rootPage = nullptr;
+  SpinMutex _spinMutex;
 
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t)
   // Other: 0

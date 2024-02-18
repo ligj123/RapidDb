@@ -76,8 +76,8 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
   VectorDataValue vctKey;
   VectorDataValue vctVal;
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                         0, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 0, IndexType::PRIMARY);
 
   int hc = tp->GetMinThreads();
   for (int i = 1; i <= hc; i++) {
@@ -124,8 +124,8 @@ BOOST_AUTO_TEST_CASE(StoragePool_test) {
   };
 
   indexTree = new IndexTree();
-  indexTree->InitIndex(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                       0);
+  indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                           vctVal, 0);
   for (int i = 1; i <= NUM; i++) {
     CachePage *page = new CachePage(indexTree, i, PageType::UNKNOWN);
     indexTree->IncPages();
