@@ -45,6 +45,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
 
     // File operator
     {FILE_OPEN_FAILED, "Filed to open file, name = {1}."},
+    {FILE_CLOSE_FAILED, "Filed to close file, name = {1}."},
 
     // Core error
     {CORE_EXCEED_KEY_LENGTH,

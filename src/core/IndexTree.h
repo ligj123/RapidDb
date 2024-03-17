@@ -20,10 +20,6 @@ class LeafPage;
 
 class IndexTree {
 public:
-  // For test purpose, close the index tree and wait until all pages are saved.
-  static void TestCloseWait(IndexTree *indexTree);
-
-public:
   IndexTree() {}
   bool CreateIndexTree(const MString &indexName, const MString &fileName,
                        VectorDataValue &vctKey, VectorDataValue &vctVal,
@@ -31,9 +27,6 @@ public:
   bool LoadIndexTree(const MString &indexName, const MString &fileName,
                      VectorDataValue &vctKey, VectorDataValue &vctVal,
                      uint32_t indexId);
-
-  void UpdateRootPage(IndexPage *root);
-
   vector<IndexPage *> ApplyIndexPages(PageID parentId, Byte pageLevel,
                                       uint32_t pnum, bool block);
   IndexPage *GetPage(PageID pageId, PageType type, bool wait = false);
@@ -96,13 +89,22 @@ public:
   void Close(function<void()> funcDestory = nullptr);
 
   inline HeadPage *GetHeadPage() const { return _headPage; }
-  inline void IncPages(uint32_t pnum = 1) {
-    _pagesInMem.fetch_add(pnum, memory_order_relaxed);
+  inline void IncPages(uint32_t pnum = 1, bool bMulti) {
+    if (bMulti) {
+      atomic_ref<uint32_t>(_pagesInMem).fetch_add(pnum, memory_order_relaxed);
+    } else {
+      _pagesInMem += pnum;
+    }
   }
-  inline void DecPages(uint32_t pnum = 1) {
-    int ii = _pagesInMem.fetch_sub(pnum, memory_order_relaxed);
-    assert(ii >= 1);
-    if (ii == 1) {
+  inline void DecPages(uint32_t pnum = 1, bool bMulti) {
+    if (bMulti) {
+      ii = atomic_ref<uint32_t>(_pagesInMem)
+               .fetch_sub(pnum, memory_order_relaxed);
+    } else {
+      _pagesInMem -= pnum;
+    }
+    assert(_pagesInMem >= pnum);
+    if (_pagesInMem == pnum) {
       delete this;
     }
   }
@@ -123,30 +125,29 @@ protected:
 protected:
   MString _indexName;
   MString _fileName;
+  // The file handle for tree file
   FileHandle _fileHandle;
-  // Every index will assign a unique id, it is table id + index  seriel number
-  uint32_t _fileId = 0;
-  bool _bClosed = false;
   /** Head page */
   HeadPage *_headPage = nullptr;
+  // The manager for garbage page
   GarbageOwner *_garbageOwner = nullptr;
   IndexPage *_rootPage = nullptr;
-
-  /** To record how much pages of this index tree are in memory */
-  atomic<uint32_t> _pagesInMem = 0;
 
   VectorDataValue _vctKey;
   VectorDataValue _vctValue;
   SpinMutex _spinMutex;
 
+  /** To record how much pages of this index tree are in memory. */
+  uint32_t _pagesInMem = 0;
+  // Every index will assign a unique id, it is table id + index  seriel number
+  uint32_t _fileId = 0;
+  bool _bClosed = false;
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t)
   // Other: 0
   uint16_t _valVarLen = 0;
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t) + Field Null bits
   // Other: 0
   uint16_t _valOffset = 0;
-  // Set this function when close tree and call it in destory method
-  function<void()> _funcDestory = nullptr;
 
   friend class HeadPage;
 };

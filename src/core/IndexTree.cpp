@@ -11,20 +11,6 @@
 #include <shared_mutex>
 
 namespace storage {
-void IndexTree::TestCloseWait(IndexTree *indexTree) {
-  atomic_bool atomic{false};
-  indexTree->Close([&atomic]() { atomic.store(true, memory_order_relaxed); });
-  // while (PageBufferPool::GetCacheSize() > 0) {
-  //   this_thread::sleep_for(1ms);
-  //   PageDividePool::AddTimerTask();
-  //   StoragePool::AddTimerTask();
-  //   PageBufferPool::AddTimerTask();
-  // }
-  while (!atomic.load(memory_order_relaxed)) {
-    std::this_thread::yield();
-  }
-}
-
 bool IndexTree::CreateIndexTree(const MString &indexName,
                                 const MString &fileName,
                                 VectorDataValue &vctKey,
@@ -42,7 +28,6 @@ bool IndexTree::CreateIndexTree(const MString &indexName,
   _headPage = new HeadPage(this);
 
   {
-    unique_lock<ReentrantSharedSpinMutex> lock(_headPage->GetLock());
     memset(_headPage->GetBysPage(), 0, Configure::GetDiskClusterSize());
     _headPage->WriteFileVersion();
     _headPage->WriteRootPagePointer(0);
@@ -201,12 +186,6 @@ void IndexTree::CloneValues(VectorDataValue &vct) {
   for (IDataValue *dv : _vctValue) {
     vct.push_back(dv->Clone(false));
   }
-}
-
-void IndexTree::UpdateRootPage(IndexPage *root) {
-  assert(_rootPage != nullptr);
-  _headPage->SetRootPageID(root->GetPageId());
-  _rootPage = root;
 }
 
 vector<IndexPage *> IndexTree::ApplyIndexPages(PageID parentId, Byte pageLevel,

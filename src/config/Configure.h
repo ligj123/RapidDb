@@ -13,17 +13,6 @@ namespace storage {
  */
 enum class DiskType : int8_t { UNKNOWN = 0, HDD, SSD };
 
-// Memory status
-enum class MemoryStatus : int8_t {
-  AMPLE = 0, // The used memory is less than 70%, do not release index page.
-  INTENSE,   // The used memory is less than 90 and more than 70%, the unused
-             // memory should be released.
-  CRITICAL,  // The used memory has exceed 90%, LeafPage and other block should
-             // be released soon after used.
-  FATAL // The used memory has exceed the assigned value, can not assign new
-        // memory.
-};
-
 class Configure {
 public:
   static bool LoadConfig(const string &cfg);
@@ -76,8 +65,6 @@ public:
   static DiskType GetDiskType() { return GetInstance()._diskType; }
   // The database root path, all db data will be saved into here
   static const string &GetDbRootPath() { return GetInstance()._strDbRootPath; }
-  static MemoryStatus GetMemoryStatus() { return GetInstance()._memStatus; }
-  static void SetMemoryStatus(MemoryStatus s) { GetInstance()._memStatus = s; }
 
 protected:
   static Configure &GetInstance() {
@@ -106,7 +93,5 @@ protected:
   string _strLogPath;
   // The database root path, all db data will be saved into here
   string _strDbRootPath;
-  // Memory status
-  MemoryStatus _memStatus{MemoryStatus::AMPLE};
 };
 } // namespace storage

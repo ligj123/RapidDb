@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../cache/Mallocator.h"
+#include "ErrorID.h"
 #include "ErrorMsg.h"
 
 #ifdef LINUX_OS
@@ -11,11 +12,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
 typedef int FILE_HANDLE;
 #endif
 
-#define
 namespace storage {
 using namespace std;
 
@@ -32,6 +31,14 @@ public:
   }
 
   FILE_HANDLE FileDescriptor() { return _fd; }
+  bool Close() {
+#ifdef LINUX_OS
+    if (close(_fd) != 0) {
+      _threadErrorMsg.reset(new ErrorMsg(FILE_CLOSE_FAILED, {_indexPath}));
+      return false;
+    }
+#endif
+  }
 
 protected:
   FileHandle(const MString &indexPath) : _indexPath(indexPath) {

@@ -10,6 +10,18 @@
 
 namespace storage {
 using namespace std;
+
+// Memory status
+enum class MemoryStatus : int8_t {
+  AMPLE = 0, // The used memory is less than 70%, do not release index page.
+  SCARE,     // The used memory is less than 90% and more than 70%, the unused
+             // memory should be released.
+  CRITICAL,  // The used memory has exceed 90%, LeafPage and other block should
+             // be released soon after used.
+  FATAL // The used memory has exceed the assigned value, can not assign new
+        // memory.
+};
+
 class CachePool;
 /**thread local variable to save bytes buffer*/
 class LocalMap {
@@ -26,6 +38,18 @@ protected:
 
 class CachePool {
 public:
+  static MemoryStatus GetMemoryStatus() {
+    uint64_t total_mem = Configure::GetTotalMemorySize() / 100;
+    uint64_t used_mem = GetMemCacheUsed();
+    if (total_mem * 70 > used_mem)
+      return MemoryStatus::AMPLE;
+    else if (total_mem * 90 > used_mem)
+      return MemoryStatus::SCARE;
+    else if (total_mem * 100 > used_mem)
+      return MemoryStatus::CRITICAL;
+    else
+      return MemoryStatus::FATAL;
+  }
 #ifdef CACHE_TRACE
   static Byte *ApplyBlock();
   static void ReleaseBlock(Byte *bys);
