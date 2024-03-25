@@ -30,15 +30,18 @@ public:
     return fh;
   }
 
-  FILE_HANDLE FileDescriptor() { return _fd; }
   bool Close() {
 #ifdef LINUX_OS
     if (close(_fd) != 0) {
       _threadErrorMsg.reset(new ErrorMsg(FILE_CLOSE_FAILED, {_indexPath}));
       return false;
     }
+#else
+    return false;
 #endif
   }
+
+  FILE_HANDLE FileDescriptor() { return _fd; }
 
 protected:
   FileHandle(const MString &indexPath) : _indexPath(indexPath) {

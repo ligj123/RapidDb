@@ -11,29 +11,33 @@ SpinMutex PageBufferPool::_spinMutex;
 uint64_t PageBufferPool::_maxCacheSize =
     Configure::GetTotalMemorySize() / Configure::GetIndexPageSize();
 int64_t PageBufferPool::_prevDelNum = 100;
-// Initialize _mapCache and add lambad to increase page reference when call find
-// method
-ConcurrentHashMap<uint64_t, CachePage *, true> PageBufferPool::_mapCache(
-    100, PageBufferPool::_maxCacheSize, [](CachePage *page) { page->IncRef(); },
-    [](CachePage *page) { page->DecRef(); });
+
+MHashMap<uint64_t, CachePage *>
+    PageBufferPool::_mapCache(PageBufferPool::_maxCacheSize);
 ThreadPool *PageBufferPool::_threadPool;
 atomic_bool PageBufferPool::_bInThreadPool{false};
 
 void PageBufferPool::AddPage(CachePage *page) {
-  _mapCache.Insert(page->HashCode(), page);
+  unique_lock<SpinMutex> lock(_spinMutex);
+  _mapCache.emplace(page->HashCode(), page);
 }
 
 CachePage *PageBufferPool::GetPage(uint64_t hashId) {
-  CachePage *page = nullptr;
-  _mapCache.Find(hashId, page);
-  return page;
+  unique_lock<SpinMutex> lock(_spinMutex);
+  auto iter = _mapCache.find(hashId);
+  if (iter == _mapCache.end())
+    return nullptr;
+  else
+    return iter->second;
 }
 
 void PageBufferPool::StopPool() {
-  for (int i = 0; i < _mapCache.GetGroupCount(); i++) {
-    _mapCache.Clear(i);
+  unique_lock<SpinMutex> lock(_spinMutex);
+  for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
+    delete iter->second;
   }
 
+  delete _threadPool;
   _threadPool = nullptr;
 }
 

@@ -1,9 +1,10 @@
 ﻿#pragma once
 #include "../core/CachePage.h"
-#include "../utils/ConcurrentHashMap.h"
 #include "../utils/SpinMutex.h"
 #include "../utils/ThreadPool.h"
 #include "../utils/TimerThread.h"
+
+#include <unordered_map>
 
 namespace storage {
 using namespace std;
@@ -28,7 +29,7 @@ public:
   static void AddTimerTask();
   static void RemoveTimerTask();
 
-  static uint64_t GetCacheSize() { return _mapCache.Size(); }
+  static uint64_t GetCacheSize() { return _mapCache.size(); }
   static void InitPool(ThreadPool *tp) {
     assert(_threadPool == nullptr);
     _threadPool = tp;
@@ -36,7 +37,7 @@ public:
   static void StopPool();
 
 protected:
-  static ConcurrentHashMap<uint64_t, CachePage *, true> _mapCache;
+  static MHashMap<uint64_t, CachePage *> _mapCache;
   static SpinMutex _spinMutex;
   // The max cache pages in this pool
   static uint64_t _maxCacheSize;

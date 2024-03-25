@@ -48,21 +48,18 @@ public:
     _garbageOwner->RecyclePage(firstId, num);
   }
 
-  /** @brief Search B+ tree from root according record's key, util find the
-   * LeafPage.
+  /** @brief Search B+ tree from an index page according record's key, util find
+   * the LeafPage or the related index page not in memory cache.
    * @param key The record's key to search
-   * @param bEdit if edit the LeafPage, true: WriteLock, false: ReadLock
-   * @param page The start page for search, if Null, start from root page, then
-   * return the result page after search, maybe the BranchPage if bWait=False.
-   * @param bWait True: wait when load IndexPage from disk until find and return
-   * the LeafPage, False: return directly when the related IndexPage is not in
-   * memory.
-   * @return True: All related IndexPages are in memory, False: One of related
-   * IndexPages is not in memory and will load in a read task, it will search
-   * again after loaded.
+   * @param page The start page for search, then return the result page. If page
+   * Not in memory cache, it will return the middle page and put the page into
+   * read queue
+   * @return True: All related IndexPages are in memory and success to find the
+   * LeafPage, False: One of related IndexPages is not in memory cache and need
+   * to rerun after read.
    */
-  bool SearchRecursively(const RawKey &key, bool bEdit, IndexPage *&page,
-                         bool bWait = false);
+  bool SearchPage(const RawKey &key, IndexPage *&page);
+
   /** @brief Search B+ tree from root according record, util find the
    * LeafPage. If primary or unique key, only compare key, or Nonunique key,
    * compare key and value at the same time.
@@ -76,8 +73,8 @@ public:
    * IndexPages is not in memory and will load in a read task, it will search
    * again after loaded.
    */
-  bool SearchRecursively(const LeafRecord &lr, bool bEdit, IndexPage *&page,
-                         bool bWait = false);
+  bool SearchPage(const LeafRecord &lr, IndexPage *&page);
+  void Close();
 
   inline uint64_t GetRecordsCount() const {
     return _headPage->ReadTotalRecordCount();
@@ -86,18 +83,17 @@ public:
   inline uint16_t GetFileId() const { return _fileId; }
   inline bool IsClosed() const { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
-  void Close(function<void()> funcDestory = nullptr);
 
   inline HeadPage *GetHeadPage() const { return _headPage; }
-  inline void IncPages(uint32_t pnum = 1, bool bMulti) {
-    if (bMulti) {
+  inline void IncPages(uint32_t pnum = 1, bool bMultiThread) {
+    if (bMultiThread) {
       atomic_ref<uint32_t>(_pagesInMem).fetch_add(pnum, memory_order_relaxed);
     } else {
       _pagesInMem += pnum;
     }
   }
-  inline void DecPages(uint32_t pnum = 1, bool bMulti) {
-    if (bMulti) {
+  inline void DecPages(uint32_t pnum = 1, bool bMultiThread) {
+    if (bMultiThread) {
       ii = atomic_ref<uint32_t>(_pagesInMem)
                .fetch_sub(pnum, memory_order_relaxed);
     } else {
