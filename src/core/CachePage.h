@@ -97,12 +97,13 @@ public:
   inline bool TryLock() { return _spinLock.try_lock(); }
   inline void Unlock() { _spinLock.unlock(); }
 
-  inline uint32_t IsRefered() { return _bRefered; }
-  inline void SetReferred(bool b) { _bRefered = b; }
+  inline uint32_t IsRefered() { return _bRefered.load(memory_order_relaxed); }
+  inline void SetReferred(bool b) { _bRefered.store(b, memory_order_relaxed); }
   virtual bool Releaseable() {
-    return !_bRefered && (_pageStatus != PageStatus::VALID ||
-                          _pageStatus != PageStatus::READING ||
-                          _pageStatus != PageStatus::WRITING);
+    return !_bRefered.load(memory_order_relaxed) &&
+           (_pageStatus != PageStatus::VALID ||
+            _pageStatus != PageStatus::READING ||
+            _pageStatus != PageStatus::WRITING);
   }
 
   inline Byte ReadByte(uint32_t pos) const {
@@ -154,7 +155,8 @@ public:
   inline uint32_t GetWaiting() { return _waiting; }
 
 protected:
-  // The page block, it is equal pages in disk
+  // The page byte array and all contents will be saved into it. it correspond
+  // to page in disk.
   Byte *_bysPage = nullptr;
   // Spin lock.
   SpinMutex _spinLock;
@@ -173,12 +175,13 @@ protected:
   // used only in IndexPage, point out if there have records added or deleted
   bool _bRecordUpdate{false};
   // True: This page has been referred by IndexTask and can not be freed.
-  bool _bRefered{true};
+  atomic_bool _bRefered{true};
   // In current period this page has been visit how many time. It will be used
   // to calc score and will clear to zero after calc score.
   uint16_t _visit{0};
-  // Every time to scan the CachePagePool, it will calc the new score for every
-  // page according to last score and if it has been referred.
+  // Every page has a score. it is calculate by page type, previous score, the
+  // visit times in current period. CachePagePool will clear pages in cycle
+  // according score.
   uint32_t _score{100000};
   // How many statements are waiting for this page.
   uint32_t _waiting{0};

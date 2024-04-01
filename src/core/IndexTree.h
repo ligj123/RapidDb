@@ -29,7 +29,7 @@ public:
                      uint32_t indexId);
   vector<IndexPage *> ApplyIndexPages(PageID parentId, Byte pageLevel,
                                       uint32_t pnum, bool block);
-  IndexPage *GetPage(PageID pageId, PageType type, bool wait = false);
+  IndexPage *GetPage(PageID pageId, PageType type);
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
   // Apply a series of pages for overflow pages. It will search Garbage Pages
@@ -85,22 +85,13 @@ public:
   inline void SetClose() { _bClosed = true; }
 
   inline HeadPage *GetHeadPage() const { return _headPage; }
-  inline void IncPages(uint32_t pnum = 1, bool bMultiThread) {
-    if (bMultiThread) {
-      atomic_ref<uint32_t>(_pagesInMem).fetch_add(pnum, memory_order_relaxed);
-    } else {
-      _pagesInMem += pnum;
-    }
-  }
-  inline void DecPages(uint32_t pnum = 1, bool bMultiThread) {
-    if (bMultiThread) {
-      ii = atomic_ref<uint32_t>(_pagesInMem)
-               .fetch_sub(pnum, memory_order_relaxed);
-    } else {
-      _pagesInMem -= pnum;
-    }
-    assert(_pagesInMem >= pnum);
-    if (_pagesInMem == pnum) {
+  // To save how many pages in memory cache.
+  inline void IncPages(uint32_t pnum = 1) { _pagesInMem += pnum; }
+  inline void DecPages(uint32_t pnum = 1) {
+    _pagesInMem -= pnum;
+
+    assert(_pagesInMem >= 0);
+    if (_pagesInMem == 0) {
       delete this;
     }
   }
@@ -133,7 +124,7 @@ protected:
   VectorDataValue _vctValue;
   SpinMutex _spinMutex;
 
-  /** To record how much pages of this index tree are in memory. */
+  // To record how much pages of this index tree are in CachePagePool.
   uint32_t _pagesInMem = 0;
   // Every index will assign a unique id, it is table id + index  seriel number
   uint32_t _fileId = 0;

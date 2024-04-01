@@ -162,12 +162,11 @@ IndexTree::~IndexTree() {
   LOG_DEBUG << "Close index tree " << _indexName;
 }
 
-void IndexTree ::Close(function<void()> funcDestory) {
+void IndexTree ::Close() {
   unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  _funcDestory = funcDestory;
   _bClosed = true;
   if (_rootPage != nullptr) {
-    _rootPage->DecRef();
+    _rootPage->SetReferred(false);
     _rootPage = nullptr;
   }
 }
