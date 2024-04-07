@@ -4,6 +4,7 @@
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
 #include "../expr/BaseExpr.h"
+#include "../serv/Transaction.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
@@ -13,33 +14,34 @@
 #include <future>
 
 namespace storage {
-class Transaction;
 class LeafRecord;
+
+struct LeafRecordAction {
+public:
+  // LeafRecord to insert or delete
+  LeafRecord *_leafRecord;
+  // Used to temporary save the index page if the page is not in memory
+  IndexPage *_midPage{nullptr};
+};
 
 class Statement {
 public:
   /**
    * Constuctor for statement
-   * @param tran The transaction own this statement, maybe null and create it
-   * automately
-   * @param paraTmpl Used to save the parameters types, maxlength etc. It will
-   * load parameters from byte array according this template
-   * @param bTran If need transaction. For normal select, it is not need
-   * transaction.
+   * @param id The id of this statement, auto increment 1 in every session.
+   * @param tran The transaction own this statement.
    */
-  Statement(uint32_t id, Transaction *tran, ExprStatement *exprStmt,
-            VectorRow &vctPara)
-      : _id(id), _tran(tran), _vctParas(std::move(vctPara)) {
+  Statement(uint32_t id, Transaction *tran)
+      : _id(id), _tran(tran)) {
     _createTime = TimerThread::GetCurrTime();
   }
 
-  /**
-   * Close this instance, used to release resource in child class.
-   */
-  virtual void Exec() = 0;
-  virtual void WriteLog() = 0;
-  virtual void Commit() = 0;
-  virtual void ReplayLog() = 0;
+  virtual ExprType GetActionType() = 0;
+  virtual bool Exec() = 0;
+  virtual bool WriteLog() = 0;
+  virtual bool Commit() = 0;
+  virtual bool Abort() = 0;
+  // virtual void ReplayLog() = 0;
 
   DT_MicroSec GetCreateTime() { return _createTime; }
   DT_MicroSec GetStopTime() { return _stopTime; }
@@ -56,8 +58,6 @@ public:
 protected:
   // Id will auto increment 1 every time in self session.
   uint32_t _id;
-  // The expr statement
-  ExprStatement *_exprStmt;
   // To save multi rows of parameters loaded from client byte array
   VectorRow _vctParas;
   // The create time for this statement
@@ -68,7 +68,7 @@ protected:
   Transaction *_tran;
   // If current statement meet error, save the reason here
   unique_ptr<ErrorMsg> _errorMsg = nullptr;
-  // All inserted, updated or locked records in this statement
-  MVector<LeafRecord *> _vctRecord;
+  // Warning messages
+  vector<ErrorMsg> _vctWarnMsg;
 };
 } // namespace storage

@@ -18,7 +18,7 @@ public:
   // Create time
   DT_MicroSec _createTime{UINT64_MAX};
   // The finished or abort time to execute for this statement
-  DT_MicroSec _stopTime{UINT64_MAX};
+  DT_MicroSec _endTime{UINT64_MAX};
   // The statements executed in this transaction
   MVector<Statement *> _vctStatement;
   // spin lock

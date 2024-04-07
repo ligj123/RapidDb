@@ -32,10 +32,10 @@ class TableSingleTask : public TableTask {
 public:
 protected:
   // Receive the statement from session
-  FastQueue<Statement *, 100> _queueStmt;
+  FastQueue<Statement, 100> _queueStmt;
   // For secondary index, receive LeafRecord from primary index; No used for
   // primary index.
-  FastQueue<LeafRecord *, 100> _queueRecord;
+  FastQueue<LeafRecordAction, 100> _queueRecord;
 };
 
 // If a table has too much statements to execute, it will create more than one

@@ -52,23 +52,21 @@ public:
    * the LeafPage or the related index page not in memory cache.
    * @param key The record's key to search
    * @param page The start page for search, then return the result page. If page
-   * Not in memory cache, it will return the middle page and put the page into
-   * read queue
+   * Not in memory cache, it will return the middle level page and put the page
+   * into read queue.
    * @return True: All related IndexPages are in memory and success to find the
    * LeafPage, False: One of related IndexPages is not in memory cache and need
    * to rerun after read.
    */
   bool SearchPage(const RawKey &key, IndexPage *&page);
 
-  /** @brief Search B+ tree from root according record, util find the
+  /** @brief Search B+ tree from index page according record, util find the
    * LeafPage. If primary or unique key, only compare key, or Nonunique key,
    * compare key and value at the same time.
-   * @param key The record's key for search
-   * @param bEdit if edit the LeafPage, true: WriteLock, false: ReadLock
-   * @param page The start page for search, if Null, start from root page, then
-   * return the result page after search, maybe the BranchPage if bWait=False.
-   * @param bWait True: wait when load IndexPage from disk until find the
-   * LeafPage, False: return directly when the IndexPage is not in memory.
+   * @param lr The record for search
+   * @param page The start page for search, then return the result page. If page
+   * Not in memory cache, it will return the middle level page and put the page
+   * into read queue.
    * @return True: All related IndexPages are in memory, False: One of related
    * IndexPages is not in memory and will load in a read task, it will search
    * again after loaded.
@@ -85,11 +83,13 @@ public:
   inline void SetClose() { _bClosed = true; }
 
   inline HeadPage *GetHeadPage() const { return _headPage; }
-  // To save how many pages in memory cache.
+  // To inc pages in memory cache. It must be called in CachePagePool to ensure
+  // thread safe.
   inline void IncPages(uint32_t pnum = 1) { _pagesInMem += pnum; }
+  // To dec pages in memory cache. It must be called in CachePagePool to ensure
+  // thread safe.
   inline void DecPages(uint32_t pnum = 1) {
     _pagesInMem -= pnum;
-
     assert(_pagesInMem >= 0);
     if (_pagesInMem == 0) {
       delete this;
