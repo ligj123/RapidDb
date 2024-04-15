@@ -31,16 +31,30 @@ public:
    * @param id The id of this statement, auto increment 1 in every session.
    * @param tran The transaction own this statement.
    */
-  Statement(uint32_t id, Transaction *tran)
-      : _id(id), _tran(tran)) {
+  Statement(uint32_t id, Transaction *tran) : _id(id), _tran(tran) {
     _createTime = TimerThread::GetCurrTime();
   }
 
   virtual ExprType GetActionType() = 0;
+  /**
+   * @brief Execute this statement
+   * @return True: This statement has finished and can go to next step. False:
+   * Need to exec again or failed if _errorMsg != nullptr.
+   */
   virtual bool Exec() = 0;
+  /**
+   * @brief Write transaction log into log file.
+   * @return True: Finished to write log; False: Failed to write log
+   */
   virtual bool WriteLog() = 0;
-  virtual bool Commit() = 0;
-  virtual bool Abort() = 0;
+  /**
+   * @brief Commit the part of transaction in this statement.
+   */
+  virtual void Commit() = 0;
+  /**
+   * @brief Abort the part of transaction in this statement.
+   */
+  virtual void Abort() = 0;
   // virtual void ReplayLog() = 0;
 
   DT_MicroSec GetCreateTime() { return _createTime; }
@@ -58,8 +72,6 @@ public:
 protected:
   // Id will auto increment 1 every time in self session.
   uint32_t _id;
-  // To save multi rows of parameters loaded from client byte array
-  VectorRow _vctParas;
   // The create time for this statement
   DT_MicroSec _createTime;
   // The finished or abort time to execute for this statement

@@ -16,19 +16,20 @@ public:
   ExprType GetActionType() override { return ExprType::EXPR_INSERT; }
   bool Exec() override;
   bool WriteLog() override;
-  bool Commit() override;
-  bool Abort() override;
+  void Commit() override;
+  void Abort() override;
 
 protected:
   // ExprInsert will be unified managed by a class, do not delete here
   ExprInsert *_exprInsert;
+  // To save multi rows of parameters loaded from client byte array
+  VectorRow _vctParas;
   // All LeafRecord that are waiting to insert into or delete index tree,
   // include primary index and secondary index.
-  MVector<LeafRecord *> _vctWaitRecord;
+  MForward_list<LeafRecord *> _lstWaitRecord;
   // The LeafRecord that have inserted into or deleted from index tree.
-  MVector<LeafRecord *> _vctFinshRecord;
+  MForward_list<LeafRecord *> _lstFinshRecord;
   // The records' count that have insert into index tree.
   uint32_t _recFinished{0};
-  VectorRow _vctPara;
 };
 } // namespace storage
