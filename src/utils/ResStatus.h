@@ -38,7 +38,7 @@ inline std::ostream &operator<<(std::ostream &os, const ResStatus status) {
     os << "Invalid(" << (int)ResStatus::Invalid << ")";
     break;
   default:
-    os << "UNKNOWN ResourceStatus(" << (int)status << ")";
+    os << "UNKNOWN ResStatus(" << (int)status << ")";
     break;
   }
   return os;

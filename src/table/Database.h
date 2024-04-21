@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "../config/Configure.h"
-#include "../manager/ResourceStatus.h"
+#include "../utils/ResStatus.h"
 #include "../utils/Utilitys.h"
 #include <string>
 
@@ -18,8 +18,8 @@ public:
   }
   const MString GetDbPath() const { return _dbPath; }
   const MString &GetDbName() const { return _dbName; }
-  void SetDropped() { _dbStatus = ResourceStatus::Droped; }
-  bool IsDropped() const { return _dbStatus == ResourceStatus::Droped; }
+  void SetResStatus(ResStatus sts) { _dbStatus = sts; }
+  ResStatus GetResStatus() const { return _dbStatus; }
 
 public:
   static void *operator new(size_t size) {
@@ -45,6 +45,6 @@ protected:
   // If this database is valid and not be droped
   bool _bValid{true};
   // Database status
-  ResourceStatus _dbStatus{ResourceStatus::Normal};
+  ResStatus _dbStatus{ResStatus::Valid};
 };
 } // namespace storage

@@ -4,7 +4,7 @@
 #include "../utils/ThreadPool.h"
 
 namespace storage {
-enum class IndexTaskIdx {
+enum class IndexTaskType {
   SINGLE = -1, // only one task for current index tree
   MAIN = 0,    // The main task for current index tree, it will assign statement
                // and LeafRecord into different task
@@ -18,6 +18,7 @@ public:
 protected:
   void ExecStmts();
   void HandleRecords();
+  virtual IndexTaskType TaskType() = 0;
 
 protected:
   PhysTable *_table;
@@ -30,6 +31,8 @@ protected:
 // secondary index.
 class TableSingleTask : public TableTask {
 public:
+  IndexTaskType TaskType() override { return IndexTaskType::SINGLE; }
+
 protected:
   // Receive the statement from session
   FastQueue<Statement, 100> _queueStmt;
@@ -44,11 +47,15 @@ protected:
 // related tasks.
 class TableMainTask : public TableTask {
 public:
+  IndexTaskType TaskType() override { return IndexTaskType::MAIN; }
+
 protected:
 };
 
 class TableSecondTask : public TableTask {
 public:
+  IndexTaskType TaskType() override { return IndexTaskType::SECOND; }
+
 protected:
 };
 } // namespace storage

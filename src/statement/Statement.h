@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
-#include "../core/ActionType.h"
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
 #include "../expr/BaseExpr.h"
@@ -46,16 +45,18 @@ public:
    * @brief Write transaction log into log file.
    * @return True: Finished to write log; False: Failed to write log
    */
-  virtual bool WriteLog() = 0;
+  virtual bool WriteLog() {
+    assert(false);
+    return false;
+  }
   /**
    * @brief Commit the part of transaction in this statement.
    */
-  virtual void Commit() = 0;
+  virtual void Commit() { assert(false); }
   /**
    * @brief Abort the part of transaction in this statement.
    */
-  virtual void Abort() = 0;
-  // virtual void ReplayLog() = 0;
+  virtual void Abort() { assert(false); }
 
   DT_MicroSec GetCreateTime() { return _createTime; }
   DT_MicroSec GetStopTime() { return _stopTime; }

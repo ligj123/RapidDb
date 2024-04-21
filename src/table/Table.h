@@ -4,11 +4,11 @@
 #include "../core/IndexType.h"
 #include "../core/LeafRecord.h"
 #include "../dataType/IDataValue.h"
-#include "../manager/ResourceStatus.h"
 #include "../table/Column.h"
 #include "../transaction/Transaction.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
+#include "../utils/ResStatus.h"
 #include "../utils/SpinMutex.h"
 #include "../utils/Utilitys.h"
 #include "Column.h"
@@ -184,7 +184,7 @@ public:
     return true;
   }
 
-  inline ResourceStatus GetTableStatus() { return _tableStatus; }
+  inline ResStatus GetTableStatus() { return _tableStatus; }
 
 protected:
   inline bool IsExistedColumn(MString &name) {
@@ -233,7 +233,7 @@ protected:
   //  The last time to be visited.
   DT_MilliSec _dtLastVisit{0};
   // This table status.
-  ResourceStatus _tableStatus{ResourceStatus::Normal};
+  ResStatus _tableStatus{ResStatus::Normal};
   // The transaction to lock this table
   Transaction *_lockTran{nullptr};
   // The mutex for table lock
