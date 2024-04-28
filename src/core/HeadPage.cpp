@@ -47,7 +47,7 @@ void HeadPage::InitHeadPage(IndexType iType, const VectorDataValue &vctVal) {
   WriteShort(VALUE_ALTERABLE_FIELD_COUNT_OFFSET, _valueAlterableFieldCount);
 }
 
-void HeadPage::LoadVars() {
+void HeadPage::InitParameters() {
   assert((PageType)ReadByte(PAGE_TYPE_OFFSET) == PageType::HEAD_PAGE);
   assert(CURRENT_FILE_VERSION == ReadFileVersion());
   assert(_pageStatus == PageStatus::VALID);

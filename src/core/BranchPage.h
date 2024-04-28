@@ -19,7 +19,7 @@ public:
   // Create for existed branch page and send to read queue
   BranchPage(IndexTree *indexTree, uint32_t pageId)
       : IndexPage(indexTree, pageId, PageType::BRANCH_PAGE) {}
-  ~BranchPage();
+  ~BranchPage() {}
   /**
    * @brief Save records from vector and variable into buffer
    * @return If conditions is ok and saved successfully, return true, or false
@@ -50,9 +50,5 @@ protected:
   }
   int CompareTo(uint32_t recPos, const BranchRecord &rr) const;
   int CompareTo(uint32_t recPos, const RawKey &key) const;
-
-protected:
-  // The vector to save records in this page
-  MVector<BranchRecord> _vctRecord;
 };
 } // namespace storage

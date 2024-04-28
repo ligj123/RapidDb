@@ -83,10 +83,13 @@ protected:
   uint64_t _currRecordStamp{0};
 
 public:
-  HeadPage(IndexTree *indexTree)
-      : CachePage(indexTree, UINT32_MAX, PageType::HEAD_PAGE) {}
+  HeadPage(IndexTree *indexTree, uint32_t fileId)
+      : CachePage(indexTree, UINT32_MAX, PageType::HEAD_PAGE, fileId) {
+    _bysPage = CachePool::Apply(HEAD_PAGE_SIZE);
+  }
+  ~HeadPage() { CachePool::Release(_bysPage, HEAD_PAGE_SIZE); }
   void InitHeadPage(IndexType iType, const VectorDataValue &vctVal);
-  void LoadVars() override;
+  void InitParameters() override;
   bool SaveToBuffer() override;
   uint32_t PageSize() const override { return HEAD_PAGE_SIZE; }
 

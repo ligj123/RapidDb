@@ -45,7 +45,7 @@ public:
    * @brief Write transaction log into log file.
    * @return True: Finished to write log; False: Failed to write log
    */
-  virtual bool WriteLog() {
+  virtual bool PrepareWriteLog(MHashMap < uint32_t, MTreeSet<LeafRecord *>) {
     assert(false);
     return false;
   }

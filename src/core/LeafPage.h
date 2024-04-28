@@ -95,8 +95,6 @@ protected:
   int CompareTo(uint32_t recPos, const LeafRecord &rr, bool key);
 
 protected:
-  // The vector to save records in this page
-  MVector<LeafRecord> _vctRecord;
   uint32_t _prevPageId;
   uint32_t _nextPageId;
 };

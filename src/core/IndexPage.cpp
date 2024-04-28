@@ -18,20 +18,6 @@ const uint16_t IndexPage::NUM_RECORD_OFFSET = 4;
 const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;
 const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
 
-IndexPage::IndexPage(IndexTree *indexTree, uint32_t pageId, PageType type)
-    : CachePage(indexTree, pageId, type) {}
-
-IndexPage::IndexPage(IndexTree *indexTree, uint32_t pageId, uint8_t pageLevel,
-                     uint32_t parentPageId, PageType type)
-    : CachePage(indexTree, pageId, type) {
-  _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
-  _parentPageId = parentPageId;
-  // New page, do not need init.
-  _pageStatus = PageStatus::VALID;
-}
-
-IndexPage::~IndexPage() {}
-
 void IndexPage::LoadVars() {
   _tranCount = ReadShort(PAGE_TRAN_COUNT_OFFSET);
   _recordNum = ReadShort(NUM_RECORD_OFFSET);

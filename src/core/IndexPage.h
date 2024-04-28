@@ -40,11 +40,20 @@ public:
 
 public:
   // For existed page and will put it to read queue
-  IndexPage(IndexTree *indexTree, uint32_t pageId, PageType type);
+  IndexPage(IndexTree *indexTree, uint32_t pageId, PageType type)
+      : CachePage(indexTree, pageId, type) {
+    _bysPage = CachePool::ApplyPage();
+  }
   // To create a new index page
   IndexPage(IndexTree *indexTree, uint32_t pageId, uint8_t pageLevel,
-            uint32_t parentPageId, PageType type);
-  ~IndexPage();
+            uint32_t parentPageId, PageType type)
+      : CachePage(indexTree, pageId, type) {
+    _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
+    _parentPageId = parentPageId;
+    // New page, do not need init.
+    _pageStatus = PageStatus::VALID;
+  }
+  ~IndexPage() { CachePool::ReleasePage(_bysPage); }
   void LoadVars() override;
   inline uint16_t GetMaxDataLength() const {
     return _pageType == PageType::LEAF_PAGE ? MAX_DATA_LENGTH_LEAF
@@ -60,6 +69,20 @@ public:
   }
   inline void SetParentPageID(PageID parentPageId) {
     _parentPageId = parentPageId;
+  }
+  void AfterRead() override {
+    crc32.reset();
+    crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
+    if (crc32.checksum() != (uint32_t)ReadInt(CRC32_INDEX_OFFSET)) {
+      _pageStatus = PageStatus::INVALID;
+      // Now if cache page is invalid, it will abort; In following version, it
+      // will add the function to fix the invalid page
+      abort();
+    } else {
+      _bDirty = false;
+      Init();
+      _pageStatus = PageStatus::VALID;
+    }
   }
   inline PageID GetParentPageId() { return _parentPageId; }
   inline Byte GetPageLevel() { return _bysPage[PAGE_LEVEL_OFFSET]; }
@@ -97,5 +120,7 @@ protected:
   uint32_t _tranCount{0};
   // parent page
   IndexPage *_parentPage{nullptr};
+  // The vector to save records in this page
+  MVector<RawRecord *> _vctRecord;
 };
 } // namespace storage
