@@ -40,37 +40,34 @@ public:
 
 public:
   // For existed page and will put it to read queue
-  IndexPage(IndexTree *indexTree, uint32_t pageId, PageType type)
-      : CachePage(indexTree, pageId, type) {
+  IndexPage(IndexTree *indexTree, uint32_t pageId, PageType type,
+            uint32_t fileId)
+      : CachePage(indexTree, pageId, type, fileId) {
     _bysPage = CachePool::ApplyPage();
   }
   // To create a new index page
   IndexPage(IndexTree *indexTree, uint32_t pageId, uint8_t pageLevel,
-            uint32_t parentPageId, PageType type)
-      : CachePage(indexTree, pageId, type) {
+            uint32_t parentPageId, PageType type, uint32_t fileId)
+      : CachePage(indexTree, pageId, type, fileId) {
     _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
     _parentPageId = parentPageId;
     // New page, do not need init.
     _pageStatus = PageStatus::VALID;
   }
-  ~IndexPage() { CachePool::ReleasePage(_bysPage); }
-  void LoadVars() override;
+  ~IndexPage() override { CachePool::ReleasePage(_bysPage); }
+
   inline uint16_t GetMaxDataLength() const {
     return _pageType == PageType::LEAF_PAGE ? MAX_DATA_LENGTH_LEAF
                                             : MAX_DATA_LENGTH_BRANCH;
   };
-  // Save records from vector and other variable into buffer
-  virtual bool SaveRecords() = 0;
   // Split current page if this page's length exceed LOAD_FACTOR
-  virtual bool SplitPage(bool block = false) = 0;
+  bool SplitPage(bool block = false);
 
-  inline bool IsOverLoadThreshold() {
-    return _totalDataLength > LOAD_THRESHOLD;
-  }
   inline void SetParentPageID(PageID parentPageId) {
     _parentPageId = parentPageId;
   }
   void AfterRead() override {
+    boost::crc_32_type crc32;
     crc32.reset();
     crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
     if (crc32.checksum() != (uint32_t)ReadInt(CRC32_INDEX_OFFSET)) {
@@ -80,8 +77,9 @@ public:
       abort();
     } else {
       _bDirty = false;
-      Init();
-      _pageStatus = PageStatus::VALID;
+      InitParameters();
+      atomic_ref<PageStatus>(_pageStatus)
+          .store(PageStatus::READED, memory_order_release);
     }
   }
   inline PageID GetParentPageId() { return _parentPageId; }
@@ -108,6 +106,9 @@ public:
   inline uint32_t GetTranCount() { return _tranCount; }
   inline void SetParentPage(IndexPage *parentPage) { _parentPage = parentPage; }
   inline IndexPage *GetParentPage() { return _parentPage; }
+  // Clear _vctRecord
+  virtual ClearRecords() = 0;
+  virtual bool IsOverlength() = 0;
 
 protected:
   // Parent page ID

@@ -10,89 +10,101 @@ const uint16_t IndexPage::MAX_DATA_LENGTH_BRANCH =
     (uint16_t)(Configure::GetIndexPageSize() - BranchPage::DATA_BEGIN_OFFSET -
                sizeof(uint32_t));
 
+void BranchPage::InitParameters() {
+  _recordNum = ReadShort(NUM_RECORD_OFFSET);
+  _totalDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
+  _parentPageId = ReadInt(PARENT_PAGE_POINTER_OFFSET);
+  _children.resize(_recordNum, nullptr);
+}
+
 void BranchPage::LoadRecords() {
-  assert(!_bRecordUpdate);
+  assert(!_bDirty);
   _vctRecord.reserve(_recordNum);
 
   uint16_t pos = DATA_BEGIN_OFFSET;
   for (uint16_t i = 0; i < _recordNum; i++) {
-    _vctRecord.emplace_back(_indexTree->GetHeadPage(),
-                            _bysPage + *((uint16_t *)(_bysPage + pos)));
+    _vctRecord.push_back(
+        new BranchPage(_indexTree->GetHeadPage()->GetIndexType(),
+                       _bysPage + *((uint16_t *)(_bysPage + pos))));
     pos += sizeof(uint16_t);
   }
-
-  _children.resize(_recordNum, nullptr);
 }
 
-bool BranchPage::SaveRecords() {
-  assert(_bDirty || _bRecordUpdate);
+void BranchPage::ClearRecords() {
+  for (auto &br : _vctRecord) {
+    delete br;
+  }
+
+  _vctRecord.resize(0);
+}
+
+bool BranchPage::SaveToBuffer() {
+  assert(_bDirty);
   if (_totalDataLength > MAX_DATA_LENGTH_BRANCH)
     return false;
 
-  if (_bRecordUpdate) {
-    Byte *tmp = _bysPage;
-    _bysPage = CachePool::ApplyPage();
-    uint16_t pos = (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * UI16_LEN);
-    _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
-    _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
-
-    for (int i = 0; i < _vctRecord.size(); i++) {
-      WriteShort(DATA_BEGIN_OFFSET + UI16_LEN * i, pos);
-      BranchRecord &rr = _vctRecord[i];
-      uint16_t sz = rr.SaveData(_bysPage + pos);
-      rr.UpdateBysValue(_bysPage + pos);
-      pos += sz;
-    }
-
-    CachePool::ReleasePage(tmp);
-  }
-
+  Byte *tmp = _bysPage;
+  _bysPage = CachePool::ApplyPage();
+  _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
+  _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
   WriteInt(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
   WriteShort(TOTAL_DATA_LENGTH_OFFSET, _totalDataLength);
   WriteShort(NUM_RECORD_OFFSET, _recordNum);
-  _bRecordUpdate = false;
-  _bDirty = false;
 
+  uint16_t rec_pos = (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * UI16_LEN);
+  uint16_t off_pos = DATA_BEGIN_OFFSET;
+  Byte *bys_rec = _bysPage + rec_pos;
+
+  for (int i = 0; i < _vctRecord.size(); i++) {
+    WriteShort(off_pos, rec_pos);
+    BranchRecord *rr = _vctRecord[i];
+    uint16_t sz = rr->SaveData(bys_rec);
+    rr->UpdateBysValue(bys_rec);
+    bys_rec += sz;
+    rec_pos += sz;
+    off_pos += UI16_LEN;
+  }
+
+  CachePool::ReleasePage(tmp);
+  _bDirty = false;
   return true;
 }
 
-BranchRecord BranchPage::DeleteRecord(uint16_t index, BranchRecord &brDel) {
+BranchRecord *BranchPage::DeleteRecord(uint16_t index) {
   assert(index >= 0 && index < _recordNum);
   if (_vctRecord.size() == 0)
     LoadRecords();
 
-  brDel = _vctRecord[index];
+  BranchRecord *brDel = _vctRecord[index];
   _totalDataLength -= brDel.GetTotalLength() + UI16_LEN;
   _recordNum--;
   _vctRecord.erase(_vctRecord.begin() + index);
-  _bRecordUpdate = true;
   _bDirty = true;
+  return brDel;
 }
 
-void BranchPage::InsertRecord(BranchRecord &&rr, int32_t pos) {
-  assert(pos >= 0);
+void BranchPage::InsertRecord(BranchRecord *record, int32_t pos) {
+  assert(pos >= 0 && pos <= _recordNum);
   if (_recordNum > 0 && _vctRecord.size() == 0)
     LoadRecords();
 
-  _totalDataLength += rr->GetTotalLength() + UI16_LEN;
-  _vctRecord.insert(_vctRecord.begin() + pos, std::move(rr));
+  _totalDataLength += record->GetTotalLength() + UI16_LEN;
+  _vctRecord.insert(_vctRecord.begin() + pos, record);
   _recordNum++;
   _bDirty = true;
-  _bRecordUpdate = true;
 }
 
-bool BranchPage::AddRecord(BranchRecord &&rr) {
+bool BranchPage::AddRecord(BranchRecord *rr) {
   if (_totalDataLength > MAX_DATA_LENGTH_BRANCH * LOAD_FACTOR / 100U ||
       _totalDataLength + rr->GetTotalLength() + UI16_LEN >
           MAX_DATA_LENGTH_BRANCH) {
     return false;
   }
 
-  _totalDataLength += rr.GetTotalLength() + UI16_LEN;
-  _vctRecord.push_back(move(rr));
+  _totalDataLength += rr->GetTotalLength() + UI16_LEN;
+  _vctRecord.push_back(rr);
   _recordNum++;
   _bDirty = true;
-  _bRecordUpdate = true;
 
   return true;
 }
@@ -192,10 +204,10 @@ int BranchPage::CompareTo(uint32_t recPos, const RawKey &key) const {
                       key.GetBysVal(), key.GetLength());
 }
 
-BranchRecord &BranchPage::GetRecordByPos(int32_t pos, bool bAutoLast) {
+const BranchRecord &BranchPage::GetRecord(uint32_t pos, bool bAutoLast) {
   assert(_recordNum > 0 && pos >= 0);
-  assert(bAutoLast || pos < (int32_t)_recordNum);
-  if (bAutoLast && pos >= (int32_t)_recordNum) {
+  assert(bAutoLast || pos < _recordNum);
+  if (bAutoLast && pos >= _recordNum) {
     pos = _recordNum - 1;
   }
 
@@ -203,6 +215,6 @@ BranchRecord &BranchPage::GetRecordByPos(int32_t pos, bool bAutoLast) {
     LoadRecords();
   }
 
-  return GetVctRecord(pos);
+  return *GetVctRecord(pos);
 }
 } // namespace storage

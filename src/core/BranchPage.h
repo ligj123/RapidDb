@@ -20,29 +20,72 @@ public:
   BranchPage(IndexTree *indexTree, uint32_t pageId)
       : IndexPage(indexTree, pageId, PageType::BRANCH_PAGE) {}
   ~BranchPage() {}
+
+  void InitParameters() override;
   /**
-   * @brief Save records from vector and variable into buffer
-   * @return If conditions is ok and saved successfully, return true, or false
+   * @brief clear vector of records
    */
-  bool SaveRecords() override;
-  /**
-   * @brief clear vector of records and children
-   */
-  void CleanRecords();
+  void ClearRecords() override;
   /**
    * @brief Load records from buffer into vector and reset children
    */
   void LoadRecords();
-  void DeleteRecord(uint16_t index, BranchRecord &brDel);
-
-  void InsertRecord(BranchRecord *&record, int32_t pos);
-  bool AddRecord(BranchRecord *&record);
+  /**
+   * @brief Save records from vector and variable into buffer
+   * @return If conditions is ok and saved successfully, return true, or false
+   */
+  bool SaveToBuffer() override;
+  /**
+   * @brief Delete the record at the index and return it.
+   */
+  BranchRecord *DeleteRecord(uint16_t index);
+  /**
+   * @brief Insert a record into the the pointed position
+   * @param record The record to insert
+   * @param pos The position to insert
+   */
+  void InsertRecord(BranchRecord *record, int32_t pos);
+  /**
+   * @brief Add the record into the last position of page
+   * @param record The record to insert
+   * @return True: success to insert into page; False: failed to insert into
+   * page due to the page length exceeded the limit.
+   */
+  bool AddRecord(BranchRecord *record);
+  /**
+   * @brief To judge if a key exist
+   */
   bool RecordExist(const RawKey &key) const;
 
   int32_t SearchRecord(const BranchRecord &rr, bool &bFind) const;
   int32_t SearchKey(const RawKey &key, bool &bFind) const;
-  BranchRecord *GetRecordByPos(int32_t pos, bool bAutoLast);
-  bool SplitPage() override;
+  const BranchRecord &GetRecord(int32_t pos, bool bAutoLast);
+
+  void SetChild(int32_t pos, IndexPage *child) {
+    assert(pos > 0 && pos < _recordNum);
+    assert(_children.size() == 0 || _children.size() == _recordNum);
+    if (_children.size() == 0) {
+      _children.resize(_recordNum, nullptr);
+    }
+    _children[pos] = child;
+  }
+  IndexPage *GetChild(int32_t pos) {
+    assert(pos > 0 && pos < _recordNum);
+    assert(_children.size() == 0 || _children.size() == _recordNum);
+    if (_children.size() == 0) {
+      return nullptr;
+    }
+    return _children[pos];
+  }
+  void ClearChildren() {
+    for (auto page : _children) {
+      page->SetReferred(false); //?
+    }
+    _children.clear();
+  }
+  bool IsOverlength() override {
+    return _totalDataLength >= MAX_DATA_LENGTH_BRANCH;
+  }
 
 protected:
   inline BranchRecord *GetVctRecord(int pos) const {
@@ -50,5 +93,8 @@ protected:
   }
   int CompareTo(uint32_t recPos, const BranchRecord &rr) const;
   int CompareTo(uint32_t recPos, const RawKey &key) const;
+
+protected:
+  MVector<IndexPage *> _children;
 };
 } // namespace storage

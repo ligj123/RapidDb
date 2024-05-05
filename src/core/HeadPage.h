@@ -88,7 +88,9 @@ public:
     _bysPage = CachePool::Apply(HEAD_PAGE_SIZE);
   }
   ~HeadPage() { CachePool::Release(_bysPage, HEAD_PAGE_SIZE); }
+  // Create a new head page and initialize it.
   void InitHeadPage(IndexType iType, const VectorDataValue &vctVal);
+  // After read head page and load parameters from the buffer.
   void InitParameters() override;
   bool SaveToBuffer() override;
   uint32_t PageSize() const override { return HEAD_PAGE_SIZE; }

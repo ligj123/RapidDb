@@ -147,6 +147,14 @@ public:
   }
   inline uint32_t GetWaiting() { return _waiting; }
 
+  inline void PushWriteQueue(MForward_list<CachePage *> &list) {
+    if (_bWriteQueue)
+      return;
+
+    list.push_front(this);
+    _bWriteQueue = true;
+  }
+
 protected:
   // The page byte array to save contents. It should be assigned and released
   // inchild class.
@@ -165,10 +173,10 @@ protected:
   PageStatus _pageStatus{PageStatus::EMPTY};
   // Page type
   PageType _pageType;
-  // used only in IndexPage, point out if there have records added or deleted
-  bool _bRecordUpdate{false};
   // True: This page has been referred by IndexTask and can not be freed.
   bool _bRefered{true};
+  // If it has added into write queue
+  bool _bWriteQueue{false};
   // In current period this page has been visit how many time. It will be used
   // to calc score and will clear to zero after calc score.
   uint16_t _visit{0};

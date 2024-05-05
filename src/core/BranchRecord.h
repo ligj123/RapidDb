@@ -62,13 +62,9 @@ public:
     return len;
   }
 
-  void SetChildPage(IndexPage *page) { _childPage = page; }
-  IndexPage *GetChildPage() { return _childPage; }
   bool IsNull() { return _bysVal == nullptr; }
 
 protected:
-  // The related index page for this branch record
-  IndexPage *_childPage{nullptr};
   friend std::ostream &operator<<(std::ostream &os, const BranchRecord &br);
 };
 

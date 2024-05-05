@@ -317,8 +317,8 @@ bool IndexTree::SearchRecursively(const RawKey &key, bool bEdit,
     BranchPage *bPage = (BranchPage *)page;
     bool bFind;
     uint32_t pos = bPage->SearchKey(key, bFind);
-    BranchRecord *br = bPage->GetRecordByPos(pos, true);
-    uint32_t pageId = ((BranchRecord *)br)->GetChildPageId();
+    const BranchRecord &br = bPage->GetRecordByPos(pos, true);
+    uint32_t pageId = br.GetChildPageId();
 
     IndexPage *childPage = (IndexPage *)GetPage(
         pageId,
