@@ -12,6 +12,33 @@
 namespace storage {
 class HeadPage;
 
+class ObsoleteBuffer {
+public:
+  ObsoleteBuffer(Byte *bys, int refCount) : _bys(bys), _refCount(refCount) {}
+  void ReleaseCount(int num) {
+    int val = _refCount.fetch_sub(num);
+    assert(val >= num);
+    if (val == num) {
+      CachePool::ReleasePage(_bys);
+      delete this;
+    }
+  }
+
+  bool IsDiffBuff(Byte *buf) const { return (buf != _bys); }
+
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+protected:
+  Byte *_bys;
+  int _refCount; // The reference count, NOT thread safe.
+};
+
 class IndexPage : public CachePage {
 public:
   // Percentage for a page to used. if surpass, will split the following records
