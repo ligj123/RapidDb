@@ -43,8 +43,14 @@ bool BranchPage::SaveToBuffer() {
   if (_totalDataLength > MAX_DATA_LENGTH_BRANCH)
     return false;
 
-  Byte *tmp = _bysPage;
-  _bysPage = CachePool::ApplyPage();
+  Byte *tmp = nullptr;
+  if (_obsBuf == nullptr) {
+    tmp = _bysPage;
+    _bysPage = CachePool::ApplyPage();
+  } else if (_obsBuf->IsSameBuff(_bysPage)) {
+    _bysPage = CachePool::ApplyPage();
+  }
+
   _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
   _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
   WriteInt(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
@@ -65,7 +71,13 @@ bool BranchPage::SaveToBuffer() {
     off_pos += UI16_LEN;
   }
 
-  CachePool::ReleasePage(tmp);
+  if (_obsBuf != nullptr) {
+    _obsBuf->DecRef();
+    _obsBuf = nullptr;
+  } else if (tmp != nullptr) {
+    CachePool::ReleasePage(tmp);
+  }
+
   _bDirty = false;
   return true;
 }

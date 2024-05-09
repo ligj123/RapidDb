@@ -18,7 +18,7 @@ const uint16_t IndexPage::NUM_RECORD_OFFSET = 4;
 const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;
 const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
 
-bool IndexPage::SplitPage(bool block) {
+bool IndexPage::SplitPage(MForward_list<CachePage *> &list, bool block) {
   assert(block == false);
   BranchRecord *brParentOld = nullptr;
   BranchPage *parentPage = nullptr;
@@ -44,13 +44,10 @@ bool IndexPage::SplitPage(bool block) {
   int maxLen = GetMaxDataLength() * LOAD_FACTOR / 100;
   int pos = 0;
   int len = 0;
-  int refCount = 0;
   _tranCount = 0;
 
   for (; pos < _vctRecord.size(); pos++) {
     RawRecord *rr = _vctRecord[pos];
-    if (!rr->IsSole())
-      refCount++;
     if (rr->IsTransaction())
       _tranCount++;
 
@@ -79,8 +76,6 @@ bool IndexPage::SplitPage(bool block) {
   int tranCount = 0;
   for (int i = pos; i < _vctRecord.size(); i++) {
     RawRecord *rr = _vctRecord[i];
-    if (!rr->IsSole())
-      refCount++;
     if (rr->IsTransaction())
       tranCount++;
 
@@ -128,12 +123,13 @@ bool IndexPage::SplitPage(bool block) {
   parentPage->InsertRecord(rec, posInParent);
   posInParent++;
 
-  if (_absoBuf == nullptr && refCount > 0) {
-    _absoBuf = new AbsoleteBuffer(_bysPage, refCount);
+  if (_obsBuf == nullptr) {
+    _obsBuf = new ObsoleteBuffer(_bysPage, _vctRecord.size() + 1);
   }
   // Insert new page' key and id to parent page
   for (int i = 0; i < vctPage.size(); i++) {
     IndexPage *indexPage = vctPage[i];
+    indexPage->_obsBuf = _obsBuf;
     last = indexPage->_vctRecord[indexPage->_recordNum - 1];
 
     rec = nullptr;
@@ -145,7 +141,6 @@ bool IndexPage::SplitPage(bool block) {
     }
 
     parentPage->InsertRecord(rec, posInParent + i);
-    indexPage->_absoBuf = _absoBuf;
 
     for (RawRecord *rr : indexPage->_vctRecord) {
       rr->SetParentPage(indexPage);
@@ -160,8 +155,6 @@ bool IndexPage::SplitPage(bool block) {
   LogPageDivid *ld =
       new LogPageDivid(0, nullptr, 0, parentPage->GetPageId(), vctLog, this);
   LogServer::PushRecord(ld);
-
-  parentPage->WriteUnlock();
 
   if (level == 0) {
     // if is leaf page, set left and right page
@@ -200,19 +193,12 @@ bool IndexPage::SplitPage(bool block) {
   // Save new page'
   for (int i = 0; i < vctPage.size(); i++) {
     IndexPage *indexPage = vctPage[i];
-    indexPage->_bRecordUpdate = true;
-    PageDividePool::AddPage(indexPage, false);
-    indexPage->WriteUnlock();
+    indexPage->PushWriteQueue(list);
   }
 
   if (brParentOld != nullptr) {
     delete brParentOld;
   }
-
-  _bRecordUpdate = true;
-  // SaveRecords();
-  PageDividePool::AddPage(parentPage, false);
-  StoragePool::AddPage(_indexTree->GetHeadPage(), false);
 
   return true;
 }

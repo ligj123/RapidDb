@@ -69,6 +69,11 @@ public:
     }
     _children[pos] = child;
   }
+  void InsertChild(int32_t pos, IndexPage *child) {
+    assert(pos > 0 && pos < _recordNum);
+    _children[pos] = child;
+    _children.insert(child, _children.begin() + pos);
+  }
   IndexPage *GetChild(int32_t pos) {
     assert(pos > 0 && pos < _recordNum);
     assert(_children.size() == 0 || _children.size() == _recordNum);

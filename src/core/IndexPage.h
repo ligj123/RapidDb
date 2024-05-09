@@ -15,16 +15,15 @@ class HeadPage;
 class ObsoleteBuffer {
 public:
   ObsoleteBuffer(Byte *bys, int refCount) : _bys(bys), _refCount(refCount) {}
-  void ReleaseCount(int num) {
-    int val = _refCount.fetch_sub(num);
-    assert(val >= num);
-    if (val == num) {
+  void DecRef() {
+    _refCount--;
+    if (_refCount == 0) {
       CachePool::ReleasePage(_bys);
       delete this;
     }
   }
 
-  bool IsDiffBuff(Byte *buf) const { return (buf != _bys); }
+  bool IsSameBuff(Byte *buf) const { return (buf == _bys); }
 
 public:
   static void *operator new(size_t size) {
@@ -88,7 +87,7 @@ public:
                                             : MAX_DATA_LENGTH_BRANCH;
   };
   // Split current page if this page's length exceed LOAD_FACTOR
-  bool SplitPage(bool block = false);
+  bool SplitPage(MForward_list<CachePage *> &list, bool block = false);
 
   inline void SetParentPageID(PageID parentPageId) {
     _parentPageId = parentPageId;
@@ -150,5 +149,7 @@ protected:
   IndexPage *_parentPage{nullptr};
   // The vector to save records in this page
   MVector<RawRecord *> _vctRecord;
+  // To save the obsolete page bytes pointer after split a page
+  ObsoleteBuffer *_obsBuf{nullptr};
 };
 } // namespace storage

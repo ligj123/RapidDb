@@ -45,8 +45,14 @@ bool LeafPage::SaveRecords() {
   if (_totalDataLength > MAX_DATA_LENGTH_LEAF || _tranCount > 0)
     return false;
 
-  Byte *tmp = _bysPage;
-  _bysPage = CachePool::ApplyPage();
+  Byte *tmp = nullptr;
+  if (_obsBuf == nullptr) {
+    tmp = _bysPage;
+    _bysPage = CachePool::ApplyPage();
+  } else if (_obsBuf->IsSameBuff(_bysPage)) {
+    _bysPage = CachePool::ApplyPage();
+  }
+
   _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
   _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
 
@@ -72,7 +78,13 @@ bool LeafPage::SaveRecords() {
     off_pos += UI16_LEN;
   }
 
-  CachePool::ReleasePage(tmp);
+  if (_obsBuf != nullptr) {
+    _obsBuf->DecRef();
+    _obsBuf = nullptr;
+  } else if (tmp != nullptr) {
+    CachePool::ReleasePage(tmp);
+  }
+
   _bDirty = false;
   return true;
 }
@@ -269,105 +281,4 @@ void LeafPage::ClearRecords() {
 
   _vctRecord.resize(0);
 }
-
-bool LeafPage::SplitPage(bool block) {
-  assert(block == false);
-  BranchRecord brParentOld;
-  BranchPage *parentPage;
-  int posInParent = 0;
-  if (_parentPageId == PAGE_NULL_POINTER) {
-    parentPage = (BranchPage *)_indexTree->AllocateNewPage(PAGE_NULL_POINTER,
-                                                           GetPageLevel() + 1);
-    parentPage->SetBeginPage(true);
-    parentPage->SetEndPage(true);
-
-    parentPage->WriteLock();
-    _parentPageId = parentPage->GetPageId();
-    _indexTree->UpdateRootPage(parentPage);
-  } else {
-    parentPage = (BranchPage *)_indexTree->GetPage(_parentPageId,
-                                                   PageType::BRANCH_PAGE, true);
-    if (!parentPage->WriteTryLock()) {
-      parentPage->DecRef();
-      return false;
-    }
-
-    BranchRecord br(_indexTree, _vctRecord[_recordNum - 1], GetPageId());
-    bool bFind;
-    posInParent = parentPage->SearchRecord(br, bFind);
-    if (!bFind)
-      posInParent = parentPage->GetRecordNumber() - 1;
-    brParentOld = parentPage->DeleteRecord(posInParent);
-  }
-
-  // System.out.println("pageDivide");
-  // Calc this page's records
-  int maxLen = GetMaxDataLength() * LOAD_FACTOR / 100;
-  int pos = 0;
-  int len = 0;
-  int refCount = 0;
-  _tranCount = 0;
-
-  for (; pos < _vctRecord.size(); pos++) {
-    RawRecord *rr = _vctRecord[pos];
-    if (!rr->IsSole())
-      refCount++;
-    if (rr->IsTransaction())
-      _tranCount++;
-
-    len += rr->GetTotalLength() + sizeof(uint16_t);
-    if (len > maxLen) {
-      if (len > GetMaxDataLength()) {
-        len -= rr->GetTotalLength() + sizeof(uint16_t);
-      } else {
-        pos++;
-      }
-
-      break;
-    }
-  }
-
-  // Split the surplus records to following page
-  _totalDataLength = len;
-  _recordNum = pos;
-
-  MVector<IndexPage *> vctPage;
-  IndexPage *newPage = nullptr;
-
-  len = 0;
-  int startPos = pos;
-  Byte level = GetPageLevel();
-  int tranCount = 0;
-  for (int i = pos; i < _vctRecord.size(); i++) {
-    RawRecord *rr = _vctRecord[i];
-    if (!rr->IsSole())
-      refCount++;
-    if (rr->IsTransaction())
-      tranCount++;
-
-    len += rr->GetTotalLength() + sizeof(uint16_t);
-
-    if (len > maxLen) {
-      if (len > GetMaxDataLength()) {
-        len -= rr->GetTotalLength() + sizeof(uint16_t);
-        i--;
-      }
-
-      newPage = _indexTree->AllocateNewPage(parentPage->GetPageId(), level);
-      newPage->SetDirty(true);
-      newPage->WriteLock();
-      newPage->_vctRecord.insert(newPage->_vctRecord.end(),
-                                 _vctRecord.begin() + startPos,
-                                 _vctRecord.begin() + i + 1);
-
-      newPage->_totalDataLength = len;
-      newPage->_recordNum = (int32_t)newPage->_vctRecord.size();
-      newPage->_tranCount = tranCount;
-      tranCount = 0;
-      vctPage.push_back(newPage);
-      len = 0;
-      startPos = i + 1;
-      continue;
-    }
-  }
 } // namespace storage
