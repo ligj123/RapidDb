@@ -126,13 +126,18 @@ public:
   virtual void ToString(StrBuff &sb) const = 0;
   virtual size_t Hash() const = 0;
   virtual int64_t GetLong() const { // Only used for digital type
-    abort();
+    assert(IsDigital());
+    return 0;
   }
   virtual double GetDouble() const { // Only used for digital type
-    abort();
+    assert(IsDigital());
+    return 0;
   }
   // Only used for array data type
-  virtual Byte *GetBuff() const { abort(); }
+  virtual Byte *GetBuff() const {
+    assert(false);
+    return nullptr;
+  }
   virtual void Add(int64_t val) {}
   virtual void Add(double val) {}
   virtual bool Add(IDataValue &dv) { return true; }
