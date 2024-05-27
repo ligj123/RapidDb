@@ -135,26 +135,13 @@ IndexTree::~IndexTree() {
   _garbageOwner->SavePage();
   delete _garbageOwner;
   _garbageOwner = nullptr;
+
   if (_headPage->IsHeadChanged()) {
-    _headPage->WritePage();
+    _headPage->SaveToBuffer();
+    FilePagePool::SyncWritePage(_headPage);
   }
   delete _headPage;
   _headPage = nullptr;
-
-  while (_queueMutex.size() > 0) {
-    delete _queueMutex.front();
-    _queueMutex.pop();
-  }
-
-  for (auto iter = _mapMutex.begin(); iter != _mapMutex.end(); iter++) {
-    delete iter->second;
-  }
-  _mapMutex.clear();
-
-  while (_fileQueue.size() > 0) {
-    delete _fileQueue.front();
-    _fileQueue.pop();
-  }
 
   if (_funcDestory != nullptr) {
     _funcDestory();
@@ -220,16 +207,10 @@ vector<IndexPage *> IndexTree::ApplyIndexPages(PageID parentId, Byte pageLevel,
   return page;
 }
 
-IndexPage *IndexTree::GetPage(PageID pageId, PageType type, bool wait) {
+IndexPage *IndexTree::GetPage(PageID pageId, PageType type) {
   assert(pageId < _headPage->ReadTotalPageCount());
-  IndexPage *page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
-  if (page != nullptr) {
-    if (wait)
-      page->WaitRead();
-    return page;
-  }
+  IndexPage *page = (IndexPage *)CachePagePool::GetPage(_fileId, pageId);
 
-  page = (IndexPage *)PageBufferPool::GetPage(_fileId, pageId);
   if (page == nullptr) {
     if (type == PageType::LEAF_PAGE) {
       page = new LeafPage(this, pageId);

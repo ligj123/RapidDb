@@ -85,13 +85,13 @@ public:
   inline HeadPage *GetHeadPage() const { return _headPage; }
   // To inc pages in memory cache. It must be called in CachePagePool to ensure
   // thread safe.
-  inline void IncPages(uint32_t pnum = 1) { _pagesInMem += pnum; }
+  inline void IncPages(uint32_t pnum = 1) { _pagesInMem.fetch_add(pnum); }
   // To dec pages in memory cache. It must be called in CachePagePool to ensure
   // thread safe.
   inline void DecPages(uint32_t pnum = 1) {
-    _pagesInMem -= pnum;
-    assert(_pagesInMem >= 0);
-    if (_pagesInMem == 0) {
+    uint32_t old = _pagesInMem.fetch_sub(pnum);
+    assert(old >= pnum);
+    if (old == pnum) {
       delete this;
     }
   }
@@ -125,16 +125,16 @@ protected:
   SpinMutex _spinMutex;
 
   // To record how much pages of this index tree are in CachePagePool.
-  uint32_t _pagesInMem = 0;
+  atomic_uint32_t _pagesInMem{0};
   // Every index will assign a unique id, it is table id + index  seriel number
-  uint32_t _fileId = 0;
-  bool _bClosed = false;
+  uint32_t _fileId{0};
+  bool _bClosed{false};
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t)
   // Other: 0
-  uint16_t _valVarLen = 0;
+  uint16_t _valVarLen{0};
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t) + Field Null bits
   // Other: 0
-  uint16_t _valOffset = 0;
+  uint16_t _valOffset{0};
 
   friend class HeadPage;
 };

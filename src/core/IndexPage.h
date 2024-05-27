@@ -75,6 +75,7 @@ public:
   IndexPage(IndexTree *indexTree, uint32_t pageId, uint8_t pageLevel,
             uint32_t parentPageId, PageType type, uint32_t fileId)
       : CachePage(indexTree, pageId, type, fileId) {
+    _bysPage = CachePool::ApplyPage();
     _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
     _parentPageId = parentPageId;
     // New page, do not need init.

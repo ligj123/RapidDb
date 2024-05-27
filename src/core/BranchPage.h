@@ -100,6 +100,5 @@ protected:
   int CompareTo(uint32_t recPos, const RawKey &key) const;
 
 protected:
-  MVector<IndexPage *> _children;
 };
 } // namespace storage

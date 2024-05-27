@@ -65,6 +65,7 @@ public:
   bool IsNull() { return _bysVal == nullptr; }
 
 protected:
+  IndexPage *_child;
   friend std::ostream &operator<<(std::ostream &os, const BranchRecord &br);
 };
 
