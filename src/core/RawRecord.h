@@ -36,9 +36,9 @@ public:
   inline uint16_t GetKeyLength() const {
     return *((uint16_t *)(_bysVal + UI16_LEN));
   }
+  bool IsSole() const { return _bSole; }
   virtual uint16_t GetTotalLength() const = 0;
   virtual uint16_t GetValueLength() const = 0;
-  virtual bool IsSole() const { return _bSole; }
   virtual bool IsTransaction() const { return false; }
 
 public:

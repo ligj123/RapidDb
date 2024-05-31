@@ -51,6 +51,7 @@ inline std::ostream &operator<<(std::ostream &os, const IsoLevel &level) {
     os << "Serializable(" << (int)IsoLevel::Serializable << ")";
     break;
   default:
+    assert(false);
     os << "UNKNOWN(" << (int)level << ")";
     break;
   }
@@ -80,6 +81,7 @@ inline std::ostream &operator<<(std::ostream &os, const TranStatus &status) {
     os << "CLOSED(" << (int)TranStatus::CLOSED << ")";
     break;
   default:
+    assert(false);
     os << "UNKNOWN(" << (int)status << ")";
     break;
   }
@@ -100,6 +102,7 @@ inline std::ostream &operator<<(std::ostream &os, const TranType &type) {
     os << "MANUAL_ATONCE(" << (int)TranType::MANUAL_ATONCE << ")";
     break;
   default:
+    assert(false);
     os << "UNKNOWN(" << (int)type << ")";
     break;
   }

@@ -201,7 +201,9 @@ public:
     return _recLock == nullptr ? _bSole : _recLock->_undoRec->IsSole();
   }
 
-  bool IsTransaction() const override { return _recLock != nullptr; }
+  bool IsTransaction() const override {
+    return _recLock != nullptr && _recLock->_vctStmt.size() > 0;
+  }
   /**
    * @brief Lock current record, only valid for primary key
    * @param type Its value can only be QUERY_SHARE or QUERY_UPDATE
