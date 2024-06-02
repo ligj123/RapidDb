@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include "../cache/CachePool.h"
 #include "../header.h"
-#include "ActionType.h"
-#include "IndexType.h"
+#include "CoreEnum.h"
+
 #include <cstdint>
 
 namespace storage {
@@ -13,13 +13,22 @@ class RawRecord {
 public:
   RawRecord(Byte *bys, bool bSole, IndexType type)
       : _bysVal(bys), _bSole(bSole), _indexType(type) {}
+  RawRecord()
+      : _bysVal(nullptr), _bSole(false), _indexType(IndexType::UNKNOWN) {}
   RawRecord(RawRecord &&src)
       : _bysVal(src._bysVal), _bSole(src._bSole), _indexType(src._indexType) {
     src._bysVal = nullptr;
   }
   RawRecord(const RawRecord &src) = delete;
-  RawRecord()
-      : _bysVal(nullptr), _bSole(false), _indexType(IndexType::UNKNOWN) {}
+  RawRecord &operator=(RawRecord &&src) {
+    _bysVal = src._bysVal;
+    _bSole = src._bSole;
+    _indexType = src._indexType;
+    src._bysVal = nullptr;
+    return *this;
+  }
+
+  RawRecord &operator=(const RawRecord &src) = delete;
   virtual ~RawRecord() {
     if (_bSole && _bysVal != nullptr)
       CachePool::Release(_bysVal, *((uint16_t *)_bysVal));
@@ -37,6 +46,7 @@ public:
     return *((uint16_t *)(_bysVal + UI16_LEN));
   }
   bool IsSole() const { return _bSole; }
+  bool IsNull() { return _bysVal == nullptr; }
   virtual uint16_t GetTotalLength() const = 0;
   virtual uint16_t GetValueLength() const = 0;
   virtual bool IsTransaction() const { return false; }
@@ -56,5 +66,7 @@ protected:
   bool _bSole;
   /**IndexType*/
   IndexType _indexType;
+  /**ActionType::DELETE, Only used in LeafRecord*/
+  bool _bDeleted{false};
 };
 } // namespace storage

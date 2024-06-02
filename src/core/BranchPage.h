@@ -1,6 +1,5 @@
 #pragma once
 #include "IndexPage.h"
-#include "PageType.h"
 #include "RawKey.h"
 
 namespace storage {

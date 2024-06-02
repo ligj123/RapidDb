@@ -17,35 +17,6 @@ static const Byte REC_OVERFLOW = 0x80;
 static const Byte REC_DELETE = 0x40;
 static const Byte VERSION_NUM = 0x0f;
 
-enum class ActionType : int8_t {
-  NO_ACTION = -1,     // No Lock for this record, but maybe has gap lock.
-  QUERY_SHARE = 0,    // Query with read lock
-  QUERY_UPDATE = 0x1, // Query with write lock
-  INSERT = 0x10,      // Insert this record with write lock
-  UPDATE = 0x11,      // Update this record with write lock
-  DELETE = 0x12       // Delete this record with write lock
-};
-
-enum class RecordStatus : uint8_t {
-  INIT = 0,  // Just create and wait to add LeafPage
-  LOCK_ONLY, // Only lock current record, ActionType=QUERY_SHARE or QUERY_UPDATE
-  SEATED,    // The record has been put into its seat in LeafPage
-  COMMIT,    // The related transaction has commited, only valid for WriteLock
-  ROLLBACK   // The related statement has abort, only valid for WriteLock
-};
-
-/**The result to read list value*/
-enum class ResultRead {
-  // No version to fit and failed to read
-  INVALID_VERSION = -2,
-  // Failed to read values due to it has been locked by other transaction;
-  LOCKED = -1,
-  // Passed to read values with all fields.
-  OK = 0,
-  // The record has been deleted
-  REC_DELETE
-};
-
 class Statement;
 class LeafRecord;
 
@@ -74,6 +45,7 @@ struct RecordLock {
 
 // Only for primary index
 struct RecStruct {
+  // Initialize record struct
   RecStruct(Byte *bys, uint16_t keyLen, OverflowPage *ofPage);
   // Load record struct from byte array,
   RecStruct(Byte *bys, OverflowPage *ofPage);
@@ -109,8 +81,8 @@ struct RecStruct {
 };
 
 struct ValueStruct {
-  // (n+7)/8 bytes to save if the related fields are null or not, every field
-  // occupys a bit. n fields number.
+  // (n+7)/8 bytes to save that the related fields are null or not, every field
+  // occupys a bit. n: fields number.
   Byte *bysNull;
   // The postion to save variable length fields' lengths in buffer, only
   // variable length fields, do not need to consider other type fields.
@@ -119,8 +91,19 @@ struct ValueStruct {
   Byte *bysValue;
 };
 
-void SetValueStruct(RecStruct &recStru, ValueStruct *arvalStr,
-                    uint32_t fieldNum, uint32_t valVarLen);
+/**
+ * @brief Read ValueStruct from buffer
+ * @param recStru Record Struct
+ * @param arValStr The array to save ValueStruct, For SINGLE_VERSION, it is
+ * always one element, or it will be a group of elements according to version
+ * number.
+ * @param fieldNum The number of fields in record value.
+ * @param valVarLen The length of buffer to save variable fileds length (var
+ * fields number * 4)
+ * @param bFirst True: only read the first version; False: read all versions.
+ */
+void ReadValueStruct(RecStruct &recStru, ValueStruct *arValStr,
+                     uint32_t fieldNum, uint32_t valVarLen, bool bFirst = true);
 
 class LeafPage;
 class Statement;
@@ -144,8 +127,10 @@ public:
   LeafRecord(const LeafRecord &src) = delete;
   LeafRecord() : RawRecord() {}
   ~LeafRecord() {
-    if (_recLock != nullptr)
+    if (_recLock != nullptr) {
+      assert(_recLock->_vctStmt.size() == 0);
       delete _recLock;
+    }
 
     if (_overflowPage != nullptr)
       delete _overflowPage;
@@ -166,14 +151,14 @@ public:
                        uint64_t recStamp, Statement *stmt, ActionType type,
                        bool gapLock);
 
-  ResultRead ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
+  ReadResult ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
                            VectorDataValue &vct, IndexTree *idxTree,
                            Statement *stmt = nullptr,
                            ActionType atype = ActionType::NO_ACTION) const;
 
-  RawKey *GetKey(IndexTree *idxTree) const;
+  RawKey &GetKey(IndexTree *idxTree) const;
   /**Only for secondary index, Get the primary key, deep copy.*/
-  RawKey *GetPrimayKey() const;
+  RawKey &GetPrimayKey() const;
 
   int CompareTo(const LeafRecord &lr) const;
   int CompareKey(const RawKey &key) const;

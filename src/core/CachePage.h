@@ -8,30 +8,13 @@
 #include "../utils/SpinMutex.h"
 #include "../utils/ThreadPool.h"
 #include "../utils/Utilitys.h"
-#include "PageType.h"
+#include "CoreEnum.h"
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
 
 namespace storage {
 class IndexTree;
-
-enum class PageStatus : uint8_t {
-  // Not load data from disk
-  EMPTY = 0,
-  // This page has added reading queue and wait to read
-  READING,
-  // This page has just finished to read and need to sync memory
-  READED,
-  // This page has added writing queue and wait to write
-  WRITING,
-  // The page has been loaded and the data is valid
-  VALID,
-  // This page has marked as obsolete and can not be visit again.
-  OBSOLETE,
-  // The page has been loaded and failed the crc32 verify, need to fix
-  INVALID
-};
 
 class CachePage {
 public:

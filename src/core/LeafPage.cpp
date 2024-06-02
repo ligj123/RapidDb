@@ -7,7 +7,6 @@
 #include "HeadPage.h"
 #include "IndexTree.h"
 #include "LeafRecord.h"
-#include "PageType.h"
 
 namespace storage {
 const uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 12;

@@ -4,6 +4,7 @@
 #include "../header.h"
 #include <cstdint>
 #include <cstring>
+#include <iomanip>
 
 namespace storage {
 class RawKey {
@@ -25,6 +26,26 @@ public:
   RawKey(Byte *bys, uint32_t len, bool sole = false)
       : _bysVal(bys), _length(len), _bSole(sole) {}
 
+  RawKey(uint32_t len, const Byte *bys) : _length(len), _bSole(false) {
+    _bysVal = CachePool::Apply(_length);
+    BytesCopy(_bysVal, bys, _length);
+  }
+  RawKey(RawKey &&src)
+      : _bysVal(src._bysVal), _length(src._length), _bSole(src._bSole) {
+    src._bysVal = nullptr;
+    src._length = 0;
+  }
+  RawKey(const RawKey &src) = delete;
+  RawKey &operator=(RawKey &&src) {
+    _bysVal = src._bysVal;
+    _length = src._length;
+    _bSole = src._bSole;
+    src._bysVal = nullptr;
+    src._length = 0;
+    return *this;
+  }
+  RawKey &operator=(const RawKey &src) = delete;
+
   void Copy(Byte *bys, uint32_t len) {
     if (_bSole) {
       CachePool::Release(_bysVal, _length);
@@ -34,8 +55,9 @@ public:
     memcpy(_bysVal, bys, len);
     _bSole = true;
   }
+
   ~RawKey() {
-    if (_bSole)
+    if (_bSole && _bysVal != nullptr)
       CachePool::Release(_bysVal, _length);
   }
 
@@ -92,29 +114,4 @@ inline std::ostream &operator<<(std::ostream &os, const RawKey &key) {
   return os;
 }
 
-class VectorRawKey : public MVector<RawKey *> {
-public:
-  using vector::vector;
-  VectorRawKey(VectorRawKey &&src) noexcept { swap(src); }
-
-  ~VectorRawKey() {
-    for (auto iter = begin(); iter != end(); iter++) {
-      delete (*iter);
-    }
-  }
-
-  void RemoveAll() {
-    for (auto iter = begin(); iter != end(); iter++) {
-      delete (*iter);
-    }
-
-    clear();
-  }
-
-  VectorRawKey &operator=(VectorRawKey &&other) noexcept {
-    RemoveAll();
-    swap(other);
-    return *this;
-  }
-};
 } // namespace storage

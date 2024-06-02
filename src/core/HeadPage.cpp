@@ -1,6 +1,5 @@
 ﻿#include "HeadPage.h"
 #include "IndexTree.h"
-#include "PageType.h"
 
 namespace storage {
 const uint16_t HeadPage::MAX_RECORD_VERSION_COUNT = 8;
