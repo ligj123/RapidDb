@@ -50,7 +50,8 @@ enum class ActionType : uint8_t {
   UPDATE = 0x30,      // Update this record with write lock
   DELETE = 0x40,      // Delete this record with write lock
 
-  WRITE_MASK = 0xF0 // The mask to know if it has write lock
+  WRITE_LOCK_MASK = 0xF0, // The mask to know if it has write lock
+  UPDATE_MASK = 0xE0      // The mask of Insert,Update,Delete
 };
 
 // The record's status

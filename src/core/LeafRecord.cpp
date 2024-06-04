@@ -268,33 +268,22 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
                                      IndexTree *idxTree, Statement *stmt,
                                      ActionType atype) const {
   assert(_indexType == IndexType::PRIMARY);
-  if (_recLock != nullptr) {
-    if (_recLock->_actType == ActionType::READ_SHARE)
-  }
-
   const LeafRecord *lr = this;
 
-  while (true) {
-    if (lr->_recLock == nullptr)
-      break;
-    if (lr->_recLock->_actType == ActionType::READ_SHARE &&
-        (atype & ActionType::WRITE_MASK) == 0)
-      breadk;
+  if (_recLock != nullptr) {
+    if (atype & ActionType::WRITE_LOCK_MASK)
+      return ReadResult::LOCKED;
+    if (atype == ActionType::READ_SHARE &&
+        _recLock->_actType & ActionType::WRITE_LOCK_MASK)
+      return ReadResult::LOCKED;
   }
 
-  if (_recLock != nullptr && _recLock->_actType & ActionType::WRITE_MASK &&
-      _recLock->_vctStmt[0]->GetTransaction() != stmt->GetTransaction()) {
-    lr = _recLock->_undoRec;
-    while (lr != nullptr && lr->_recLock != nullptr &&
-           lr->_recLock->_actType >= ActionType::INSERT) {
+  if (atype == ActionType::NO_ACTION) {
+    while (lr->_recLock->_actType & ActionType::UPDATE_MASK) {
       lr = lr->_recLock->_undoRec;
+      if (lr == nullptr)
+        return ReadResult::LOCKED;
     }
-
-    if (lr == nullptr) {
-      return ReadResult::LOCKED;
-    }
-  } else {
-    lr = this;
   }
 
   RecStruct recStru(lr->_bysVal, lr->_overflowPage);

@@ -163,6 +163,7 @@ public:
   int CompareTo(const LeafRecord &lr) const;
   int CompareKey(const RawKey &key) const;
   int CompareKey(const LeafRecord &lr) const;
+  bool LoadOverflowPage(IndexTree *idxTree);
 
   /**Only the bytes' length in IndexPage, key length + value length without
    * overflow page content*/
@@ -213,7 +214,10 @@ public:
 
   bool IsTransaction() { return _recLock != nullptr; }
   bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
-  bool LoadOverflowPage(IndexTree *idxTree);
+  bool HasOverflowPage() {
+    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
+    return (*(_bysVal + UI16_2_LEN + keyLen) & REC_OVERFLOW) != 0;
+  }
 
   Byte GetVersionNumber() const {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
