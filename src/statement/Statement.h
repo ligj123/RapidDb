@@ -42,21 +42,24 @@ public:
    */
   virtual bool Exec() = 0;
   /**
-   * @brief Write transaction log into log file.
-   * @return True: Finished to write log; False: Failed to write log
+   * @brief Collect all LeafRecord and sort them from the statement one by one.
+   * @param setRec: The tree set to save the LeafRecords to write log
    */
-  virtual bool PrepareWriteLog(MHashMap < uint32_t, MTreeSet<LeafRecord *>) {
-    assert(false);
-    return false;
+  virtual void CollectRecords(MTreeSet<LeafRecord *> &setRec) {
+    // For readonly statement, it has not records that need to write log.
   }
   /**
-   * @brief Commit the part of transaction in this statement.
+   * @brief To update RecordStatus into COMMIT of all locked LeafRecord in this
+   * statement.
    */
   virtual void Commit() { assert(false); }
   /**
-   * @brief Abort the part of transaction in this statement.
+   * @brief To update RecordStatus into ROLLBACK of all locked LeafRecord in
+   * this statement.
    */
-  virtual void Abort() { assert(false); }
+  virtual void Rollback() { assert(false); }
+  /**The statement is readonly or not */
+  virtual bool IsReadonly() = 0;
 
   DT_MicroSec GetCreateTime() { return _createTime; }
   DT_MicroSec GetStopTime() { return _stopTime; }

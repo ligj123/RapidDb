@@ -14,10 +14,11 @@ public:
       : Statement(id, tran), _exprInsert(exprInsert), _vctPara(move(vctPara)) {}
   ~InsertStatement() {}
   ExprType GetActionType() override { return ExprType::EXPR_INSERT; }
+  bool IsReadonly() override { return false; }
   bool Exec() override;
-  bool WriteLog() override;
+  void CollectRecords(MTreeSet<LeafRecord *> &setRec) override;
   void Commit() override;
-  void Abort() override;
+  void Rollback() override;
 
 protected:
   // ExprInsert will be unified managed by a class, do not delete here
@@ -29,7 +30,5 @@ protected:
   MForward_list<LeafRecord *> _lstWaitRecord;
   // The LeafRecord that have inserted into or deleted from index tree.
   MForward_list<LeafRecord *> _lstFinshRecord;
-  // The records' count that have insert into index tree.
-  uint32_t _recFinished{0};
 };
 } // namespace storage

@@ -99,6 +99,7 @@ public:
     crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
     if (crc32.checksum() != (uint32_t)ReadInt(CRC32_INDEX_OFFSET)) {
       _pageStatus = PageStatus::INVALID;
+      // TO DO
       // Now if cache page is invalid, it will abort; In following version, it
       // will add the function to fix the invalid page
       abort();

@@ -25,6 +25,7 @@ protected:
   IndexTree *_indexTree;
   MDeque<Statement *> _vctStmt;
   MDeque<LeafRecord *> _vctRecord;
+  FastQueue<LeafRecord *> _fastQueue;
 };
 
 // Every index tree will create a task, no matter what primary index or
