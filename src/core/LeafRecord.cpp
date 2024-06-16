@@ -156,7 +156,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
  * @param type only support Update or Delete
  * @return different of the bytes occpied
  */
-int32_t LeafRecord::UpdateRecord(IndexTree *idxTree,
+int32_t LeafRecord::UpdateRecord(LeafPage *parentPage,
                                  const VectorDataValue &vctVal,
                                  uint64_t recStamp, Statement *stmt,
                                  ActionType type, bool gapLock) {
@@ -164,9 +164,10 @@ int32_t LeafRecord::UpdateRecord(IndexTree *idxTree,
   RecStruct recStruOld(_bysVal, _overflowPage);
   assert(recStruOld._pidStart == nullptr || _overflowPage != nullptr);
   RecordLock *recLock =
-      new RecordLock(type, RecordStatus::SEATED, gapLock, stmt);
+      new RecordLock(type, RecordStatus::SEATED, gapLock, stmt, parentPage);
   recLock->_undoRec = new LeafRecord(move(*this));
   _recLock = recLock;
+  IndexTree *idxTree = parentPage->GetIndexTree();
 
   uint32_t lenVal = CalcValueLength(idxTree, vctVal, type);
   uint32_t lenInfo = 1 + (UI64_LEN + UI32_LEN);
@@ -265,11 +266,11 @@ uint32_t LeafRecord::CalcValidValueLength(IndexTree *idxTree,
  */
 ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
                                      VectorDataValue &vctVal,
-                                     IndexTree *idxTree, Statement *stmt,
+                                     LeafPage *parentPage, Statement *stmt,
                                      ActionType atype) const {
   assert(_indexType == IndexType::PRIMARY);
   const LeafRecord *lr = this;
-
+  IndexTree *idxTree = parentPage->GetIndexTree();
   if (_recLock != nullptr) {
     if (atype & ActionType::WRITE_LOCK_MASK)
       return ReadResult::LOCKED;

@@ -11,6 +11,14 @@ enum class IndexTaskType {
   SECOND       // The second task to run statement or LeafRecord
 };
 
+struct LeafRecordAction {
+public:
+  // LeafRecord to insert or delete
+  LeafRecord *_leafRecord;
+  // Used to temporary save the index page if the page is not in memory
+  IndexPage *_midPage{nullptr};
+};
+
 class IndexTask : public Task {
 public:
   void Run() override;
@@ -22,10 +30,17 @@ protected:
 
 protected:
   PhysTable *_table;
-  IndexTree *_indexTree;
-  MDeque<Statement *> _vctStmt;
-  MDeque<LeafRecord *> _vctRecord;
-  FastQueue<LeafRecord *> _fastQueue;
+  uint16_t _indexPos; // The index order in the table
+  /**The queue of statements waitting to execute */
+  MDeque<Statement *> _mqStmt;
+  /**The queue of records waitting to execute */
+  MDeque<LeafRecordAction *> _mqRecord;
+  /**The fast queue to receive statements from other thread(ONLY one thread at
+   * one time) */
+  FastQueue<Statement *> _fqStmt;
+  /**The fast queue to receive records from other thread(ONLY one thread at
+   * one time) */
+  FastQueue<LeafRecord *> _fqRecord;
 };
 
 // Every index tree will create a task, no matter what primary index or

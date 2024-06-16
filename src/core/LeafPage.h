@@ -75,7 +75,7 @@ public:
     return true;
   }
   /** @brief Add a new record to the last position of this page. Only used wehn
-   * batch add for ordered records.
+   * batch add for ordered records, does not need transaction.
    * @param record The new record
    * @return True: passed to add the record; False: failed to add the record due
    * to reach length limit.

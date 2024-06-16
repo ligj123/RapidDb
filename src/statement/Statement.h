@@ -15,12 +15,14 @@
 namespace storage {
 class LeafRecord;
 
-struct LeafRecordAction {
-public:
-  // LeafRecord to insert or delete
-  LeafRecord *_leafRecord;
-  // Used to temporary save the index page if the page is not in memory
-  IndexPage *_midPage{nullptr};
+class enum StmtStatus : uint8_t {
+  Create,    // Just create this statement and NOT start to execute
+  Executing, // The statement has been added into task to wait to execute or
+             // executing.
+  Executed,  // The statement has been executed.
+  Commiting, // The statement has been added into task to wait to commit(or
+             // rollback) or committing(or rollbacking)
+  Committed, // The statement has been committed or rollbacked.
 };
 
 class Statement {
@@ -42,10 +44,10 @@ public:
    */
   virtual bool Exec() = 0;
   /**
-   * @brief Collect all LeafRecord and sort them from the statement one by one.
+   * @brief Collect all LeafRecord for log write
    * @param setRec: The tree set to save the LeafRecords to write log
    */
-  virtual void CollectRecords(MTreeSet<LeafRecord *> &setRec) {
+  virtual void CollectLogRecords(MTreeSet<LeafRecord *> &setRec) {
     // For readonly statement, it has not records that need to write log.
   }
   /**
@@ -76,6 +78,7 @@ public:
 protected:
   // Id will auto increment 1 every time in self session.
   uint32_t _id;
+  StmtStatus _status;
   // The create time for this statement
   DT_MicroSec _createTime;
   // The finished or abort time to execute for this statement

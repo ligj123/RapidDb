@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
 #include "../dataType/IDataValue.h"
-#include "../transaction/TranStatus.h"
 #include "../utils/BytesFuncs.h"
 #include "../utils/ErrorMsg.h"
 #include "IndexPage.h"
@@ -19,13 +18,16 @@ static const Byte VERSION_NUM = 0x0f;
 
 class Statement;
 class LeafRecord;
+class LeafPage;
 
 // LeafRecord lock
 struct RecordLock {
-  RecordLock(ActionType t, RecordStatus s, bool gapLock, Statement *stmt)
-      : _actType(t), _status(s), _bGapLock(gapLock) {
+  RecordLock(ActionType t, RecordStatus s, bool gapLock, Statement *stmt,
+             LeafPage *pPage = nullptr)
+      : _actType(t), _status(s), _bGapLock(gapLock), _parentPage(pPage) {
     _vctStmt.push_back(stmt);
   }
+
   ActionType _actType;
   RecordStatus _status;
   bool _bGapLock; // True: locked the range between this and previous record,
@@ -34,7 +36,7 @@ struct RecordLock {
                                  // lock, should have only one statement.
   LeafRecord *_undoRec{nullptr}; // To save old version for rollback statement,
                                  // only valid for parmary key.
-
+  LeafPage *_parentPage;         // The parent leaf page
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
   }
@@ -147,12 +149,12 @@ public:
     src._overflowPage = nullptr;
   }
   LeafRecord &operator=(const LeafRecord &src) = delete;
-  int32_t UpdateRecord(IndexTree *idxTree, const VectorDataValue &newVal,
+  int32_t UpdateRecord(LeafPage *parentPage, const VectorDataValue &newVal,
                        uint64_t recStamp, Statement *stmt, ActionType type,
                        bool gapLock);
 
   ReadResult ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
-                           VectorDataValue &vct, IndexTree *idxTree,
+                           VectorDataValue &vct, LeafPage *parentPage,
                            Statement *stmt = nullptr,
                            ActionType atype = ActionType::NO_ACTION) const;
 
@@ -236,6 +238,10 @@ public:
   }
   ActionType GetAction() {
     return _recLock == nullptr ? ActionType::NO_ACTION : _recLock->_actType;
+  }
+  void SetParentPage(LeafPage *page) {
+    assert(_recLock != nullptr);
+    _recLock->_parentPage = page;
   }
 
 protected:
