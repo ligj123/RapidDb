@@ -15,7 +15,9 @@ struct LeafRecordAction {
 public:
   // LeafRecord to insert or delete
   LeafRecord *_leafRecord;
-  // Used to temporary save the index page if the page is not in memory
+  // When search the position of the record in btree, if the related page is not
+  // in memory, here is used to save the page addr and as start page in next
+  // procedure.
   IndexPage *_midPage{nullptr};
 };
 

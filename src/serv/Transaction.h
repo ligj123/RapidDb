@@ -3,6 +3,7 @@
 #include "../statement/Statement.h"
 #include "../utils/Utilitys.h"
 #include "TranEnum.h"
+#define TXID_NULL UINT64_MAX
 
 namespace storage {
 
@@ -16,7 +17,7 @@ struct Transaction {
   }
 
 public:
-  uint64_t _tid{UINT64_MAX};
+  uint64_t _tid{TXID_NULL};
   // Create time
   DT_MicroSec _createTime{UINT64_MAX};
   // The finished or abort time to execute for this statement

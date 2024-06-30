@@ -130,7 +130,7 @@ public:
   }
   inline uint32_t GetWaiting() { return _waiting; }
 
-  inline void PushWriteQueue(MForward_list<CachePage *> &list) {
+  inline void PushWriteQueue(MSList<CachePage *> &list) {
     if (_bWriteQueue)
       return;
 

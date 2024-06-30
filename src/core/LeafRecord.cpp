@@ -164,7 +164,7 @@ int32_t LeafRecord::UpdateRecord(LeafPage *parentPage,
   RecStruct recStruOld(_bysVal, _overflowPage);
   assert(recStruOld._pidStart == nullptr || _overflowPage != nullptr);
   RecordLock *recLock =
-      new RecordLock(type, RecordStatus::SEATED, gapLock, stmt, parentPage);
+      new RecordLock(type, RecordStatus::INIT, gapLock, stmt, parentPage);
   recLock->_undoRec = new LeafRecord(move(*this));
   _recLock = recLock;
   IndexTree *idxTree = parentPage->GetIndexTree();
@@ -468,5 +468,67 @@ std::ostream &operator<<(std::ostream &os, const LeafRecord &lr) {
   }
 
   return os;
+}
+
+void LeafRecord::ReleaseLock(LeafPage *pPage) {
+  assert(ReleaseLockAble());
+  if (_recLock->_actType == ActionType::READ_SHARE ||
+      _recLock->_actType == ActionType::READ_UPDATE) {
+    assert(_recLock->_undoRec == nullptr);
+    delete _recLock;
+    _recLock = nullptr;
+  } else {
+    assert(_recLock->_actType == ActionType::INSERT ||
+           _recLock->_actType == ActionType::UPDATE ||
+           _recLock->_actType == ActionType::DELETE);
+
+    LeafRecord *lrDel = nullptr;
+    if (_recLock->_status == RecordStatus::ABORT ||
+        _recLock->_status == RecordStatus::ROLLBACK) {
+      if (_overflowPage != nullptr) {
+        pPage->GetIndexTree()->RecyclePageId(_overflowPage->GetPageId(),
+                                             _overflowPage->GetPageNum());
+        delete _overflowPage;
+        _overflowPage = nullptr;
+      }
+
+      LeafRecord *lr = _recLock->_undoRec;
+      bool brb = (_recLock->_status == RecordStatus::ROLLBACK);
+      while (lr != nullptr && lr->_recLock != nullptr) {
+        assert(lr->ReleaseLockAble());
+        if (brb && lr->_recLock->_status != RecordStatus::ROLLBACK) {
+          break;
+        }
+
+        if (lr->_overflowPage != nullptr) {
+          pPage->GetIndexTree()->RecyclePageId(lr->_overflowPage->GetPageId(),
+                                               lr->_overflowPage->GetPageNum());
+          delete lr->_overflowPage;
+          lr->_overflowPage = nullptr;
+        }
+
+        LeafRecord *lr2 = lr->_recLock->_undoRec;
+        delete lr;
+        lr = lr2;
+      }
+
+      lrDel = lr;
+    } else {
+      lrDel = _recLock->_undoRec;
+    }
+
+    if (_bSole && _bysVal != nullptr) {
+      CachePool::Release(_bysVal, *((uint16_t *)_bysVal));
+    }
+
+    delete _recLock;
+    _recLock = lrDel->_recLock;
+    _bysVal = lrDel->_bysVal;
+    _bSole = lrDel->_bSole;
+
+    lrDel->_recLock = nullptr;
+    lrDel->_bysVal = nullptr;
+    lrDel->_bSole = false;
+  }
 }
 } // namespace storage

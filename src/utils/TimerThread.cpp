@@ -55,7 +55,7 @@ void TimerThread::Run() {
       _mutex.unlock();
     }
 
-    this_thread::sleep_for(chrono::microseconds(1));
+    this_thread::sleep_for(chrono::microseconds(10));
   }
 
   ThreadPool::RemoveThread(-1);

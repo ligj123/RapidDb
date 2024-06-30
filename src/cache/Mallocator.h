@@ -63,7 +63,7 @@ using MTreeSet = std::set<Key, Compare, Mallocator<Key>>;
 
 template <class T> using MList = std::list<T, Mallocator<T>>;
 template <class T> using MDeque = std::deque<T, Mallocator<T>>;
-template <class T> using MForward_list = std::forward_list<T, Mallocator<T>>;
+template <class T> using MSList = std::forward_list<T, Mallocator<T>>;
 
 using MString = basic_string<char, std::char_traits<char>, Mallocator<char>>;
 

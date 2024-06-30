@@ -27,8 +27,8 @@ protected:
   VectorRow _vctParas;
   // All LeafRecord that are waiting to insert into or delete index tree,
   // include primary index and secondary index.
-  MForward_list<LeafRecord *> _lstWaitRecord;
+  MSList<LeafRecord *> _lstWaitRecord;
   // The LeafRecord that have inserted into or deleted from index tree.
-  MForward_list<LeafRecord *> _lstFinshRecord;
+  MSList<LeafRecord *> _lstFinshRecord;
 };
 } // namespace storage

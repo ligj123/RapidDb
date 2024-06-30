@@ -88,7 +88,7 @@ public:
                                             : MAX_DATA_LENGTH_BRANCH;
   };
   // Split current page if this page's length exceed LOAD_FACTOR
-  bool SplitPage(MForward_list<CachePage *> &list, bool block = false);
+  bool SplitPage(MSList<CachePage *> &list, bool block = false);
 
   inline void SetParentPageID(PageID parentPageId) {
     _parentPageId = parentPageId;

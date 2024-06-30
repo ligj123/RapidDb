@@ -28,15 +28,28 @@ struct RecordLock {
     _vctStmt.push_back(stmt);
   }
 
+  uint64_t TxID() {
+    assert(_lstTxid.size() == 1);
+    return *_lstTxid.begin();
+  }
+
   ActionType _actType;
   RecordStatus _status;
-  bool _bGapLock; // True: locked the range between this and previous record,
-                  // only valid repeatable read isolation level.
-  MVector<Statement *> _vctStmt; // The statements locked this record, If write
-                                 // lock, should have only one statement.
-  LeafRecord *_undoRec{nullptr}; // To save old version for rollback statement,
-                                 // only valid for parmary key.
-  LeafPage *_parentPage;         // The parent leaf page
+  // True: locked the range between this and previous record, only valid
+  // repeatable read isolation level.
+  bool _bGapLock;
+  // If the record is in LeafPage
+  bool _bInPage;
+  // The statement id, only vaild when write lock and only one transaction.
+  uint32_t _stmt_id;
+  // The transaction id locked this record, If write lock, should have only one
+  // transaction id. If ActionType=READ_SHARE, It need to set the related txid
+  // to TXID_NULL, when all txid=TXID_NULL, this lock can be releases, else it
+  // should update _status and set txid=TXID_NULL at the same time.
+  MList<uint64_t> _lstTxid;
+  // To save old version for rollback statement, only valid for primary key.
+  LeafRecord *_undoRec{nullptr};
+
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
   }
@@ -130,7 +143,7 @@ public:
   LeafRecord() : RawRecord() {}
   ~LeafRecord() {
     if (_recLock != nullptr) {
-      assert(_recLock->_vctStmt.size() == 0);
+      assert(ReleaseLockAble());
       delete _recLock;
     }
 
@@ -166,6 +179,11 @@ public:
   int CompareKey(const RawKey &key) const;
   int CompareKey(const LeafRecord &lr) const;
   bool LoadOverflowPage(IndexTree *idxTree);
+  /**
+   * @brief Free _recLock and adjust records if commited, abort or rollback if
+   * release lock able.
+   */
+  void ReleaseLock();
 
   /**Only the bytes' length in IndexPage, key length + value length without
    * overflow page content*/
@@ -242,6 +260,40 @@ public:
   void SetParentPage(LeafPage *page) {
     assert(_recLock != nullptr);
     _recLock->_parentPage = page;
+  }
+
+  // This method is called in SessionPool threads
+  void FreeStatement(Statement *stmt, RecordStatus status) {
+    assert(_recLock != nullptr);
+    if (_recLock->_actType == ActionType::READ_SHARE) {
+      for (auto iter = _recLock->_lstTxid.begin();
+           iter != _recLock->_lstTxid.end(); iter++) {
+        if (*iter == stmt->GetTxid()) {
+          *iter = TXID_NULL;
+          return;
+        }
+      }
+      assert(false);
+    } else {
+      assert(*_recLock->_lstTxid.begin() == stmt->GetTxId());
+      *_recLock->_lstTxid.begin() = TXID_NULL;
+      _status = status;
+    }
+  }
+
+  bool ReleaseLockAble() {
+    assert(_recLock != nullptr);
+    if (_recLock->_actType == ActionType::READ_SHARE) {
+      for (auto iter = _recLock->_lstTxid.begin();
+           iter != _recLock->_lstTxid.end(); iter++) {
+        if (*iter != TXID_NULL)
+          return false;
+      }
+
+      return true;
+    } else {
+      return _status >= RecordStatus::COMMIT;
+    }
   }
 
 protected:

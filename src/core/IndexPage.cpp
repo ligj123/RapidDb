@@ -18,7 +18,7 @@ const uint16_t IndexPage::NUM_RECORD_OFFSET = 4;
 const uint16_t IndexPage::TOTAL_DATA_LENGTH_OFFSET = 6;
 const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
 
-bool IndexPage::SplitPage(MForward_list<CachePage *> &list, bool block) {
+bool IndexPage::SplitPage(MSList<CachePage *> &list, bool block) {
   assert(block == false);
   BranchRecord *brParentOld = nullptr;
   BranchPage *parentPage = nullptr;

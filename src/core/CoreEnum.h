@@ -43,7 +43,7 @@ enum class LockType : uint8_t { NOLOCK = 0, READ_LOCK, WRITE_LOCK };
 
 // How to operate the record
 enum class ActionType : uint8_t {
-  NO_ACTION = 0,      // No Lock for this record, but maybe has gap lock.
+  NO_ACTION = 0,      // No Lock for this record
   READ_SHARE = 0x1,   // Read with read lock
   READ_UPDATE = 0x10, // Read with write lock
   INSERT = 0x20,      // Insert this record with write lock
@@ -57,10 +57,13 @@ enum class ActionType : uint8_t {
 // The record's status
 enum class RecordStatus : uint8_t {
   INIT = 0,  // Just create and wait to add LeafPage
-  LOCK_ONLY, // Only lock current record, ActionType=QUERY_SHARE or QUERY_UPDATE
-  IN_PLACE,  // The record has been put into its place in LeafPage
-  COMMIT,    // The related transaction has commited, only valid for WriteLock
-  ROLLBACK   // The related statement has abort, only valid for WriteLock
+  LOCK_ONLY, // Only lock current record without update, ActionType=QUERY_SHARE
+             // or QUERY_UPDATE
+  COMMIT,    // The transaction has commited, only valid for WriteLock
+  ABORT,     // The transaction has aborted, only valid for WriteLock
+  ROLLBACK,  // The statement has rollbacked, previous statements in transaction
+             // are still valid, only valid for WriteLock
+  FREE       // The lock has been freed from LOCK_ONLY
 };
 
 /**The result to read list value*/

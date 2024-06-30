@@ -66,6 +66,7 @@ public:
   DT_MicroSec GetCreateTime() { return _createTime; }
   DT_MicroSec GetStopTime() { return _stopTime; }
   Transaction *GetTransaction() { return _tran; }
+  uint64_t GetTxId() { return _tran->_tid; }
 
 public:
   static void *operator new(size_t size) {
