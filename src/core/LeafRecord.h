@@ -22,14 +22,16 @@ class LeafPage;
 
 // LeafRecord lock
 struct RecordLock {
-  RecordLock(ActionType t, RecordStatus s, bool gapLock, Statement *stmt,
-             LeafPage *pPage = nullptr)
-      : _actType(t), _status(s), _bGapLock(gapLock), _parentPage(pPage) {
-    _vctStmt.push_back(stmt);
+  RecordLock(ActionType t, RecordStatus s, bool gapLock, bool inPage,
+             uint64_t txid, uint32_t stmtId = UINT32_MAX,
+             LeafRecord *undoRec = nullptr)
+      : _actType(t), _status(s), _bGapLock(gapLock), _bInPage(inPage),
+        _stmtId(stmtId), _undoRec(undoRec) {
+    _lstTxid.push_back(txid);
   }
-
+  // Get transaction id, if more than 1, return the first txid
   uint64_t TxID() {
-    assert(_lstTxid.size() == 1);
+    assert(_lstTxid.size() > 0);
     return *_lstTxid.begin();
   }
 
@@ -40,15 +42,16 @@ struct RecordLock {
   bool _bGapLock;
   // If the record is in LeafPage
   bool _bInPage;
-  // The statement id, only vaild when write lock and only one transaction.
-  uint32_t _stmt_id;
+  // The statement id that inserted, updated or deleted the record. If LOCKUNLY,
+  // it is invalid.
+  uint32_t _stmtId;
   // The transaction id locked this record, If write lock, should have only one
   // transaction id. If ActionType=READ_SHARE, It need to set the related txid
   // to TXID_NULL, when all txid=TXID_NULL, this lock can be releases, else it
   // should update _status and set txid=TXID_NULL at the same time.
   MList<uint64_t> _lstTxid;
   // To save old version for rollback statement, only valid for primary key.
-  LeafRecord *_undoRec{nullptr};
+  LeafRecord *_undoRec;
 
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
@@ -118,7 +121,8 @@ struct ValueStruct {
  * @param bFirst True: only read the first version; False: read all versions.
  */
 void ReadValueStruct(RecStruct &recStru, ValueStruct *arValStr,
-                     uint32_t fieldNum, uint32_t valVarLen, bool bFirst = true);
+                     uint32_t fieldNum, uint32_t valVarLen,
+                     bool bFirstOnly = true);
 
 class LeafPage;
 class Statement;
@@ -155,6 +159,7 @@ public:
     _bysVal = src._bysVal;
     src._bysVal = nullptr;
     _bSole = src._bSole;
+    _bDeleted = src._bDeleted;
     _indexType = src._indexType;
     _recLock = src._recLock;
     _overflowPage = src._overflowPage;
@@ -162,6 +167,7 @@ public:
     src._overflowPage = nullptr;
   }
   LeafRecord &operator=(const LeafRecord &src) = delete;
+
   int32_t UpdateRecord(LeafPage *parentPage, const VectorDataValue &newVal,
                        uint64_t recStamp, Statement *stmt, ActionType type,
                        bool gapLock);
@@ -179,25 +185,19 @@ public:
   int CompareKey(const RawKey &key) const;
   int CompareKey(const LeafRecord &lr) const;
   bool LoadOverflowPage(IndexTree *idxTree);
-  /**
-   * @brief Free _recLock and adjust records if commited, abort or rollback if
-   * release lock able.
-   */
-  void ReleaseLock();
+
+  int ReleaseLock(LeafPage *pPage);
+  uint16_t GetValueLength() const override;
+  bool IsInTransaction() const override;
 
   /**Only the bytes' length in IndexPage, key length + value length without
    * overflow page content*/
   uint16_t GetTotalLength() const override {
-    return (_recLock == nullptr || _recLock->_actType != ActionType::DELETE)
-               ? *((uint16_t *)_bysVal)
-               : 0;
+    return _bDeleted ? 0 : *((uint16_t *)_bysVal);
   }
-  // Get the value's length. If there have more than one version, return the
-  // first version's length.
-  uint16_t GetValueLength() const override;
 
   inline uint16_t SaveData(Byte *bysPage) {
-    assert(_recLock == nullptr || _recLock->_actType != ActionType::DELETE);
+    assert(!_bDeleted);
     uint16_t len = GetTotalLength();
     BytesCopy(bysPage, _bysVal, len);
     return len;
@@ -207,9 +207,6 @@ public:
     return _recLock == nullptr ? _bSole : _recLock->_undoRec->IsSole();
   }
 
-  bool IsTransaction() const override {
-    return _recLock != nullptr && _recLock->_vctStmt.size() > 0;
-  }
   /**
    * @brief Lock current record, only valid for primary key
    * @param type Its value can only be QUERY_SHARE or QUERY_UPDATE
@@ -218,25 +215,52 @@ public:
    * @return True: passed to lock; False: failed to lock
    */
   inline bool LockRecord(ActionType type, Statement *stmt, bool gapLock) {
-    assert(type == ActionType::NO_ACTION || type == ActionType::QUERY_SHARE ||
-           type == ActionType::QUERY_UPDATE);
+    assert(type == ActionType::QUERY_SHARE || type == ActionType::QUERY_UPDATE);
     if (_recLock != nullptr) {
       if (type == ActionType::QUERY_UPDATE)
         return false;
       if (_recLock->_actType != ActionType::QUERY_SHARE)
         return false;
 
-      _recLock->_vctStmt.push_back(stmt);
+      _recLock->_lstTxid.push_back(stmt->GetTxId());
     } else {
-      _recLock = new RecordLock(type, RecordStatus::LOCK_ONLY, gapLock, stmt);
+      _recLock = new RecordLock(type, RecordStatus::LOCK_ONLY, gapLock, true,
+                                stmt->GetTxId());
     }
   }
 
-  bool IsTransaction() { return _recLock != nullptr; }
   bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
   bool HasOverflowPage() {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     return (*(_bysVal + UI16_2_LEN + keyLen) & REC_OVERFLOW) != 0;
+  }
+  /**
+   * @brief Recycle page ids of overflow page if exist and release instance of
+   * OverflowPage
+   */
+  void RecycleOverflowPage(IndexTree *idxTree) {
+    if (_overflowPage != nullptr) {
+      idxTree->->RecyclePageId(_overflowPage->GetPageId(),
+                               _overflowPage->GetPageNum());
+      delete _overflowPage;
+      _overflowPage = nullptr;
+    } else {
+      uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
+      if ((*(_bysVal + UI16_2_LEN + keyLen) & REC_OVERFLOW) == 0)
+        return;
+
+#ifdef SINGLE_VERSION
+      Byte *bys = _bysVal + UI16_2_LEN + keyLen + 1 + UI64_LEN + UI32_LEN * 2;
+#else
+      Byte flag = *(_bysVal + UI16_2_LEN + keyLen);
+      Byte ver = flag & VERSION_NUM;
+      Byte *bys = _bysVal + UI16_2_LEN + keyLen + 1 + UI64_LEN * ver +
+                  UI32_LEN * 2 * ver;
+#endif
+      PageID pid = *(PageID *)(bys);
+      uint16_t pnum = *(uint16_t *)(bys + UI32_LEN);
+      idxTree->->RecyclePageId(pid, pnum);
+    }
   }
 
   Byte GetVersionNumber() const {
@@ -256,10 +280,6 @@ public:
   }
   ActionType GetAction() {
     return _recLock == nullptr ? ActionType::NO_ACTION : _recLock->_actType;
-  }
-  void SetParentPage(LeafPage *page) {
-    assert(_recLock != nullptr);
-    _recLock->_parentPage = page;
   }
 
   // This method is called in SessionPool threads
@@ -292,13 +312,12 @@ public:
 
       return true;
     } else {
-      return _status >= RecordStatus::COMMIT;
+      return _status >= RecordStatus::COMMITED;
     }
   }
 
-protected:
   // To calc key length
-  inline uint32_t CalcKeyLength(const VectorDataValue &vctKey) {
+  inline static uint16_t CalcKeyLength(const VectorDataValue &vctKey) {
     uint32_t lenKey = 0;
     for (int i = 0; i < vctKey.size(); i++) {
       lenKey += vctKey[i]->GetPersistenceLength(SavePosition::KEY);
@@ -307,11 +326,13 @@ protected:
     if (lenKey > Configure::GetMaxKeyLength()) {
       _threadErrorMsg.reset(
           new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)}));
-      return UINT32_MAX;
+      return UINT16_MAX;
     }
 
-    return lenKey;
+    return static_cast<uint16_t>(lenKey);
   }
+
+protected:
   // To calc a version's value length
   uint32_t CalcValueLength(IndexTree *idxTree, const VectorDataValue &vctVal,
                            ActionType type);

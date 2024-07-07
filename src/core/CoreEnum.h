@@ -56,14 +56,14 @@ enum class ActionType : uint8_t {
 
 // The record's status
 enum class RecordStatus : uint8_t {
-  INIT = 0,  // Just create and wait to add LeafPage
-  LOCK_ONLY, // Only lock current record without update, ActionType=QUERY_SHARE
-             // or QUERY_UPDATE
-  COMMIT,    // The transaction has commited, only valid for WriteLock
-  ABORT,     // The transaction has aborted, only valid for WriteLock
-  ROLLBACK,  // The statement has rollbacked, previous statements in transaction
-             // are still valid, only valid for WriteLock
-  FREE       // The lock has been freed from LOCK_ONLY
+  INIT = 0,   // Just create and wait to add LeafPage
+  LOCK_ONLY,  // Only lock current record without update, ActionType=QUERY_SHARE
+              // or QUERY_UPDATE
+  COMMITED,   // The transaction has commited, only valid for WriteLock
+  ABORTED,    // The transaction has aborted, only valid for WriteLock
+  ROLLBACKED, // The statement has rollbacked, previous statements in
+              // transaction are still valid, only valid for WriteLock
+  FREEED      // The lock has been freed from LOCK_ONLY
 };
 
 /**The result to read list value*/

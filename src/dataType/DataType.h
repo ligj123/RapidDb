@@ -33,7 +33,7 @@ enum class DataType : uint32_t {
   BOOL = DIGITAL_TYPE + FIX_LEN + 15,
 
   VAL_NULL = 127,
-  LAST = 127 // Now only can support 127 max data types
+  LAST = 127 // Now only can support 127 data types
 };
 
 // DataValue in record's position

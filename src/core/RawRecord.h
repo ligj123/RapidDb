@@ -16,7 +16,8 @@ public:
   RawRecord()
       : _bysVal(nullptr), _bSole(false), _indexType(IndexType::UNKNOWN) {}
   RawRecord(RawRecord &&src)
-      : _bysVal(src._bysVal), _bSole(src._bSole), _indexType(src._indexType) {
+      : _bysVal(src._bysVal), _bSole(src._bSole), _indexType(src._indexType),
+        _bDeleted(src._bDeleted) {
     src._bysVal = nullptr;
   }
   RawRecord(const RawRecord &src) = delete;
@@ -49,7 +50,7 @@ public:
   bool IsNull() { return _bysVal == nullptr; }
   virtual uint16_t GetTotalLength() const = 0;
   virtual uint16_t GetValueLength() const = 0;
-  virtual bool IsTransaction() const { return false; }
+  virtual bool IsInTransaction() const { return false; }
 
 public:
   static void *operator new(size_t size) {
@@ -66,7 +67,11 @@ protected:
   bool _bSole;
   /**IndexType*/
   IndexType _indexType;
-  /**ActionType::DELETE, Only used in LeafRecord*/
+  /**To mark the record as delete when ActionType::DELETE, Only used in
+   * LeafRecord*/
   bool _bDeleted{false};
+  // The record is valid or not. If the key is exceed the length limit, it will
+  // set to invliad and set exception when construct the record.
+  bool _bValid{true};
 };
 } // namespace storage
