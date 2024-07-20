@@ -28,6 +28,7 @@ void ReadValueStruct(RecStruct &recStru, ValueStruct *arValStr,
   }
 }
 
+// Initialize record struct
 RecStruct::RecStruct(Byte *bys, uint16_t keyLen, OverflowPage *ofPage) {
   _totalLen = (uint16_t *)bys;
   _keyLen = (uint16_t *)(bys + UI16_LEN);
@@ -50,6 +51,7 @@ RecStruct::RecStruct(Byte *bys, uint16_t keyLen, OverflowPage *ofPage) {
   }
 }
 
+// Load record struct from byte array,
 RecStruct::RecStruct(Byte *bys, OverflowPage *ofPage) {
   _totalLen = (uint16_t *)bys;
   _keyLen = (uint16_t *)(bys + UI16_LEN);
@@ -84,7 +86,8 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
                        Statement *stmt, uint64_t recStamp)
     : RawRecord(nullptr, true, idxTree->GetHeadPage()->ReadIndexType()) {
   uint16_t lenKey = CalcKeyLength(vctKey);
-  if (lenKey == UINT16_t) {
+  // The key is over length, failed to construct LeafRecord
+  if (lenKey == UINT16_MAX) {
     _bValid = false;
     return;
   }
@@ -99,8 +102,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
   *((uint16_t *)bys) = lenKey;
 
   for (int i = 0; i < vctKey.size(); i++) {
-    uint16_t len = vctKey[i]->WriteData(bys, SavePosition::KEY);
-    bys += len;
+    bys += vctKey[i]->WriteData(bys, SavePosition::KEY);
   }
 
   BytesCopy(bys, bysPri, lenPri);
