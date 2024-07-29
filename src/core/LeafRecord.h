@@ -264,8 +264,12 @@ public:
   }
 
   Byte GetVersionNumber() const {
+#ifdef SINGLE_VERSION
+    return 1;
+#else
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     return *(_bysVal + UI16_2_LEN + keyLen) & VERSION_NUM;
+#endif
   }
 
   void GetVerStamps(MVector<uint64_t> &vctStamp) {
@@ -278,17 +282,22 @@ public:
       vctStamp.push_back(arrStamp[ii]);
     }
   }
+
   ActionType GetAction() {
     return _recLock == nullptr ? ActionType::NO_ACTION : _recLock->_actType;
   }
 
-  // This method is called in SessionPool threads
+  /**
+   * @brief This method is called in SessionPool threads. If READ_SHARE, it will
+   * remove the txid from list, or set the lock status.
+   */
   void FreeStatement(Statement *stmt, RecordStatus status) {
     assert(_recLock != nullptr);
     if (_recLock->_actType == ActionType::READ_SHARE) {
       for (auto iter = _recLock->_lstTxid.begin();
            iter != _recLock->_lstTxid.end(); iter++) {
         if (*iter == stmt->GetTxid()) {
+
           *iter = TXID_NULL;
           return;
         }
@@ -300,7 +309,9 @@ public:
       _status = status;
     }
   }
-
+  /**
+   * @brief To judge if the lock can be released
+   */
   bool ReleaseLockAble() {
     assert(_recLock != nullptr);
     if (_recLock->_actType == ActionType::READ_SHARE) {
