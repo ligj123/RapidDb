@@ -42,8 +42,8 @@ struct RecordLock {
   bool _bGapLock;
   // If the record is in LeafPage
   bool _bInPage;
-  // The statement id that inserted, updated or deleted the record. If LOCKUNLY,
-  // it is invalid.
+  // The statement id that inserted, updated or deleted the record. If LOCKONLY,
+  // it is invalid UINT32_MAX.
   uint32_t _stmtId;
   // The transaction id locked this record, If write lock, should have only one
   // transaction id. If ActionType=READ_SHARE, It need to set the related txid
@@ -138,7 +138,7 @@ public:
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
              const VectorDataValue &vctVal, uint64_t recStamp, Statement *stmt);
   LeafRecord(LeafRecord &&src)
-      : RawRecord(src), _recLock(src._recLock),
+      : RawRecord(move(src)), _recLock(src._recLock),
         _overflowPage(src._overflowPage) {
     src._recLock = nullptr;
     src._overflowPage = nullptr;

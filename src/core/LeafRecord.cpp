@@ -16,7 +16,7 @@ static thread_local boost::crc_32_type crc32;
 void ReadValueStruct(RecStruct &recStru, ValueStruct *arValStr,
                      uint32_t fieldNum, uint32_t valVarLen, bool bFirstOnly) {
   uint32_t byNum = (fieldNum + 7) >> 3;
-  uint32_t vnum = bFirstOnly ? 1 : (*recStru->_byVerFlow & VERSION_NUM);
+  uint32_t verNum = bFirstOnly ? 1 : (*recStru->_byVerFlow & VERSION_NUM);
   Byte *bys = recStru._bysValStart;
 
   uint32_t offset = 0;
