@@ -72,12 +72,10 @@ public:
 
 public:
   PhysTable(Database *db, const MString &tableName, uint32_t tid,
-            DT_MilliSec dtCreate)
+            DT_MilliSec dtCreate, DT_MilliSec dtLastUpdate)
       : _db(db), _name(tableName),
         _fullName(_db->GetDbName() + "." + tableName), _tid(tid),
-        _dtCreate(dtCreate) {
-    _dtLastUpdate = MilliSecTime();
-  };
+        _dtCreate(dtCreate), _dtLastUpdate(dtLastUpdate){};
   PhysTable() : _db(nullptr), _name(), _fullName(), _tid(0), _dtCreate(0){};
   ~PhysTable() { Clear(); }
 
@@ -132,7 +130,7 @@ public:
    * @return The length of byte array to load, If error, return UINT32_MAX, the
    * detail information saved in _threadErrorMsg.
    */
-  uint32_t LoadData(Byte *bys);
+  uint32_t LoadData(const Byte *bys);
   /**
    * @brief Save this table information into the byte array.
    * @param bys The byte array used to save the table information.
@@ -185,6 +183,7 @@ public:
   }
 
   inline ResStatus GetTableStatus() { return _tableStatus; }
+  inline void SetTableStatus(ResStatus sts) { _tableStatus = sts; }
 
 protected:
   inline bool IsExistedColumn(MString &name) {

@@ -10,7 +10,12 @@ public:
   static const uint32_t FAST_SIZE;
 
 public:
-  static bool LoadDb(PhysTable *dbTable);
+  /**
+   * @brief Init database manager, Load all databases information from disk.
+   * @param dbTable The system table database
+   * @return true: init successful, false: init fail
+   */
+  static bool InitDb(PhysTable *dbTable);
   static bool AddDb(Database *db);
   static bool DelDb(MString dbName);
   static bool ListDb(MVector<MString> &vctDb);

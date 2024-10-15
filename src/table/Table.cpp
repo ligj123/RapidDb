@@ -210,28 +210,30 @@ uint32_t PhysTable::CalcSize() {
 
 uint32_t PhysTable::SaveData(Byte *bys) {
   Byte *buf = bys;
+  // Table blob total length
   buf += UI32_LEN;
-
+  // File version
   *(short *)buf = CURRENT_FILE_VERSION.GetMajorVersion();
   buf += UI16_LEN;
   *buf = CURRENT_FILE_VERSION.GetMinorVersion();
   buf++;
   *buf = CURRENT_FILE_VERSION.GetPatchVersion();
   buf++;
-
+  // Table id
   *(uint32_t *)buf = _tid;
   buf += UI32_LEN;
-
+  // Table full name
   *(uint16_t *)buf = (uint16_t)_fullName.size();
   buf += UI16_LEN;
   BytesCopy(buf, _fullName.c_str(), _fullName.size());
   buf += _fullName.size();
-
+  // Table create time
   *(uint64_t *)buf = _dtCreate;
   buf += UI64_LEN;
+  // Table last update time
   *(uint64_t *)buf = _dtLastUpdate;
   buf += UI64_LEN;
-
+  // Column count and information
   *(uint16_t *)buf = (uint16_t)_vctColumn.size();
   buf += UI16_LEN;
 
@@ -239,7 +241,7 @@ uint32_t PhysTable::SaveData(Byte *bys) {
     uint32_t sz = _vctColumn[i].WriteData(buf);
     buf += sz;
   }
-
+  // Index count and information
   *(uint16_t *)buf = (uint16_t)_vctIndex.size();
   buf += UI16_LEN;
   for (size_t i = 0; i < _vctIndex.size(); i++) {
@@ -252,11 +254,12 @@ uint32_t PhysTable::SaveData(Byte *bys) {
   return sz;
 }
 
-uint32_t PhysTable::LoadData(Byte *bys) {
+uint32_t PhysTable::LoadData(const Byte *bys) {
   Byte *buf = bys;
   uint32_t sz = *(uint32_t *)buf;
   buf += UI32_LEN;
 
+  // File Version verify
   FileVersion fv(*(int16_t *)buf, *(uint8_t *)(buf + 2), *(uint8_t *)(buf + 3));
   if (!(fv == CURRENT_FILE_VERSION)) {
     _threadErrorMsg.reset(new ErrorMsg(TB_ERROR_INDEX_VERSION));
@@ -264,28 +267,30 @@ uint32_t PhysTable::LoadData(Byte *bys) {
   }
   buf += UI32_LEN;
 
+  // Table id
   _tid = *(uint32_t *)buf;
   buf += UI32_LEN;
-
+  // Full table name
   uint32_t len = *(uint16_t *)buf;
   buf += UI16_LEN;
   _fullName = MString((char *)buf, len);
   buf += len;
   size_t pos = _fullName.find(".");
   _name = _fullName.substr(pos + 1);
-
+  // Database name
   MString db_name = _fullName.substr(0, pos);
   _db = DatabaseManager::FindDb(db_name);
   if (_db == nullptr) {
     _threadErrorMsg.reset(new ErrorMsg(DB_NOT_FOUNF, {db_name}));
     return UINT32_MAX;
   }
-
+  // Table create time
   _dtCreate = *(uint64_t *)buf;
   buf += UI64_LEN;
+  // Table last update time
   _dtLastUpdate = *(uint64_t *)buf;
   buf += UI64_LEN;
-
+  // Load column information
   len = *(uint16_t *)buf;
   buf += UI16_LEN;
   for (uint32_t i = 0; i < len; i++) {
@@ -296,7 +301,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     _mapColumnPos.insert({col.GetName(), i});
     _vctColumn.push_back(std::move(col));
   }
-
+  // Load index information
   len = *(uint16_t *)buf;
   buf += UI16_LEN;
   for (uint32_t i = 0; i < len; i++) {

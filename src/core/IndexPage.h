@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
 #include "CachePage.h"
-#include "IndexType.h"
+#include "CoreEnum.h"
 #include "RawRecord.h"
 
 #define BEGIN_PAGE_BIT 0x80
@@ -135,7 +135,7 @@ public:
   inline void SetParentPage(IndexPage *parentPage) { _parentPage = parentPage; }
   inline IndexPage *GetParentPage() { return _parentPage; }
   // Clear _vctRecord
-  virtual ClearRecords() = 0;
+  virtual void ClearRecords() = 0;
   virtual bool IsOverlength() = 0;
 
 protected:

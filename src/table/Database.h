@@ -40,8 +40,8 @@ protected:
   DT_MilliSec _dtCreate;
   // The last update time this database
   DT_MilliSec _dtLastUpdate;
-  // The dropped time
-  DT_MilliSec _dtDropped;
+  // The time of this db was deleted.
+  DT_MilliSec _dtDeleted{0};
   // If this database is valid and not be droped
   bool _bValid{true};
   // Database status

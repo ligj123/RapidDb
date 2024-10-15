@@ -1,4 +1,5 @@
 #include "DatabaseManager.h"
+
 #include "../core/IndexTree.h"
 #include "../core/LeafPage.h"
 #include "../core/LeafRecord.h"
@@ -13,17 +14,20 @@ SpinMutex DatabaseManager::_spinMutex;
 vector<Database *> DatabaseManager::_fastDbCache(FAST_SIZE, nullptr);
 vector<Database *> DatabaseManager::_discardDb;
 
-bool DatabaseManager::LoadDb(PhysTable *dbTable) {
+bool DatabaseManager::InitDb(PhysTable *dbTable) {
   IndexTree *ptree = dbTable->GetPrimaryKey()._tree;
   LeafPage *lp = ptree->GetBeginPage();
 
   while (lp != nullptr) {
     uint32_t num = lp->GetRecordNumber();
     for (uint32_t i = 0; i < num; i++) {
-      LeafRecord *lr = lp->GetRecord(i);
+      LeafRecord &lr = lp->GetRecord(i);
       VectorDataValue vdv;
-      if (lr->GetListValue(vdv) != 0) {
-        abort();
+
+      ReadResult rst = lr.ReadListValue({}, vdv, lp);
+      if (rst != ReadResult::OK) {
+        LOG(FATAL) << "Failed to read list value for database information!";
+        return false;
       }
 
       Database *db = new Database((int)*(DataValueInt *)vdv[0],
@@ -33,7 +37,6 @@ bool DatabaseManager::LoadDb(PhysTable *dbTable) {
                                   (DT_MilliSec) * (DataValueDateTime *)vdv[4]);
       _mapDb.insert({db->GetDbName(), db});
       size_t hash = MStrHash{}(db->GetDbName());
-      assert(_fastDbCache[hash % FAST_SIZE] == nullptr);
       _fastDbCache[hash % FAST_SIZE] = db;
     }
 
@@ -55,8 +58,7 @@ bool DatabaseManager::AddDb(Database *db) {
 
   _mapDb.insert({db->GetDbName(), db});
   size_t hash = MStrHash{}(db->GetDbName());
-  if (_fastDbCache[hash % FAST_SIZE] == nullptr)
-    _fastDbCache[hash % FAST_SIZE] = db;
+  _fastDbCache[hash % FAST_SIZE] = db;
 
   return true;
 }
@@ -70,8 +72,8 @@ bool DatabaseManager::DelDb(MString dbName) {
   Database *db = iter->second;
   db->SetDropped();
   size_t hash = MStrHash{}(dbName);
-  if (_fastDbCache[hash % FAST_SIZE] == nullptr)
-    _fastDbCache[hash % FAST_SIZE] = db;
+  if (_fastDbCache[hash % FAST_SIZE] == db)
+    _fastDbCache[hash % FAST_SIZE] = nullptr;
 
   _discardDb.push_back(db);
   _mapDb.erase(iter);

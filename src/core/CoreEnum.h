@@ -202,8 +202,11 @@ inline std::ostream &operator<<(std::ostream &os, const ActionType &type) {
   case ActionType::DELETE:
     os << "DELETE(" << (int)ActionType::DELETE << ")";
     break;
-  case ActionType::WRITE_MASK:
-    os << "WRITE_MASK(" << (int)ActionType::WRITE_MASK << ")";
+  case ActionType::WRITE_LOCK_MASK:
+    os << "WRITE_LOCK_MASK(" << (int)ActionType::WRITE_LOCK_MASK << ")";
+    break;
+  case ActionType::UPDATE_MASK:
+    os << "UPDATE_MASK(" << (int)ActionType::UPDATE_MASK << ")";
     break;
   default:
     assert(false);
@@ -221,14 +224,17 @@ inline std::ostream &operator<<(std::ostream &os, const RecordStatus &status) {
   case RecordStatus::LOCK_ONLY:
     os << "LOCK_ONLY(" << (int)RecordStatus::LOCK_ONLY << ")";
     break;
-  case RecordStatus::IN_PLACE:
-    os << "IN_PLACE(" << (int)RecordStatus::IN_PLACE << ")";
-    break;
   case RecordStatus::COMMIT:
     os << "COMMIT(" << (int)RecordStatus::COMMIT << ")";
     break;
-  case RecordStatus::ROLLBACK:
-    os << "ROLLBACK(" << (int)RecordStatus::ROLLBACK << ")";
+  case RecordStatus::ABORTED:
+    os << "ABORTED(" << (int)RecordStatus::ABORTED << ")";
+    break;
+  case RecordStatus::ROLLBACKED:
+    os << "ROLLBACKED(" << (int)RecordStatus::ROLLBACKED << ")";
+    break;
+  case RecordStatus::FREEED:
+    os << "FREEED(" << (int)RecordStatus::FREEED << ")";
     break;
   default:
     assert(false);

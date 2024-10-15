@@ -19,7 +19,6 @@ static string CREATE_DB_SQL = "create table rapid.schemas("
 static string CREATE_TABLE_SQL = "create table rapid.tables("
                                  "id int auto_increment(25600,256) primary key,"
                                  "table_name varchar(50) not null unique key,"
-                                 "table_desc varchar(200),"
                                  "table_info blob(65536),"
                                  "create_time datetime,"
                                  "update_time datetime)";
@@ -43,6 +42,7 @@ bool SysTable::GenerateSysTables(Database *sysDb,
     if (result.GetStatements()->size() != 1) {
       LOG_ERROR << "Failed to parse system table ExprStatement. ErrMsg: "
                 << result.ErrorMsg();
+      return false;
     }
 
     ExprCreateTable *ect = (ExprCreateTable *)result.GetStatements()->at(0);
@@ -78,13 +78,17 @@ bool SysTable::GenerateSysTables(Database *sysDb,
       table->AddIndex(eidx->_idxType, iname, vct);
     }
 
+    if (!table->CreateTable()) {
+      LOG_ERROR << "Failed to create system table, name: " << et->_tName;
+    }
+
     mapTable.insert({table->GetFullName(), table});
   }
 
   return true;
 }
 
-bool SysTable::CreateSystemTable() {
+bool SysTable::InitSystemTable() {
   fs::path path = Configure::GetDbRootPath() + "/rapid";
   if (!fs::exists(path)) {
     fs::create_directories(path);
