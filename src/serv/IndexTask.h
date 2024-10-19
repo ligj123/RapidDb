@@ -23,12 +23,18 @@ public:
 
 class IndexTask : public Task {
 public:
-  void Run() override;
+  /**
+   * @param table The table that this task belong to
+   * @param indexPos Which index of the table
+   * @param stNum The thread number of session pool
+   * @param mtNum The thread number of parmary index task
+   */
+  IndexTask(PhysTable *table, uint16_t indexPos, uint16_t stNum, uint16_t mtNum)
+      : _table(table), _indexPos(indexPos), _fqStmt(stNum), _fqRecord(mtNum) {}
 
-protected:
-  void ExecStmts();
-  void HandleRecords();
   virtual IndexTaskType TaskType() = 0;
+  virtual bool AddStatement(uint16_t tNum, Statement *stmt, bool bSubmit) = 0;
+  virtual bool AddLeafRecord(uint16_t tNum, LeafRecord *lr, bool bSubmit) = 0;
 
 protected:
   PhysTable *_table;
@@ -39,24 +45,23 @@ protected:
   MDeque<LeafRecordAction *> _mqRecord;
   /**The fast queue to receive statements from other thread(ONLY one thread at
    * one time) */
-  FastQueue<Statement *> _fqStmt;
+  FastQueue<Statement *, 100> _fqStmt;
   /**The fast queue to receive records from other thread(ONLY one thread at
    * one time) */
-  FastQueue<LeafRecord *> _fqRecord;
+  FastQueue<LeafRecord *, 100> _fqRecord;
 };
 
 // Every index tree will create a task, no matter what primary index or
 // secondary index.
 class TableSingleTask : public TableTask {
 public:
-  IndexTaskType TaskType() override { return IndexTaskType::SINGLE; }
+  TableSingleTask(PhysTable *table, uint16_t indexPos)
+      : IndexTask(table, indexPos) {}
 
-protected:
-  // Receive the statement from session
-  FastQueue<Statement, 100> _queueStmt;
-  // For secondary index, receive LeafRecord from primary index; No used for
-  // primary index.
-  FastQueue<LeafRecordAction, 100> _queueRecord;
+  IndexTaskType TaskType() override { return IndexTaskType::SINGLE; }
+  void Run() override;
+  bool AddStatement(uint16_t tNum, Statement *stmt, bool bSubmit) override;
+  bool AddLeafRecord(uint16_t tNum, LeafRecord *lr, bool bSubmit) override;
 };
 
 // If a table has too much statements to execute, it will create more than one
