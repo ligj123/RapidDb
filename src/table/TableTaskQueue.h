@@ -1,5 +1,7 @@
 #include "../table/Table.h"
 #include "../utils/FastQueue.h"
+#include "../utils/Utilitys.h"
+
 #include <vector>
 
 namespace storage {
@@ -19,14 +21,16 @@ struct TaskQueue {
 
 /**Response for a index in the table */
 struct IndexTaskQueue {
-  IndexTaskQueue(uint16_t tCnt, uint16_t stCnt, uint16_t ptCnt)
-      : _vctQueue(tCnt, TaskQueue(stCnt, ptCnt)) {}
+  IndexTaskQueue(uint16_t tCnt, uint16_t stCnt, uint16_t ptCnt,
+                 vector<LeafRecord> vctRecBorder)
+      : _vctQueue(tCnt, TaskQueue(stCnt, ptCnt)), _createTime(MilliSecTime()),
+        _vctRecBorder(vctRecBorder) {}
 
   // Every task response a TaskQueue
   vector<TaskQueue> _vctQueue;
   // The time of old IndexTaskQueue moved into obsole _vctObsoleTableQueue, if
   // 0, means the related value in _vctObsoleTableQueue is null.
-  DT_MilliSec _obsoleTime{0};
+  DT_MilliSec _createTime;
   // The border LeafRecords for the index tasks
   vector<LeafRecord> _vctRecBorder;
 };
@@ -46,7 +50,23 @@ public:
     }
   }
 
-  bool InitIndexTaskQueue() {}
+  bool InitIndexTaskQueue(uint16_t indexPos, uint16_t tCnt, uint16_t stCnt,
+                          uint16_t ptCnt, vector<LeafRecord> vctRecBorder) {
+    IndexTaskQueue *old = _vctTableQueue[indexPos];
+    if (old != nullptr) {
+      if (MilliSecTime() - old->_createTime < 1000)
+        return false;
+
+      if (_vctObsoleTableQueue[indexPos] != nullptr) {
+        delete _vctObsoleTableQueue[indexPos];
+      }
+
+      _vctObsoleTableQueue[indexPos] = old;
+    }
+
+    IndexTaskQueue *itq = new IndexTaskQueue(tCnt, stCnt, ptCnt, vctRecBorder);
+    _vctTableQueue[indexPos] = itq;
+  }
 
 protected:
   vector<IndexTaskQueue *> _vctTableQueue;
