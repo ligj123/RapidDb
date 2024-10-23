@@ -54,7 +54,7 @@ public:
       : _maxThreadNum(maxThreadNum),
         _currAlivedThreads(threadNum == 0 ? maxThreadNum : threadNum),
         _currAlivedThreads(threadNum == 0 ? maxThreadNum : threadNum) {
-    assert(maxThreadNum >= threadNum);
+    assert(_maxThreadNum >= _threadNum);
     _vctInner.reserve(maxThreadNum);
     for (int i = 0; i < tNum; i++) {
       _vctInner.push_back(new InnerQueue<T, SZ>);
@@ -112,7 +112,7 @@ public:
    *               False: The receiver can not find this element until submit.
    */
   void Push(uint16_t tid, T *ele, bool submit = true) {
-    assert(tid < maxThreadNum);
+    assert(tid < _lastSetThreads);
 
     auto q = _vctInner[tid];
     uint32_t end = q->_tail;
@@ -142,7 +142,7 @@ public:
    * @param tid The thread serial number start from 0
    */
   void Submit(uint32_t tid) {
-    assert(tid < maxThreadNum);
+    assert(tid < _lastSetThreads);
     auto q = _vctInner[tid];
     if (q->_head != q->_submited) {
       atomic_ref<uint32_t>(q->_submited).store(q->_head, memory_order_release);
@@ -171,7 +171,8 @@ public:
   bool RoughEmpty() {
     if (_queue.size() > 0)
       return false;
-    for (auto q : _vctInner) {
+    for (uint16_t i = 0; i < _currAlivedThreads; i++) {
+      auto &q = _vctInner[i];
       if (q->_submited != q->_tail || q->_head != q->_submited)
         return false;
     }
@@ -186,7 +187,8 @@ public:
   size_t RoughSize() {
     unique_lock<SpinMutex> lock(_spinMutex);
     size_t sz = _queue.size();
-    for (auto q : _vctInner) {
+    for (uint16_t i = 0; i < _currAlivedThreads; i++) {
+      auto &q = _vctInner[i];
       sz += q->_submited - q->_tail;
     }
 
@@ -210,7 +212,12 @@ protected:
       }
     }
 
-    _aliveMaxThreads = _aliveLastThreads;
+    if (_popNum > 0) {
+      _popNum--;
+      if (_popNum == 0) {
+        _currAlivedThreads = _lastSetThreads;
+      }
+    }
   }
 
 protected:

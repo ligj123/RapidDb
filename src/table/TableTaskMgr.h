@@ -1,5 +1,5 @@
 #include "../table/Table.h"
-#include "../utils/FastQueue.h"
+#include "../utils/RapidQueue.h"
 #include "../utils/Utilitys.h"
 
 #include <vector>
@@ -37,7 +37,7 @@ struct PriIndexTaskQueue {
   }
 
   // To receive statement from sessions. Its size equal session groups number
-  FastQueue<Statement, 100> _fqStmt;
+  RapidQueue<Statement> _fqStmt;
   // The border LeafRecords for this index tasks, its size equal this index
   // tasks number -1.
   MVector<LeafRecord> _vctRecBorder;
@@ -67,13 +67,13 @@ struct SecIndexTaskQueue {
   }
 
   // To receive statement from sessions. Its size equal session groups number
-  FastQueue<Statement, 100> _fqStmt;
+  RapidQueue<Statement> _fqStmt;
   // To receive the leaf records from primary index tasks. Its size equal the
   // primary index tasks number. For primary index, it should be empty.
-  FastQueue<LeafRecord, 100> _fqRec;
+  RapidQueue<LeafRecord> _fqRec;
   // To send the selected pri keys by where conditions to primary index tasks.
   // For primary index, it should be empty.
-  FastQueue<PriKeyStmt, 100> _fqPriKeyStmt;
+  RapidQueue<PriKeyStmt> _fqPriKeyStmt;
   // The border LeafRecords for this index tasks, its size equal this index
   // tasks number -1.
   MVector<LeafRecord> _vctRecBorder;
@@ -127,8 +127,8 @@ public:
 protected:
   PriIndexTaskQueue _priIndexTaskQueue;
   MVector<SecIndexTaskQueue> _vctSecIndexTaskQueue;
-  MVector<IndexTask> _vctPriIndexTask;
-  MVector<MVector<IndexTask>> _vctSecIndexTasks;
+  MVector<PriIndexTask> _vctPriIndexTask;
+  MVector<MVector<SecIndexTask>> _vctSecIndexTasks;
   SpinMutex _spinMutex;
 };
 
