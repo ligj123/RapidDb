@@ -21,6 +21,8 @@ using namespace std;
 static const char *COLUMN_CONNECTOR_CHAR = "|";
 static const char *PRIMARY_KEY = "PARMARYKEY";
 
+class TableTaskMgr;
+
 struct IndexColumn {
   IndexColumn() {}
   IndexColumn(const MString &name, uint32_t pos) : colName(name), colPos(pos) {}
@@ -237,6 +239,8 @@ protected:
   Transaction *_lockTran{nullptr};
   // The mutex for table lock
   SpinMutex _spinMutex;
+
+  TableTaskMgr _tableTaskMgr;
 };
 
 } // namespace storage

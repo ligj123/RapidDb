@@ -5,7 +5,8 @@
 #include <vector>
 
 namespace storage {
-class IndexTask;
+class PriIndexTask;
+class SecIndexTask;
 
 // To save the selected primay key from secondary index by where conditions,
 // they and related statement will be send into primary index tasks for
@@ -43,6 +44,8 @@ struct PriIndexTaskQueue {
   MVector<LeafRecord> _vctRecBorder;
   // The time of this IndexTaskQueue created
   DT_MilliSec _createTime;
+
+  SpinMutex _spinMutex;
 };
 
 /**Response for a secondary index in the table */
@@ -79,6 +82,8 @@ struct SecIndexTaskQueue {
   MVector<LeafRecord> _vctRecBorder;
   // The time of this IndexTaskQueue created
   DT_MilliSec _createTime;
+
+  SpinMutex _spinMutex;
 };
 
 class TableTaskMgr {
@@ -122,14 +127,13 @@ public:
   }
 
   void CollectPrimaryTaskData();
-  void CollectSecondaryTaskData();
+  void CollectSecondaryTaskData(uint16_t idxPos);
 
 protected:
   PriIndexTaskQueue _priIndexTaskQueue;
   MVector<SecIndexTaskQueue> _vctSecIndexTaskQueue;
   MVector<PriIndexTask> _vctPriIndexTask;
   MVector<MVector<SecIndexTask>> _vctSecIndexTasks;
-  SpinMutex _spinMutex;
 };
 
 } // namespace storage

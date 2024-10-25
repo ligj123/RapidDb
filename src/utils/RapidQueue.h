@@ -32,7 +32,8 @@ public:
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
-  LineQueue(uint64_t max_elements) : _max_elements(max_elements) {
+  LineQueue(uint64_t max_elements = 32 * 1024 * 1024)
+      : _max_elements(max_elements) {
     _startNode = new LinkNode();
     _endNode = _startNode;
   }

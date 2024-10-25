@@ -69,6 +69,9 @@ public:
   uint64_t GetTxId() { return _tran->_tid; }
   uint32_t GetId() { return _id; }
 
+  virtual MVector<uint16_t> &
+  SpliteRange(const MVector<LeafRecord> &vctBorder) = 0;
+
 public:
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);

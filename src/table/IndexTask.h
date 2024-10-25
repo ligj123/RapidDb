@@ -25,27 +25,29 @@ public:
    * @param stNum The thread number of session pool
    * @param mtNum The thread number of parmary index task
    */
-  IndexTask(PhysTable *table, uint16_t indexPos, uint16_t stNum, uint16_t mtNum)
-      : _table(table), _indexPos(indexPos), _fqStmt(stNum), _fqRecord(mtNum) {}
+  IndexTask(uint16_t sn, uint16_t task_cnt, TableTaskMgr *taskMgr,
+            PhysTable *table)
+      : _sn(sn), _task_cnt(task_cnt), _taskMgr(taskMgr), _table(table) {}
 
   void Run() override;
 
 protected:
+  // There maybe has more than 1 index tasks to execute the statement at the
+  // same time, use it as the seriel number start from 0.
+  uint16_t _sn;
+  // The total index task for this index.
+  uint16_t _task_cnt;
+
   TableTaskMgr *_taskMgr;
   PhysTable *_table;
   /**The queue of statements waitting to execute */
   MDeque<Statement *> _mqStmt;
-  /**The queue of records waitting to execute */
-  MDeque<LeafRecordAction *> _mqRecord;
 
   MDeque<PriKeyStmt *> _mqPriKeyStmt;
 
   /**The fast queue to receive statements from other thread(ONLY one thread at
    * one time) */
   LineQueue<Statement> _lqStmt;
-  /**The fast queue to receive records from other thread(ONLY one thread at
-   * one time) */
-  LineQueue<LeafRecord> _lqRecord;
 
   LineQueue<PriKeyStmt> _lqPriKeyStmt;
 };
@@ -58,23 +60,30 @@ public:
    * @param stNum The thread number of session pool
    * @param mtNum The thread number of parmary index task
    */
-  IndexTask(PhysTable *table, uint16_t indexPos, uint16_t stNum, uint16_t mtNum)
-      : _table(table), _indexPos(indexPos), _fqStmt(stNum), _fqRecord(mtNum) {}
+  IndexTask(uint16_t sn, uint16_t task_cnt, TableTaskMgr *taskMgr,
+            PhysTable *table, uint16_t indexPos)
+      : _sn(sn), _task_cnt(task_cnt), _taskMgr(taskMgr), _table(table),
+        _indexPos(indexPos) {}
 
-  virtual IndexTaskType TaskType() = 0;
-  virtual bool AddStatement(uint16_t tNum, Statement *stmt, bool bSubmit) = 0;
-  virtual bool AddLeafRecord(uint16_t tNum, LeafRecord *lr, bool bSubmit) = 0;
+  void Run() override;
 
 protected:
-  PhysTable *_table;
+  // There maybe has more than 1 index tasks to execute the statement at the
+  // same time, use it as the seriel number start from 0.
+  uint16_t _sn;
+  // The total index task for this index.
+  uint16_t _task_cnt;
   // The index order in the table
   uint16_t _indexPos;
+
+  TableTaskMgr *_taskMgr;
+
+  PhysTable *_table;
+
   /**The queue of statements waitting to execute */
   MDeque<Statement *> _mqStmt;
   /**The queue of records waitting to execute */
   MDeque<LeafRecordAction *> _mqRecord;
-
-  MDeque<PriKeyStmt *> _mqPriKeyStmt;
 
   /**The fast queue to receive statements from other thread(ONLY one thread at
    * one time) */
@@ -83,7 +92,7 @@ protected:
    * one time) */
   LineQueue<LeafRecord> _lqRecord;
 
-  LineQueue<PriKeyStmt> _lqPriKeyStmt;
+  friend class TableTaskMgr;
 };
 
 } // namespace storage
