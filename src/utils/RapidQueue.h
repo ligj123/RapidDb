@@ -48,13 +48,13 @@ public:
   }
 
   bool Push(T *ele, bool submit = true) {
-    if (RoughSize() > _max_elements) [[unlikely]] {
-      return false;
-    }
-
     uint64_t pos = _head % ELE_SIZE;
     if (pos == 0) {
       assert(_startNode->_next == nullptr);
+      if (RoughSize() > _max_elements) [[unlikely]] {
+        return false;
+      }
+
       submit = true;
       _startNode->_next = new LinkNode();
       _startNode = _startNode->_next;
