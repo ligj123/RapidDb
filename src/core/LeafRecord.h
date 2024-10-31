@@ -23,10 +23,10 @@ class LeafPage;
 // LeafRecord lock
 struct RecordLock {
   RecordLock(ActionType t, RecordStatus s, bool gapLock, bool inPage,
-             uint64_t txid, uint32_t stmtId = UINT32_MAX,
+             TranID txid, Statement *stmt = nullptr,
              LeafRecord *undoRec = nullptr)
       : _actType(t), _status(s), _bGapLock(gapLock), _bInPage(inPage),
-        _stmtId(stmtId), _undoRec(undoRec) {
+        _stmt(stmt), _undoRec(undoRec) {
     _lstTxid.push_back(txid);
   }
   // Get transaction id, if more than 1, return the first txid
@@ -40,11 +40,11 @@ struct RecordLock {
   // True: locked the range between this and previous record, only valid
   // repeatable read isolation level.
   bool _bGapLock;
-  // If the record is in LeafPage
+  // If the record is in LeafPage or just create and not added into LeafPage
   bool _bInPage;
-  // The statement id that inserted, updated or deleted the record. If LOCKONLY,
-  // it is invalid UINT32_MAX.
-  uint32_t _stmtId;
+  // The statement that inserted, updated or deleted the record. If LOCKONLY,
+  // it should be nullptr.
+  Statement *_stmt;
   // The transaction id locked this record, If write lock, should have only one
   // transaction id. If ActionType=READ_SHARE, It need to set the related txid
   // to TXID_NULL, when all txid=TXID_NULL, this lock can be releases, else it
@@ -165,6 +165,7 @@ public:
     _overflowPage = src._overflowPage;
     src._recLock = nullptr;
     src._overflowPage = nullptr;
+    return *this;
   }
   LeafRecord &operator=(const LeafRecord &src) = delete;
 
@@ -177,9 +178,9 @@ public:
                            Statement *stmt = nullptr,
                            ActionType atype = ActionType::NO_ACTION) const;
 
-  RawKey &GetKey(IndexTree *idxTree) const;
+  RawKey GetKey() const;
   /**Only for secondary index, Get the primary key, deep copy.*/
-  RawKey &GetPrimayKey() const;
+  RawKey GetPrimayKey() const;
 
   int CompareTo(const LeafRecord &lr) const;
   int CompareKey(const RawKey &key) const;
@@ -214,20 +215,7 @@ public:
    * @param gapLock If lock it with gap lock
    * @return True: passed to lock; False: failed to lock
    */
-  inline bool LockRecord(ActionType type, Statement *stmt, bool gapLock) {
-    assert(type == ActionType::QUERY_SHARE || type == ActionType::QUERY_UPDATE);
-    if (_recLock != nullptr) {
-      if (type == ActionType::QUERY_UPDATE)
-        return false;
-      if (_recLock->_actType != ActionType::QUERY_SHARE)
-        return false;
-
-      _recLock->_lstTxid.push_back(stmt->GetTxId());
-    } else {
-      _recLock = new RecordLock(type, RecordStatus::LOCK_ONLY, gapLock, true,
-                                stmt->GetTxId());
-    }
-  }
+  bool LockRecord(ActionType type, Statement *stmt, bool gapLock);
 
   bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
   bool HasOverflowPage() {
@@ -238,30 +226,7 @@ public:
    * @brief Recycle page ids of overflow page if exist and release instance of
    * OverflowPage
    */
-  void RecycleOverflowPage(IndexTree *idxTree) {
-    if (_overflowPage != nullptr) {
-      idxTree->->RecyclePageId(_overflowPage->GetPageId(),
-                               _overflowPage->GetPageNum());
-      delete _overflowPage;
-      _overflowPage = nullptr;
-    } else {
-      uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
-      if ((*(_bysVal + UI16_2_LEN + keyLen) & REC_OVERFLOW) == 0)
-        return;
-
-#ifdef SINGLE_VERSION
-      Byte *bys = _bysVal + UI16_2_LEN + keyLen + 1 + UI64_LEN + UI32_LEN * 2;
-#else
-      Byte flag = *(_bysVal + UI16_2_LEN + keyLen);
-      Byte ver = flag & VERSION_NUM;
-      Byte *bys = _bysVal + UI16_2_LEN + keyLen + 1 + UI64_LEN * ver +
-                  UI32_LEN * 2 * ver;
-#endif
-      PageID pid = *(PageID *)(bys);
-      uint16_t pnum = *(uint16_t *)(bys + UI32_LEN);
-      idxTree->->RecyclePageId(pid, pnum);
-    }
-  }
+  void RecycleOverflowPage(IndexTree *idxTree);
 
   Byte GetVersionNumber() const {
 #ifdef SINGLE_VERSION
@@ -291,41 +256,11 @@ public:
    * @brief This method is called in SessionPool threads. If READ_SHARE, it will
    * remove the txid from list, or set the lock status.
    */
-  void FreeStatement(Statement *stmt, RecordStatus status) {
-    assert(_recLock != nullptr);
-    if (_recLock->_actType == ActionType::READ_SHARE) {
-      for (auto iter = _recLock->_lstTxid.begin();
-           iter != _recLock->_lstTxid.end(); iter++) {
-        if (*iter == stmt->GetTxid()) {
-
-          *iter = TXID_NULL;
-          return;
-        }
-      }
-      assert(false);
-    } else {
-      assert(*_recLock->_lstTxid.begin() == stmt->GetTxId());
-      *_recLock->_lstTxid.begin() = TXID_NULL;
-      _status = status;
-    }
-  }
+  void FreeStatement(Statement *stmt, RecordStatus status);
   /**
    * @brief To judge if the lock can be released
    */
-  bool ReleaseLockAble() {
-    assert(_recLock != nullptr);
-    if (_recLock->_actType == ActionType::READ_SHARE) {
-      for (auto iter = _recLock->_lstTxid.begin();
-           iter != _recLock->_lstTxid.end(); iter++) {
-        if (*iter != TXID_NULL)
-          return false;
-      }
-
-      return true;
-    } else {
-      return _status >= RecordStatus::COMMITED;
-    }
-  }
+  bool ReleaseLockAble();
 
   // To calc key length
   inline static uint16_t CalcKeyLength(const VectorDataValue &vctKey) {

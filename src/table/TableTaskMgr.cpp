@@ -8,19 +8,19 @@ inline uint16_t JudgePriKeyRange(const RawKey &key,
                                  const MVector<LeafRecord> &vctRecBorder) {
 
   for (size_t i = 0; i < vctRecBorder.size(); i++) {
-    LeafRecord &lr = _vctRecBorder[i];
+    const LeafRecord &lr = vctRecBorder[i];
     if (lr.CompareKey(key) <= 0) {
       return i;
     }
   }
 
-  return _vctRecBorder.size();
+  return vctRecBorder.size();
 }
 
 inline uint16_t JudgeLeafRecordRange(const LeafRecord &lr,
                                      const MVector<LeafRecord> &vctRecBorder) {
   for (size_t i = 0; i < vctRecBorder.size(); i++) {
-    LeafRecord &blr = vctRecBorder[i];
+    const LeafRecord &blr = vctRecBorder[i];
     if (blr.CompareTo(lr) <= 0) {
       return i;
     }
@@ -50,7 +50,7 @@ void TableTaskMgr::CollectPrimaryTaskData() {
     _vctPriIndexTask[i]._lqStmt.Submit();
   }
 
-  for (SecIndexTaskQueue sitq : _vctSecIndexTaskQueue) {
+  for (SecIndexTaskQueue &sitq : _vctSecIndexTaskQueue) {
     MDeque<PriKeyStmt *> qp;
     sitq._fqPriKeyStmt.Pop(qp);
 
@@ -68,7 +68,7 @@ void TableTaskMgr::CollectPrimaryTaskData() {
 }
 
 void TableTaskMgr::CollectSecondaryTaskData(uint16_t idxPos) {
-  assert(IndexPage < _vctSecIndexTaskQueue.size());
+  assert(idxPos < _vctSecIndexTaskQueue.size());
   SecIndexTaskQueue &sitq = _vctSecIndexTaskQueue[idxPos];
   if (!sitq._spinMutex.try_lock()) {
     return;
@@ -88,7 +88,7 @@ void TableTaskMgr::CollectSecondaryTaskData(uint16_t idxPos) {
   }
 
   for (size_t i = 0; i < vsec.size(); i++) {
-    vsec[pos]._lqStmt.Submit();
+    vsec[i]._lqStmt.Submit();
   }
 
   MDeque<LeafRecord *> ql;
@@ -101,7 +101,7 @@ void TableTaskMgr::CollectSecondaryTaskData(uint16_t idxPos) {
   }
 
   for (size_t i = 0; i < vsec.size(); i++) {
-    vsec[pos]._lqRecord.Submit();
+    vsec[i]._lqRecord.Submit();
   }
 }
 } // namespace storage

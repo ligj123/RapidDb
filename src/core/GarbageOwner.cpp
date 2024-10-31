@@ -1,4 +1,5 @@
 ﻿#include "GarbageOwner.h"
+#include "../header.h"
 #include "../pool/FilePagePool.h"
 #include "../pool/StoragePool.h"
 #include "../utils/Log.h"
@@ -19,7 +20,7 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree)
   if (_usedPageNum == 0)
     return;
   OverflowPage *ovfPage =
-      new OverflowPage(indexTree, _firstPageId, _usedPageNum, false);
+      new OverflowPage(indexTree, _firstPageId, _usedPageNum, true);
   FilePagePool::SyncReadPage(ovfPage);
   boost::crc_32_type crc32;
   crc32.process_bytes(ovfPage->GetBysPage(),
@@ -45,14 +46,14 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree)
  * PageId: the first page id
  * num: the pages number of this range
  */
-void GarbageOwner::RecyclePage(PageID pid, uint16_t num, bool block) {
+void GarbageOwner::RecyclePage(PageID pid, uint16_t num, bool isLock) {
   struct {
     bool merge = false;
     PageID id;
     int16_t num;
   } l, r;
-  unique_lock<ReentrantSpinMutex> lock(_spinMutex, std::defer_lock_t);
-  if (block) {
+  unique_lock<SpinMutex> lock(_spinMutex, std::defer_lock);
+  if (isLock) {
     lock.lock();
   }
   _totalGarbagePages += num;
@@ -96,15 +97,15 @@ void GarbageOwner::RecyclePage(PageID pid, uint16_t num, bool block) {
 
 /** @brief Apply a series of page ids for a overflow page.
  * @param num: input the expected page number
- * @param block: if lock spin mutex
+ * @param isLock: if lock spin mutex
  * @return: the first page id
  */
-PageID GarbageOwner::ApplyOvfPage(uint16_t num, bool block) {
+PageID GarbageOwner::ApplyOvfPage(uint16_t num, bool isLock) {
   if (_totalGarbagePages < num) {
     return PAGE_NULL_POINTER;
   }
   unique_lock<SpinMutex> lock(_spinMutex, defer_lock);
-  if (block && !lock.try_lock()) {
+  if (isLock && !lock.try_lock()) {
     return PAGE_NULL_POINTER;
   }
 
@@ -127,16 +128,16 @@ PageID GarbageOwner::ApplyOvfPage(uint16_t num, bool block) {
 
 /** @brief Apply multi index pages' ids
  * @param num: input the expected index page number
- * @param block: if lock spin mutex
+ * @param isLock: if lock spin mutex
  * @return: the vector of index page ids
  */
-vector<PageID> GarbageOwner::ApplyIndexPages(uint16_t num, bool block) {
+vector<PageID> GarbageOwner::ApplyIndexPages(uint16_t num, bool isLock) {
   if (_totalGarbagePages == 0) {
     return {};
   }
   unique_lock<SpinMutex> lock(_spinMutex, defer_lock);
-  if (block && !lock.try_lock()) {
-    return PAGE_NULL_POINTER;
+  if (isLock && !lock.try_lock()) {
+    return {};
   }
   vector<PageID> vct;
   for (uint16_t i = 0; i < num;) {
@@ -147,7 +148,7 @@ vector<PageID> GarbageOwner::ApplyIndexPages(uint16_t num, bool block) {
 
     uint16_t num2 = iter->first;
     PageID id = *iter->second.begin();
-    for (uint16_t j = 0; j < num2 && i < num; j++; i++) {
+    for (uint16_t j = 0; j < num2 && i < num; j++, i++) {
       vct.push_back(id + j);
     }
 
@@ -159,23 +160,23 @@ vector<PageID> GarbageOwner::ApplyIndexPages(uint16_t num, bool block) {
 
   _totalGarbagePages -= num;
   _bDirty = true;
-  return id;
+  return vct;
 }
 
 /**Every check point time will call this to save garbage page ids into disk*/
-bool GarbageOwner::SavePage(bool block) {
+bool GarbageOwner::SavePage(bool isLock) {
   if (_ovfPage != nullptr && _ovfPage->GetPageStatus() != PageStatus::VALID) {
     return false;
   }
 
   unique_lock<SpinMutex> lock(_spinMutex, defer_lock);
-  if (block) {
+  if (isLock) {
     lock.lock();
   }
 
   _bDirty = false;
   if (_usedPageNum > 0) {
-    ReleasePage(_firstPageId, _usedPageNum);
+    ErasePage(_firstPageId, _usedPageNum);
   }
 
   if (_totalGarbagePages == 0) {
@@ -183,16 +184,16 @@ bool GarbageOwner::SavePage(bool block) {
     _usedPageNum = 0;
     _indexTree->GetHeadPage()->WriteGabage(_totalGarbagePages, _firstPageId,
                                            _usedPageNum, 0);
-    return;
+    return true;
   }
   // Every 6 bytes to save the first page id and range size
   _usedPageNum =
       (uint16_t)((_treeFreePage.size() * 6 + CachePage::INDEX_PAGE_SIZE - 1) /
                  CachePage::INDEX_PAGE_SIZE);
-  _firstPageId = ApplyPage(_usedPageNum, false);
+  _firstPageId = ApplyOvfPage(_usedPageNum, false);
   if (_firstPageId == PAGE_NULL_POINTER) {
     _firstPageId =
-        _indexTree->GetHeadPage()->GetAndIncTotalPageCount(_usedPageNum, block);
+        _indexTree->GetHeadPage()->GetAndIncTotalPageCount(_usedPageNum, true);
   }
 
   if (_ovfPage != nullptr) {
@@ -202,17 +203,18 @@ bool GarbageOwner::SavePage(bool block) {
   _ovfPage = new OverflowPage(_indexTree, _firstPageId, _usedPageNum, true);
   int count = 0;
   for (auto iter = _treeFreePage.begin(); iter != _treeFreePage.end(); iter++) {
-    ovfPage->WriteInt(count, iter->first);
-    ovfPage->WriteShort(count + 4, iter->second);
+    _ovfPage->WriteInt(count, iter->first);
+    _ovfPage->WriteShort(count + 4, iter->second);
     count += 6;
   }
 
   boost::crc_32_type crc32;
-  uint32_t c32 = crc32.process_bytes(ovfPage->GetBysPage(),
-                                     CachePage::INDEX_PAGE_SIZE * _usedPageNum);
+  crc32.process_bytes(_ovfPage->GetBysPage(),
+                      CachePage::INDEX_PAGE_SIZE * _usedPageNum);
 
   _indexTree->GetHeadPage()->WriteGabage(_totalGarbagePages, _firstPageId,
-                                         _usedPageNum, c32);
+                                         _usedPageNum, crc32.checksum());
+  return true;
 }
 
 void GarbageOwner::InsertPage(PageID pageId, int16_t num) {

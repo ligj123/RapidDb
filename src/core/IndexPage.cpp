@@ -1,8 +1,6 @@
 ﻿#include "IndexPage.h"
 #include "../binlog/LogRecord.h"
 #include "../binlog/LogServer.h"
-#include "../pool/PageDividePool.h"
-#include "../pool/StoragePool.h"
 #include "BranchPage.h"
 #include "BranchRecord.h"
 #include "IndexTree.h"
@@ -29,14 +27,15 @@ bool IndexPage::SplitPage(MSList<CachePage *> &list, bool block) {
     parentPage->SetBeginPage(true);
     parentPage->SetEndPage(true);
     _parentPageId = parentPage->GetPageId();
-    _indexTree->UpdateRootPage(parentPage);
+    //_indexTree->UpdateRootPage(parentPage);
   } else {
-    BranchRecord br(_indexTree, _vctRecord[_recordNum - 1], GetPageId());
+    BranchRecord br(_indexTree->GetHeadPage()->GetIndexType(),
+                    _vctRecord[_recordNum - 1], GetPageId());
     bool bFind;
-    posInParent = _parentPage->SearchRecord(br, bFind);
+    posInParent = ((BranchPage *)_parentPage)->SearchRecord(br, bFind);
     if (!bFind)
       posInParent = _parentPage->GetRecordNumber() - 1;
-    brParentOld = _parentPage->DeleteRecord(posInParent);
+    brParentOld = ((BranchPage *)_parentPage)->DeleteRecord(posInParent);
   }
 
   // System.out.println("pageDivide");
@@ -48,7 +47,7 @@ bool IndexPage::SplitPage(MSList<CachePage *> &list, bool block) {
 
   for (; pos < _vctRecord.size(); pos++) {
     RawRecord *rr = _vctRecord[pos];
-    if (rr->IsTransaction())
+    if (rr->IsInTransaction())
       _tranCount++;
 
     len += rr->GetTotalLength() + sizeof(uint16_t);
@@ -76,7 +75,7 @@ bool IndexPage::SplitPage(MSList<CachePage *> &list, bool block) {
   int tranCount = 0;
   for (int i = pos; i < _vctRecord.size(); i++) {
     RawRecord *rr = _vctRecord[i];
-    if (rr->IsTransaction())
+    if (rr->IsInTransaction())
       tranCount++;
 
     len += rr->GetTotalLength() + sizeof(uint16_t);
@@ -119,7 +118,8 @@ bool IndexPage::SplitPage(MSList<CachePage *> &list, bool block) {
 
   // Insert this page' key and id to parent page
   RawRecord *last = _vctRecord[_vctRecord.size() - 1];
-  BranchRecord *rec = new BranchRecord(_indexTree, last, GetPageId());
+  BranchRecord *rec = new BranchRecord(
+      _indexTree->GetHeadPage()->GetIndexType(), last, GetPageId());
   parentPage->InsertRecord(rec, posInParent);
   posInParent++;
 
@@ -134,17 +134,16 @@ bool IndexPage::SplitPage(MSList<CachePage *> &list, bool block) {
 
     rec = nullptr;
     if (i == vctPage.size() - 1 && brParentOld != nullptr &&
-        brParentOld->CompareTo(*last) > 0) {
-      rec = new BranchRecord(_indexTree, brParentOld, indexPage->GetPageId());
+        brParentOld->CompareTo(*last,
+                               _indexTree->GetHeadPage()->GetIndexType()) > 0) {
+      rec = new BranchRecord(_indexTree->GetHeadPage()->GetIndexType(),
+                             brParentOld, indexPage->GetPageId());
     } else {
-      rec = new BranchRecord(_indexTree, last, indexPage->GetPageId());
+      rec = new BranchRecord(_indexTree->GetHeadPage()->GetIndexType(), last,
+                             indexPage->GetPageId());
     }
 
     parentPage->InsertRecord(rec, posInParent + i);
-
-    for (RawRecord *rr : indexPage->_vctRecord) {
-      rr->SetParentPage(indexPage);
-    }
   }
 
   // Add bin log record for page divid
@@ -173,15 +172,15 @@ bool IndexPage::SplitPage(MSList<CachePage *> &list, bool block) {
     ((LeafPage *)vctPage[vctPage.size() - 1])->SetNextPageId(lastPointer);
 
     if (lastPointer == PAGE_NULL_POINTER) {
-      _indexTree->GetHeadPage()->WriteEndLeafPagePointer(
+      _indexTree->GetHeadPage()->SetEndLeafPageID(
           ((LeafPage *)vctPage[vctPage.size() - 1])->GetPageId());
     } else {
-      LeafPage *lastPage = (LeafPage *)_indexTree->GetPage(
-          lastPointer, PageType::LEAF_PAGE, true);
+      LeafPage *lastPage =
+          (LeafPage *)_indexTree->GetPage(lastPointer, PageType::LEAF_PAGE);
       lastPage->SetPrevPageId(
           ((LeafPage *)vctPage[vctPage.size() - 1])->GetPageId());
       lastPage->SetDirty(true);
-      PageDividePool::AddPage(lastPage, false);
+      // PageDividePool::AddPage(lastPage, false);
     }
   }
 

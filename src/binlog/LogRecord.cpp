@@ -97,7 +97,7 @@ bool LogPageDivid::ReadData(uint64_t &logId, PageID &parentID,
   buf += sizeof(uint32_t);
 
   for (uint32_t i = 0; i < num; i++) {
-    BranchRecord *br = new BranchRecord(nullptr, buf);
+    BranchRecord *br = new BranchRecord(IndexType::UNKNOWN, buf);
     buf += br->GetTotalLength();
     vctLastRec.push_back(br);
   }

@@ -44,7 +44,7 @@ bool FilePagePool::SyncReadPage(CachePage *page) {
   const Byte *bys = page->GetBysPage();
   int64_t psz = page->PageSize();
   int64_t offset = page->FileOffset();
-  FILE_HANDLE fh = page->GetIndexTree()->Get();
+  FILE_HANDLE fh = page->GetIndexTree()->GetFileHandle();
 
 #ifdef LINUX_OS
   int64_t rt = lseek(fh, offset, SEEK_SET);

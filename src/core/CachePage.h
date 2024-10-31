@@ -40,9 +40,7 @@ public:
   }
 
 public:
-  CachePage(IndexTree *indexTree, PageID pageId, PageType type, uint32_t fileId)
-      : _indexTree(indexTree), _pageId(pageId), _pageType(type),
-        _fileId(fileId) {}
+  CachePage(IndexTree *indexTree, PageID pageId, PageType type);
   virtual ~CachePage() {}
   // Save contents into page buffer
   virtual bool SaveToBuffer() {
@@ -74,6 +72,7 @@ public:
   inline uint32_t GetScore() const { return _score; }
 
   inline bool IsDirty() const { return _bDirty; }
+  inline void SetDirty(bool b) { _bDirty = true; }
   inline PageID GetPageId() const { return _pageId; }
   inline uint64_t HashCode() const { return CalcHashCode(_fileId, _pageId); }
   inline uint64_t GetFileId() const { return _fileId; }

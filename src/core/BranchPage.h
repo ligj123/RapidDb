@@ -60,33 +60,9 @@ public:
   int32_t SearchKey(const RawKey &key, bool &bFind) const;
   const BranchRecord &GetRecord(int32_t pos, bool bAutoLast);
 
-  void SetChild(int32_t pos, IndexPage *child) {
-    assert(pos > 0 && pos < _recordNum);
-    assert(_children.size() == 0 || _children.size() == _recordNum);
-    if (_children.size() == 0) {
-      _children.resize(_recordNum, nullptr);
-    }
-    _children[pos] = child;
-  }
-  void InsertChild(int32_t pos, IndexPage *child) {
-    assert(pos > 0 && pos < _recordNum);
-    _children[pos] = child;
-    _children.insert(child, _children.begin() + pos);
-  }
-  IndexPage *GetChild(int32_t pos) {
-    assert(pos > 0 && pos < _recordNum);
-    assert(_children.size() == 0 || _children.size() == _recordNum);
-    if (_children.size() == 0) {
-      return nullptr;
-    }
-    return _children[pos];
-  }
-  void ClearChildren() {
-    for (auto page : _children) {
-      page->SetReferred(false); //?
-    }
-    _children.clear();
-  }
+  void SetChild(int32_t pos, IndexPage *child);
+  IndexPage *GetChild(int32_t pos);
+
   bool IsOverlength() override {
     return _totalDataLength >= MAX_DATA_LENGTH_BRANCH;
   }

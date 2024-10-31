@@ -10,7 +10,7 @@ using namespace std;
 bool ExprCreateTable::Preprocess(Session *session) {
   if (_table->_dbName == nullptr) {
     assert(session != nullptr);
-    const Database *db = session->GetCurrDb();
+    const Database *db = session->_currDb;
     if (db == nullptr) {
       _threadErrorMsg.reset(new ErrorMsg(SESSION_NO_CURR_DB, {}));
       return false;

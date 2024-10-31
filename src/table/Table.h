@@ -1,11 +1,11 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
+#include "../core/CoreEnum.h"
 #include "../core/IndexTree.h"
-#include "../core/IndexType.h"
 #include "../core/LeafRecord.h"
 #include "../dataType/IDataValue.h"
+#include "../serv/Transaction.h"
 #include "../table/Column.h"
-#include "../transaction/Transaction.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/ResStatus.h"
@@ -132,7 +132,7 @@ public:
    * @return The length of byte array to load, If error, return UINT32_MAX, the
    * detail information saved in _threadErrorMsg.
    */
-  uint32_t LoadData(const Byte *bys);
+  uint32_t LoadData(Byte *bys);
   /**
    * @brief Save this table information into the byte array.
    * @param bys The byte array used to save the table information.
@@ -234,13 +234,13 @@ protected:
   //  The last time to be visited.
   DT_MilliSec _dtLastVisit{0};
   // This table status.
-  ResStatus _tableStatus{ResStatus::Normal};
+  ResStatus _tableStatus{ResStatus::Uninit};
   // The transaction to lock this table
   Transaction *_lockTran{nullptr};
   // The mutex for table lock
   SpinMutex _spinMutex;
 
-  TableTaskMgr _tableTaskMgr;
+  TableTaskMgr *_tableTaskMgr;
 };
 
 } // namespace storage

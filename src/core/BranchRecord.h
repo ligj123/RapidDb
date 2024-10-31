@@ -58,6 +58,7 @@ public:
     return len;
   }
   IndexPage *GetChildPage() { return _childPage; }
+  void SetChildPage(IndexPage *child) { _childPage = child; }
 
 protected:
   IndexPage *_childPage;

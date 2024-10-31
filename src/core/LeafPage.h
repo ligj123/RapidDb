@@ -6,7 +6,6 @@
 
 namespace storage {
 class LeafRecord;
-class VectorLeafRecord;
 
 class LeafPage : public IndexPage {
 public:
@@ -18,14 +17,12 @@ public:
 
 public:
   // Create a new leaf page
-  LeafPage(IndexTree *indexTree, PageID pageId, PageID parentPageId,
-           uint32_t fileId)
-      : IndexPage(indexTree, pageId, 0, parentPageId, PageType::LEAF_PAGE,
-                  fileId) {}
+  LeafPage(IndexTree *indexTree, PageID pageId, PageID parentPageId)
+      : IndexPage(indexTree, pageId, 0, parentPageId, PageType::LEAF_PAGE) {}
 
   // Create for existed page
-  LeafPage(IndexTree *indexTree, PageID pageId, uint32_t fileId)
-      : IndexPage(indexTree, pageId, PageType::LEAF_PAGE, fileId) {}
+  LeafPage(IndexTree *indexTree, PageID pageId)
+      : IndexPage(indexTree, pageId, PageType::LEAF_PAGE) {}
   ~LeafPage();
   void InitParameters() override;
 
@@ -49,13 +46,13 @@ public:
             _pageStatus != PageStatus::WRITING);
   }
   void LoadRecords();
-  bool SaveRecords() override;
+  bool SaveRecords();
   /**
    * @brief Insert a leaf record into position pos in this page
    * @param lr The leaf record will be inserted
    * @param pos The position for insert.
    */
-  void InsertRecord(LeafRecord &&lr, int32_t pos);
+  void InsertRecord(LeafRecord *lr, int32_t pos);
   /**
    * @brief For test aim, if insert fail will put the error message into
    * _threadErrorMsg
@@ -94,8 +91,6 @@ public:
   int32_t SearchKey(const LeafRecord &rr, bool &bFind, int32_t start = 0,
                     int32_t end = INT32_MAX);
   void UpdateTotalLength(int32_t len) { _totalDataLength += len; }
-
-  bool SplitPage(bool lock = false) override;
 
   void ClearRecords();
 

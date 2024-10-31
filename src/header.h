@@ -4,6 +4,7 @@
 typedef unsigned char Byte;
 typedef uint32_t PageID;
 typedef uint64_t VersionStamp;
+typedef uint64_t TranID;
 // Datatime: the elapsing microseconds since epoch
 typedef uint64_t DT_MicroSec;
 // Datatime: the elapsing milliseconds since epoch
@@ -21,6 +22,7 @@ const int BYTE_SIZE = 8;
 const uint64_t NANO_SEC = 1000000000;
 /**Invalid page id = UINT32_MAX*/
 const PageID PAGE_NULL_POINTER = UINT32_MAX;
+const TranID TXID_NULL = UINT64_MAX;
 
 // To record memory allocate and free stack trace
 // #define CACHE_TRACE

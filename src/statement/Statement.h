@@ -3,7 +3,6 @@
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
 #include "../expr/BaseExpr.h"
-#include "../serv/Transaction.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
@@ -15,7 +14,7 @@
 namespace storage {
 class LeafRecord;
 
-class enum StmtStatus : uint8_t {
+enum class StmtStatus : uint8_t {
   Create,    // Just create this statement and NOT start to execute
   Executing, // The statement has been added into task to wait to execute or
              // executing.
@@ -32,14 +31,15 @@ public:
    * @param id The id of this statement, auto increment 1 in every session.
    * @param tran The transaction own this statement.
    */
-  Statement(uint32_t id, Transaction *tran) : _id(id), _tran(tran) {
+  Statement(uint32_t id, TranID txid) : _id(id), _txid(txid) {
     _createTime = TimerThread::GetCurrTime();
   }
 
   virtual ExprType GetActionType() = 0;
   /**
    * @brief Execute this statement
-   * @return True: This statement has finished and can go to next step. False:
+   * @return True: This statement has finished and can go to next step.
+   False:
    * Need to exec again or failed if _errorMsg != nullptr.
    */
   virtual bool Exec() = 0;
@@ -51,7 +51,8 @@ public:
     // For readonly statement, it has not records that need to write log.
   }
   /**
-   * @brief To update RecordStatus into COMMIT of all locked LeafRecord in this
+   * @brief To update RecordStatus into COMMIT of all locked LeafRecord in
+   this
    * statement.
    */
   virtual void Commit() { assert(false); }
@@ -65,8 +66,7 @@ public:
 
   DT_MicroSec GetCreateTime() { return _createTime; }
   DT_MicroSec GetStopTime() { return _stopTime; }
-  Transaction *GetTransaction() { return _tran; }
-  uint64_t GetTxId() { return _tran->_tid; }
+  uint64_t GetTxId() { return _txid; }
   uint32_t GetId() { return _id; }
 
   virtual MVector<uint16_t> &
@@ -88,8 +88,8 @@ protected:
   DT_MicroSec _createTime;
   // The finished or abort time to execute for this statement
   DT_MicroSec _stopTime = 0;
-  // The transaction to run this task, no nullable.
-  Transaction *_tran;
+  // The transaction id to run this task, must be valid.
+  TranID _txid;
   // If current statement meet error, save the reason here
   unique_ptr<ErrorMsg> _errorMsg = nullptr;
   // Warning messages

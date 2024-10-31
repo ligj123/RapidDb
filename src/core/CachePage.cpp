@@ -13,6 +13,9 @@ const uint32_t CachePage::CRC32_INDEX_OFFSET =
 const uint32_t CachePage::CRC32_HEAD_OFFSET =
     (uint32_t)(Configure::GetDiskClusterSize() - sizeof(uint32_t));
 
+CachePage::CachePage(IndexTree *indexTree, PageID pageId, PageType type)
+    : _indexTree(indexTree), _pageId(pageId), _pageType(type),
+      _fileId(indexTree->GetFileId()) {}
 // void CachePage::AfterRead() {
 //   bool bvalid = true;
 //   crc32.reset();

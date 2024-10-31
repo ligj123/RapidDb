@@ -3,8 +3,10 @@
 
 #include <atomic>
 
-#define BLOCK_SIZE 256;
+#define BLOCK_SIZE 256
 #define ELE_SIZE 32
+#define ELE_SIZE_NOT 0xFFFFFFFFFFFFFFE0LL
+
 using namespace std;
 
 namespace storage {
@@ -16,10 +18,10 @@ template <class T> struct LinkNode {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
-  LinkNode() { _block = (T *)CachePool::Apply(BLOCK_SIZE); }
+  LinkNode() { _block = (T **)CachePool::Apply(BLOCK_SIZE); }
   ~LinkNode() { CachePool::Release((Byte *)_block, BLOCK_SIZE); }
 
-  T *_block;
+  T **_block;
   LinkNode *_next{nullptr};
 };
 
@@ -32,31 +34,38 @@ public:
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
-  LineQueue(uint64_t max_elements = 32 * 1024 * 1024)
-      : _max_elements(max_elements) {
-    _startNode = new LinkNode();
+  LineQueue() {
+    _startNode = new LinkNode<T>();
     _endNode = _startNode;
   }
 
+  LineQueue(LineQueue &&src)
+      : _startNode(src._startNode), _endNode(src._endNode), _head(src._head),
+        _submited(src._submited.load(memory_order_relaxed)),
+        _tail(src._tail.load(memory_order_relaxed)) {
+    src._startNode = nullptr;
+    src._endNode = nullptr;
+    src._head = 0;
+    src._submited = 0;
+    src._tail = 0;
+  }
+  LineQueue(const LineQueue &src) = delete;
   ~LineQueue() {
     _submited.load(memory_order_acquire);
     while (_endNode != nullptr) {
-      LinkNode *node = _endNode;
-      _endNode = _endNode->next;
+      LinkNode<T> *node = _endNode;
+      _endNode = _endNode->_next;
       delete node;
     }
   }
 
   bool Push(T *ele, bool submit = true) {
     uint64_t pos = _head % ELE_SIZE;
-    if (pos == 0) {
+    if (pos == 0) [[unlikely]] {
       assert(_startNode->_next == nullptr);
-      if (RoughSize() > _max_elements) [[unlikely]] {
-        return false;
-      }
 
       submit = true;
-      _startNode->_next = new LinkNode();
+      _startNode->_next = new LinkNode<T>();
       _startNode = _startNode->_next;
     }
 
@@ -71,47 +80,52 @@ public:
   }
 
   void Submit() {
-    if (_head != _submited.load(memory_order_relax)) {
+    if (_head != _submited.load(memory_order_relaxed)) {
       _submited.store(_head, memory_order_release);
     }
   }
 
   void Pop(MDeque<T *> &dq) {
     uint64_t head = _submited.load(memory_order_acquire);
-    uint64_t tail = _tail.load(memory_order_relax);
+    uint64_t tail = _tail.load(memory_order_relaxed);
+    uint64_t h_block = head & ELE_SIZE_NOT;
 
-    while (_endNode->_next != nullptr) {
-      for (uint64_t i = tail % ELE_SIZE; i < ELE_SIZE; i++) {
-        dq.push_back(_endNode->_block[i]);
-        tail++;
+    while (tail > head) [[unlikely]] {
+      if (tail % ELE_SIZE == 0) {
+        LinkNode<T> *node = _endNode;
+        _endNode = _endNode->_next;
+        delete node;
+        assert(_endNode != nullptr);
       }
 
-      LinkNode *node = _endNode;
-      _endNode = _endNode->_next;
-      delete node;
-    }
-
-    if (head < ELE_SIZE && tail > UINT64_MAX - ELE_SIZE) [[unlikely]] {
-      tail = tail % ELE_SIZE;
-    }
-
-    assert(head - tail <= ELE_SIZE);
-    for (; tail < head; tail++) {
       dq.push_back(_endNode->_block[tail % ELE_SIZE]);
+      tail++;
     }
 
-    _tail.store(tail, memory_order_relax);
+    while (tail < head) {
+      if (tail % ELE_SIZE == 0) {
+        LinkNode<T> *node = _endNode;
+        _endNode = _endNode->_next;
+        delete node;
+        assert(_endNode != nullptr);
+      }
+
+      dq.push_back(_endNode->_block[tail % ELE_SIZE]);
+      tail++;
+    }
+
+    _tail.store(tail, memory_order_release);
   }
 
   bool IsEmpty() {
-    uint64_t tail = _tail.load(memory_order_relax);
+    uint64_t tail = _tail.load(memory_order_relaxed);
     uint64_t submit = _submited.load(memory_order_acquire);
     return tail == submit && _head == submit;
   }
 
   size_t RoughSize() {
-    uint64_t tail = _tail.load(memory_order_relax);
-    uint64_t submit = _submited.load(memory_order_relax);
+    uint64_t tail = _tail.load(memory_order_relaxed);
+    uint64_t submit = _submited.load(memory_order_relaxed);
     if (tail > submit) [[unlikely]] {
       return submit + (UINT64_MAX - tail + 1);
     } else {
@@ -120,8 +134,8 @@ public:
   }
 
 protected:
-  LinkNode *_startNode;
-  LinkNode *_endNode;
+  LinkNode<T> *_startNode;
+  LinkNode<T> *_endNode;
 
   //  The head position of circle queue that elements has inserted, if the
   //  client inserted an element and submited at once, it will equal to
@@ -132,8 +146,6 @@ protected:
   atomic_uint64_t _submited{0};
   // The tail of queue that obtain inserted elements.
   atomic_uint64_t _tail{0};
-  // The max blocks can be assigned for this line.
-  uint64_t _max_elements;
 };
 
 template <class T> class RapidQueue {
@@ -145,13 +157,15 @@ public:
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
-  RapidQueue(uint16_t maxThreadNum, uint16_t threadNum = 0,
-             uint64_t max_elements = 32 * 1024 * 1024)
+  RapidQueue(uint16_t maxThreadNum, uint16_t threadNum = 0)
       : _maxThreadNum(maxThreadNum),
         _currAlivedThreads(threadNum == 0 ? maxThreadNum : threadNum),
-        _currAlivedThreads(threadNum == 0 ? maxThreadNum : threadNum),
-        _vctLine(maxThreadNum, LineQueue(max_elements)) {
-    assert(_maxThreadNum >= _threadNum);
+        _lastSetThreads(threadNum == 0 ? maxThreadNum : threadNum) {
+    assert(_maxThreadNum >= threadNum);
+    _vctLine.reserve(maxThreadNum);
+    for (uint16_t i = 0; i < maxThreadNum; i++) {
+      _vctLine.emplace_back();
+    }
   }
   /**
    * @brief To reset the live thread number, it must be not large than max
@@ -159,14 +173,15 @@ public:
    * @param threadNum The new thread number
    */
   void ResetLiveThreadNumber(uint16_t threadNum) {
-    assert(maxThreadNum >= threadNum);
-    unique_lock<SpinMutex> lock(_spinMutex);
+    assert(_maxThreadNum >= threadNum);
     _lastSetThreads = threadNum;
     if (_currAlivedThreads > threadNum) {
       _popNum = 5;
     } else {
       _currAlivedThreads = threadNum;
     }
+
+    atomic_thread_fence(std::memory_order_release);
   }
 
   /**
@@ -250,6 +265,6 @@ protected:
   // is small than old, here will pop 5 time before use new thread number.
   int16_t _popNum{0};
   // The array of line queue , every line response to a thread.
-  MVector<LineQueue> _vctLine;
+  MVector<LineQueue<T>> _vctLine;
 };
 } // namespace storage

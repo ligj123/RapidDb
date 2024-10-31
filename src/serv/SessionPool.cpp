@@ -1,7 +1,7 @@
 #include "SessionPool.h"
-#include "utils/"
+
 namespace storage {
-bool SessionPool::__bStoped{false};
+bool SessionPool::_bStopped{false};
 atomic<uint64_t> SessionPool::_sessionId{0};
 atomic<uint64_t> SessionPool::_tranId;
 uint64_t SessionPool::_tranInitId;
@@ -9,18 +9,18 @@ uint16_t SessionPool::_threadNum{0};
 vector<SessionGroup> SessionPool::_vctGroup;
 
 void CreateSession::Exec() {
-  SessionGroup &sg = GetSessionGroup(_sid);
-  _session = new Session(_sid);
-  sg._vctTask.push_back(_session);
+  //   SessionGroup &sg = GetSessionGroup(_sid);
+  //   _session = new Session(_sid);
+  //   sg._vctTask.push_back(_session);
 }
 
 void CloseSession::Exec() {
-  SessionGroup &sg = GetSessionGroup(_sid);
-  auto iter = sg._mapSession.find(_sid);
-  assert(iter != sg._mapSession.end());
-  Session *session = iter->second;
-  session->_lastVisitTime = utils::MicroSecTime();
-  sg._discardSession.push_back(session);
+  // SessionGroup &sg = GetSessionGroup(_sid);
+  // auto iter = sg._mapSession.find(_sid);
+  // assert(iter != sg._mapSession.end());
+  // Session *session = iter->second;
+  // session->_lastVisitTime = utils::MicroSecTime();
+  // sg._discardSession.push_back(session);
 }
 
 bool SessionPool::InitPool(uint16_t threadNum) {
@@ -38,15 +38,17 @@ bool SessionPool::InitPool(uint16_t threadNum) {
   for (uint16_t i = 0; i < _threadNum; i++) {
     _vctGroup[i]._thread = new thread([i]() { Run(i); });
   }
+
+  return true;
 }
 
 void SessionPool::Run(uint16_t thdId) {
   SessionGroup &sg = _vctGroup[thdId];
-  sg._currTranId = _tranId.fetch_add(_tranRangeId, memory_order_relaxed);
+  // sg._currTranId = _tranId.fetch_add(_tranRangeId, memory_order_relaxed);
 
   while (true) {
-    for (SessionTask &task : sg._vctTask) {
-      task.Exec();
+    for (SessionTask *task : sg._vctTask) {
+      task->Exec();
     }
 
     size_t freeSession = 0;

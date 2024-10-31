@@ -27,13 +27,13 @@ struct SessionTask {
 };
 
 struct CreateSession : public SessionTask {
-  STaskType TaskType() override const { return STaskType::Create; }
+  STaskType TaskType() const override { return STaskType::Create; }
   void Exec() override;
   Session *_session;
 };
 
 struct CloseSession : public SessionTask {
-  STaskType TaskType() override const { return STaskType::Close; }
+  STaskType TaskType() const override { return STaskType::Close; }
   void Exec() override;
 };
 
@@ -57,8 +57,8 @@ public:
   static bool InitPool(uint16_t threadNum);
 
   static void ClosePool() {
-    delete[] _arMapSession;
-    delte[] _arThread;
+    // delete[] _arMapSession;
+    // delete[] _arThread;
   }
 
   uint32_t CreateSession();
@@ -78,10 +78,10 @@ public:
 
     if ((currTranId % TRAN_ID_RANGE) == 0) {
       currTranId = _tranId.fetch_add(TRAN_ID_RANGE, memory_order_relaxed);
-      if (currTranId > (_tranInitId + (2 << 40) - TRAN_ID_RANGE)) {
+      if (currTranId > (_tranInitId + (1LL << 40) - TRAN_ID_RANGE)) {
         unique_lock<SpinMutex> lock(_spinMutex);
         if (_tranId.load(memory_order_relaxed) >
-            (_tranInitId + (2 << 40) - TRAN_ID_RANGE)) {
+            (_tranInitId + (1LL << 40) - TRAN_ID_RANGE)) {
           _tranId.store(_tranInitId, memory_order_relaxed);
           currTranId = _tranInitId;
         } else {
@@ -97,7 +97,7 @@ protected:
   static void Run(uint16_t thdId);
 
 protected:
-  static bool _bStoped;
+  static bool _bStopped;
   // Create how much threads to run session.
   static uint16_t _threadNum;
   // The vector of session groups

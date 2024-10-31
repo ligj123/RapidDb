@@ -1,6 +1,6 @@
 #pragma once
 #include "../cache/Mallocator.h"
-#include "../core/IndexType.h"
+#include "../core/CoreEnum.h"
 #include "BaseExpr.h"
 #include "ExprData.h"
 #include "ExprLogic.h"

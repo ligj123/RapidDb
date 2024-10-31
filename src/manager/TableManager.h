@@ -6,6 +6,9 @@ using namespace std;
 
 class TableManager {
 public:
+  static const uint32_t FAST_SIZE;
+
+public:
   static bool InitTable(PhysTable *sysTable);
   static bool AddTable(const MString &tblName, PhysTable *table);
   static bool RemoveTable(const MString &tblName);

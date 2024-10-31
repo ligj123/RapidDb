@@ -2,8 +2,8 @@
 #include "../expr/ExprStatement.h"
 #include "../statement/Statement.h"
 #include "../table/Database.h"
-#include "../transaction/Transaction.h"
 #include "../utils/ResStatus.h"
+#include "Transaction.h"
 
 #include <atomic>
 #include <unordered_map>

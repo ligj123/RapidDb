@@ -1,12 +1,11 @@
 ﻿#include "LeafRecord.h"
 #include "../dataType/DataValueFactory.h"
-#include "../pool/StoragePool.h"
+// #include "../pool/FilePagePool.h"
 #include "../statement/Statement.h"
 #include "../utils/ErrorID.h"
 #include "IndexTree.h"
 #include "LeafPage.h"
-#include "pool/FilePagePool.h"
-#include "utils/ThreadPool.h"
+// #include "utils/ThreadPool.h"
 
 #include <boost/crc.hpp>
 
@@ -16,14 +15,14 @@ static thread_local boost::crc_32_type crc32;
 void ReadValueStruct(RecStruct &recStru, ValueStruct *arValStr,
                      uint32_t fieldNum, uint32_t valVarLen, bool bFirstOnly) {
   uint32_t byNum = (fieldNum + 7) >> 3;
-  uint32_t verNum = bFirstOnly ? 1 : (*recStru->_byVerFlow & VERSION_NUM);
+  uint32_t verNum = bFirstOnly ? 1 : (*(recStru._byVerFlow) & VERSION_NUM);
   Byte *bys = recStru._bysValStart;
 
   uint32_t offset = 0;
   for (Byte i = 0; i < verNum; i++) {
-    arvalStr[i].bysNull = bys + offset;
-    arvalStr[i].varFiledsLen = (uint32_t *)(bys + offset + byNum);
-    arvalStr[i].bysValue = bys + offset + byNum + valVarLen;
+    arValStr[i].bysNull = bys + offset;
+    arValStr[i].varFiledsLen = (uint32_t *)(bys + offset + byNum);
+    arValStr[i].bysValue = bys + offset + byNum + valVarLen;
     offset += recStru._arrValLen[i];
   }
 }
@@ -84,7 +83,7 @@ LeafRecord::LeafRecord(IndexType idxType, Byte *bys)
 LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
                        Byte *bysPri, uint32_t lenPri, ActionType actType,
                        Statement *stmt, uint64_t recStamp)
-    : RawRecord(nullptr, true, idxTree->GetHeadPage()->ReadIndexType()) {
+    : RawRecord(nullptr, true, idxTree->GetHeadPage()->GetIndexType()) {
   uint16_t lenKey = CalcKeyLength(vctKey);
   // The key is over length, failed to construct LeafRecord
   if (lenKey == UINT16_MAX) {
@@ -93,7 +92,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
   }
 
   _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,
-                            false, stmt->GetTxId(), stmt->GetId());
+                            false, stmt->GetTxId(), stmt);
   int totalLen = lenKey + lenPri + UI16_2_LEN + UI64_LEN;
   _bysVal = CachePool::Apply(totalLen);
   Byte *bys = _bysVal;
@@ -113,7 +112,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
 LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
                        Statement *stmt)
-    : RawRecord(nullptr, true, idxTree->GetHeadPage()->ReadIndexType()) {
+    : RawRecord(nullptr, true, idxTree->GetHeadPage()->GetIndexType()) {
   uint16_t lenKey = CalcKeyLength(vctKey);
   if (lenKey == UINT16_MAX) {
     _bValid = false;
@@ -121,7 +120,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
   }
 
   _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,
-                            false, stmt->GetTxId(), stmt->GetId());
+                            false, stmt->GetTxId(), stmt);
   uint32_t lenVal = CalcValueLength(idxTree, vctVal, ActionType::INSERT);
   uint16_t infoLen = 1 + UI64_LEN + UI32_LEN;
   uint32_t max_lenVal =
@@ -130,8 +129,8 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
   if (lenVal > max_lenVal) {
     uint16_t num =
         (lenVal + CachePage::INDEX_PAGE_SIZE - 1) / CachePage::INDEX_PAGE_SIZE;
-    _overflowPage =
-        OverflowPage::GetPage(idxTree, idxTree->ApplyPageId(num), num, true);
+    _overflowPage = OverflowPage::GetPage(
+        idxTree, idxTree->ApplyOvfPageId(num, true), num, true);
     infoLen += UI32_LEN + UI32_LEN + UI16_LEN;
   }
 
@@ -155,7 +154,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
     crc32.process_bytes(recStru._bysValStart, lenVal);
     recStru._arrCrc32[0] = crc32.checksum();
 
-    FilePagePool::AddWritePage(ThreadPool::GetThreadId(), _overflowPage);
+    // FilePagePool::AddWritePage(ThreadPool::GetThreadId(), _overflowPage);
   }
 }
 
@@ -175,8 +174,8 @@ int32_t LeafRecord::UpdateRecord(LeafPage *parentPage,
   assert(type == ActionType::UPDATE || type == ActionType::DELETE);
   RecStruct recStruOld(_bysVal, _overflowPage);
   assert(recStruOld._pidStart == nullptr || _overflowPage != nullptr);
-  RecordLock *recLock =
-      new RecordLock(type, RecordStatus::INIT, gapLock, stmt, parentPage);
+  RecordLock *recLock = new RecordLock(type, RecordStatus::INIT, gapLock, true,
+                                       stmt->GetTxId(), stmt);
   recLock->_undoRec = new LeafRecord(move(*this));
   _recLock = recLock;
   IndexTree *idxTree = parentPage->GetIndexTree();
@@ -188,8 +187,8 @@ int32_t LeafRecord::UpdateRecord(LeafPage *parentPage,
   if (lenVal > max_lenVal) {
     uint16_t num =
         (lenVal + CachePage::INDEX_PAGE_SIZE - 1) / CachePage::INDEX_PAGE_SIZE;
-    _overflowPage =
-        OverflowPage::GetPage(idxTree, idxTree->ApplyPageId(num), num, true);
+    _overflowPage = OverflowPage::GetPage(
+        idxTree, idxTree->ApplyOvfPageId(num, true), num, true);
     lenInfo += UI32_LEN + UI32_LEN + UI16_LEN;
   }
 
@@ -230,40 +229,41 @@ int32_t LeafRecord::UpdateRecord(LeafPage *parentPage,
 uint32_t LeafRecord::CalcValidValueLength(IndexTree *idxTree,
                                           RecStruct &recStru, bool bUpdate,
                                           MVector<Byte> &vctSN) {
-  const MTreeSet<VersionStamp, KeyCmp> &setVer =
-      idxTree->GetHeadPage()->GetSetVerStamp();
-  if (setVer.size() == 0)
-    return 0;
+  // const MTreeSet<VersionStamp> &setVer =
+  //     idxTree->GetHeadPage()->GetSetVerStamp();
+  // if (setVer.size() == 0)
+  //   return 0;
 
-  uint32_t len = 0;
-  Byte verNum = (*recStru._byVerFlow) & 0x0f;
+  // uint32_t len = 0;
+  // Byte verNum = (*recStru._byVerFlow) & 0x0f;
 
-  auto iter = setVer.begin();
-  if (!bUpdate || *iter > recStru._arrStamp[0]) {
-    len += recStru._arrValLen[0];
-    vctSN.push_back(0);
-  }
-  iter++;
+  // auto iter = setVer.begin();
+  // if (!bUpdate || *iter > recStru._arrStamp[0]) {
+  //   len += recStru._arrValLen[0];
+  //   vctSN.push_back(0);
+  // }
+  // iter++;
 
-  for (Byte i = 1; i < verNum; i++) {
-    if (*iter <= recStru._arrStamp[i]) {
-      continue;
-    }
+  // for (Byte i = 1; i < verNum; i++) {
+  //   if (*iter <= recStru._arrStamp[i]) {
+  //     continue;
+  //   }
 
-    len += recStru._arrValLen[i];
-    vctSN.push_back(i);
+  //   len += recStru._arrValLen[i];
+  //   vctSN.push_back(i);
 
-    while (*iter > recStru._arrStamp[i]) {
-      iter++;
-      if (iter == setVer.end())
-        break;
-    }
+  //   while (*iter > recStru._arrStamp[i]) {
+  //     iter++;
+  //     if (iter == setVer.end())
+  //       break;
+  //   }
 
-    if (iter == setVer.end())
-      break;
-  }
+  //   if (iter == setVer.end())
+  //     break;
+  // }
 
-  return len;
+  // return len;
+  return 0;
 }
 
 /**
@@ -283,21 +283,22 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
   assert(_indexType == IndexType::PRIMARY);
   const LeafRecord *lr = this;
   IndexTree *idxTree = parentPage->GetIndexTree();
-  if (_recLock != nullptr) {
-    if (atype & ActionType::WRITE_LOCK_MASK)
-      return ReadResult::LOCKED;
-    if (atype == ActionType::READ_SHARE &&
-        _recLock->_actType & ActionType::WRITE_LOCK_MASK)
-      return ReadResult::LOCKED;
-  }
+  // TO DO
+  // if (_recLock != nullptr) {
+  //   if (atype & ActionType::WRITE_LOCK_MASK)
+  //     return ReadResult::LOCKED;
+  //   if (atype == ActionType::READ_SHARE &&
+  //       _recLock->_actType & ActionType::WRITE_LOCK_MASK)
+  //     return ReadResult::LOCKED;
+  // }
 
-  if (atype == ActionType::NO_ACTION) {
-    while (lr->_recLock->_actType & ActionType::UPDATE_MASK) {
-      lr = lr->_recLock->_undoRec;
-      if (lr == nullptr)
-        return ReadResult::LOCKED;
-    }
-  }
+  // if (atype == ActionType::NO_ACTION) {
+  //   while (lr->_recLock->_actType & ActionType::UPDATE_MASK) {
+  //     lr = lr->_recLock->_undoRec;
+  //     if (lr == nullptr)
+  //       return ReadResult::LOCKED;
+  //   }
+  // }
 
   RecStruct recStru(lr->_bysVal, lr->_overflowPage);
   ValueStruct valStru;
@@ -344,14 +345,14 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
   return ReadResult::OK;
 }
 
-RawKey LeafRecord::GetKey(IndexTree *idxTree) const {
+RawKey LeafRecord::GetKey() const {
   return RawKey(GetKeyLength(), _bysVal + UI16_2_LEN);
 }
 
-RawKey *LeafRecord::GetPrimayKey() const {
+RawKey LeafRecord::GetPrimayKey() const {
   int start = GetKeyLength() + UI16_2_LEN;
   int len = GetTotalLength() - start - UI64_LEN;
-  return new RawKey(len, _bysVal + start);
+  return RawKey(len, _bysVal + start);
 }
 
 int LeafRecord::CompareTo(const LeafRecord &lr) const {
@@ -399,7 +400,7 @@ bool LeafRecord::IsInTransaction() const {
     if (_recLock->_status == RecordStatus::FREEED)
       return false;
     for (auto iter = _recLock->_lstTxid.begin();
-         iter != _recLock->_lstTxid.end() iter++) {
+         iter != _recLock->_lstTxid.end(); iter++) {
       if (*iter != TXID_NULL)
         return true;
     }
@@ -499,6 +500,7 @@ bool LeafRecord::LoadOverflowPage(IndexTree *idxTree) {
  */
 int LeafRecord::ReleaseLock(LeafPage *pPage) {
   assert(ReleaseLockAble());
+  LeafRecord *lrDel = nullptr;
   if (_recLock->_actType == ActionType::READ_SHARE ||
       _recLock->_actType == ActionType::READ_UPDATE) {
     assert(_recLock->_undoRec == nullptr);
@@ -511,8 +513,8 @@ int LeafRecord::ReleaseLock(LeafPage *pPage) {
            _recLock->_actType == ActionType::DELETE);
 
     LeafRecord *lr = _recLock->_undoRec;
-    if (_recLock->_status == RecordStatus::ABORT ||
-        _recLock->_status == RecordStatus::ROLLBACK) {
+    if (_recLock->_status == RecordStatus::ABORTED ||
+        _recLock->_status == RecordStatus::ROLLBACKED) {
       if (_bSole && _bysVal != nullptr) {
         CachePool::Release(_bysVal, *((uint16_t *)_bysVal));
       }
@@ -534,7 +536,7 @@ int LeafRecord::ReleaseLock(LeafPage *pPage) {
     while (lr != nullptr) {
       if (lr->_recLock == nullptr) {
       }
-      if (brb && lr->_recLock->_status != RecordStatus::ROLLBACK) {
+      if (/*brb && */ lr->_recLock->_status != RecordStatus::ROLLBACKED) {
         break;
       }
 
@@ -561,6 +563,84 @@ int LeafRecord::ReleaseLock(LeafPage *pPage) {
   lrDel->_recLock = nullptr;
   lrDel->_bysVal = nullptr;
   lrDel->_bSole = false;
+  // TO DO
+  return 0;
+}
+
+bool LeafRecord::LockRecord(ActionType type, Statement *stmt, bool gapLock) {
+  assert(type == ActionType::READ_SHARE || type == ActionType::READ_UPDATE);
+  if (_recLock != nullptr) {
+    if (type == ActionType::READ_UPDATE)
+      return false;
+    if (_recLock->_actType != ActionType::READ_SHARE)
+      return false;
+
+    _recLock->_lstTxid.push_back(stmt->GetTxId());
+  } else {
+    _recLock = new RecordLock(type, RecordStatus::LOCK_ONLY, gapLock, true,
+                              stmt->GetTxId());
+  }
+
+  return true;
+}
+
+void LeafRecord::RecycleOverflowPage(IndexTree *idxTree) {
+  if (_overflowPage != nullptr) {
+    idxTree->RecyclePageId(_overflowPage->GetPageId(),
+                           _overflowPage->GetPageNum());
+    delete _overflowPage;
+    _overflowPage = nullptr;
+  } else {
+    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
+    if ((*(_bysVal + UI16_2_LEN + keyLen) & REC_OVERFLOW) == 0)
+      return;
+
+#ifdef SINGLE_VERSION
+    Byte *bys = _bysVal + UI16_2_LEN + keyLen + 1 + UI64_LEN + UI32_LEN * 2;
+#else
+    Byte flag = *(_bysVal + UI16_2_LEN + keyLen);
+    Byte ver = flag & VERSION_NUM;
+    Byte *bys =
+        _bysVal + UI16_2_LEN + keyLen + 1 + UI64_LEN * ver + UI32_LEN * 2 * ver;
+#endif
+    PageID pid = *(PageID *)(bys);
+    uint16_t pnum = *(uint16_t *)(bys + UI32_LEN);
+    idxTree->RecyclePageId(pid, pnum);
+  }
+}
+
+void LeafRecord::FreeStatement(Statement *stmt, RecordStatus status) {
+  assert(_recLock != nullptr);
+  if (_recLock->_actType == ActionType::READ_SHARE) {
+    for (auto iter = _recLock->_lstTxid.begin();
+         iter != _recLock->_lstTxid.end(); iter++) {
+      if (*iter == stmt->GetTxId()) {
+
+        *iter = TXID_NULL;
+        return;
+      }
+    }
+    assert(false);
+  } else {
+    assert(*_recLock->_lstTxid.begin() == stmt->GetTxId());
+    *_recLock->_lstTxid.begin() = TXID_NULL;
+    _recLock->_status = status;
+  }
+}
+
+bool LeafRecord::ReleaseLockAble() {
+  assert(_recLock != nullptr);
+  if (_recLock->_actType == ActionType::READ_SHARE) {
+    for (auto iter = _recLock->_lstTxid.begin();
+         iter != _recLock->_lstTxid.end(); iter++) {
+      if (*iter != TXID_NULL)
+        return false;
+    }
+
+    return true;
+  } else {
+    return _recLock->_status >= RecordStatus::COMMITED;
+  }
 }
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr) {

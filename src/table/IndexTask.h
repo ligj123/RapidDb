@@ -1,5 +1,5 @@
 #include "../core/IndexTree.h"
-#include "../utils/SingleQueue.h"
+#include "../utils/RapidQueue.h"
 #include "../utils/ThreadPool.h"
 #include "Table.h"
 
@@ -25,8 +25,8 @@ public:
    * @param stNum The thread number of session pool
    * @param mtNum The thread number of parmary index task
    */
-  IndexTask(uint16_t sn, uint16_t task_cnt, TableTaskMgr *taskMgr,
-            PhysTable *table)
+  PriIndexTask(uint16_t sn, uint16_t task_cnt, TableTaskMgr *taskMgr,
+               PhysTable *table)
       : _sn(sn), _task_cnt(task_cnt), _taskMgr(taskMgr), _table(table) {}
 
   void Run() override;
@@ -50,6 +50,8 @@ protected:
   LineQueue<Statement> _lqStmt;
 
   LineQueue<PriKeyStmt> _lqPriKeyStmt;
+
+  friend class TableTaskMgr;
 };
 
 class SecIndexTask : public Task {
@@ -60,8 +62,8 @@ public:
    * @param stNum The thread number of session pool
    * @param mtNum The thread number of parmary index task
    */
-  IndexTask(uint16_t sn, uint16_t task_cnt, TableTaskMgr *taskMgr,
-            PhysTable *table, uint16_t indexPos)
+  SecIndexTask(uint16_t sn, uint16_t task_cnt, TableTaskMgr *taskMgr,
+               PhysTable *table, uint16_t indexPos)
       : _sn(sn), _task_cnt(task_cnt), _taskMgr(taskMgr), _table(table),
         _indexPos(indexPos) {}
 

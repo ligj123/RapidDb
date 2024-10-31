@@ -52,7 +52,8 @@ bool SysTable::GenerateSysTables(Database *sysDb,
     ExprTable *et = ect->_table;
     assert(*et->_dbName == sysDb->GetDbName());
 
-    PhysTable *table = new PhysTable(sysDb, *et->_tName, tid, MilliSecTime());
+    PhysTable *table =
+        new PhysTable(sysDb, *et->_tName, tid, MilliSecTime(), MilliSecTime());
     tid += 0xff;
 
     for (ExprColumnItem *citem : ect->_vctColumn) {

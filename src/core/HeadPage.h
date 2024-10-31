@@ -2,7 +2,7 @@
 #include "../cache/Mallocator.h"
 #include "../config/FileVersion.h"
 #include "CachePage.h"
-#include "IndexType.h"
+#include "CoreEnum.h"
 #include <map>
 
 namespace storage {
@@ -83,11 +83,12 @@ protected:
   uint64_t _currRecordStamp{0};
 
 public:
-  HeadPage(IndexTree *indexTree, uint32_t fileId)
-      : CachePage(indexTree, UINT32_MAX, PageType::HEAD_PAGE, fileId) {
+  HeadPage(IndexTree *indexTree)
+      : CachePage(indexTree, UINT32_MAX, PageType::HEAD_PAGE) {
     _bysPage = CachePool::Apply(HEAD_PAGE_SIZE);
   }
   ~HeadPage() { CachePool::Release(_bysPage, HEAD_PAGE_SIZE); }
+  void AfterRead() override { _pageStatus = PageStatus::VALID; }
   // Create a new head page and initialize it.
   void InitHeadPage(IndexType iType, const VectorDataValue &vctVal);
   // After read head page and load parameters from the buffer.

@@ -1,6 +1,4 @@
 ﻿#include "LeafPage.h"
-#include "../pool/PageDividePool.h"
-#include "../pool/StoragePool.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "BranchPage.h"
@@ -72,7 +70,7 @@ bool LeafPage::SaveRecords() {
 
     WriteShort(off_pos, pos);
     uint16_t sz = lr->SaveData(_bysPage + pos);
-    rr.UpdateBysValue(_bysPage + pos);
+    lr->UpdateBysValue(_bysPage + pos);
     pos += sz;
     off_pos += UI16_LEN;
   }
@@ -95,17 +93,16 @@ void LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
   }
 
   _totalDataLength += lr->GetTotalLength() + UI16_LEN;
-  lr->SetParentPage(this);
   _vctRecord.insert(_vctRecord.begin() + pos, lr);
   _recordNum++;
-  if (lr->IsTransaction()) {
+  if (lr->IsInTransaction()) {
     _tranCount++;
   }
   _bDirty = true;
 }
 
 bool LeafPage::AddRecord(LeafRecord *lr) {
-  assert(!lr->IsTransaction());
+  assert(!lr->IsInTransaction());
   if (_totalDataLength + lr->GetTotalLength() + UI16_LEN >
       (uint32_t)MAX_DATA_LENGTH_LEAF) {
     return false;
@@ -115,7 +112,7 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
     LoadRecords();
   }
 
-  _totalDataLength += lr.GetTotalLength() + sizeof(uint16_t);
+  _totalDataLength += lr->GetTotalLength() + sizeof(uint16_t);
   _vctRecord.push_back(lr);
   _recordNum++;
   _bDirty = true;
@@ -128,13 +125,13 @@ const LeafRecord &LeafPage::GetRecord(int32_t pos) {
     LoadRecords();
   }
 
-  return *_vctRecord[pos];
+  return *((LeafRecord *)_vctRecord[pos]);
 }
 
 int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, int32_t start,
                                int32_t end) {
   bool bUnique =
-      (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
+      (_indexTree->GetHeadPage()->GetIndexType() != IndexType::NON_UNIQUE);
 
   if (end >= (int32_t)_recordNum)
     end = _recordNum - 1;
@@ -149,8 +146,8 @@ int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, int32_t start,
 
     int middle = (start + end) / 2;
     if (_vctRecord.size() > 0) {
-      hr = bUnique ? _vctRecord[middle]->CompareKey(rr)
-                   : _vctRecord[middle]->CompareTo(rr);
+      hr = bUnique ? GetRecord(middle).CompareKey(rr)
+                   : GetRecord(middle).CompareTo(rr);
     } else {
       hr = CompareTo(middle, rr, bUnique);
     }
@@ -171,7 +168,7 @@ int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, int32_t start,
     end = _recordNum - 1;
   bFind = true;
   bool bUnique =
-      (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
+      (_indexTree->GetHeadPage()->GetIndexType() != IndexType::NON_UNIQUE);
 
   while (true) {
     if (start > end) {
@@ -182,7 +179,7 @@ int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, int32_t start,
     int32_t middle = (start + end) / 2;
     int hr = 0;
     if (_vctRecord.size() > 0) {
-      hr = GetVctRecord(middle)->CompareKey(key);
+      hr = GetRecord(middle).CompareKey(key);
     } else {
       hr = CompareTo(middle, key);
     }
@@ -196,9 +193,8 @@ int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, int32_t start,
         return middle;
       } else {
         if (middle > start &&
-            (_vctRecord.size() > 0
-                 ? _vctRecord[middle - 1]->CompareKey(key) == 0
-                 : CompareTo(middle - 1, key) == 0)) {
+            (_vctRecord.size() > 0 ? GetRecord(middle - 1).CompareKey(key) == 0
+                                   : CompareTo(middle - 1, key) == 0)) {
           end = middle - 1;
         } else {
           return middle;
@@ -214,7 +210,7 @@ int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, int32_t start,
     end = _recordNum - 1;
   bFind = true;
   bool bUnique =
-      (_indexTree->GetHeadPage()->ReadIndexType() != IndexType::NON_UNIQUE);
+      (_indexTree->GetHeadPage()->GetIndexType() != IndexType::NON_UNIQUE);
 
   while (true) {
     if (start > end) {
@@ -225,7 +221,7 @@ int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, int32_t start,
     int32_t middle = (start + end) / 2;
     int hr = 0;
     if (_vctRecord.size() > 0) {
-      hr = _vctRecord[middle].CompareKey(rr);
+      hr = GetRecord(middle).CompareKey(rr);
     } else {
       hr = CompareTo(middle, rr, true);
     }
@@ -239,7 +235,7 @@ int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, int32_t start,
         return middle;
       } else {
         if (middle > start &&
-            (_vctRecord.size() > 0 ? _vctRecord[middle - 1]->CompareKey(rr) == 0
+            (_vctRecord.size() > 0 ? GetRecord(middle - 1).CompareKey(rr) == 0
                                    : CompareTo(middle - 1, rr, true) == 0)) {
           end = middle - 1;
         } else {
@@ -252,24 +248,18 @@ int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, int32_t start,
 
 int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
-  return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                      ReadShort(start + UI16_LEN) - _indexTree->GetKeyVarLen(),
+  return BytesCompare(_bysPage + start, ReadShort(start + UI16_LEN),
                       key.GetBysVal(), key.GetLength());
 }
 
 int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
   if (key) {
-    return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                        ReadShort(start + UI16_LEN) -
-                            _indexTree->GetKeyVarLen(),
-                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                        rr.GetKeyLength() - _indexTree->GetKeyVarLen());
+    return BytesCompare(_bysPage + start, ReadShort(start + UI16_LEN),
+                        rr.GetBysValue(), rr.GetKeyLength());
   } else {
-    return BytesCompare(_bysPage + start + _indexTree->GetKeyOffset(),
-                        ReadShort(start) - _indexTree->GetKeyOffset(),
-                        rr.GetBysValue() + _indexTree->GetKeyOffset(),
-                        rr.GetTotalLength() - _indexTree->GetKeyOffset());
+    return BytesCompare(_bysPage + start, ReadShort(start), rr.GetBysValue(),
+                        rr.GetTotalLength());
   }
 }
 

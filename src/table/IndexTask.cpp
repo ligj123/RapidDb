@@ -1,4 +1,4 @@
-#include "TableTask.h"
+#include "IndexTask.h"
 
 namespace storage {
 void PriIndexTask::Run() {}

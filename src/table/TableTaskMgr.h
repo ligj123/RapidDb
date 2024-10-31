@@ -93,21 +93,22 @@ public:
    */
   TableTaskMgr(uint16_t secIdxSz, uint16_t maxSessionGroupNum,
                uint16_t sessionGroupNum, uint16_t maxTaskNum)
-      : _priIndexTaskQueue(maxSessionGroupNum, sessionGroupNum, {}),
-        _vctTableQueue(secIdxSz,
-                       SecIndexTaskQueue(maxSessionGroupNum, sessionGroupNum,
-                                         maxTaskNum, 1, 1, {})) {}
+      : _priIndexTaskQueue(maxSessionGroupNum, sessionGroupNum, {}) /*,
+         _vctSecIndexTaskQueue(
+             secIdxSz, SecIndexTaskQueue(maxSessionGroupNum, sessionGroupNum,
+                                         maxTaskNum, 1, 1, {}))*/
+  {}
 
   void ResetSessionGroupNum(uint16_t sessionGroupNum) {
     _priIndexTaskQueue._fqStmt.ResetLiveThreadNumber(sessionGroupNum);
 
     for (SecIndexTaskQueue &itq : _vctSecIndexTaskQueue) {
-      itq._fqStmt(sessionGroupNum);
+      itq._fqStmt.ResetLiveThreadNumber(sessionGroupNum);
     }
   }
 
   bool ResetPriIndexTaskNum(uint16_t priTaskNum,
-                            vector<LeafRecord> &&vctRecBorder) {
+                            MVector<LeafRecord> &&vctRecBorder) {
     assert(priTaskNum - 1 == vctRecBorder.size());
     _priIndexTaskQueue._vctRecBorder = move(vctRecBorder);
 

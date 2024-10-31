@@ -5,6 +5,7 @@
 #include "../core/LeafPage.h"
 #include "../core/LeafRecord.h"
 #include "../dataType/DataValueBlob.h"
+#include "../utils/Log.h"
 
 namespace storage {
 const uint32_t TableManager::FAST_SIZE = 1023;
@@ -16,15 +17,15 @@ bool TableManager::_bAllInMemory{true};
 
 bool TableManager::InitTable(PhysTable *sysTable) {
   if (!_bAllInMemory)
-    return;
+    return true;
 
-  IndexTree *ptree = dbTable->GetPrimaryKey()._tree;
+  IndexTree *ptree = sysTable->GetPrimaryKey()._tree;
   LeafPage *lp = ptree->GetBeginPage();
 
   while (lp != nullptr) {
     uint32_t num = lp->GetRecordNumber();
     for (uint32_t i = 0; i < num; i++) {
-      LeafRecord &lr = lp->GetRecord(i);
+      const LeafRecord &lr = lp->GetRecord(i);
       VectorDataValue vdv;
       ReadResult rst = lr.ReadListValue({}, vdv, lp);
       if (rst != ReadResult::OK) {
@@ -40,16 +41,16 @@ bool TableManager::InitTable(PhysTable *sysTable) {
         return false;
       }
       _mapTable.insert({tbl->GetFullName(), tbl});
-      size_t hash = MStrHash{}(db->GetDbName());
+      size_t hash = MStrHash{}(tbl->GetFullName());
       _fastTableCache[hash % FAST_SIZE] = tbl;
     }
 
     PageID pid = lp->GetNextPageId();
-    lp->DecRef();
+    // lp->DecRef();
     if (pid == PAGE_NULL_POINTER)
       break;
 
-    lp = (LeafPage *)ptree->GetPage(pid, PageType::LEAF_PAGE, true);
+    lp = (LeafPage *)ptree->GetPage(pid, PageType::LEAF_PAGE);
   }
 
   return true;
@@ -84,20 +85,20 @@ bool TableManager::RemoveTable(const MString &tblName) {
     _fastTableCache[hash % FAST_SIZE] = nullptr;
 
   _discardTable.push_back(tbl);
-  _mapDb.erase(iter);
+  _mapTable.erase(iter);
   return true;
 }
 
 bool TableManager::FindTable(const MString &tblName, PhysTable *&tbl) {
-  size_t hash = MStrHash{}(dbName);
+  size_t hash = MStrHash{}(tblName);
   if (_fastTableCache[hash % FAST_SIZE] != nullptr &&
       _fastTableCache[hash % FAST_SIZE]->GetFullName() == tblName) {
-    tbl = _fastDbCache[hash % FAST_SIZE];
+    tbl = _fastTableCache[hash % FAST_SIZE];
     return true;
   }
 
   unique_lock<SpinMutex> lock(_spinMutex);
-  auto iter = _mapTable.find(dbName);
+  auto iter = _mapTable.find(tblName);
   if (iter == _mapTable.end()) {
     if (_bAllInMemory) {
       tbl = nullptr;

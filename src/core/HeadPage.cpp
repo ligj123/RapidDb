@@ -62,7 +62,7 @@ void HeadPage::InitParameters() {
   _endLeafPageId = ReadInt(END_LEAF_PAGE_OFFSET);
   _totalRecordCount = ReadLong(TOTAL_RECORD_COUNT_OFFSET);
   _currRecordStamp = ReadLong(CURRENT_RECORD_STAMP_OFFSET);
-  _autoIncrementKey = ReadLong(AUTO_INCREMENT_KEY);
+  _autoIncrementKey = ReadLong(AUTO_INCREMENT_KEY_OFFSET);
 }
 
 bool HeadPage::SaveToBuffer() {
@@ -75,7 +75,7 @@ bool HeadPage::SaveToBuffer() {
   WriteLong(END_LEAF_PAGE_OFFSET, _endLeafPageId);
   WriteLong(TOTAL_RECORD_COUNT_OFFSET, _totalRecordCount);
   WriteLong(CURRENT_RECORD_STAMP_OFFSET, _currRecordStamp);
-  WriteLong(AUTO_INCREMENT_KEY, _autoIncrementKey);
+  WriteLong(AUTO_INCREMENT_KEY_OFFSET, _autoIncrementKey);
 
   _pageStatus = PageStatus::WRITING;
   _bDirty = false;

@@ -39,7 +39,7 @@ enum class PageStatus : uint8_t {
   INVALID
 };
 
-enum class LockType : uint8_t { NOLOCK = 0, READ_LOCK, WRITE_LOCK };
+// enum class LockType : uint8_t { NOLOCK = 0, READ_LOCK, WRITE_LOCK };
 
 // How to operate the record
 enum class ActionType : uint8_t {
@@ -163,24 +163,24 @@ inline std::ostream &operator<<(std::ostream &os, const PageStatus &status) {
   return os;
 }
 
-inline std::ostream &operator<<(std::ostream &os, const LockType &type) {
-  switch (type) {
-  case LockType::NOLOCK:
-    os << "NOLOCK(" << (int)LockType::NOLOCK << ")";
-    break;
-  case LockType::READ_LOCK:
-    os << "READ_LOCK(" << (int)LockType::READ_LOCK << ")";
-    break;
-  case LockType::WRITE_LOCK:
-    os << "WRITE_LOCK(" << (int)LockType::WRITE_LOCK << ")";
-    break;
-  default:
-    assert(false);
-    break;
-  }
+// inline std::ostream &operator<<(std::ostream &os, const LockType &type) {
+//   switch (type) {
+//   case LockType::NOLOCK:
+//     os << "NOLOCK(" << (int)LockType::NOLOCK << ")";
+//     break;
+//   case LockType::READ_LOCK:
+//     os << "READ_LOCK(" << (int)LockType::READ_LOCK << ")";
+//     break;
+//   case LockType::WRITE_LOCK:
+//     os << "WRITE_LOCK(" << (int)LockType::WRITE_LOCK << ")";
+//     break;
+//   default:
+//     assert(false);
+//     break;
+//   }
 
-  return os;
-}
+//   return os;
+// }
 
 inline std::ostream &operator<<(std::ostream &os, const ActionType &type) {
   switch (type) {
@@ -224,8 +224,8 @@ inline std::ostream &operator<<(std::ostream &os, const RecordStatus &status) {
   case RecordStatus::LOCK_ONLY:
     os << "LOCK_ONLY(" << (int)RecordStatus::LOCK_ONLY << ")";
     break;
-  case RecordStatus::COMMIT:
-    os << "COMMIT(" << (int)RecordStatus::COMMIT << ")";
+  case RecordStatus::COMMITED:
+    os << "COMMITED(" << (int)RecordStatus::COMMITED << ")";
     break;
   case RecordStatus::ABORTED:
     os << "ABORTED(" << (int)RecordStatus::ABORTED << ")";

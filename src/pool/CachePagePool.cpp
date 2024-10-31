@@ -56,7 +56,7 @@ void CachePagePool::StopPool() {
 void CachePagePool::ClearPool() {
   unique_lock<SpinMutex> lock(_spinMutex);
   for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
-    iter->second->DecPage();
+    assert(!iter->second->IsRefered());
     delete iter->second;
   }
 }
@@ -67,7 +67,7 @@ void CachePagePool::PoolManage() {
   if (_urgentTask.load(memory_order_relaxed)) {
     _urgentTask.store(false, memory_order_relaxed);
     pass = true;
-  } else if (count % 100000 != 0) {
+  } else if (_countPool % 100000 != 0) {
     return;
   }
 
@@ -134,7 +134,7 @@ void CachePagePool::PoolManage() {
     }
   }
 
-  LOG_INFO << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.Size()
+  LOG_INFO << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()
            << "\tRemoved page:" << delCount;
 }
 

@@ -4,6 +4,8 @@
 #include "CoreEnum.h"
 #include "RawRecord.h"
 
+#include <boost/crc.hpp>
+
 #define BEGIN_PAGE_BIT 0x80
 #define END_PAGE_BIT 0x40
 #define NOT_BEGIN_PAGE_BIT 0x7F
@@ -66,15 +68,14 @@ public:
 
 public:
   // For existed page and will put it to read queue
-  IndexPage(IndexTree *indexTree, uint32_t pageId, PageType type,
-            uint32_t fileId)
-      : CachePage(indexTree, pageId, type, fileId) {
+  IndexPage(IndexTree *indexTree, uint32_t pageId, PageType type)
+      : CachePage(indexTree, pageId, type) {
     _bysPage = CachePool::ApplyPage();
   }
   // To create a new index page
   IndexPage(IndexTree *indexTree, uint32_t pageId, uint8_t pageLevel,
-            uint32_t parentPageId, PageType type, uint32_t fileId)
-      : CachePage(indexTree, pageId, type, fileId) {
+            uint32_t parentPageId, PageType type)
+      : CachePage(indexTree, pageId, type) {
     _bysPage = CachePool::ApplyPage();
     _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
     _parentPageId = parentPageId;
@@ -137,6 +138,8 @@ public:
   // Clear _vctRecord
   virtual void ClearRecords() = 0;
   virtual bool IsOverlength() = 0;
+
+  uint32_t PageSize() const override { return INDEX_PAGE_SIZE; }
 
 protected:
   // Parent page ID

@@ -3,21 +3,21 @@
 #include "../statement/Statement.h"
 #include "../utils/Utilitys.h"
 #include "TranEnum.h"
-#define TXID_NULL UINT64_MAX
 
 namespace storage {
+class Statement;
 
 struct Transaction {
-  void Reset(uint64_t tid, IsoLevel level) : {
+public:
+  void Reset(TranID tid, IsoLevel level) {
     assert(_vctStatement.size() == 0);
     _tid = tid;
     _isoLevel = level;
-    _createTime = utils::MicroSecTime();
-    _stopTime = UINT64_MAX;
+    _createTime = MicroSecTime();
   }
 
 public:
-  uint64_t _tid{TXID_NULL};
+  TranID _tid{TXID_NULL};
   // Create time
   DT_MicroSec _createTime{UINT64_MAX};
   // The finished or abort time to execute for this statement

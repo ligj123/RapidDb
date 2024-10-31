@@ -254,7 +254,7 @@ uint32_t PhysTable::SaveData(Byte *bys) {
   return sz;
 }
 
-uint32_t PhysTable::LoadData(const Byte *bys) {
+uint32_t PhysTable::LoadData(Byte *bys) {
   Byte *buf = bys;
   uint32_t sz = *(uint32_t *)buf;
   buf += UI32_LEN;
@@ -386,8 +386,9 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
   VectorDataValue srcPr;
 
   if (lrSrc != nullptr) {
-    int rt = lrSrc->GetListValue(_vctIndexPos, srcPr);
-    assert(rt >= 0);
+    // TO DO
+    // int rt = lrSrc->ReadListValue(_vctIndexPos, srcPr, nullptr);
+    // assert(rt >= 0);
   }
 
   for (size_t i = 1; i < _vctIndex.size(); i++) {
@@ -400,9 +401,9 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
       dstSk.push_back(dstPr.at(ic.colPos)->AddRef());
     }
     if (lrSrc == nullptr) {
-      LeafRecord *lr =
-          new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+      LeafRecord *lr = new LeafRecord(
+          prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+          lrDst->GetKeyLength(), ActionType::INSERT, stmt, 0 /*TO DO*/);
       vctRec.push_back(lr);
       continue;
     }
@@ -423,14 +424,17 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
     }
 
     if (!equal) {
-      LeafRecord *lrSrc2 =
-          new LeafRecord(prop._tree, srcSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::DELETE, stmt);
-      LeafRecord *lrDst2 =
-          new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::INSERT, stmt);
-      vctRec.push_back(lrSrc2);
-      vctRec.push_back(lrDst2);
+      // TO DO
+      //  LeafRecord *lrSrc2 =
+      //      new LeafRecord(prop._tree, srcSk, lrDst->GetBysValue() +
+      //      UI16_2_LEN,
+      //                     lrDst->GetKeyLength(), ActionType::DELETE, stmt);
+      //  LeafRecord *lrDst2 =
+      //      new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() +
+      //      UI16_2_LEN,
+      //                     lrDst->GetKeyLength(), ActionType::INSERT, stmt);
+      //  vctRec.push_back(lrSrc2);
+      //  vctRec.push_back(lrDst2);
     }
   }
 }

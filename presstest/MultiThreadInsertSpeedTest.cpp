@@ -1,8 +1,5 @@
 ﻿#include "../src/core/IndexTree.h"
 #include "../src/dataType/DataValueDigit.h"
-#include "../src/pool/PageBufferPool.h"
-#include "../src/pool/PageDividePool.h"
-#include "../src/pool/StoragePool.h"
 #include "../src/utils/BytesFuncs.h"
 #include "../src/utils/Utilitys.h"
 #include "PressTest.h"

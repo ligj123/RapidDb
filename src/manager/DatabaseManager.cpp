@@ -6,10 +6,11 @@
 #include "../dataType/DataValueDateTime.h"
 #include "../dataType/DataValueDigit.h"
 #include "../dataType/DataValueVarChar.h"
+#include "../utils/Log.h"
 
 namespace storage {
 const uint32_t DatabaseManager::FAST_SIZE = 127;
-MTreeMap<MString, Database *> DatabaseManager::_mapDb;
+MStrTreeMap<Database *> DatabaseManager::_mapDb;
 SpinMutex DatabaseManager::_spinMutex;
 vector<Database *> DatabaseManager::_fastDbCache(FAST_SIZE, nullptr);
 vector<Database *> DatabaseManager::_discardDb;
@@ -21,12 +22,12 @@ bool DatabaseManager::InitDb(PhysTable *dbTable) {
   while (lp != nullptr) {
     uint32_t num = lp->GetRecordNumber();
     for (uint32_t i = 0; i < num; i++) {
-      LeafRecord &lr = lp->GetRecord(i);
+      const LeafRecord &lr = lp->GetRecord(i);
       VectorDataValue vdv;
 
       ReadResult rst = lr.ReadListValue({}, vdv, lp);
       if (rst != ReadResult::OK) {
-        LOG(FATAL) << "Failed to read list value for database information!";
+        LOG_FATAL << "Failed to read list value for database information!";
         return false;
       }
 
@@ -41,11 +42,11 @@ bool DatabaseManager::InitDb(PhysTable *dbTable) {
     }
 
     PageID pid = lp->GetNextPageId();
-    lp->DecRef();
+    // lp->DecRef();
     if (pid == PAGE_NULL_POINTER)
       break;
 
-    lp = (LeafPage *)ptree->GetPage(pid, PageType::LEAF_PAGE, true);
+    lp = (LeafPage *)ptree->GetPage(pid, PageType::LEAF_PAGE);
   }
 
   return true;
@@ -70,7 +71,7 @@ bool DatabaseManager::DelDb(MString dbName) {
     return false;
 
   Database *db = iter->second;
-  db->SetDropped();
+  db->SetResStatus(ResStatus::Obsolete);
   size_t hash = MStrHash{}(dbName);
   if (_fastDbCache[hash % FAST_SIZE] == db)
     _fastDbCache[hash % FAST_SIZE] = nullptr;

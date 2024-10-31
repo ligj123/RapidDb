@@ -53,10 +53,10 @@ public:
   FastQueue(uint16_t maxThreadNum, uint16_t threadNum = 0)
       : _maxThreadNum(maxThreadNum),
         _currAlivedThreads(threadNum == 0 ? maxThreadNum : threadNum),
-        _currAlivedThreads(threadNum == 0 ? maxThreadNum : threadNum) {
-    assert(_maxThreadNum >= _threadNum);
+        _lastSetThreads(threadNum == 0 ? maxThreadNum : threadNum) {
+    assert(_maxThreadNum >= threadNum);
     _vctInner.reserve(maxThreadNum);
-    for (int i = 0; i < tNum; i++) {
+    for (int i = 0; i < maxThreadNum; i++) {
       _vctInner.push_back(new InnerQueue<T, SZ>);
     }
   }
@@ -74,7 +74,7 @@ public:
    * @param threadNum The new thread number
    */
   void ResetLiveThreadNumber(uint16_t threadNum) {
-    assert(maxThreadNum >= threadNum);
+    assert(_maxThreadNum >= threadNum);
     unique_lock<SpinMutex> lock(_spinMutex);
     _lastSetThreads = threadNum;
     if (_currAlivedThreads < threadNum) {
@@ -200,7 +200,7 @@ protected:
    * @brief Move all elements in ineer queue into queue
    */
   void ElementMove() {
-    for (int i = 0; i < _aliveMaxThreads; i++) {
+    for (int i = 0; i < _currAlivedThreads; i++) {
       auto q = _vctInner[i];
       uint32_t head = q->_submited;
       if (head == q->_tail)

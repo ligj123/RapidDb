@@ -37,7 +37,7 @@ public:
   PageID ApplyOvfPageId(uint16_t num, bool block) {
     PageID pid = (_garbageOwner == nullptr)
                      ? PAGE_NULL_POINTER
-                     : _garbageOwner->ApplyPage(num, block);
+                     : _garbageOwner->ApplyOvfPage(num, block);
     if (pid == PAGE_NULL_POINTER) {
       pid = _headPage->GetAndIncTotalPageCount(num, block);
     }
@@ -45,7 +45,8 @@ public:
   }
 
   void RecyclePageId(PageID firstId, uint16_t num) {
-    _garbageOwner->RecyclePage(firstId, num);
+    // TO DO (Is Block)
+    _garbageOwner->RecyclePage(firstId, num, false);
   }
 
   /** @brief Search B+ tree from an index page according record's key, util find
@@ -77,7 +78,7 @@ public:
   inline uint64_t GetRecordsCount() const {
     return _headPage->ReadTotalRecordCount();
   }
-  inline MString &GetFileName() const { return _fileName; }
+  inline const MString &GetFileName() const { return _fileName; }
   inline uint16_t GetFileId() const { return _fileId; }
   inline bool IsClosed() const { return _bClosed; }
   inline void SetClose() { _bClosed = true; }
@@ -101,10 +102,11 @@ public:
   inline const VectorDataValue &GetVctKey() const { return _vctKey; }
   inline const VectorDataValue &GetVctValue() const { return _vctValue; }
   inline LeafPage *GetBeginPage() {
-    PageID pid = _headPage->ReadBeginLeafPagePointer();
-    return (LeafPage *)GetPage(pid, PageType::LEAF_PAGE, true);
+    PageID pid = _headPage->GetBeginLeafPageID();
+    return (LeafPage *)GetPage(pid, PageType::LEAF_PAGE);
   }
-  inline FILE_HANDLE GetFileHandle() { return _fileHandle.FileDescriptor(); }
+  inline FILE_HANDLE GetFileHandle() { return _fileHandle->FileDescriptor(); }
+  IndexPage *AllocateNewPage(PageID parentId, Byte pageLevel);
 
 protected:
   ~IndexTree();
@@ -113,7 +115,7 @@ protected:
   MString _indexName;
   MString _fileName;
   // The file handle for tree file
-  FileHandle _fileHandle;
+  FileHandle *_fileHandle{nullptr};
   /** Head page */
   HeadPage *_headPage = nullptr;
   // The manager for garbage page
