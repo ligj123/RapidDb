@@ -39,7 +39,6 @@ BOOST_AUTO_TEST_CASE(LineQueue_test) {
         mq.pop_front();
         if (val != *p || val % (CNT / 10) == 0) {
           BOOST_TEST(val == *p);
-          LOG_INFO << val;
         }
 
         val++;
@@ -53,7 +52,6 @@ BOOST_AUTO_TEST_CASE(LineQueue_test) {
   lq.Submit();
   t.join();
 
-  LOG_INFO << "second";
   BOOST_TEST(lq._startNode == lq._endNode);
   BOOST_TEST(lq._head == lq._submited.load(memory_order_relaxed));
   BOOST_TEST(lq._head == lq._tail.load(memory_order_relaxed));
@@ -77,7 +75,6 @@ BOOST_AUTO_TEST_CASE(LineQueue_test) {
   BOOST_TEST(lq._head == lq._submited.load(memory_order_relaxed));
   BOOST_TEST(lq._head == (CNT - 32));
   delete[] arr;
-  LOG_INFO << "END";
 }
 
 BOOST_AUTO_TEST_CASE(RapidQueue_test) {
@@ -90,7 +87,86 @@ BOOST_AUTO_TEST_CASE(RapidQueue_test) {
   RapidQueue<uint64_t> rq(10, 10);
   thread tAr1[10];
   for (size_t i = 0; i < 10; i++) {
+    tAr1[i] = thread([&rq, &CNT, arr, i]() {
+      size_t idx = i;
+      LOG_INFO << "IDX1: " << idx;
+      for (size_t j = 0; j < CNT; j++) {
+        rq.Push(idx, &arr[j], false);
+      }
+
+      rq.Submit(idx);
+    });
   }
+
+  size_t count = 0;
+  MDeque<uint64_t *> mq;
+  while (count < CNT * 10) {
+    rq.Pop(mq);
+
+    for (auto iter = mq.begin(); iter != mq.end(); iter++) {
+      *(*iter) += 1;
+    }
+
+    count += mq.size();
+    mq.clear();
+  }
+
+  LOG_INFO << "STEP1";
+  for (size_t i = 0; i < CNT; i++) {
+    if (arr[i] != 10) {
+      BOOST_TEST(arr[i] == 10);
+    }
+  }
+
+  mq.clear();
+  bool bstop = false;
+  thread tpop([&rq, &mq, &bstop]() {
+    while (!bstop) {
+      rq.Pop(mq);
+    }
+  });
+
+  thread tAr2[10];
+  for (size_t i = 0; i < 10; i++) {
+    tAr2[i] = thread([&rq, &CNT, arr, i]() {
+      size_t idx = i;
+      LOG_INFO << "IDX2: " << idx;
+      for (size_t j = 0; j < CNT; j++) {
+        rq.Push(idx, &arr[j], false);
+      }
+
+      rq.Submit(idx);
+    });
+  }
+
+  for (size_t i = 0; i < 10; i++) {
+    tAr2[i].join();
+  }
+
+  rq.ResetLiveThreadNumber(5);
+  thread tAr3[10];
+  for (size_t i = 0; i < 5; i++) {
+    tAr3[i] = thread([&rq, &CNT, arr, i]() {
+      size_t idx = i;
+      LOG_INFO << "IDX3: " << idx;
+      for (size_t j = 0; j < CNT; j++) {
+        rq.Push(idx, &arr[j], false);
+      }
+
+      rq.Submit(idx);
+    });
+  }
+
+  for (size_t i = 0; i < 10; i++) {
+    tAr3[i].join();
+  }
+
+  bstop = true;
+  atomic_thread_fence(std::memory_order_release);
+  tpop.join();
+
+  BOOST_TEST(mq.size() == CNT * 15);
+  LOG_INFO << "END";
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage
