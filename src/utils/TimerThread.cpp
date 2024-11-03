@@ -19,8 +19,6 @@ TimerThread::~TimerThread() {
 
 void TimerThread::Run() {
   _bRunning = true;
-  // TimeThread do not use FastQueue, so its id set to negitive.
-  ThreadPool::AddThread("TimerThread", -1);
 
   while (_bRunning) {
     _currTime = chrono::duration_cast<chrono::microseconds>(
@@ -57,8 +55,6 @@ void TimerThread::Run() {
 
     this_thread::sleep_for(chrono::microseconds(10));
   }
-
-  ThreadPool::RemoveThread(-1);
 }
 
 void TimerThread::AddCircleTask(string name, DT_MicroSec interval,

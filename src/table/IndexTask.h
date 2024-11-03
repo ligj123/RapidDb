@@ -17,7 +17,7 @@ public:
   IndexPage *_midPage{nullptr};
 };
 
-class PriIndexTask : public Task {
+class PriIndexTask : public ThreadTask {
 public:
   /**
    * @param table The table that this task belong to
@@ -29,7 +29,7 @@ public:
                PhysTable *table)
       : _sn(sn), _task_cnt(task_cnt), _taskMgr(taskMgr), _table(table) {}
 
-  void Run() override;
+  TaskStatus Run() override;
 
 protected:
   // There maybe has more than 1 index tasks to execute the statement at the
@@ -54,7 +54,7 @@ protected:
   friend class TableTaskMgr;
 };
 
-class SecIndexTask : public Task {
+class SecIndexTask : public ThreadTask {
 public:
   /**
    * @param table The table that this task belong to
@@ -67,7 +67,7 @@ public:
       : _sn(sn), _task_cnt(task_cnt), _taskMgr(taskMgr), _table(table),
         _indexPos(indexPos) {}
 
-  void Run() override;
+  TaskStatus Run() override;
 
 protected:
   // There maybe has more than 1 index tasks to execute the statement at the

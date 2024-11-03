@@ -1,8 +1,8 @@
 #include "IndexTask.h"
 
 namespace storage {
-void PriIndexTask::Run() {}
+TaskStatus PriIndexTask::Run() { return TaskStatus::RUNNING; }
 
-void SecIndexTask::Run() {}
+TaskStatus SecIndexTask::Run() { return TaskStatus::RUNNING; }
 
 } // namespace storage
