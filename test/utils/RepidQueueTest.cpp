@@ -85,11 +85,10 @@ BOOST_AUTO_TEST_CASE(RapidQueue_test) {
   }
 
   RapidQueue<uint64_t> rq(10, 10);
-  thread tAr1[10];
+  thread *tAr1[10];
   for (size_t i = 0; i < 10; i++) {
-    tAr1[i] = thread([&rq, &CNT, arr, i]() {
+    tAr1[i] = new thread([&rq, &CNT, arr, i]() {
       size_t idx = i;
-      LOG_INFO << "IDX1: " << idx;
       for (size_t j = 0; j < CNT; j++) {
         rq.Push(idx, &arr[j], false);
       }
@@ -111,26 +110,29 @@ BOOST_AUTO_TEST_CASE(RapidQueue_test) {
     mq.clear();
   }
 
-  LOG_INFO << "STEP1";
   for (size_t i = 0; i < CNT; i++) {
     if (arr[i] != 10) {
       BOOST_TEST(arr[i] == 10);
     }
   }
 
+  for (int i = 0; i < 10; i++) {
+    tAr1[i]->join();
+    delete tAr1[i];
+  }
+
   mq.clear();
   bool bstop = false;
   thread tpop([&rq, &mq, &bstop]() {
-    while (!bstop) {
+    while (!rq.IsEmpty() || !bstop) {
       rq.Pop(mq);
     }
   });
 
-  thread tAr2[10];
+  thread *tAr2[10];
   for (size_t i = 0; i < 10; i++) {
-    tAr2[i] = thread([&rq, &CNT, arr, i]() {
+    tAr2[i] = new thread([&rq, &CNT, arr, i]() {
       size_t idx = i;
-      LOG_INFO << "IDX2: " << idx;
       for (size_t j = 0; j < CNT; j++) {
         rq.Push(idx, &arr[j], false);
       }
@@ -140,15 +142,15 @@ BOOST_AUTO_TEST_CASE(RapidQueue_test) {
   }
 
   for (size_t i = 0; i < 10; i++) {
-    tAr2[i].join();
+    tAr2[i]->join();
+    delete tAr2[i];
   }
 
   rq.ResetLiveThreadNumber(5);
-  thread tAr3[10];
+  thread *tAr3[5];
   for (size_t i = 0; i < 5; i++) {
-    tAr3[i] = thread([&rq, &CNT, arr, i]() {
+    tAr3[i] = new thread([&rq, &CNT, arr, i]() {
       size_t idx = i;
-      LOG_INFO << "IDX3: " << idx;
       for (size_t j = 0; j < CNT; j++) {
         rq.Push(idx, &arr[j], false);
       }
@@ -157,8 +159,9 @@ BOOST_AUTO_TEST_CASE(RapidQueue_test) {
     });
   }
 
-  for (size_t i = 0; i < 10; i++) {
-    tAr3[i].join();
+  for (size_t i = 0; i < 5; i++) {
+    tAr3[i]->join();
+    delete tAr3[i];
   }
 
   bstop = true;
@@ -166,7 +169,6 @@ BOOST_AUTO_TEST_CASE(RapidQueue_test) {
   tpop.join();
 
   BOOST_TEST(mq.size() == CNT * 15);
-  LOG_INFO << "END";
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

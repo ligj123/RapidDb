@@ -1,47 +1,51 @@
-﻿// #include "../../src/utils/ThreadPool.h"
-// #include "../../src/utils/Log.h"
-// #include <boost/bind/bind.hpp>
-// #include <boost/test/unit_test.hpp>
-// #include <string>
-// using namespace std;
+﻿#include "../../src/utils/ThreadPool.h"
+#include "../../src/utils/Log.h"
+#include <boost/bind/bind.hpp>
+#include <boost/test/unit_test.hpp>
+#include <string>
+using namespace std;
 
-// namespace storage {
-// BOOST_AUTO_TEST_SUITE(UtilsTest)
+namespace storage {
+BOOST_AUTO_TEST_SUITE(UtilsTest)
 
-// BOOST_AUTO_TEST_CASE(ThreadPool_test) {
-//   class TestTask : public Task {
-//   public:
-//     TestTask() {}
-//     bool IsSmallTask() override { return false; }
-//     void Run() override {
-//       _val = ThreadPool::GetThreadId();
-//       LOG_INFO << "thread id: " << _val;
-//       this_thread::sleep_for(500ms);
-//       _status = TaskStatus::PAUSE_WITHOUT_ADD;
-//     }
+BOOST_AUTO_TEST_CASE(ThreadPool_test) {
+  class TestTask : public ThreadTask {
+  public:
+    TestTask() { _bExclusive = true; }
+    TaskStatus Run() override {
+      _val = ThreadPool::GetThreadId();
+      LOG_INFO << "thread id: " << _val;
+      while (!ThreadPool::IsStoped()) {
+        this_thread::sleep_for(1ms);
+      }
 
-//   public:
-//     int _val = 0;
-//   };
+      _bExclusive = false;
+      return TaskStatus::FINISHED;
+    }
 
-//   ThreadPool tp("Test_ThreadPool", 10000, 8, 8);
-//   TestTask arr[8];
-//   for (int i = 0; i < 8; i++) {
-//     tp.AddTask(&arr[i]);
-//     this_thread::sleep_for(1ms);
-//   }
+  public:
+    int _val = 0;
+  };
 
-//   this_thread::sleep_for(1000ms);
+  ThreadPool *tp = new ThreadPool("TestPool", 8, 8);
+  TestTask arr[8];
+  for (int i = 0; i < 8; i++) {
+    tp->AddTask(&arr[i]);
+    this_thread::sleep_for(1ms);
+  }
 
-//   int count = 0;
-//   for (int i = 0; i < 8; i++) {
-//     count += arr[i]._val;
-//   }
+  this_thread::sleep_for(10ms);
+  tp->SetStop();
+  delete tp;
 
-//   LOG_INFO << "count: " << count;
-//   BOOST_TEST(count == 28);
-//   tp.Stop();
-// }
+  int count = 0;
+  for (int i = 0; i < 8; i++) {
+    count += arr[i]._val;
+  }
+
+  LOG_INFO << "count: " << count;
+  BOOST_TEST(count == 28);
+}
 
 // BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
 //   class TestTask : public Task {
@@ -91,46 +95,5 @@
 //   tp.Stop();
 // }
 
-// BOOST_AUTO_TEST_CASE(ThreadPool_Coroutine_test) {
-//   class TestTask : public Task {
-//   public:
-//     TestTask() {}
-
-//     void Coroutine(coroutine<TaskStatus>::push_type &coro, TaskStatus status)
-//     {
-//       coro(status);
-//       if (status < TaskStatus::FINISHED)
-//         Coroutine(coro, (TaskStatus)((Byte)status + 1));
-//     }
-
-//     bool IsSmallTask() override { return false; }
-//     void Run() override {
-//       _coroutine = new coroutine<TaskStatus>::pull_type(
-//           boost::bind(&TestTask::Coroutine, this, boost::placeholders::_1,
-//                       TaskStatus::UNINIT));
-
-//       BOOST_TEST(_coroutine->get() == TaskStatus::UNINIT);
-//       (*_coroutine)();
-//       BOOST_TEST(_coroutine->get() == TaskStatus::STARTED);
-//       (*_coroutine)();
-//       BOOST_TEST(_coroutine->get() == TaskStatus::RUNNING);
-//       (*_coroutine)();
-//       BOOST_TEST(_coroutine->get() == TaskStatus::INTERVAL);
-//       (*_coroutine)();
-//       BOOST_TEST(_coroutine->get() == TaskStatus::PAUSE_WITHOUT_ADD);
-//       (*_coroutine)();
-//       BOOST_TEST(_coroutine->get() == TaskStatus::PAUSE_WITH_ADD);
-//       (*_coroutine)();
-//       BOOST_TEST(_coroutine->get() == TaskStatus::FINISHED);
-//       _status = TaskStatus::FINISHED;
-//     }
-//   };
-
-//   ThreadPool tp("Test_ThreadPool", 10000, 1, 1);
-//   tp.AddTask(new TestTask());
-//   this_thread::sleep_for(chrono::milliseconds(1));
-//   tp.Stop();
-// }
-
-// BOOST_AUTO_TEST_SUITE_END()
-// } // namespace storage
+BOOST_AUTO_TEST_SUITE_END()
+} // namespace storage

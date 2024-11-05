@@ -4,6 +4,7 @@
 #include "RapidQueue.h"
 #include "SpinMutex.h"
 
+#include <atomic>
 #include <condition_variable>
 #include <deque>
 #include <future>
@@ -19,8 +20,8 @@ enum class TaskStatus : Byte {
   UNINIT = 0, // Before initialize
   STARTED,    // The task has been added into ThreadPool, only for special task
   RUNNING,    // The task is running, it will be saved into thread local vector
-  INTERVAL,   // The periodic task has not new tasks long time and will be moved
-              // into thread pool queue.
+  INTERVAL,   // The unfinished tasks has be moved from thread runnning queue to
+              // pool queue and waitting free threads to catch them..
   FINISHED    // The task has finished and will be free.
 };
 
@@ -57,9 +58,9 @@ enum class BusyDegree : Byte {
 static inline BusyDegree GetBusyDegree(DT_MicroSec ts) {
   if (ts < 10) {
     return BusyDegree::FREE;
-  } else if (ts < 300) {
+  } else if (ts < 100) {
     return BusyDegree::RELAXED;
-  } else if (ts < 10000) {
+  } else if (ts < 1000) {
     return BusyDegree::BUSY;
   } else {
     return BusyDegree::BLOCKED;
@@ -79,40 +80,48 @@ public:
 public:
   virtual ~ThreadTask() {}
   virtual TaskStatus Run() = 0;
-  inline TaskStatus Status() { return _status; }
-  inline void SetStatus(TaskStatus s) { _status = s; }
+  // inline TaskStatus Status() { return _status; }
+  // inline void SetStatus(TaskStatus s) { _status = s; }
   inline BusyDegree GetBusyDegree() { return _busyDegree; }
   inline uint16_t GetRepeatTime() { return _repeatTime; }
 
-  // If true, the task will rerun again after current time until its status is
-  // finish
-  virtual bool IsPeriodicTask() { return true; };
-  // Free this task or not after this task has finished
-  virtual bool IsNeedFree() { return false; }
+  // To occupy a thread entirely or not
+  bool IsExclusiveTask() { return _bExclusive; };
+  // Delete this task or not after this task has finished
+  virtual bool IsNeedDelete() { return false; }
 
 protected:
-  TaskStatus _status = TaskStatus::UNINIT;
+  // TaskStatus _status = TaskStatus::UNINIT;
   BusyDegree _busyDegree = BusyDegree::FREE;
   uint16_t _repeatTime{0}; // The same busy degree repeat time
+  bool _bExclusive{false}; // To occupy a thread entirely or not
+
+  // The count of current exclusive tasks,it must less than _maxThreads in
+  // thread pool
+  static atomic_uint32_t _exclusiveTasksCount;
 };
 
 struct ThreadPara {
-  thread _thread;
+  thread *_thread{nullptr};
   // The periodic tasks are run in this thread
   MVector<ThreadTask *> _vctTask;
-  BusyDegree _busyDegree = BusyDegree::FREE;
   uint16_t _repeatTime{0}; // The same busy degree repeat time
+  uint16_t _id;            // Thread id
+  BusyDegree _busyDegree = BusyDegree::FREE;
   bool _bRunning{false};
+  bool _bExclusiveTask{false}; // The running task is exclusive
 };
 
 class ThreadPool {
 public:
   static inline string GetThreadName() { return _threadName; }
   static inline int GetThreadId() { return _threadID; }
+  static void SetStop() { _stopThreads.store(true, memory_order_relaxed); }
+  static bool IsStoped() { return _stopThreads.load(memory_order_relaxed); }
 
 public:
-  ThreadPool(string threadPrefix, uint32_t maxQueueSize = 1000000,
-             int minThreads = 1, int maxThreads = DEFAULT_MAX_THREADS);
+  ThreadPool(string threadPrefix, int minThreads = 1,
+             int maxThreads = DEFAULT_MAX_THREADS);
   ~ThreadPool();
 
   ThreadPool(const ThreadPool &) = delete;
@@ -122,19 +131,19 @@ public:
   void AddTasks(MVector<ThreadTask *> &vct);
   void CreateThread(int id = -1);
 
-  bool IsFull() { return _queueTask.size() > _maxQueueSize; }
-
-  void SetStop() { _stopThreads = true; }
   uint32_t GetTaskCount() { return (uint32_t)(_queueTask.size()); }
-  void SetMaxQueueSize(uint32_t qsize) { _maxQueueSize = qsize; }
-  uint32_t GetMaxQueueSize() { return _maxQueueSize; }
+
   uint32_t GetAliveThreadCount() const { return _aliveThreads; }
   uint32_t GetMinThreads() const { return _minThreads; }
   uint32_t GetMaxThreads() const { return _maxThreads; }
 
 protected:
+  // Check if the thread pool is busy or not, it will create new threads if
+  // need.
+  void ManageThreadPool();
+
+protected:
   string _threadPrefix;
-  int32_t _maxQueueSize;
   int32_t _minThreads;
   int32_t _maxThreads;
   int32_t _aliveThreads{0};
@@ -143,14 +152,19 @@ protected:
   SpinMutex _task_mutex;
   SpinMutex _threadMutex;
   condition_variable_any _taskCv;
-
+  // To save new added tasks from outside
   MDeque<ThreadTask *> _queueTask;
-  // If ther has waitting tasks in ThreadPool, below is the last time one thread
-  // to pop tasks from the vector, or the time to add the first tasks.
+  // For new added tasks. If ther has waitting tasks in _queueNewTask, below is
+  // the last time to pop tasks from the _queueNewTask, or the time to add the
+  // first tasks in _queueNewTask.
   DT_MicroSec _taskTime;
-  bool _stopThreads{false};
+  // The last time to check if this thread pool is busy or not.
+  atomic<DT_MicroSec> _checkBusyTime;
+  // The busy status checked at last time.
+  BusyDegree _poolBusyDegree;
 
 protected:
+  static atomic_bool _stopThreads;
   static thread_local int _threadID;
   static thread_local string _threadName;
 };

@@ -6,19 +6,22 @@
 #include <stdexcept>
 
 namespace storage {
+atomic_uint32_t ThreadTask::_exclusiveTasksCount{0};
+atomic_bool ThreadPool::_stopThreads{false};
+
 // The default thread id is -1 expected threads from pool.
 thread_local string ThreadPool::_threadName = "main";
 thread_local int ThreadPool::_threadID = -1;
 
-ThreadPool::ThreadPool(string threadPrefix, uint32_t maxQueueSize,
-                       int minThreads, int maxThreads)
-    : _threadPrefix(threadPrefix), _maxQueueSize(maxQueueSize),
-      _minThreads(minThreads), _maxThreads(maxThreads) {
+ThreadPool::ThreadPool(string threadPrefix, int minThreads, int maxThreads)
+    : _threadPrefix(threadPrefix), _minThreads(minThreads),
+      _maxThreads(maxThreads) {
   assert(_minThreads >= 1 && _minThreads <= _maxThreads);
   _vctThreadPara.resize(maxThreads);
 
   for (int i = 0; i < minThreads; ++i) {
-    CreateThread();
+    _vctThreadPara[i]._id = i;
+    CreateThread(i);
   }
 }
 
@@ -38,7 +41,8 @@ void ThreadPool::CreateThread(int id) {
     }
   }
 
-  _vctThreadPara[id]._thread = thread([this, id]() {
+  _vctThreadPara[id]._bRunning = true;
+  _vctThreadPara[id]._thread = new thread([this, id]() {
     _threadName = _threadPrefix + "_" + to_string(id);
     assert(_threadName.size() <= 15);
     _threadID = id;
@@ -46,7 +50,8 @@ void ThreadPool::CreateThread(int id) {
     pthread_setname_np(pthread_self(), _threadName.c_str());
 #endif
     ThreadPara &tpara = _vctThreadPara[id];
-    tpara._bRunning = true;
+    assert(tpara._id == id);
+
     while (true) {
       if (tpara._vctTask.size() == 0) {
         if (tpara._busyDegree == BusyDegree::EMPTY) {
@@ -57,22 +62,30 @@ void ThreadPool::CreateThread(int id) {
         }
       } else {
         DT_MicroSec dtStart = MicroSecTime();
-        MVector<ThreadTask *> tmp;
-        tmp.reserve(tpara._vctTask.size());
-        for (auto iter = tpara._vctTask.begin();
-             iter != tpara._vctTask.end();) {
-          TaskStatus ts = (*iter)->Run();
+        if (tpara._bExclusiveTask) {
+          assert(tpara._vctTask.size() == 1);
+          TaskStatus ts = tpara._vctTask[0]->Run();
           if (ts == TaskStatus::FINISHED) {
-            if ((*iter)->IsNeedFree()) {
-              delete (*iter);
+            if (tpara._vctTask[0]->IsNeedDelete()) {
+              delete tpara._vctTask[0];
             }
 
-            iter = tpara._vctTask.erase(iter);
-          } else if (ts == TaskStatus::INTERVAL) {
-            tmp.push_back(*iter);
-            iter = tpara._vctTask.erase(iter);
-          } else {
-            iter++;
+            tpara._vctTask.clear();
+            tpara._bExclusiveTask = false;
+          }
+        } else {
+          for (auto iter = tpara._vctTask.begin();
+               iter != tpara._vctTask.end();) {
+            TaskStatus ts = (*iter)->Run();
+            if (ts == TaskStatus::FINISHED) {
+              if ((*iter)->IsNeedDelete()) {
+                delete (*iter);
+              }
+
+              iter = tpara._vctTask.erase(iter);
+            } else {
+              iter++;
+            }
           }
         }
 
@@ -88,60 +101,82 @@ void ThreadPool::CreateThread(int id) {
 
           tpara._busyDegree = bd;
         }
-
-        if ((tpara._busyDegree == BusyDegree::BLOCKED &&
-                 tpara._repeatTime >= 3 ||
-             tpara._busyDegree == BusyDegree::BUSY && tpara._repeatTime >= 5) &&
-            tpara._vctTask.size() > 1) {
-          auto iter = tpara._vctTask.begin();
-          auto itSel = iter;
-          iter++;
-
-          for (; iter != tpara._vctTask.end(); iter++) {
-            if ((*iter)->GetBusyDegree() < (*itSel)->GetBusyDegree()) {
-              itSel = iter;
-            }
-          }
-
-          tmp.push_back(*itSel);
-        }
-
-        if (tmp.size() > 0) {
-          AddTasks(tmp);
-        }
       }
 
-      if (tpara._busyDegree >= BusyDegree::BUSY &&
-          (_queueTask.size() == 0 || (MicroSecTime() - _taskTime < 10000))) {
+      ManageThreadPool();
+
+      if ((tpara._busyDegree == BusyDegree::BLOCKED && tpara._repeatTime >= 3 ||
+           tpara._busyDegree == BusyDegree::BUSY && tpara._repeatTime >= 5) &&
+          tpara._vctTask.size() > 1 && !tpara._bExclusiveTask &&
+          _poolBusyDegree <= BusyDegree::RELAXED) {
+        // This thread is busy and thread pool is relax, move one of task to
+        // other thread.
+        auto iter = tpara._vctTask.begin();
+        auto itSel = iter;
+        iter++;
+
+        for (; iter != tpara._vctTask.end(); iter++) {
+          if ((*iter)->GetBusyDegree() < (*itSel)->GetBusyDegree()) {
+            itSel = iter;
+          }
+        }
+
+        AddTask(*itSel);
+        tpara._vctTask.erase(itSel);
+        continue;
+      } else if (_poolBusyDegree == BusyDegree::FREE &&
+                 !tpara._bExclusiveTask &&
+                 tpara._busyDegree <= BusyDegree::FREE) {
+        // The thread pool is free and this thread is free too, free this
+        // thread.
+        MVector<ThreadTask *> vct(tpara._vctTask.begin(), tpara._vctTask.end());
+        AddTasks(vct);
+        tpara._vctTask.clear();
+        tpara._bRunning = false;
+        break;
+      } else if (tpara._bExclusiveTask) {
+        // If this thread is running exclusing task, does not need to change
+        // anything
         continue;
       }
 
+      std::unique_lock<SpinMutex> queue_lock(_task_mutex);
       if (_queueTask.size() == 0) {
+        if (_stopThreads.load(memory_order_relaxed)) {
+          break;
+        }
+
         if (tpara._busyDegree == BusyDegree::EMPTY) {
-          if (tpara._repeatTime < 3) {
-            std::unique_lock<SpinMutex> queue_lock(_task_mutex);
-            _taskCv.wait_for(queue_lock, 10ms, [this]() -> bool {
-              return _queueTask.size() > 0 || _stopThreads;
-            });
-          } else {
-            tpara._bRunning = false;
-            break;
-          }
-        } else {
-          std::unique_lock<SpinMutex> queue_lock(_task_mutex);
           _taskCv.wait_for(queue_lock, 10ms, [this]() -> bool {
-            return _queueTask.size() > 0 || _stopThreads;
+            return _queueTask.size() > 0 ||
+                   _stopThreads.load(memory_order_relaxed);
           });
 
           if (_queueTask.size() == 0)
             continue;
+        } else {
+          continue;
         }
       }
 
-      std::unique_lock<SpinMutex> queue_lock(_task_mutex);
       ThreadTask *task = _queueTask.front();
       _queueTask.pop_front();
+
+      if (task->IsExclusiveTask()) {
+        MVector<ThreadTask *> vct(tpara._vctTask.begin(), tpara._vctTask.end());
+        AddTasks(vct);
+        tpara._vctTask.clear();
+        tpara._bExclusiveTask = true;
+      }
+
       tpara._vctTask.push_back(task);
+    }
+
+    tpara._bRunning = false;
+    if (!_stopThreads.load(memory_order_relaxed)) {
+      tpara._thread->detach();
+      delete tpara._thread;
+      tpara._thread = nullptr;
     }
   });
 }
@@ -152,7 +187,8 @@ ThreadPool::~ThreadPool() {
     if (!tpara._bRunning)
       continue;
 
-    tpara._thread.join();
+    tpara._thread->join();
+    delete tpara._thread;
   }
 
   assert(_queueTask.size() == 0);
@@ -183,5 +219,51 @@ void ThreadPool::AddTasks(MVector<ThreadTask *> &vct) {
     }
   }
   _taskCv.notify_all();
+}
+
+void ThreadPool::ManageThreadPool() {
+  if (MicroSecTime() - _checkBusyTime.load(memory_order_acquire) < 100000)
+    return;
+
+  int alive = 0;
+  int busy = 0;
+  int free = 0;
+
+  for (size_t i = 0; i < _vctThreadPara.size(); i++) {
+    ThreadPara &tpara = _vctThreadPara[i];
+    if (!tpara._bRunning)
+      continue;
+
+    alive++;
+    if (tpara._busyDegree == BusyDegree::BUSY && tpara._repeatTime > 1 ||
+        tpara._busyDegree == BusyDegree::BLOCKED) {
+      busy++;
+    } else if (tpara._busyDegree <= BusyDegree::FREE && tpara._repeatTime > 3 &&
+               !tpara._bExclusiveTask) {
+      free++;
+    }
+  }
+
+  if (free >= 2) {
+    if (alive == _minThreads) {
+      _poolBusyDegree = BusyDegree::RELAXED;
+    } else {
+      _poolBusyDegree = BusyDegree::FREE;
+    }
+  } else if (busy > alive / 2) {
+    if (free > 0) {
+      _poolBusyDegree == BusyDegree::RELAXED;
+    } else {
+      _poolBusyDegree = BusyDegree::BUSY;
+    }
+  } else {
+    _poolBusyDegree = BusyDegree::RELAXED;
+  }
+
+  _checkBusyTime.store(MicroSecTime(), memory_order_release);
+
+  if (_poolBusyDegree == BusyDegree::BUSY && alive < _maxThreads) {
+    CreateThread();
+  }
 }
 } // namespace storage

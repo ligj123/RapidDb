@@ -214,8 +214,6 @@ public:
    * @param lock If need to lock the spin mutex.
    */
   void Pop(MDeque<T *> &queue) {
-    assert(queue.size() == 0);
-
     for (uint16_t i = 0; i < _currAlivedThreads; i++) {
       _vctLine[i].Pop(queue);
     }
