@@ -166,7 +166,8 @@ protected:
   // previous score, the visit times in current period. CachePagePool will clear
   // pages in cycle according score.
   uint32_t _score{100000};
-  // How many statements are waiting for this page.
+  // How many statements are waiting for this page, if > 0, this page can not be
+  // free.
   uint32_t _waiting{0};
 };
 

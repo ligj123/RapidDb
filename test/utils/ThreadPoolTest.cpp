@@ -2,7 +2,9 @@
 #include "../../src/utils/Log.h"
 #include <boost/bind/bind.hpp>
 #include <boost/test/unit_test.hpp>
+#include <chrono>
 #include <string>
+
 using namespace std;
 
 namespace storage {
@@ -47,53 +49,101 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
   BOOST_TEST(count == 28);
 }
 
-// BOOST_AUTO_TEST_CASE(ThreadPoolDynamic_test) {
-//   class TestTask : public Task {
-//   public:
-//     TestTask(bool *pStop) : _pStop(pStop) {}
-//     bool IsSmallTask() override { return false; }
-//     void Run() override {
-//       while (!*_pStop) {
-//         this_thread::sleep_for(chrono::milliseconds(1));
-//       }
-//       _status = TaskStatus::FINISHED;
-//     }
+BOOST_AUTO_TEST_CASE(ThreadPoolEx_test) {
+  class TestTask : public ThreadTask {
+  public:
+    TaskStatus Run() override {
+      this_thread::sleep_for(chrono::microseconds(_usSleep));
 
-//   protected:
-//     bool *_pStop;
-//   };
+      if (ThreadPool::IsStoped() || _bStop) {
+        if (IsExclusiveTask()) {
+          ThreadTask::SetExclusiveTask(false);
+        }
+        return TaskStatus::FINISHED;
+      } else {
+        return TaskStatus::INTERVAL;
+      }
+    }
 
-//   ThreadPool tp("Test_ThreadPool", 100000, 1, 8);
-//   BOOST_TEST(tp.GetMinThreads() == tp.GetAliveThreadCount());
+    DT_MicroSec _usSleep{100};
+    bool _bStop{false};
+  };
 
-//   bool bStop = false;
-//   for (int i = 0; i < 20; i++) {
-//     tp.AddTask(new TestTask(&bStop));
-//     this_thread::sleep_for(1ms);
-//   }
+  class ThreadPoolEx : public ThreadPool {
+  public:
+    using ThreadPool::_poolBusyDegree;
+    using ThreadPool::_queueTask;
+    using ThreadPool::_vctThreadPara;
+    using ThreadPool::ThreadPool;
+  };
 
-//   this_thread::sleep_for(chrono::milliseconds(10));
-//   BOOST_TEST(tp.GetMaxThreads() == tp.GetAliveThreadCount());
+  ThreadPoolEx tp("Test_Pool", 1, 8);
+  BOOST_TEST(tp.GetMinThreads() == tp.GetAliveThreadCount());
+  BOOST_TEST(ThreadTask::GetExclusiveTaskCount() == 0);
 
-//   bStop = true;
-//   this_thread::sleep_for(chrono::milliseconds(1000));
-//   BOOST_TEST(tp.GetMinThreads() == tp.GetAliveThreadCount());
+  TestTask arrExcTask[5];
+  for (int i = 0; i < 5; i++) {
+    arrExcTask[i].SetExclusiveTask(true);
+    tp.AddTask(&arrExcTask[i]);
+  }
 
-//   bStop = false;
-//   for (int i = 0; i < 20; i++) {
-//     tp.AddTask(new TestTask(&bStop));
-//     this_thread::sleep_for(1ms);
-//   }
+  this_thread::sleep_for(1000ms);
+  BOOST_TEST(6 == tp.GetAliveThreadCount());
+  BOOST_TEST(ThreadTask::GetExclusiveTaskCount() == 5);
 
-//   this_thread::sleep_for(chrono::milliseconds(10));
-//   BOOST_TEST(tp.GetMaxThreads() == tp.GetAliveThreadCount());
+  int count = 0;
+  for (auto &tpara : tp._vctThreadPara) {
+    if (tpara._vctTask.size() == 0) {
+      continue;
+    }
 
-//   bStop = true;
-//   this_thread::sleep_for(chrono::milliseconds(1000));
-//   BOOST_TEST(tp.GetMinThreads() == tp.GetAliveThreadCount());
+    BOOST_TEST(tpara._vctTask.size() == 1);
+    count++;
+  }
+  BOOST_TEST(count == 5);
 
-//   tp.Stop();
-// }
+  TestTask arrNormalTask[30];
+  for (int i = 0; i < 30; i++) {
+    tp.AddTask(&arrNormalTask[i]);
+  }
+
+  this_thread::sleep_for(1000ms);
+  BOOST_TEST(8 == tp.GetAliveThreadCount());
+  BOOST_TEST(ThreadTask::GetExclusiveTaskCount() == 5);
+
+  int excCount = 0;
+  int norCount = 0;
+  for (auto &tpara : tp._vctThreadPara) {
+    if (tpara._vctTask.size() == 1) {
+      excCount++;
+    } else {
+      norCount += tpara._vctTask.size();
+    }
+  }
+  BOOST_TEST(excCount == 5);
+  BOOST_TEST(norCount == 30);
+
+  for (int i = 0; i < 30; i++) {
+    arrNormalTask[i]._bStop = true;
+  }
+
+  this_thread::sleep_for(1000ms);
+  BOOST_TEST(6 == tp.GetAliveThreadCount());
+  BOOST_TEST(ThreadTask::GetExclusiveTaskCount() == 5);
+
+  for (int i = 0; i < 5; i++) {
+    arrExcTask[i].SetExclusiveTask(false);
+    arrExcTask[i]._bStop = true;
+  }
+
+  this_thread::sleep_for(1000ms);
+  BOOST_TEST(1 == tp.GetAliveThreadCount());
+  BOOST_TEST(ThreadTask::GetExclusiveTaskCount() == 0);
+
+  tp.SetStop();
+  this_thread::sleep_for(1000ms);
+  BOOST_TEST(tp.GetAliveThreadCount() == 0);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

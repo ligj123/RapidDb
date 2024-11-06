@@ -7,34 +7,34 @@
 
 namespace storage {
 
-/**The stamps only valid for primary index*/
 class HeadPage : public CachePage {
 public:
   /**The max stamp versions can be support at the same time in current version*/
   static const uint16_t MAX_RECORD_VERSION_COUNT;
 
-  /**Offset to save page type*/
+  /**The offset to save page type*/
   static const uint16_t PAGE_TYPE_OFFSET;
-  /**Offfset tosave index type*/
+  /**The offfset to save index type*/
   static const uint16_t INDEX_TYPE_OFFSET;
-  /**Offset to save how many versions for record can saved to this table. For
-   * single version, it will always be 1*/
+  /**The offset to save how many versions for record can saved to this table.
+   * For single version, it will always be 1*/
   static const uint16_t RECORD_VERSION_COUNT_OFFSET;
-  /**Offset to save this file version*/
+  /**The offset to save this file version*/
   static const uint16_t FILE_VERSION_OFFSET;
-  /**The offset to save how many alterable columns in this key*/
+  /**The offset to save the count of alterable columns in this key*/
   static const uint16_t KEY_ALTERABLE_FIELD_COUNT_OFFSET;
-  /**The offset to save how many alterable columns in this value*/
+  /**The offset to save the count of alterable columns in this value*/
   static const uint16_t VALUE_ALTERABLE_FIELD_COUNT_OFFSET;
-  /**The offset the first page to save garbage page id, this page and the
-   * following pages used to save all garbage pages ids and length.*/
+  /**The offset to save the first page id to save garbage page id, this page and
+   * the following pages used to save all garbage pages ids and length.*/
   static const uint16_t GARBAGE_PAGE_OFFSET;
-  /**How many series pages have been used to save the garbage page ids*/
+  /**The offset to save the number of series pages that are used to save the
+   * garbage page ids*/
   static const uint16_t GARBAGE_PAGES_NUM_OFFSET;
-  /**There have how many garbage items in total, every item include the first
-   * page id and the series page num*/
+  /**The offset to save the count of garbage items in total, every item is
+   * compose of the first page id of garbage page and its series page number*/
   static const uint16_t GRABAGE_TOTAL_ITEMS_OFFSET;
-  /**To Save the crc32 for garbage pages*/
+  /**The offset to save the crc32 for garbage pages*/
   static const uint16_t GARBAGE_CRC32_OFFSET;
 
   /**The offset to save the total page count in this index*/
@@ -47,17 +47,18 @@ public:
   static const uint16_t END_LEAF_PAGE_OFFSET;
   /**The offset to save how many records in this index*/
   static const uint16_t TOTAL_RECORD_COUNT_OFFSET;
-  /**The offset to save auto increment key*/
+  /**The offset to save auto increment key, only valid for primary key*/
   static const uint16_t AUTO_INCREMENT_KEY_OFFSET;
   /**The offset to save current record stamp for new record*/
   static const uint16_t CURRENT_RECORD_STAMP_OFFSET;
-  /**The offset to save the version's stamps and time for this table*/
+  /**The offset to save the map between the version's stamps and time for this
+   * table, only valid for multi stamp versions*/
   static const uint16_t RECORD_VERSION_STAMP_OFFSET;
 
 protected:
-  /**How many length alterable columns in key*/
+  /**The count of alterable columns in key*/
   uint16_t _keyAlterableFieldCount = 0;
-  /**How many length alterable columns in value*/
+  /**The count of alterable columns in value*/
   uint16_t _valueAlterableFieldCount = 0;
   /**The stamp versions that this table support in current time*/
   uint8_t _recordVerCount = 0;

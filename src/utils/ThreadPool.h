@@ -58,9 +58,9 @@ enum class BusyDegree : Byte {
 static inline BusyDegree GetBusyDegree(DT_MicroSec ts) {
   if (ts < 10) {
     return BusyDegree::FREE;
-  } else if (ts < 100) {
+  } else if (ts < 50) {
     return BusyDegree::RELAXED;
-  } else if (ts < 1000) {
+  } else if (ts < 200) {
     return BusyDegree::BUSY;
   } else {
     return BusyDegree::BLOCKED;
@@ -76,9 +76,22 @@ public:
   static void operator delete(void *ptr, size_t size) {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
+  static uint32_t GetExclusiveTaskCount() {
+    return _exclusiveTasksCount.load(memory_order_relaxed);
+  }
 
 public:
-  virtual ~ThreadTask() {}
+  ThreadTask() {}
+  ThreadTask(const ThreadTask &src) = delete;
+  ThreadTask(ThreadTask &&src) = delete;
+  virtual ~ThreadTask() {
+    if (_bExclusive) {
+      SetExclusiveTask(false);
+    }
+  }
+  ThreadTask &operator=(const ThreadTask &src) = delete;
+  ThreadTask &operator=(ThreadTask &&src) = delete;
+
   virtual TaskStatus Run() = 0;
   // inline TaskStatus Status() { return _status; }
   // inline void SetStatus(TaskStatus s) { _status = s; }
@@ -87,6 +100,15 @@ public:
 
   // To occupy a thread entirely or not
   bool IsExclusiveTask() { return _bExclusive; };
+  void SetExclusiveTask(bool b) {
+    if (b && !_bExclusive) {
+      _exclusiveTasksCount.fetch_add(1, memory_order_relaxed);
+    } else if (!b && _bExclusive) {
+      _exclusiveTasksCount.fetch_sub(1, memory_order_relaxed);
+    }
+
+    _bExclusive = b;
+  }
   // Delete this task or not after this task has finished
   virtual bool IsNeedDelete() { return false; }
 

@@ -17,19 +17,19 @@ ThreadPool::ThreadPool(string threadPrefix, int minThreads, int maxThreads)
     : _threadPrefix(threadPrefix), _minThreads(minThreads),
       _maxThreads(maxThreads) {
   assert(_minThreads >= 1 && _minThreads <= _maxThreads);
+  _stopThreads.store(false, memory_order_relaxed);
   _vctThreadPara.resize(maxThreads);
 
-  for (int i = 0; i < minThreads; ++i) {
+  for (int i = 0; i < maxThreads; ++i) {
     _vctThreadPara[i]._id = i;
-    CreateThread(i);
+    if (i < minThreads) {
+      CreateThread(i);
+    }
   }
 }
 
 void ThreadPool::CreateThread(int id) {
-  std::unique_lock<SpinMutex> thread_lock(_threadMutex, try_to_lock);
-  if (!thread_lock.owns_lock()) {
-    return;
-  }
+  std::unique_lock<SpinMutex> thread_lock(_threadMutex);
 
   if (id == -1) {
     for (size_t i = 0; i < _vctThreadPara.size(); i++) {
@@ -39,9 +39,14 @@ void ThreadPool::CreateThread(int id) {
         break;
       }
     }
+
+    if (id < 0) {
+      return;
+    }
   }
 
   _vctThreadPara[id]._bRunning = true;
+  _aliveThreads++;
   _vctThreadPara[id]._thread = new thread([this, id]() {
     _threadName = _threadPrefix + "_" + to_string(id);
     assert(_threadName.size() <= 15);
@@ -76,6 +81,7 @@ void ThreadPool::CreateThread(int id) {
         } else {
           for (auto iter = tpara._vctTask.begin();
                iter != tpara._vctTask.end();) {
+            assert(!(*iter)->IsExclusiveTask());
             TaskStatus ts = (*iter)->Run();
             if (ts == TaskStatus::FINISHED) {
               if ((*iter)->IsNeedDelete()) {
@@ -109,8 +115,8 @@ void ThreadPool::CreateThread(int id) {
            tpara._busyDegree == BusyDegree::BUSY && tpara._repeatTime >= 5) &&
           tpara._vctTask.size() > 1 && !tpara._bExclusiveTask &&
           _poolBusyDegree <= BusyDegree::RELAXED) {
-        // This thread is busy and thread pool is relax, move one of task to
-        // other thread.
+        // This thread is busy and other threads is relax, move one of small
+        // tasks to other thread.
         auto iter = tpara._vctTask.begin();
         auto itSel = iter;
         iter++;
@@ -126,13 +132,25 @@ void ThreadPool::CreateThread(int id) {
         continue;
       } else if (_poolBusyDegree == BusyDegree::FREE &&
                  !tpara._bExclusiveTask &&
-                 tpara._busyDegree <= BusyDegree::FREE) {
+                 tpara._busyDegree <= BusyDegree::FREE &&
+                 _aliveThreads > _minThreads) {
         // The thread pool is free and this thread is free too, free this
         // thread.
+        if (IsStoped()) {
+          if (tpara._vctTask.size() > 0) {
+            continue;
+          } else {
+            break;
+          }
+        }
+        std::unique_lock<SpinMutex> thread_lock(_threadMutex);
+        if (_aliveThreads <= _minThreads) {
+          continue;
+        }
+
         MVector<ThreadTask *> vct(tpara._vctTask.begin(), tpara._vctTask.end());
         AddTasks(vct);
         tpara._vctTask.clear();
-        tpara._bRunning = false;
         break;
       } else if (tpara._bExclusiveTask) {
         // If this thread is running exclusing task, does not need to change
@@ -163,6 +181,8 @@ void ThreadPool::CreateThread(int id) {
       _queueTask.pop_front();
 
       if (task->IsExclusiveTask()) {
+        // If new task is exclusive, move other tasks in queue into other
+        // threads.
         MVector<ThreadTask *> vct(tpara._vctTask.begin(), tpara._vctTask.end());
         AddTasks(vct);
         tpara._vctTask.clear();
@@ -172,12 +192,15 @@ void ThreadPool::CreateThread(int id) {
       tpara._vctTask.push_back(task);
     }
 
-    tpara._bRunning = false;
     if (!_stopThreads.load(memory_order_relaxed)) {
       tpara._thread->detach();
       delete tpara._thread;
       tpara._thread = nullptr;
     }
+
+    std::unique_lock<SpinMutex> thread_lock(_threadMutex);
+    tpara._bRunning = false;
+    _aliveThreads--;
   });
 }
 
@@ -197,11 +220,18 @@ ThreadPool::~ThreadPool() {
 void ThreadPool::AddTask(ThreadTask *task) {
   assert(!_stopThreads);
 
-  std::unique_lock<SpinMutex> queue_lock(_task_mutex);
-  if (_queueTask.size() == 0) {
-    _taskTime = MicroSecTime();
+  {
+    std::unique_lock<SpinMutex> queue_lock(_task_mutex);
+    if (_queueTask.size() == 0) {
+      _taskTime = MicroSecTime();
+    }
+    _queueTask.push_back(task);
   }
-  _queueTask.push_back(task);
+
+  if (task->IsExclusiveTask() &&
+      ThreadTask::GetExclusiveTaskCount() > GetAliveThreadCount()) {
+    CreateThread();
+  }
 }
 
 void ThreadPool::AddTasks(MVector<ThreadTask *> &vct) {
@@ -222,10 +252,16 @@ void ThreadPool::AddTasks(MVector<ThreadTask *> &vct) {
 }
 
 void ThreadPool::ManageThreadPool() {
-  if (MicroSecTime() - _checkBusyTime.load(memory_order_acquire) < 100000)
+  DT_MicroSec ts = MicroSecTime();
+  if (ts - _checkBusyTime.load(memory_order_relaxed) < 100000)
+    return;
+
+  std::unique_lock<SpinMutex> thread_lock(_threadMutex);
+  if (ts - _checkBusyTime.load(memory_order_relaxed) < 100000)
     return;
 
   int alive = 0;
+  int exclusive = 0;
   int busy = 0;
   int free = 0;
 
@@ -235,6 +271,11 @@ void ThreadPool::ManageThreadPool() {
       continue;
 
     alive++;
+    if (tpara._bExclusiveTask) {
+      exclusive++;
+      continue;
+    }
+
     if (tpara._busyDegree == BusyDegree::BUSY && tpara._repeatTime > 1 ||
         tpara._busyDegree == BusyDegree::BLOCKED) {
       busy++;
@@ -250,20 +291,33 @@ void ThreadPool::ManageThreadPool() {
     } else {
       _poolBusyDegree = BusyDegree::FREE;
     }
-  } else if (busy > alive / 2) {
+  } else if (busy > 0) {
     if (free > 0) {
       _poolBusyDegree == BusyDegree::RELAXED;
     } else {
       _poolBusyDegree = BusyDegree::BUSY;
     }
+  } else if (exclusive == alive) {
+    _poolBusyDegree = BusyDegree::BUSY;
+    assert(alive < _maxThreads);
   } else {
     _poolBusyDegree = BusyDegree::RELAXED;
   }
 
   _checkBusyTime.store(MicroSecTime(), memory_order_release);
+  thread_lock.unlock();
 
   if (_poolBusyDegree == BusyDegree::BUSY && alive < _maxThreads) {
-    CreateThread();
+    int num = (int)_queueTask.size() / 3;
+    if (num > _maxThreads - alive) {
+      num = _maxThreads - alive;
+    } else if (num == 0) {
+      num = 1;
+    }
+
+    for (int i = 0; i < num; i++) {
+      CreateThread();
+    }
   }
 }
 } // namespace storage

@@ -16,41 +16,4 @@ const uint32_t CachePage::CRC32_HEAD_OFFSET =
 CachePage::CachePage(IndexTree *indexTree, PageID pageId, PageType type)
     : _indexTree(indexTree), _pageId(pageId), _pageType(type),
       _fileId(indexTree->GetFileId()) {}
-// void CachePage::AfterRead() {
-//   bool bvalid = true;
-//   crc32.reset();
-//   if (_pageType == PageType::HEAD_PAGE) {
-//     crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
-//     if (crc32.checksum() != (uint32_t)ReadInt(CRC32_HEAD_OFFSET)) {
-//       bvalid = false;
-//     }
-//   } else if (_pageType != PageType::OVERFLOW_PAGE) {
-//     crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
-//     if (crc32.checksum() != (uint32_t)ReadInt(CRC32_INDEX_OFFSET)) {
-//       bvalid = false;
-//     }
-//   }
-
-//   if (bvalid) {
-//     _bDirty = false;
-//     Init();
-//     _pageStatus = PageStatus::VALID;
-//   } else {
-//     _pageStatus = PageStatus::INVALID;
-//     // Now if cache page is invalid, it will abort; In following version, it
-//     // will add the function to fix the invalid page
-//     abort();
-//   }
-// }
-
-// void CachePage::SaveCrc32() {
-//   boost::crc_32_type crc32;
-//   if (_pageType == PageType::HEAD_PAGE) {
-//     crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
-//     WriteInt(CRC32_HEAD_OFFSET, crc32.checksum());
-//   } else if (_pageType != PageType::OVERFLOW_PAGE) {
-//     crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
-//     WriteInt(CRC32_INDEX_OFFSET, crc32.checksum());
-//   }
-// }
 } // namespace storage
