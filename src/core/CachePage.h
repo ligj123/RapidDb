@@ -42,16 +42,13 @@ public:
 public:
   CachePage(IndexTree *indexTree, PageID pageId, PageType type);
   virtual ~CachePage() {}
-  // Save contents into page buffer
-  virtual bool SaveToBuffer() {
-    assert(false);
-    return false;
-  }
   void SaveCrc32() { assert(false); }
   // Called after async read.
   virtual void AfterRead() = 0;
   // Called after async write.
-  virtual void AfterWrite() { _pageStatus = PageStatus::VALID; }
+  virtual void AfterWrite() {
+    _pageStatus.store(PageStatus::VALID, memory_order_relaxed);
+  }
   // Initialize page parameters from page buffer after read page from disk.
   virtual void InitParameters() {}
   virtual uint32_t PageSize() const = 0;
@@ -89,8 +86,8 @@ public:
   inline uint32_t IsRefered() { return _bRefered; }
   inline void SetReferred(bool b) { _bRefered = b; }
   virtual bool Releaseable() {
-    return !_bRefered && (_pageStatus != PageStatus::READING &&
-                          _pageStatus != PageStatus::WRITING);
+    return !_bRefered &&
+           _pageStatus.load(memory_order_relaxed) == PageStatus::VALID;
   }
 
   inline Byte ReadByte(uint32_t pos) const { return _bysPage[pos]; }
@@ -121,19 +118,23 @@ public:
     Int64ToBytes(value, _bysPage + pos);
   }
 
-  inline PageStatus GetPageStatus() { return _pageStatus; }
-  inline void SetPageStatus(PageStatus s) { _pageStatus = s; }
+  inline PageStatus GetPageStatus() {
+    return _pageStatus.load(memory_order_relaxed);
+  }
+  inline void SetPageStatus(PageStatus s) {
+    _pageStatus.store(s, memory_order_relaxed);
+  }
   inline uint32_t AddWaiting(uint32_t num) {
     _waiting += num;
     return _waiting;
   }
   inline uint32_t GetWaiting() { return _waiting; }
 
-  inline void PushWriteQueue(MSList<CachePage *> &list) {
+  inline void AddWriteQueue(MHashSet<CachePage *> &pageSe) {
     if (_bWriteQueue)
       return;
 
-    list.push_front(this);
+    pageSe.insert(this);
     _bWriteQueue = true;
   }
 
@@ -152,7 +153,7 @@ protected:
   // If this page has been changed
   bool _bDirty{false};
   // Page status, to mark if this page has been loaded and the data is valid.
-  PageStatus _pageStatus{PageStatus::EMPTY};
+  atomic<PageStatus> _pageStatus{PageStatus::EMPTY};
   // Page type
   PageType _pageType;
   // True: This page has been referred by IndexTask and can not be freed.

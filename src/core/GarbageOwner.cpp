@@ -9,8 +9,7 @@
 #include <boost/crc.hpp>
 
 namespace storage {
-GarbageOwner::GarbageOwner(IndexTree *indexTree)
-    : _indexTree(indexTree), _bDirty(false) {
+GarbageOwner::GarbageOwner(IndexTree *indexTree) : _indexTree(indexTree) {
   HeadPage *headPage = indexTree->GetHeadPage();
 
   _totalGarbagePages = 0;
@@ -26,7 +25,6 @@ GarbageOwner::GarbageOwner(IndexTree *indexTree)
   crc32.process_bytes(ovfPage->GetBysPage(),
                       CachePage::INDEX_PAGE_SIZE * _usedPageNum);
   if (crc32.checksum() != c32) {
-
     LOG_ERROR << "Failed to verify garbage page. Index Name="
               << indexTree->GetFileName();
     abort();
@@ -131,7 +129,7 @@ PageID GarbageOwner::ApplyOvfPage(uint16_t num, bool isLock) {
  * @param isLock: if lock spin mutex
  * @return: the vector of index page ids
  */
-vector<PageID> GarbageOwner::ApplyIndexPages(uint16_t num, bool isLock) {
+MVector<PageID> GarbageOwner::ApplyIndexPages(uint16_t num, bool isLock) {
   if (_totalGarbagePages == 0) {
     return {};
   }
@@ -139,7 +137,7 @@ vector<PageID> GarbageOwner::ApplyIndexPages(uint16_t num, bool isLock) {
   if (isLock && !lock.try_lock()) {
     return {};
   }
-  vector<PageID> vct;
+  MVector<PageID> vct;
   for (uint16_t i = 0; i < num;) {
     auto iter = _rangePage.lower_bound(num);
     if (iter == _rangePage.end()) {

@@ -14,15 +14,16 @@ public:
         _pageNum(pageNum) {
     _bysPage = CachePool::Apply(INDEX_PAGE_SIZE * pageNum);
     if (bNew) {
-      _pageStatus = PageStatus::VALID;
-    } else {
-      _pageStatus = PageStatus::READING;
-      // TO DO (Add into FilePagePool)
+      _pageStatus.store(PageStatus::VALID, memory_order_release);
     }
   }
   ~OverflowPage() { CachePool::Release(_bysPage, INDEX_PAGE_SIZE * _pageNum); }
-  void AfterRead() override { _pageStatus = PageStatus::VALID; }
-  void AfterWrite() override { _pageStatus = PageStatus::VALID; }
+  void AfterRead() override {
+    _pageStatus.store(PageStatus::VALID, memory_order_release);
+  }
+  void AfterWrite() override {
+    _pageStatus.store(PageStatus::VALID, memory_order_relaxed);
+  }
   uint16_t GetPageNum() const { return _pageNum; }
   uint32_t PageSize() const override { return INDEX_PAGE_SIZE * _pageNum; }
 

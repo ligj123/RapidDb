@@ -7,8 +7,9 @@
 namespace storage {
 const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(PageID);
 
-BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId)
-    : RawRecord(nullptr, true, type) {
+BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId,
+                           IndexPage *childPage)
+    : RawRecord(nullptr, true, type), _childPage(childPage) {
   uint16_t lenKey = rec->GetKeyLength();
   uint16_t lenVal = (type == IndexType::NON_UNIQUE ? rec->GetValueLength() : 0);
   uint16_t totalLen = lenKey + lenVal + PAGE_ID_LEN + UI16_2_LEN;
@@ -22,8 +23,14 @@ BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId)
   *((uint32_t *)(_bysVal + lenKey + lenVal + UI16_2_LEN)) = childPageId;
 }
 
-int BranchRecord::CompareTo(const RawRecord &rr, IndexType type) const {
-  if (type != IndexType::NON_UNIQUE) {
+BranchRecord::~BranchRecord() {
+  if (_childPage != nullptr) {
+    _childPage->SetReferred(false);
+  }
+}
+
+int BranchRecord::CompareTo(const RawRecord &rr) const {
+  if (_indexType != IndexType::NON_UNIQUE) {
     return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(),
                         rr.GetBysValue() + UI16_2_LEN, rr.GetKeyLength());
   } else {

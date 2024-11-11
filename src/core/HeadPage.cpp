@@ -27,7 +27,7 @@ const uint16_t HeadPage::RECORD_VERSION_STAMP_OFFSET = 128;
 
 void HeadPage::InitHeadPage(IndexType iType, const VectorDataValue &vctVal) {
   SetPageStatus(PageStatus::VALID);
-  memset(_bysPage, 0, Configure::GetDiskClusterSize());
+  memset(_bysPage, 0, PageSize());
   WriteByte(PAGE_TYPE_OFFSET, (Byte)PageType::HEAD_PAGE);
   _indexType = iType;
   WriteByte(PAGE_TYPE_OFFSET, (Byte)iType);
@@ -49,7 +49,7 @@ void HeadPage::InitHeadPage(IndexType iType, const VectorDataValue &vctVal) {
 void HeadPage::InitParameters() {
   assert((PageType)ReadByte(PAGE_TYPE_OFFSET) == PageType::HEAD_PAGE);
   assert(CURRENT_FILE_VERSION == ReadFileVersion());
-  assert(_pageStatus == PageStatus::VALID);
+  assert(_pageStatus.load(memory_order_relaxed) == PageStatus::VALID);
 
   _indexType = (IndexType)ReadByte(INDEX_TYPE_OFFSET);
   _keyAlterableFieldCount = ReadShort(KEY_ALTERABLE_FIELD_COUNT_OFFSET);
@@ -66,7 +66,7 @@ void HeadPage::InitParameters() {
 }
 
 bool HeadPage::SaveToBuffer() {
-  if (!_bDirty || _pageStatus != PageStatus::VALID)
+  if (!_bDirty || _pageStatus.load(memory_order_relaxed) != PageStatus::VALID)
     return false;
 
   WriteLong(TOTAL_PAGES_COUNT_OFFSET, _totalPageCount);
@@ -77,7 +77,6 @@ bool HeadPage::SaveToBuffer() {
   WriteLong(CURRENT_RECORD_STAMP_OFFSET, _currRecordStamp);
   WriteLong(AUTO_INCREMENT_KEY_OFFSET, _autoIncrementKey);
 
-  _pageStatus = PageStatus::WRITING;
   _bDirty = false;
   return true;
 }

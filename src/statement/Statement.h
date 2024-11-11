@@ -66,7 +66,7 @@ public:
 
   DT_MicroSec GetCreateTime() { return _createTime; }
   DT_MicroSec GetStopTime() { return _stopTime; }
-  uint64_t GetTxId() { return _txid; }
+  TranID GetTxId() { return _txid; }
   uint32_t GetId() { return _id; }
 
   virtual MVector<uint16_t> &

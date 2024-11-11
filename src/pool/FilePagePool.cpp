@@ -6,32 +6,33 @@
 namespace storage {
 FilePagePool *FilePagePool::_pool{nullptr};
 
-void FilePagePool::Start(uint16_t tNum) {
+void FilePagePool::Start(uint16_t lineNum) {
   assert(_pool == nullptr);
-  _pool = new FilePagePool(tNum);
+  _pool = new FilePagePool(lineNum);
 }
 
 void FilePagePool::Stop() {
   assert(_pool != nullptr && !_pool->_bStop);
   _pool->_bStop = true;
   _pool->_thread.join();
+  delete _pool;
+  _pool = nullptr;
 }
 
-FilePagePool::FilePagePool(uint16_t tNum)
-    : _readFastQueue(tNum), _writeFastQueue(tNum) {
+FilePagePool::FilePagePool(uint16_t lineNum)
+    : _readRapidQueue(lineNum), _writeRapidQueue(lineNum) {
   _thread = thread([this]() { Run(); });
 }
 
 void FilePagePool::Run() {
   InitHandle();
-  while (!_bStop) {
-    while (_readFastQueue.RoughEmpty() && _writeFastQueue.RoughEmpty() &&
-           !_bStop) {
+  while (!_bStop && !_readRapidQueue.IsEmpty() && !_writeRapidQueue.IsEmpty()) {
+    while (_readRapidQueue.IsEmpty() && _writeRapidQueue.IsEmpty() && !_bStop) {
       std::this_thread::yield();
     }
 
-    _readFastQueue.Pop(_readMQueue);
-    _writeFastQueue.Pop(_writeMQueue);
+    _readRapidQueue.Pop(_readMQueue);
+    _writeRapidQueue.Pop(_writeMQueue);
 #ifdef LINUX_OS
     RWPage();
 #else
@@ -54,6 +55,7 @@ bool FilePagePool::SyncReadPage(CachePage *page) {
     abort();
     return false;
   }
+
   rt = read(fh, (void *)bys, psz);
   if (rt != psz) {
     LOG_ERROR << "Failed to read file, name="

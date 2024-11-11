@@ -1,6 +1,7 @@
 #pragma once
 #include "../core/CachePage.h"
-#include "../utils/FastQueue.h"
+#include "../utils/RapidQueue.h"
+#include "../utils/SpinMutex.h"
 #include <thread>
 
 #ifdef LINUX_OS
@@ -20,21 +21,22 @@ using namespace std;
 
 class FilePagePool {
 public:
-  static void Start(uint16_t tNum);
+  static void Start(uint16_t lineNum);
   static void Stop();
-  static void AddReadPage(uint16_t tid, CachePage *page) {
+  static void AddReadPage(uint16_t tid, CachePage *page, bool submit = true) {
     page->SetPageStatus(PageStatus::READING);
-    _pool->_readFastQueue.Push(tid, page, true);
+    _pool->_readRapidQueue.Push(tid, page, submit);
   }
-  static void AddWritePage(uint16_t tid, CachePage *page) {
+  static void AddWritePage(uint16_t tid, CachePage *page, bool submit = true) {
+
     page->SetPageStatus(PageStatus::WRITING);
-    _pool->_writeFastQueue.Push(tid, page, true);
+    _pool->_writeRapidQueue.Push(tid, page, submit);
   }
 
   static bool SyncReadPage(CachePage *page);
   static bool SyncWritePage(CachePage *page);
 
-  FilePagePool(uint16_t tNum);
+  FilePagePool(uint16_t lineNum);
 
 protected:
   void Run();
@@ -43,13 +45,14 @@ protected:
   static FilePagePool *_pool;
   thread _thread;
   bool _bStop{false};
-  // The cache page that need to read
-  FastQueue<CachePage, 1000> _readFastQueue;
+  // The cache pages that need to read
+  RapidQueue<CachePage> _readRapidQueue;
   // The cache pages that need to write
-  FastQueue<CachePage, 1000> _writeFastQueue;
+  RapidQueue<CachePage> _writeRapidQueue;
 
   MDeque<CachePage *> _readMQueue;
   MDeque<CachePage *> _writeMQueue;
+
 #ifdef LINUX_OS
   void InitHandle();
   void RWPage();

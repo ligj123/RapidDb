@@ -89,12 +89,15 @@ public:
     _bysPage = CachePool::Apply(HEAD_PAGE_SIZE);
   }
   ~HeadPage() { CachePool::Release(_bysPage, HEAD_PAGE_SIZE); }
-  void AfterRead() override { _pageStatus = PageStatus::VALID; }
+  void AfterRead() override {
+    InitParameters();
+    _pageStatus.store(PageStatus::VALID, memory_order_relaxed);
+  }
   // Create a new head page and initialize it.
   void InitHeadPage(IndexType iType, const VectorDataValue &vctVal);
   // After read head page and load parameters from the buffer.
   void InitParameters() override;
-  bool SaveToBuffer() override;
+  bool SaveToBuffer();
   uint32_t PageSize() const override { return HEAD_PAGE_SIZE; }
 
   void WriteFileVersion();

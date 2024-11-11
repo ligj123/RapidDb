@@ -39,10 +39,8 @@ enum class PageStatus : uint8_t {
   INVALID
 };
 
-// enum class LockType : uint8_t { NOLOCK = 0, READ_LOCK, WRITE_LOCK };
-
 // How to operate the record
-enum class ActionType : uint8_t {
+enum ActionType : uint8_t {
   NO_ACTION = 0,      // No Lock for this record
   READ_SHARE = 0x1,   // Read with read lock
   READ_UPDATE = 0x10, // Read with write lock
@@ -56,26 +54,36 @@ enum class ActionType : uint8_t {
 
 // The record's status
 enum class RecordStatus : uint8_t {
-  INIT = 0,   // Just create and wait to add LeafPage
+  INIT = 0,   // The record has been created and waitting to commit or abort
   LOCK_ONLY,  // Only lock current record without update, ActionType=QUERY_SHARE
               // or QUERY_UPDATE
   COMMITED,   // The transaction has commited, only valid for WriteLock
-  ABORTED,    // The transaction has aborted, only valid for WriteLock
-  ROLLBACKED, // The statement has rollbacked, previous statements in
-              // transaction are still valid, only valid for WriteLock
-  FREEED      // The lock has been freed from LOCK_ONLY
+  ROLLBACKED, // The current statement has rollbacked, and it is not effect
+              // previous statements in same transaction. Only valid for
+              // WriteLock
+  FREEED      // The lock has been freed from LOCK_ONLY status.
 };
 
 /**The result to read list value*/
 enum class ReadResult : int8_t {
-  // No version to fit and failed to read
-  INVALID_VERSION = -2,
+  // Passed to read values and does not add lock for current read.
+  OK_NOLOCK = 0,
+  // Passed to read values and added lock for current read, need to release it.
+  OK_LOCK,
   // Failed to read values due to it has been locked by other transaction;
-  LOCKED = -1,
-  // Passed to read values with all fields.
-  OK = 0,
+  LOCKED,
   // The record has been deleted
-  REC_DELETE
+  REC_DELETE,
+  // No version to fit and failed to read
+  INVALID_VERSION
+};
+
+// The status to release a lock from the record
+enum class ReleaseResult {
+  FISHED = 0, // The record has been commited or rollbacked, it still has data.
+  DELETED,    // The record has been deleted and need to remove from page.
+  UNFINISH // Only the last version is rollbacked and there still has uncommited
+           // statement.
 };
 
 inline std::ostream &operator<<(std::ostream &os, const IndexType &it) {
@@ -163,25 +171,6 @@ inline std::ostream &operator<<(std::ostream &os, const PageStatus &status) {
   return os;
 }
 
-// inline std::ostream &operator<<(std::ostream &os, const LockType &type) {
-//   switch (type) {
-//   case LockType::NOLOCK:
-//     os << "NOLOCK(" << (int)LockType::NOLOCK << ")";
-//     break;
-//   case LockType::READ_LOCK:
-//     os << "READ_LOCK(" << (int)LockType::READ_LOCK << ")";
-//     break;
-//   case LockType::WRITE_LOCK:
-//     os << "WRITE_LOCK(" << (int)LockType::WRITE_LOCK << ")";
-//     break;
-//   default:
-//     assert(false);
-//     break;
-//   }
-
-//   return os;
-// }
-
 inline std::ostream &operator<<(std::ostream &os, const ActionType &type) {
   switch (type) {
   case ActionType::NO_ACTION:
@@ -227,9 +216,6 @@ inline std::ostream &operator<<(std::ostream &os, const RecordStatus &status) {
   case RecordStatus::COMMITED:
     os << "COMMITED(" << (int)RecordStatus::COMMITED << ")";
     break;
-  case RecordStatus::ABORTED:
-    os << "ABORTED(" << (int)RecordStatus::ABORTED << ")";
-    break;
   case RecordStatus::ROLLBACKED:
     os << "ROLLBACKED(" << (int)RecordStatus::ROLLBACKED << ")";
     break;
@@ -246,17 +232,20 @@ inline std::ostream &operator<<(std::ostream &os, const RecordStatus &status) {
 
 inline std::ostream &operator<<(std::ostream &os, const ReadResult &result) {
   switch (result) {
-  case ReadResult::INVALID_VERSION:
-    os << "INVALID_VERSION(" << (int)ReadResult::INVALID_VERSION << ")";
+  case ReadResult::OK_NOLOCK:
+    os << "OK_NOLOCK(" << (int)ReadResult::OK_NOLOCK << ")";
+    break;
+  case ReadResult::OK_LOCK:
+    os << "OK_LOCK(" << (int)ReadResult::OK_LOCK << ")";
     break;
   case ReadResult::LOCKED:
     os << "LOCKED(" << (int)ReadResult::LOCKED << ")";
     break;
-  case ReadResult::OK:
-    os << "OK(" << (int)ReadResult::OK << ")";
-    break;
   case ReadResult::REC_DELETE:
     os << "REC_DELETE(" << (int)ReadResult::REC_DELETE << ")";
+    break;
+  case ReadResult::INVALID_VERSION:
+    os << "INVALID_VERSION(" << (int)ReadResult::INVALID_VERSION << ")";
     break;
   default:
     assert(false);
@@ -265,4 +254,24 @@ inline std::ostream &operator<<(std::ostream &os, const ReadResult &result) {
 
   return os;
 }
+
+inline std::ostream &operator<<(std::ostream &os, const ReleaseResult &res) {
+  switch (res) {
+  case ReleaseResult::FISHED:
+    os << "FISHED(" << (int)ReleaseResult::FISHED << ")";
+    break;
+  case ReleaseResult::DELETED:
+    os << "DELETED(" << (int)ReleaseResult::DELETED << ")";
+    break;
+  case ReleaseResult::UNFINISH:
+    os << "UNFINISH(" << (int)ReleaseResult::UNFINISH << ")";
+    break;
+  default:
+    assert(false);
+    break;
+  }
+
+  return os;
+}
+
 } // namespace storage

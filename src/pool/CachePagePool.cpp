@@ -19,8 +19,14 @@ uint64_t CachePagePool::_countPool{0};
 
 void CachePagePool::AddPage(CachePage *page) {
   unique_lock<SpinMutex> lock(_spinMutex);
-  page->GetIndexTree()->IncPages();
   _mapCache.emplace(page->HashCode(), page);
+}
+
+void CachePagePool::AddPages(MVector<IndexPage *> &vctPage) {
+  unique_lock<SpinMutex> lock(_spinMutex);
+  for (auto page : vctPage) {
+    _mapCache.emplace(page->HashCode(), page);
+  }
 }
 
 CachePage *CachePagePool::GetPage(uint64_t hashId) {

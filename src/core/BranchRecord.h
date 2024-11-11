@@ -15,30 +15,21 @@ public:
   static const uint32_t PAGE_ID_LEN;
 
 public:
+  /** Construct an exist record from page buffer */
   BranchRecord(IndexType type, Byte *bys) : RawRecord(bys, false, type) {}
-
-  BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId);
-  BranchRecord(BranchRecord &&src)
-      : RawRecord(std::move(src)), _childPage(src._childPage) {
-    src._childPage = nullptr;
-  }
+  /** Create a new record */
+  BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId,
+               IndexPage *childPage = nullptr);
+  BranchRecord(BranchRecord &&src) = delete;
   BranchRecord(const BranchRecord &src) = delete;
   BranchRecord() : RawRecord() {}
 
-  ~BranchRecord() {}
+  ~BranchRecord();
 
-  BranchRecord &operator=(BranchRecord &&src) {
-    _bysVal = src._bysVal;
-    src._bysVal = nullptr;
-    _bSole = src._bSole;
-    _indexType = src._indexType;
-    _childPage = src._childPage;
-    src._childPage = nullptr;
-    return *this;
-  }
+  BranchRecord &operator=(BranchRecord &&src) = delete;
   BranchRecord &operator=(const BranchRecord &src) = delete;
 
-  int CompareTo(const RawRecord &other, IndexType type) const;
+  int CompareTo(const RawRecord &other) const;
   int CompareKey(const RawKey &key) const;
   int CompareKey(const RawRecord &other) const;
   bool EqualPageId(const BranchRecord &br) const;

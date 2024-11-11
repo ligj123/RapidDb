@@ -25,24 +25,24 @@ bool TableManager::InitTable(PhysTable *sysTable) {
   while (lp != nullptr) {
     uint32_t num = lp->GetRecordNumber();
     for (uint32_t i = 0; i < num; i++) {
-      const LeafRecord &lr = lp->GetRecord(i);
-      VectorDataValue vdv;
-      ReadResult rst = lr.ReadListValue({}, vdv, lp);
-      if (rst != ReadResult::OK) {
-        LOG_FATAL << "Failed to read list value for table information!";
-        return false;
-      }
+      // const LeafRecord &lr = lp->GetRecord(i);
+      // VectorDataValue vdv;
+      // ReadResult rst = lr.ReadListValue({}, vdv, lp);
+      // if (rst != ReadResult::OK) {
+      //   LOG_FATAL << "Failed to read list value for table information!";
+      //   return false;
+      // }
 
-      PhysTable *tbl = new PhysTable();
-      Byte *bys = ((DataValueBlob *)vdv[2])->GetBuff();
-      if (!tbl->LoadData(bys)) {
-        delete tbl;
-        LOG_FATAL << "Failed to load data for table information!";
-        return false;
-      }
-      _mapTable.insert({tbl->GetFullName(), tbl});
-      size_t hash = MStrHash{}(tbl->GetFullName());
-      _fastTableCache[hash % FAST_SIZE] = tbl;
+      // PhysTable *tbl = new PhysTable();
+      // Byte *bys = ((DataValueBlob *)vdv[2])->GetBuff();
+      // if (!tbl->LoadData(bys)) {
+      //   delete tbl;
+      //   LOG_FATAL << "Failed to load data for table information!";
+      //   return false;
+      // }
+      // _mapTable.insert({tbl->GetFullName(), tbl});
+      // size_t hash = MStrHash{}(tbl->GetFullName());
+      // _fastTableCache[hash % FAST_SIZE] = tbl;
     }
 
     PageID pid = lp->GetNextPageId();

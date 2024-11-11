@@ -18,7 +18,7 @@ public:
 
   void RecyclePage(PageID pid, uint16_t num, bool block);
   PageID ApplyOvfPage(uint16_t num, bool block);
-  vector<PageID> ApplyIndexPages(uint16_t pnum, bool block);
+  MVector<PageID> ApplyIndexPages(uint16_t pnum, bool block);
   bool SavePage(bool block);
 
 protected:
@@ -28,13 +28,13 @@ protected:
 protected:
   /** The total number of garbage pages, include the paged used to save garbage
    * page ids*/
-  uint32_t _totalGarbagePages = 0;
+  uint32_t _totalGarbagePages{0};
   /**The first page id that used to save grabage page ids.*/
-  PageID _firstPageId;
+  PageID _firstPageId{PAGE_NULL_POINTER};
   /** The number that used to save garbage page ids */
-  uint16_t _usedPageNum;
+  uint16_t _usedPageNum{0};
   /**If it has changed since previous save time*/
-  bool _bDirty;
+  bool _bDirty{false};
   /**map<first page id in garbage, page number>*/
   MTreeMap<PageID, uint16_t> _treeFreePage;
   /**To find the free pages by this map. The key is the free pages number of

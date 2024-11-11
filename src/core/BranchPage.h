@@ -15,7 +15,7 @@ public:
              uint32_t parentId)
       : IndexPage(indexTree, pageId, pageLevel, parentId,
                   PageType::BRANCH_PAGE) {}
-  // Create for existed branch page and send to read queue
+  // Construct an existed branch page and send to read queue
   BranchPage(IndexTree *indexTree, uint32_t pageId)
       : IndexPage(indexTree, pageId, PageType::BRANCH_PAGE) {}
   ~BranchPage() {}
@@ -24,7 +24,7 @@ public:
   /**
    * @brief clear vector of records
    */
-  void ClearRecords() override;
+  void ClearRecords();
   /**
    * @brief Load records from buffer into vector and reset children
    */
@@ -33,7 +33,7 @@ public:
    * @brief Save records from vector and variable into buffer
    * @return If conditions is ok and saved successfully, return true, or false
    */
-  bool SaveToBuffer() override;
+  bool SaveRecords() override;
   /**
    * @brief Delete the record at the index and return it.
    */
@@ -54,17 +54,20 @@ public:
   /**
    * @brief To judge if a key exist
    */
-  bool RecordExist(const RawKey &key) const;
+  bool KeyExist(const RawKey &key) const;
 
   int32_t SearchRecord(const BranchRecord &rr, bool &bFind) const;
   int32_t SearchKey(const RawKey &key, bool &bFind) const;
-  const BranchRecord &GetRecord(int32_t pos, bool bAutoLast);
+  BranchRecord &GetRecord(int32_t pos, bool bAutoLast);
 
   void SetChild(int32_t pos, IndexPage *child);
   IndexPage *GetChild(int32_t pos);
 
+  bool SplitPage(MHashSet<CachePage *> &pageSet,
+                 Byte pageLevel = 0xFF) override;
+
   bool IsOverlength() override {
-    return _totalDataLength >= MAX_DATA_LENGTH_BRANCH;
+    return _committedDataLength >= MAX_DATA_LENGTH_BRANCH;
   }
 
 protected:

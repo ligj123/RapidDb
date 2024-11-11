@@ -17,7 +17,7 @@ public:
       : _bysVal(nullptr), _bSole(false), _indexType(IndexType::UNKNOWN) {}
   RawRecord(RawRecord &&src)
       : _bysVal(src._bysVal), _bSole(src._bSole), _indexType(src._indexType),
-        _bDeleted(src._bDeleted) {
+        _bValid(src._bValid) {
     src._bysVal = nullptr;
   }
   RawRecord(const RawRecord &src) = delete;
@@ -25,6 +25,7 @@ public:
     _bysVal = src._bysVal;
     _bSole = src._bSole;
     _indexType = src._indexType;
+    _bValid = src._bValid;
     src._bysVal = nullptr;
     return *this;
   }
@@ -36,8 +37,9 @@ public:
   }
 
   inline void UpdateBysValue(Byte *bys, bool sole = false) {
-    if (_bSole && _bysVal != nullptr)
+    if (_bSole && _bysVal != nullptr) {
       CachePool::Release(_bysVal, *((uint16_t *)_bysVal));
+    }
 
     _bysVal = bys;
     _bSole = sole;
@@ -50,7 +52,6 @@ public:
   bool IsNull() { return _bysVal == nullptr; }
   virtual uint16_t GetTotalLength() const = 0;
   virtual uint16_t GetValueLength() const = 0;
-  virtual bool IsInTransaction() const { return false; }
 
 public:
   static void *operator new(size_t size) {
@@ -67,9 +68,6 @@ protected:
   bool _bSole;
   /**IndexType*/
   IndexType _indexType;
-  /**To mark the record as delete when ActionType::DELETE, Only used in
-   * LeafRecord*/
-  bool _bDeleted{false};
   // The record is valid or not. If the key is exceed the length limit, it will
   // set to invliad and set exception when construct the record.
   bool _bValid{true};

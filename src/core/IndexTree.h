@@ -17,6 +17,7 @@
 namespace storage {
 using namespace std;
 class LeafPage;
+class BranchPage;
 
 class IndexTree {
 public:
@@ -27,26 +28,41 @@ public:
   bool LoadIndexTree(const MString &indexName, const MString &fileName,
                      VectorDataValue &vctKey, VectorDataValue &vctVal,
                      uint32_t indexId);
-  vector<IndexPage *> ApplyIndexPages(PageID parentId, Byte pageLevel,
-                                      uint32_t pnum, bool block);
-  IndexPage *GetPage(PageID pageId, PageType type);
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
-  // Apply a series of pages for overflow pages. It will search Garbage Pages
-  // first. If no suitable, it will apply new page id
-  PageID ApplyOvfPageId(uint16_t num, bool block) {
-    PageID pid = (_garbageOwner == nullptr)
-                     ? PAGE_NULL_POINTER
-                     : _garbageOwner->ApplyOvfPage(num, block);
-    if (pid == PAGE_NULL_POINTER) {
-      pid = _headPage->GetAndIncTotalPageCount(num, block);
-    }
-    return pid;
-  }
+  /**
+   * @brief Apply one or more index page when an index page is been split.
+   * @param parentPage The parent page, if nullptr, means it is root page.
+   * @param pageLevel which level for this page
+   * @param pnum The number of pages applied this time.
+   * @param block If add lock when apply pages. True if there have multi thread
+   * tasks for this index.
+   */
+  MVector<IndexPage *> ApplyIndexPages(BranchPage *parentPage, Byte pageLevel,
+                                       uint32_t pnum, bool block);
+  /**
+   * @brief Apply a series of pages for overflow pages. It will search Garbage
+   * Pages first. If no suitable, it will apply new page id.
+   * @param num The number of pages
+   * @param block If add lock when apply pages. True if there have multi thread
+   * tasks for this index.
+   * @return The created OverflowPage
+   */
+  OverflowPage *ApplyOvfPage(uint16_t num, bool block);
 
-  void RecyclePageId(PageID firstId, uint16_t num) {
-    // TO DO (Is Block)
-    _garbageOwner->RecyclePage(firstId, num, false);
+  IndexPage *GetPage(PageID pageId, PageType type,
+                     IndexPage *parentPage = nullptr);
+
+  /**
+   * @brief Recycle the unused pages into garbage owner
+   * @param firstId The first page id of a series of pages.
+   * @param num The number of the series of pages.
+   * @param bBlock True: There have multi thread tasks to run this index tree's
+   *                     tasks.
+   *               False: There only has one thread task for this index tree.
+   */
+  inline void RecyclePageId(PageID firstId, uint16_t num, bool bBlock) {
+    _garbageOwner->RecyclePage(firstId, num, bBlock);
   }
 
   /** @brief Search B+ tree from an index page according record's key, util find
@@ -106,7 +122,6 @@ public:
     return (LeafPage *)GetPage(pid, PageType::LEAF_PAGE);
   }
   inline FILE_HANDLE GetFileHandle() { return _fileHandle->FileDescriptor(); }
-  IndexPage *AllocateNewPage(PageID parentId, Byte pageLevel);
 
 protected:
   ~IndexTree();

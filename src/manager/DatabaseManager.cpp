@@ -22,23 +22,24 @@ bool DatabaseManager::InitDb(PhysTable *dbTable) {
   while (lp != nullptr) {
     uint32_t num = lp->GetRecordNumber();
     for (uint32_t i = 0; i < num; i++) {
-      const LeafRecord &lr = lp->GetRecord(i);
-      VectorDataValue vdv;
+      // const LeafRecord &lr = lp->GetRecord(i);
+      // VectorDataValue vdv;
 
-      ReadResult rst = lr.ReadListValue({}, vdv, lp);
-      if (rst != ReadResult::OK) {
-        LOG_FATAL << "Failed to read list value for database information!";
-        return false;
-      }
+      // ReadResult rst = lr.ReadListValue({}, vdv, lp);
+      // if (rst != ReadResult::OK) {
+      //   LOG_FATAL << "Failed to read list value for database information!";
+      //   return false;
+      // }
 
-      Database *db = new Database((int)*(DataValueInt *)vdv[0],
-                                  (MString) * (DataValueVarChar *)vdv[1],
-                                  (MString) * (DataValueVarChar *)vdv[2],
-                                  (DT_MilliSec) * (DataValueDateTime *)vdv[3],
-                                  (DT_MilliSec) * (DataValueDateTime *)vdv[4]);
-      _mapDb.insert({db->GetDbName(), db});
-      size_t hash = MStrHash{}(db->GetDbName());
-      _fastDbCache[hash % FAST_SIZE] = db;
+      // Database *db = new Database((int)*(DataValueInt *)vdv[0],
+      //                             (MString) * (DataValueVarChar *)vdv[1],
+      //                             (MString) * (DataValueVarChar *)vdv[2],
+      //                             (DT_MilliSec) * (DataValueDateTime
+      //                             *)vdv[3], (DT_MilliSec) *
+      //                             (DataValueDateTime *)vdv[4]);
+      // _mapDb.insert({db->GetDbName(), db});
+      // size_t hash = MStrHash{}(db->GetDbName());
+      // _fastDbCache[hash % FAST_SIZE] = db;
     }
 
     PageID pid = lp->GetNextPageId();

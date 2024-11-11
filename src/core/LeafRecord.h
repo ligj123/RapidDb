@@ -26,7 +26,13 @@ struct RecordLock {
              TranID txid, Statement *stmt = nullptr,
              LeafRecord *undoRec = nullptr)
       : _actType(t), _status(s), _bGapLock(gapLock), _bInPage(inPage),
-        _stmt(stmt), _undoRec(undoRec) {
+        _undoRec(undoRec) {
+    if (t == ActionType::READ_SHARE && !_bGapLock) {
+      _stmt = nullptr;
+    } else {
+      _stmt = stmt;
+    }
+
     _lstTxid.push_back(txid);
   }
   // Get transaction id, if more than 1, return the first txid
@@ -38,12 +44,13 @@ struct RecordLock {
   ActionType _actType;
   RecordStatus _status;
   // True: locked the range between this and previous record, only valid
-  // repeatable read isolation level.
+  // repeatable read isolation level. In this version, a record can only has a
+  // gap lock.
   bool _bGapLock;
   // If the record is in LeafPage or just create and not added into LeafPage
   bool _bInPage;
-  // The statement that inserted, updated or deleted the record. If LOCKONLY,
-  // it should be nullptr.
+  // The statement that inserted, updated or deleted the record. If
+  // ActionType::READ_SHARE and _bGapLock=FALSE , it should be nullptr.
   Statement *_stmt;
   // The transaction id locked this record, If write lock, should have only one
   // transaction id. If ActionType=READ_SHARE, It need to set the related txid
@@ -93,7 +100,7 @@ struct RecStruct {
   PageID *_pidStart;
   // The page number, only valid when it has overflow page.
   uint16_t *_pageNum;
-  // The start pointer to save values, multi stamp versions' values saved in the
+  // The start pointer to save values, multi stamp versions' values saved in
   // reverse order.
   Byte *_bysValStart;
 };
@@ -112,17 +119,14 @@ struct ValueStruct {
 /**
  * @brief Read ValueStruct from buffer
  * @param recStru Record Struct
- * @param arValStr The array to save ValueStruct, For SINGLE_VERSION, it is
- * always one element, or it will be a group of elements according to version
- * number.
+ * @param valStr The ValueStruct to read, Now it is only SINGLE_VERSION. In the
+ * future maybe support multi versions.
  * @param fieldNum The number of fields in record value.
  * @param valVarLen The length of buffer to save variable fileds length (var
  * fields number * 4)
- * @param bFirst True: only read the first version; False: read all versions.
  */
-void ReadValueStruct(RecStruct &recStru, ValueStruct *arValStr,
-                     uint32_t fieldNum, uint32_t valVarLen,
-                     bool bFirstOnly = true);
+void ReadValueStruct(RecStruct &recStru, ValueStruct &valStr, uint32_t fieldNum,
+                     uint32_t valVarLen);
 
 class LeafPage;
 class Statement;
@@ -136,7 +140,8 @@ public:
              uint64_t recStamp);
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
-             const VectorDataValue &vctVal, uint64_t recStamp, Statement *stmt);
+             const VectorDataValue &vctVal, uint64_t recStamp, Statement *stmt,
+             bool block);
   LeafRecord(LeafRecord &&src)
       : RawRecord(move(src)), _recLock(src._recLock),
         _overflowPage(src._overflowPage) {
@@ -146,10 +151,7 @@ public:
   LeafRecord(const LeafRecord &src) = delete;
   LeafRecord() : RawRecord() {}
   ~LeafRecord() {
-    if (_recLock != nullptr) {
-      assert(ReleaseLockAble());
-      delete _recLock;
-    }
+    assert(_recLock == nullptr);
 
     if (_overflowPage != nullptr)
       delete _overflowPage;
@@ -159,7 +161,6 @@ public:
     _bysVal = src._bysVal;
     src._bysVal = nullptr;
     _bSole = src._bSole;
-    _bDeleted = src._bDeleted;
     _indexType = src._indexType;
     _recLock = src._recLock;
     _overflowPage = src._overflowPage;
@@ -171,34 +172,59 @@ public:
 
   int32_t UpdateRecord(LeafPage *parentPage, const VectorDataValue &newVal,
                        uint64_t recStamp, Statement *stmt, ActionType type,
-                       bool gapLock);
+                       bool gapLock, bool block);
 
   ReadResult ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
                            VectorDataValue &vct, LeafPage *parentPage,
                            Statement *stmt = nullptr,
-                           ActionType atype = ActionType::NO_ACTION) const;
-
-  RawKey GetKey() const;
-  /**Only for secondary index, Get the primary key, deep copy.*/
-  RawKey GetPrimayKey() const;
-
-  int CompareTo(const LeafRecord &lr) const;
-  int CompareKey(const RawKey &key) const;
-  int CompareKey(const LeafRecord &lr) const;
+                           ActionType atype = ActionType::NO_ACTION,
+                           bool bGapLock = false);
   bool LoadOverflowPage(IndexTree *idxTree);
-
-  int ReleaseLock(LeafPage *pPage);
+  ReleaseResult ReleaseLock(IndexTree *idxTree, int32_t &varLen, bool block);
   uint16_t GetValueLength() const override;
-  bool IsInTransaction() const override;
+
+  /**
+   * @brief To judge if the lock can be released
+   */
+  bool ReleaseLockAble() const;
+
+  RawKey GetKey() const { return RawKey(GetKeyLength(), _bysVal + UI16_2_LEN); }
+
+  /**Only for secondary index, Get the primary key, deep copy.*/
+  RawKey GetPrimayKey() const {
+    int start = GetKeyLength() + UI16_2_LEN;
+    int len = GetTotalLength() - start - UI64_LEN;
+    return RawKey(len, _bysVal + start);
+  }
+
+  int CompareTo(const LeafRecord &lr) const {
+    return BytesCompare(_bysVal + UI16_2_LEN, GetTotalLength() - UI16_2_LEN,
+                        lr._bysVal + UI16_2_LEN,
+                        lr.GetTotalLength() - UI16_2_LEN);
+  }
+
+  int CompareKey(const RawKey &key) const {
+    return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength() - UI16_2_LEN,
+                        key.GetBysVal(), key.GetLength());
+  }
+  int CompareKey(const LeafRecord &lr) const {
+    return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength() - UI16_2_LEN,
+                        lr.GetBysValue() + UI16_2_LEN,
+                        lr.GetKeyLength() - UI16_2_LEN);
+  }
 
   /**Only the bytes' length in IndexPage, key length + value length without
    * overflow page content*/
   uint16_t GetTotalLength() const override {
-    return _bDeleted ? 0 : *((uint16_t *)_bysVal);
+    if (_recLock->_actType == ActionType::DELETE) {
+      return 0;
+    } else {
+      return *((uint16_t *)_bysVal);
+    }
   }
 
   inline uint16_t SaveData(Byte *bysPage) {
-    assert(!_bDeleted);
+    assert(_recLock == nullptr);
     uint16_t len = GetTotalLength();
     BytesCopy(bysPage, _bysVal, len);
     return len;
@@ -207,60 +233,30 @@ public:
   bool IsSole() const override {
     return _recLock == nullptr ? _bSole : _recLock->_undoRec->IsSole();
   }
-
-  /**
-   * @brief Lock current record, only valid for primary key
-   * @param type Its value can only be QUERY_SHARE or QUERY_UPDATE
-   * @param stmt The statement to lock this current
-   * @param gapLock If lock it with gap lock
-   * @return True: passed to lock; False: failed to lock
+  /**-
+   * @brief True: The record has committed and can be visit and saved into disk.
+   *        False: The record is uncommitted or aborted.
    */
-  bool LockRecord(ActionType type, Statement *stmt, bool gapLock);
+  bool IsEfficient() {
+    if (_recLock == nullptr ||
+        (_recLock->_actType & ActionType::UPDATE_MASK) == 0) {
+      return true;
+    } else if (_recLock->_status == RecordStatus::COMMITED) {
+      return true;
+    }
+
+    return false;
+  }
 
   bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
   bool HasOverflowPage() {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     return (*(_bysVal + UI16_2_LEN + keyLen) & REC_OVERFLOW) != 0;
   }
-  /**
-   * @brief Recycle page ids of overflow page if exist and release instance of
-   * OverflowPage
-   */
-  void RecycleOverflowPage(IndexTree *idxTree);
-
-  Byte GetVersionNumber() const {
-#ifdef SINGLE_VERSION
-    return 1;
-#else
-    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
-    return *(_bysVal + UI16_2_LEN + keyLen) & VERSION_NUM;
-#endif
-  }
-
-  void GetVerStamps(MVector<uint64_t> &vctStamp) {
-    uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
-    Byte ver = GetVersionNumber();
-    uint64_t *arrStamp = (uint64_t *)(_bysVal + UI16_2_LEN + keyLen + 1);
-    vctStamp.clear();
-
-    for (Byte ii = 0; ii < ver; ii++) {
-      vctStamp.push_back(arrStamp[ii]);
-    }
-  }
 
   ActionType GetAction() {
     return _recLock == nullptr ? ActionType::NO_ACTION : _recLock->_actType;
   }
-
-  /**
-   * @brief This method is called in SessionPool threads. If READ_SHARE, it will
-   * remove the txid from list, or set the lock status.
-   */
-  void FreeStatement(Statement *stmt, RecordStatus status);
-  /**
-   * @brief To judge if the lock can be released
-   */
-  bool ReleaseLockAble();
 
   // To calc key length
   inline static uint16_t CalcKeyLength(const VectorDataValue &vctKey) {
@@ -293,8 +289,15 @@ protected:
   // Save a version's value into buffer
   void FillValueBuff(ValueStruct &valStru, const VectorDataValue &vctVal);
 
-  uint32_t CalcValidValueLength(IndexTree *idxTree, RecStruct &recStru,
-                                bool bUpdate, MVector<Byte> &vctSN);
+  bool UpdateAble(TranID txid) {
+    if (_recLock == nullptr)
+      return true;
+    else if (_recLock->_lstTxid.size() == 1 &&
+             _recLock->_lstTxid.back() == txid)
+      return true;
+
+    return false;
+  }
 
 protected:
   // Default is nullptr, If a statement locked this record, set this variable to

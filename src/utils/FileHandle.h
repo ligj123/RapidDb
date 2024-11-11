@@ -36,6 +36,8 @@ public:
       _threadErrorMsg.reset(new ErrorMsg(FILE_CLOSE_FAILED, {_indexPath}));
       return false;
     }
+
+    return true;
 #else
     return false;
 #endif

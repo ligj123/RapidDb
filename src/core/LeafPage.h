@@ -36,17 +36,21 @@ public:
     _bDirty = true;
   }
   inline PageID GetNextPageId() { return _nextPageId; }
+
+  inline void SetPrevPage(LeafPage *page) { _prevPage = page; }
+  inline LeafPage *GetPrevPage() { return _prevPage; }
+  inline void SetNextPage(LeafPage *page) { _nextPage = page; }
+  inline LeafPage *GetNextPage() { return _nextPage; }
+
   bool IsOverlength() override {
-    return _totalDataLength >= MAX_DATA_LENGTH_LEAF;
+    return _committedDataLength >= MAX_DATA_LENGTH_LEAF;
   }
   bool Releaseable() override {
-    return !_bRefered && _tranCount == 0 &&
-           (_pageStatus != PageStatus::VALID ||
-            _pageStatus != PageStatus::READING ||
-            _pageStatus != PageStatus::WRITING);
+    return !_bRefered &&
+           _pageStatus.load(memory_order_relaxed) == PageStatus::VALID;
   }
   void LoadRecords();
-  bool SaveRecords();
+  bool SaveRecords() override;
   /**
    * @brief Insert a leaf record into position pos in this page
    * @param lr The leaf record will be inserted
@@ -90,9 +94,11 @@ public:
                     int32_t end = INT32_MAX);
   int32_t SearchKey(const LeafRecord &rr, bool &bFind, int32_t start = 0,
                     int32_t end = INT32_MAX);
-  void UpdateTotalLength(int32_t len) { _totalDataLength += len; }
 
   void ClearRecords();
+  bool ReleaseTransaction(MList<CachePage *> listPage);
+  bool SplitPage(MHashSet<CachePage *> &pageSet,
+                 Byte pageLevel = 0xFF) override;
 
 protected:
   int CompareTo(uint32_t recPos, const RawKey &key);
@@ -101,5 +107,7 @@ protected:
 protected:
   uint32_t _prevPageId{PAGE_NULL_POINTER};
   uint32_t _nextPageId{PAGE_NULL_POINTER};
+  LeafPage *_prevPage{nullptr};
+  LeafPage *_nextPage{nullptr};
 };
 } // namespace storage
