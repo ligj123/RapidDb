@@ -56,7 +56,7 @@ public:
     // New page, do not read data from disk and init.
     _pageStatus.store(PageStatus::VALID, memory_order_relaxed);
   }
-  ~IndexPage() override { CachePool::ReleasePage(_bysPage); }
+  ~IndexPage() override;
 
   inline uint16_t GetMaxDataLength() const {
     return _pageType == PageType::LEAF_PAGE ? MAX_DATA_LENGTH_LEAF

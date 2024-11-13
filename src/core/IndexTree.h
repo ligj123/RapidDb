@@ -22,6 +22,8 @@ class BranchPage;
 class IndexTree {
 public:
   IndexTree() {}
+  ~IndexTree();
+
   bool CreateIndexTree(const MString &indexName, const MString &fileName,
                        VectorDataValue &vctKey, VectorDataValue &vctVal,
                        uint32_t indexId, IndexType iType);
@@ -96,8 +98,7 @@ public:
   }
   inline const MString &GetFileName() const { return _fileName; }
   inline uint16_t GetFileId() const { return _fileId; }
-  inline bool IsClosed() const { return _bClosed; }
-  inline void SetClose() { _bClosed = true; }
+  inline bool IsClosed() const { return _bClosed.load(memory_order_relaxed); }
 
   inline HeadPage *GetHeadPage() const { return _headPage; }
   // To inc pages in memory cache. It must be called in CachePagePool to ensure
@@ -108,9 +109,6 @@ public:
   inline void DecPages(uint32_t pnum = 1) {
     uint32_t old = _pagesInMem.fetch_sub(pnum);
     assert(old >= pnum);
-    if (old == pnum) {
-      delete this;
-    }
   }
 
   inline uint16_t GetValVarLen() { return _valVarLen; }
@@ -122,9 +120,6 @@ public:
     return (LeafPage *)GetPage(pid, PageType::LEAF_PAGE);
   }
   inline FILE_HANDLE GetFileHandle() { return _fileHandle->FileDescriptor(); }
-
-protected:
-  ~IndexTree();
 
 protected:
   MString _indexName;
@@ -145,7 +140,7 @@ protected:
   atomic_uint32_t _pagesInMem{0};
   // Every index will assign a unique id, it is table id + index  seriel number
   uint32_t _fileId{0};
-  bool _bClosed{false};
+  atomic_bool _bClosed{false};
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t)
   // Other: 0
   uint16_t _valVarLen{0};

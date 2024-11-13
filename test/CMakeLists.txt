@@ -5,6 +5,7 @@ set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.74.0 REQUIRED COMPONENTS log locale unit_test_framework stacktrace_backtrace coroutine)
 find_package(Threads)
 find_package(Backtrace)
+find_library(LIBAIO NAMES aio)
 
 # 递归目录获取所有c文件
 file(GLOB_RECURSE c_files *.cpp)
@@ -20,6 +21,7 @@ target_link_libraries(UnitTest
   Boost::stacktrace_backtrace
   Boost::coroutine
   backtrace
+  aio
   ${CMAKE_DL_LIBS}
   ${CMAKE_THREAD_LIBS_INIT}
 )

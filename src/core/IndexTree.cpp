@@ -48,6 +48,7 @@ bool IndexTree::CreateIndexTree(const MString &indexName,
   _headPage = new HeadPage(this);
   _headPage->InitHeadPage(iType, vctVal);
 
+  _garbageOwner = new GarbageOwner(this);
   _rootPage = ApplyIndexPages(nullptr, 0, 1, false).at(0);
   _rootPage->SetBeginPage(true);
   _rootPage->SetEndPage(true);
@@ -64,7 +65,6 @@ bool IndexTree::CreateIndexTree(const MString &indexName,
     _valOffset = 0;
   }
 
-  _garbageOwner = new GarbageOwner(this);
   LOG_DEBUG << "Create index tree " << indexName;
   return true;
 }
@@ -120,12 +120,12 @@ bool IndexTree::LoadIndexTree(const MString &indexName, const MString &fileName,
 }
 
 void IndexTree ::Close() {
-  // unique_lock<SharedSpinMutex> lock(_rootSharedMutex);
-  _bClosed = true;
   if (_rootPage != nullptr) {
     _rootPage->SetReferred(false);
     _rootPage = nullptr;
   }
+
+  _bClosed.store(true, memory_order_release);
 }
 
 void IndexTree::CloneKeys(VectorDataValue &vct) {
@@ -158,12 +158,14 @@ MVector<IndexPage *> IndexTree::ApplyIndexPages(BranchPage *parentPage,
   }
 
   MVector<IndexPage *> vctPage;
+  PageID pid =
+      (parentPage == nullptr ? PAGE_NULL_POINTER : parentPage->GetPageId());
   for (PageID id : vctId) {
     IndexPage *page = nullptr;
     if (0 != pageLevel) {
-      page = new BranchPage(this, id, pageLevel, parentPage->GetPageId());
+      page = new BranchPage(this, id, pageLevel, pid);
     } else {
-      page = new LeafPage(this, id, parentPage->GetPageId());
+      page = new LeafPage(this, id, pid);
     }
 
     page->SetParentPage(parentPage);
