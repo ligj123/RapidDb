@@ -204,10 +204,11 @@ IndexPage *IndexTree::GetPage(PageID pageId, PageType type,
       abort();
     }
 
-    page->SetParentPage(parentPage);
     IncPages();
     FilePagePool::AddReadPage(ThreadPool::GetThreadId(), page);
-  } else {
+  }
+
+  if (parentPage != nullptr) {
     page->SetParentPage(parentPage);
   }
 

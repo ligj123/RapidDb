@@ -16,7 +16,7 @@ public:
   static void SetMaxCacheSize(uint64_t sz) { _maxCacheSize = sz; }
 
   static void AddPage(CachePage *page);
-  static void AddPages(MVector<IndexPage *> vctPage);
+  static void AddPages(MVector<IndexPage *> &vctPage);
 
   static CachePage *GetPage(uint64_t fileId, uint32_t pageId) {
     return GetPage(CachePage::CalcHashCode(fileId, pageId));

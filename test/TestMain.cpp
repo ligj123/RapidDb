@@ -13,6 +13,7 @@ const std::string ROOT_PATH = TEST_ROOT_PATH;
 #else
 const std::string ROOT_PATH = "./dbTest";
 #endif
+atomic_int32_t g_atmFileId{1};
 
 struct GlobalFixTure {
   GlobalFixTure() {

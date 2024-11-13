@@ -2,6 +2,7 @@
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "BranchPage.h"
+#include "BranchRecord.h"
 #include "HeadPage.h"
 #include "IndexTree.h"
 #include "LeafRecord.h"
@@ -27,6 +28,9 @@ void LeafPage::InitParameters() {
 
 void LeafPage::LoadRecords() {
   assert(!_bDirty && _vctRecord.size() == 0);
+  assert(GetPageStatus() == PageStatus::VALID ||
+         GetPageStatus() == PageStatus::WRITING);
+
   uint16_t pos = DATA_BEGIN_OFFSET;
   for (uint16_t i = 0; i < _recordNum; i++) {
     LeafRecord *lr = new LeafRecord(_indexTree->GetHeadPage()->GetIndexType(),
@@ -36,65 +40,97 @@ void LeafPage::LoadRecords() {
   }
 }
 
-bool LeafPage::SaveRecords() {
-  // assert(_bDirty);
-  // if (_committedDataLength > MAX_DATA_LENGTH_LEAF)
-  //   return false;
+bool LeafPage::SaveRecords(MHashSet<CachePage *> pageSet, bool block) {
+  assert(_bDirty);
+  if (GetPageStatus() != PageStatus::VALID ||
+      _committedDataLength > MAX_DATA_LENGTH_LEAF)
+    return false;
 
-  // MVector<LeafRecord *> vctLr;
-  // vctLr.reserve(_vctRecord.size());
-  // for (uint16_t i = 0; i < _vctRecord.size(); i++) {
-  //   LeafRecord *lr = (LeafRecord *)_vctRecord[i];
-  //   while (lr->IsEfficient()) {
-  //   }
-  // }
+  if (_parentPage != nullptr && _parentPageId != _parentPage->GetPageId()) {
+    _parentPageId = _parentPage->GetPageId();
+  }
+  if (_prevPage != nullptr && _prevPageId != _prevPage->GetPageId()) {
+    _prevPageId = _prevPage->GetPageId();
+  }
+  if (_nextPage != nullptr && _nextPageId != _nextPage->GetPageId()) {
+    _nextPageId = _nextPage->GetPageId();
+  }
 
-  // Byte *tmp = nullptr;
-  // if (_obsBuf == nullptr) {
-  //   tmp = _bysPage;
-  //   _bysPage = CachePool::ApplyPage();
-  // } else if (_obsBuf->IsSameBuff(_bysPage)) {
-  //   tmp = _bysPage;
-  //   _bysPage = CachePool::ApplyPage();
-  // }
+  MVector<LeafRecord *> vctLr;
+  vctLr.reserve(_vctRecord.size());
+  _committedDataLength = 0;
+  _tempDataLength = 0;
 
-  // if (tmp != nullptr) {
-  //   _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
-  //   _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
-  // }
+  for (uint16_t i = 0; i < _vctRecord.size(); i++) {
+    LeafRecord *lr = (LeafRecord *)_vctRecord[i];
 
-  // uint32_t recNum = 0;
-  // uint32_t tlen = 0;
+    if (lr->ReleaseLockAble()) {
+      ReleaseResult res = lr->ReleaseLock(GetIndexTree(), block);
+      if (res == ReleaseResult::DELETED) {
+        assert(lr->_overflowPage == nullptr);
+        _vctRecord.erase(_vctRecord.begin() + i);
+        i--;
+        continue;
+      }
+    }
 
-  // uint16_t pos = (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * UI16_LEN);
-  // uint16_t off_pos = DATA_BEGIN_OFFSET;
-  // for (uint16_t i = 0; i < _vctRecord.size(); i++) {
-  //   LeafRecord *lr = (LeafRecord *)_vctRecord[i];
-  //   if (lr->GetTotalLength() == 0) {
-  //     continue;
-  //   }
+    if (!lr->IsStable()) {
+      _tempDataLength += lr->GetTotalLength() + UI16_LEN;
 
-  //   WriteShort(off_pos, pos);
-  //   uint16_t sz = lr->SaveData(_bysPage + pos);
-  //   lr->UpdateBysValue(_bysPage + pos);
-  //   pos += sz;
-  //   off_pos += UI16_LEN;
-  // }
+      lr = lr->_recLock->_undoRec;
+      while (lr != nullptr) {
+        if (lr->IsStable()) {
+          assert(lr->_recLock == nullptr || lr->_recLock->_undoRec == nullptr);
+          _committedDataLength += lr->GetTotalLength() + UI16_LEN;
+          break;
+        }
 
-  // WriteShort(NUM_RECORD_OFFSET, _recordNum);
-  // WriteShort(TOTAL_DATA_LENGTH_OFFSET, _commitedDataLength);
-  // WriteInt(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
+        lr = lr->_recLock->_undoRec;
+      }
+    } else {
+      int n = lr->GetTotalLength() + UI16_LEN;
+      _tempDataLength += n;
+      _committedDataLength += n;
+    }
 
-  // WriteInt(PREV_PAGE_POINTER_OFFSET, _prevPageId);
-  // WriteInt(NEXT_PAGE_POINTER_OFFSET, _nextPageId);
+    if (lr != nullptr) {
+      assert(lr->_recLock == nullptr || lr->_recLock->_undoRec == nullptr);
+      vctLr.push_back(lr);
+      if (lr->_overflowPage != nullptr) {
+        lr->_overflowPage->AddWriteQueue(pageSet);
+      }
+    }
+  }
 
-  // if (_obsBuf != nullptr) {
-  //   _obsBuf->DecRef();
-  //   _obsBuf = nullptr;
-  // } else if (tmp != nullptr) {
-  //   CachePool::ReleasePage(tmp);
-  // }
+  if (_committedDataLength > MAX_DATA_LENGTH_LEAF)
+    return false;
 
+  Byte *tmp = _bysPage;
+  _bysPage = CachePool::ApplyPage();
+
+  _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
+  _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
+
+  uint16_t pos = (uint16_t)(DATA_BEGIN_OFFSET + vctLr.size() * UI16_LEN);
+  uint16_t off_pos = DATA_BEGIN_OFFSET;
+  for (uint16_t i = 0; i < vctLr.size(); i++) {
+    LeafRecord *lr = vctLr[i];
+    WriteShort(off_pos, pos);
+    uint16_t sz = lr->SaveData(_bysPage + pos);
+    lr->UpdateBysValue(_bysPage + pos);
+    pos += sz;
+    off_pos += UI16_LEN;
+  }
+
+  WriteShort(NUM_RECORD_OFFSET, (uint16_t)vctLr.size());
+  WriteShort(TOTAL_DATA_LENGTH_OFFSET, _committedDataLength);
+  WriteInt(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
+
+  WriteInt(PREV_PAGE_POINTER_OFFSET, _prevPageId);
+  WriteInt(NEXT_PAGE_POINTER_OFFSET, _nextPageId);
+
+  CachePool::ReleasePage(tmp);
+  AddWriteQueue(pageSet);
   _bDirty = false;
   return true;
 }
@@ -122,7 +158,7 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
     LoadRecords();
   }
 
-  _committedDataLength += lr->GetTotalLength() + sizeof(uint16_t);
+  _committedDataLength += lr->GetTotalLength() + UI16_LEN;
   _vctRecord.push_back(lr);
   _recordNum++;
   _bDirty = true;
@@ -282,7 +318,200 @@ void LeafPage::ClearRecords() {
 }
 
 bool LeafPage::SplitPage(MHashSet<CachePage *> &pageSet, Byte pageLevel) {
+  if (_pageStatus.load(memory_order_relaxed) != PageStatus::VALID) {
+    return false;
+  }
 
-  return false;
+  bool block = (pageLevel != 0xFF);
+  if (pageLevel <= GetPageLevel()) {
+    if (_spinLock.try_lock()) {
+      return false;
+    }
+  }
+
+  BranchRecord *brParentOld = nullptr;
+  BranchPage *parentPage = nullptr;
+  int posInParent = 0;
+  if (_parentPageId == PAGE_NULL_POINTER) {
+    parentPage = (BranchPage *)_indexTree
+                     ->ApplyIndexPages(nullptr, GetPageLevel() + 1, 1, block)
+                     .at(0);
+    parentPage->SetBeginPage(true);
+    parentPage->SetEndPage(true);
+    _parentPageId = parentPage->GetPageId();
+  } else {
+    if (pageLevel <= _parentPage->GetPageLevel()) {
+      _parentPage->Lock();
+    }
+
+    BranchRecord br(_indexTree->GetHeadPage()->GetIndexType(),
+                    _vctRecord[_recordNum - 1], GetPageId());
+    bool bFind;
+    posInParent = ((BranchPage *)_parentPage)->SearchRecord(br, bFind);
+    if (!bFind) {
+      posInParent = _parentPage->GetRecordNumber() - 1;
+    }
+
+    brParentOld = ((BranchPage *)_parentPage)->DeleteRecord(posInParent);
+  }
+
+  int maxLen = GetMaxDataLength() * LOAD_FACTOR / 100;
+  int pos = 0;
+  int clen = 0;
+  int tlen = 0;
+
+  MVector<int> vctPos;
+  MVector<int> vctCLen;
+  MVector<int> vctTLen;
+
+  for (; pos < (int)_vctRecord.size(); pos++) {
+    LeafRecord *lr = (LeafRecord *)_vctRecord[pos];
+    if (lr->ReleaseLockAble()) {
+      ReleaseResult res = lr->ReleaseLock(GetIndexTree(), block);
+      if (res == ReleaseResult::DELETED) {
+        assert(lr->_overflowPage == nullptr);
+        _vctRecord.erase(_vctRecord.begin() + pos);
+        pos--;
+        continue;
+      }
+    }
+
+    int len = 0;
+    if (!lr->IsStable()) {
+      tlen += lr->GetTotalLength() + UI16_LEN;
+
+      lr = lr->_recLock->_undoRec;
+      while (lr != nullptr) {
+        if (lr->IsStable()) {
+          assert(lr->_recLock == nullptr || lr->_recLock->_undoRec == nullptr);
+          len = lr->GetTotalLength() + UI16_LEN;
+          clen += len;
+          break;
+        }
+
+        lr = lr->_recLock->_undoRec;
+      }
+    } else {
+      len = lr->GetTotalLength() + UI16_LEN;
+      clen += len;
+      tlen += len;
+    }
+
+    if (clen > maxLen || tlen > maxLen) {
+      if (clen > GetMaxDataLength() || tlen > GetMaxDataLength()) {
+        tlen -= lr->GetTotalLength() + sizeof(uint16_t);
+        clen -= len;
+        pos--;
+      }
+
+      vctPos.push_back(pos + 1);
+      vctCLen.push_back(clen);
+      vctTLen.push_back(tlen);
+      clen = 0;
+      tlen = 0;
+    }
+  }
+
+  vctPos.push_back(pos);
+  vctCLen.push_back(clen);
+  vctCLen.push_back(tlen);
+  _committedDataLength = vctCLen[0];
+  _tempDataLength = vctTLen[0];
+  _recordNum = vctPos[0];
+
+  MVector<IndexPage *> vctPage =
+      _indexTree->ApplyIndexPages(parentPage, 0, vctPos.size() - 1, block);
+
+  for (size_t i = 0; i < vctPage.size(); i++) {
+    LeafPage *newPage = (LeafPage *)vctPage[i];
+    newPage->_vctRecord.insert(newPage->_vctRecord.end(),
+                               _vctRecord.begin() + vctPos[i],
+                               _vctRecord.begin() + vctPos[i + 1]);
+    newPage->SetDirty(true);
+    newPage->_committedDataLength = vctCLen[i + 1];
+    newPage->_tempDataLength = vctTLen[i + 1];
+    newPage->_recordNum = (uint32_t)newPage->_vctRecord.size();
+  }
+
+  _vctRecord.erase(_vctRecord.begin() + vctPos[0], _vctRecord.end());
+  // Insert this page' key and id to parent page
+  RawRecord *last = _vctRecord[_vctRecord.size() - 1];
+  BranchRecord *rec = new BranchRecord(
+      _indexTree->GetHeadPage()->GetIndexType(), last, GetPageId(), this);
+  parentPage->InsertRecord(rec, posInParent);
+  posInParent++;
+
+  // Insert new page' key and id to parent page
+  for (int i = 0; i < (int)vctPage.size(); i++) {
+    LeafPage *lfPage = (LeafPage *)vctPage[i];
+    last = lfPage->_vctRecord[lfPage->_recordNum - 1];
+
+    rec = nullptr;
+    if (i == vctPage.size() - 1 && brParentOld != nullptr &&
+        brParentOld->CompareTo(*last) > 0) {
+      rec = new BranchRecord(_indexTree->GetHeadPage()->GetIndexType(),
+                             brParentOld, lfPage->GetPageId(), lfPage);
+    } else {
+      rec = new BranchRecord(_indexTree->GetHeadPage()->GetIndexType(), last,
+                             lfPage->GetPageId(), lfPage);
+    }
+
+    parentPage->InsertRecord(rec, posInParent + i);
+  }
+
+  uint32_t lastId = ((LeafPage *)this)->GetNextPageId();
+  LeafPage *lastPage = ((LeafPage *)this)->GetNextPage();
+
+  SetNextPageId(vctPage[0]->GetPageId());
+  SetNextPage((LeafPage *)vctPage[0]);
+  uint32_t prevId = GetPageId();
+  LeafPage *prevPage = this;
+
+  for (int i = 0; i < vctPage.size() - 1; i++) {
+    ((LeafPage *)vctPage[i])->SetPrevPageId(prevId);
+    ((LeafPage *)vctPage[i])->SetPrevPage(prevPage);
+    ((LeafPage *)vctPage[i])->SetNextPageId(vctPage[i + 1]->GetPageId());
+    ((LeafPage *)vctPage[i])->SetNextPage((LeafPage *)vctPage[i + 1]);
+    prevId = vctPage[i]->GetPageId();
+    prevPage = (LeafPage *)vctPage[i];
+  }
+
+  ((LeafPage *)vctPage[vctPage.size() - 1])->SetPrevPageId(prevId);
+  ((LeafPage *)vctPage[vctPage.size() - 1])->SetPrevPage(prevPage);
+  ((LeafPage *)vctPage[vctPage.size() - 1])->SetNextPageId(lastId);
+  if (lastId == PAGE_NULL_POINTER) {
+    _indexTree->GetHeadPage()->SetEndLeafPageID(
+        ((LeafPage *)vctPage[vctPage.size() - 1])->GetPageId());
+    ((LeafPage *)vctPage[vctPage.size() - 1])->SetNextPage(nullptr);
+    assert(IsEndPage());
+    SetEndPage(false);
+    ((LeafPage *)vctPage[vctPage.size() - 1])->SetEndPage(true);
+  } else {
+    if (lastPage == nullptr) {
+      lastPage = (LeafPage *)_indexTree->GetPage(lastId, PageType::LEAF_PAGE);
+    }
+
+    lastPage->SetPrevPage(((LeafPage *)vctPage[vctPage.size() - 1]));
+    lastPage->SetPrevPageId((vctPage[vctPage.size() - 1])->GetPageId());
+  }
+
+  for (int i = 0; i < vctPage.size(); i++) {
+    ((LeafPage *)vctPage[i])->SaveRecords(pageSet, block);
+    vctPage[i]->AddWriteQueue(pageSet);
+  }
+
+  SaveRecords(pageSet, block);
+  AddWriteQueue(pageSet);
+  parentPage->AddWriteQueue(pageSet);
+
+  if (pageLevel <= GetPageLevel()) {
+    if (brParentOld != nullptr && pageLevel <= _parentPage->GetPageLevel()) {
+      _parentPage->Unlock();
+    }
+
+    _spinLock.unlock();
+  }
+
+  return true;
 }
 } // namespace storage

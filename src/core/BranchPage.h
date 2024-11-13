@@ -33,7 +33,7 @@ public:
    * @brief Save records from vector and variable into buffer
    * @return If conditions is ok and saved successfully, return true, or false
    */
-  bool SaveRecords() override;
+  bool SaveRecords();
   /**
    * @brief Delete the record at the index and return it.
    */

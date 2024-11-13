@@ -131,12 +131,13 @@ public:
   inline uint32_t GetWaiting() { return _waiting; }
 
   inline void AddWriteQueue(MHashSet<CachePage *> &pageSe) {
-    if (_bWriteQueue)
+    if (_bWriteQueue || !_bDirty)
       return;
 
     pageSe.insert(this);
     _bWriteQueue = true;
   }
+  inline void ClearWriteQueue() { _bWriteQueue = false; }
 
 protected:
   // The page byte array to save contents. It should be assigned and released

@@ -424,8 +424,7 @@ bool LeafRecord::LoadOverflowPage(IndexTree *idxTree) {
  * @param idxTree IndexTree
  * @return the variant length when abort or rollback
  */
-ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, int32_t &varLen,
-                                      bool block) {
+ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
   assert(ReleaseLockAble());
 
   if (_recLock->_actType == ActionType::READ_SHARE ||
@@ -433,7 +432,6 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, int32_t &varLen,
     assert(_recLock->_undoRec == nullptr);
     delete _recLock;
     _recLock = nullptr;
-    varLen = 0;
     return ReleaseResult::FISHED;
   }
 
@@ -444,7 +442,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, int32_t &varLen,
   if (_recLock->_status == RecordStatus::ROLLBACKED) {
     if (_overflowPage != nullptr) {
       idxTree->RecyclePageId(_overflowPage->GetPageId(),
-                             _overflowPage->GetPageNum());
+                             _overflowPage->GetPageNum(), block);
       delete _overflowPage;
       _overflowPage = nullptr;
     }
@@ -461,21 +459,18 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, int32_t &varLen,
       *this = move(*lr);
       delete lr;
       if (_recLock == nullptr) {
-        varLen = 0;
         return ReleaseResult::FISHED;
       } else if (!ReleaseLockAble()) {
         return ReleaseResult::UNFINISH;
       } else {
-        return ReleaseLock(idxTree, varLen);
+        return ReleaseLock(idxTree, block);
       }
     } else {
-      varLen = 0;
       return ReleaseResult::DELETED;
     }
   }
 
   LeafRecord *lr = _recLock->_undoRec;
-  int32_t slen = 0;
 
   while (lr != nullptr) {
     if (lr->_overflowPage != nullptr) {
@@ -488,7 +483,6 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, int32_t &varLen,
     if (lr->_recLock == nullptr ||
         lr->_recLock->_actType == ActionType::READ_SHARE ||
         lr->_recLock->_actType == ActionType::READ_UPDATE) {
-      slen = lr->GetTotalLength();
       delete lr->_recLock;
       lr->_recLock = nullptr;
       delete lr;
@@ -503,7 +497,6 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, int32_t &varLen,
     }
   }
 
-  varLen = GetTotalLength() - slen;
   return ReleaseResult::FISHED;
 }
 

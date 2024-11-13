@@ -53,7 +53,7 @@ public:
     _bysPage = CachePool::ApplyPage();
     _bysPage[PAGE_LEVEL_OFFSET] = (Byte)pageLevel;
     _parentPageId = parentPageId;
-    // New page, do not need init.
+    // New page, do not read data from disk and init.
     _pageStatus.store(PageStatus::VALID, memory_order_relaxed);
   }
   ~IndexPage() override { CachePool::ReleasePage(_bysPage); }
@@ -117,7 +117,6 @@ public:
   uint32_t PageSize() const override { return INDEX_PAGE_SIZE; }
 
   virtual bool IsOverlength() = 0;
-  virtual bool SaveRecords() = 0;
 
   /**
    * @brief Split current page if this page's length exceed LOAD_FACTOR

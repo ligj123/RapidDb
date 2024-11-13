@@ -22,7 +22,8 @@ public:
     _pageStatus.store(PageStatus::VALID, memory_order_release);
   }
   void AfterWrite() override {
-    _pageStatus.store(PageStatus::VALID, memory_order_relaxed);
+    _bWriteQueue = false;
+    _pageStatus.store(PageStatus::VALID, memory_order_release);
   }
   uint16_t GetPageNum() const { return _pageNum; }
   uint32_t PageSize() const override { return INDEX_PAGE_SIZE * _pageNum; }

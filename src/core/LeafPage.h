@@ -49,8 +49,6 @@ public:
     return !_bRefered &&
            _pageStatus.load(memory_order_relaxed) == PageStatus::VALID;
   }
-  void LoadRecords();
-  bool SaveRecords() override;
   /**
    * @brief Insert a leaf record into position pos in this page
    * @param lr The leaf record will be inserted
@@ -82,11 +80,20 @@ public:
    * to reach length limit.
    */
   bool AddRecord(LeafRecord *record);
+  /**
+   * @brief Save the records content into byte array
+   * @param pageSet If there has OverflowPages that need to write disk, add into
+   * this set
+   * @param block If there have multi thread tasks for this index set it to true
+   * @return Success to save or not
+   */
+  bool SaveRecords(MHashSet<CachePage *> pageSet, bool block);
   /**`
    * @brief Get the Record in this LeafPage with position=pos
    * @param pos The position of records in this page
    * @return LeafRecord The leaf record to get
    */
+
   const LeafRecord &GetRecord(int32_t pos);
   int32_t SearchRecord(const LeafRecord &rr, bool &bFind, int32_t start = 0,
                        int32_t end = INT32_MAX);
@@ -96,7 +103,10 @@ public:
                     int32_t end = INT32_MAX);
 
   void ClearRecords();
-  bool ReleaseTransaction(MList<CachePage *> listPage);
+  /**
+   * @brief Load records from buffer into vector and reset children
+   */
+  void LoadRecords();
   bool SplitPage(MHashSet<CachePage *> &pageSet,
                  Byte pageLevel = 0xFF) override;
 

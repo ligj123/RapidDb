@@ -180,7 +180,7 @@ public:
                            ActionType atype = ActionType::NO_ACTION,
                            bool bGapLock = false);
   bool LoadOverflowPage(IndexTree *idxTree);
-  ReleaseResult ReleaseLock(IndexTree *idxTree, int32_t &varLen, bool block);
+  ReleaseResult ReleaseLock(IndexTree *idxTree, bool block);
   uint16_t GetValueLength() const override;
 
   /**
@@ -234,18 +234,18 @@ public:
     return _recLock == nullptr ? _bSole : _recLock->_undoRec->IsSole();
   }
   /**-
-   * @brief True: The record has committed and can be visit and saved into disk.
-   *        False: The record is uncommitted or aborted.
+   * @brief True: The record has committed or abort and can be visit and saved
+   * into disk. False: The record is uncommitted.
    */
-  bool IsEfficient() {
+  bool IsStable() {
     if (_recLock == nullptr ||
         (_recLock->_actType & ActionType::UPDATE_MASK) == 0) {
-      return true;
+      return false;
     } else if (_recLock->_status == RecordStatus::COMMITED) {
-      return true;
+      return false;
     }
 
-    return false;
+    return true;
   }
 
   bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
@@ -306,6 +306,7 @@ protected:
   // Vector to contain overflow page
   OverflowPage *_overflowPage{nullptr};
   friend std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
+  friend class LeafPage;
 };
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);

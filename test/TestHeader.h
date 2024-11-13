@@ -1,7 +1,9 @@
+#include <atomic>
 #include <string>
 
 namespace storage {
 extern const std::string ROOT_PATH;
+extern atomic_int32_t g_atmFileId;
 
 inline uint32_t GenTestPrimaryKey(uint32_t num) {
   uint32_t by1 = num & 0xff;

@@ -24,11 +24,12 @@ public:
   static void Start(uint16_t lineNum);
   static void Stop();
   static void AddReadPage(uint16_t tid, CachePage *page, bool submit = true) {
+    assert(page->GetPageStatus() == PageStatus::EMPTY);
     page->SetPageStatus(PageStatus::READING);
     _pool->_readRapidQueue.Push(tid, page, submit);
   }
   static void AddWritePage(uint16_t tid, CachePage *page, bool submit = true) {
-
+    assert(page->GetPageStatus() == PageStatus::VALID);
     page->SetPageStatus(PageStatus::WRITING);
     _pool->_writeRapidQueue.Push(tid, page, submit);
   }

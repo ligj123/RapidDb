@@ -91,7 +91,7 @@ public:
   ~HeadPage() { CachePool::Release(_bysPage, HEAD_PAGE_SIZE); }
   void AfterRead() override {
     InitParameters();
-    _pageStatus.store(PageStatus::VALID, memory_order_relaxed);
+    _pageStatus.store(PageStatus::VALID, memory_order_release);
   }
   // Create a new head page and initialize it.
   void InitHeadPage(IndexType iType, const VectorDataValue &vctVal);
