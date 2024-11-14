@@ -16,7 +16,8 @@ public:
 
 public:
   /** Construct an exist record from page buffer */
-  BranchRecord(IndexType type, Byte *bys) : RawRecord(bys, false, type) {}
+  BranchRecord(IndexType type, Byte *bys, IndexPage *childPage = nullptr)
+      : RawRecord(bys, false, type), _childPage(childPage) {}
   /** Create a new record */
   BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId,
                IndexPage *childPage = nullptr);

@@ -52,6 +52,7 @@ public:
   bool IsNull() { return _bysVal == nullptr; }
   virtual uint16_t GetTotalLength() const = 0;
   virtual uint16_t GetValueLength() const = 0;
+  IndexType GetIndexType() { return _indexType; }
 
 public:
   static void *operator new(size_t size) {

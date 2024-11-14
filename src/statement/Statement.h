@@ -69,7 +69,7 @@ public:
   TranID GetTxId() { return _txid; }
   uint32_t GetId() { return _id; }
 
-  virtual MVector<uint16_t> &
+  virtual MVector<uint16_t>
   SpliteRange(const MVector<LeafRecord> &vctBorder) = 0;
 
 public:

@@ -136,12 +136,12 @@ public:
   LeafRecord(IndexType idxType, Byte *bys);
   // Constructor for secondary index LeafRecord
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey, Byte *bysPri,
-             uint32_t lenPri, ActionType actType, Statement *stmt,
-             uint64_t recStamp);
+             uint32_t lenPri, ActionType actType, uint64_t recStamp,
+             Statement *stmt = nullptr);
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
-             const VectorDataValue &vctVal, uint64_t recStamp, Statement *stmt,
-             bool block);
+             const VectorDataValue &vctVal, uint64_t recStamp,
+             Statement *stmt = nullptr, bool block = true);
   LeafRecord(LeafRecord &&src)
       : RawRecord(move(src)), _recLock(src._recLock),
         _overflowPage(src._overflowPage) {
@@ -188,26 +188,28 @@ public:
    */
   bool ReleaseLockAble() const;
 
-  RawKey GetKey() const { return RawKey(GetKeyLength(), _bysVal + UI16_2_LEN); }
+  inline RawKey GetKey() const {
+    return RawKey(GetKeyLength(), _bysVal + UI16_2_LEN);
+  }
 
   /**Only for secondary index, Get the primary key, deep copy.*/
-  RawKey GetPrimayKey() const {
+  inline RawKey GetPrimayKey() const {
     int start = GetKeyLength() + UI16_2_LEN;
     int len = GetTotalLength() - start - UI64_LEN;
     return RawKey(len, _bysVal + start);
   }
 
-  int CompareTo(const LeafRecord &lr) const {
+  inline int CompareTo(const LeafRecord &lr) const {
     return BytesCompare(_bysVal + UI16_2_LEN, GetTotalLength() - UI16_2_LEN,
                         lr._bysVal + UI16_2_LEN,
                         lr.GetTotalLength() - UI16_2_LEN);
   }
 
-  int CompareKey(const RawKey &key) const {
+  inline int CompareKey(const RawKey &key) const {
     return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength() - UI16_2_LEN,
                         key.GetBysVal(), key.GetLength());
   }
-  int CompareKey(const LeafRecord &lr) const {
+  inline int CompareKey(const LeafRecord &lr) const {
     return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength() - UI16_2_LEN,
                         lr.GetBysValue() + UI16_2_LEN,
                         lr.GetKeyLength() - UI16_2_LEN);
@@ -215,7 +217,7 @@ public:
 
   /**Only the bytes' length in IndexPage, key length + value length without
    * overflow page content*/
-  uint16_t GetTotalLength() const override {
+  inline uint16_t GetTotalLength() const override {
     if (_recLock->_actType == ActionType::DELETE) {
       return 0;
     } else {
@@ -230,14 +232,14 @@ public:
     return len;
   }
 
-  bool IsSole() const override {
+  inline bool IsSole() const override {
     return _recLock == nullptr ? _bSole : _recLock->_undoRec->IsSole();
   }
   /**-
    * @brief True: The record has committed or abort and can be visit and saved
    * into disk. False: The record is uncommitted.
    */
-  bool IsStable() {
+  inline bool IsStable() {
     if (_recLock == nullptr ||
         (_recLock->_actType & ActionType::UPDATE_MASK) == 0) {
       return false;
@@ -248,14 +250,19 @@ public:
     return true;
   }
 
-  bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
-  bool HasOverflowPage() {
+  inline bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
+  inline bool HasOverflowPage() {
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     return (*(_bysVal + UI16_2_LEN + keyLen) & REC_OVERFLOW) != 0;
   }
 
-  ActionType GetAction() {
+  inline ActionType GetAction() {
     return _recLock == nullptr ? ActionType::NO_ACTION : _recLock->_actType;
+  }
+
+  inline void SetRecordStatus(RecordStatus s) {
+    assert(_recLock != nullptr);
+    _recLock->_status = s;
   }
 
   // To calc key length

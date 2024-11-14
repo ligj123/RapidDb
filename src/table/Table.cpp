@@ -401,9 +401,10 @@ void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
       dstSk.push_back(dstPr.at(ic.colPos)->AddRef());
     }
     if (lrSrc == nullptr) {
-      LeafRecord *lr = new LeafRecord(
-          prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-          lrDst->GetKeyLength(), ActionType::INSERT, stmt, 0 /*TO DO*/);
+      LeafRecord *lr =
+          new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
+                         lrDst->GetKeyLength(), ActionType::INSERT,
+                         0 /*TO DO RecStamp*/, stmt);
       vctRec.push_back(lr);
       continue;
     }

@@ -41,8 +41,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
 
   IndexTree idxTree;
   idxTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                          g_atmFileId.fetch_add(1, memory_order_relaxed),
-                          IndexType::PRIMARY);
+                          GetFileId(), IndexType::PRIMARY);
 
   CachePageEx page(&idxTree, 1);
   page.WriteInt(0, 100);
@@ -81,23 +80,22 @@ BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
 
   IndexTree idxTree;
   idxTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                          g_atmFileId.fetch_add(1, memory_order_relaxed),
-                          IndexType::PRIMARY);
+                          GetFileId(), IndexType::PRIMARY);
 
   MVector<CachePageEx *> vctPage;
   vctPage.reserve(1000);
   for (uint32_t i = 1; i <= 1000; i++) {
     CachePageEx *page = new CachePageEx(&idxTree, i);
     page->WriteInt(0, i + 100);
-    Byte *bys = page.GetBysPage();
+    Byte *bys = page->GetBysPage();
     BytesCopy(bys + 4, pStrTest, sz);
-    page.WriteInt(CachePage::INDEX_PAGE_SIZE - 4, 0x5A5A5A5A);
-    page.SetDirty(true);
+    page->WriteInt(CachePage::INDEX_PAGE_SIZE - 4, 0x5A5A5A5A);
+    page->SetDirty(true);
     FilePagePool::AddWritePage(0, page, true);
     vctPage.push_back(page);
   }
 
-  for (uint32_t i = 1; i <= 1000; i++) {
+  for (uint32_t i = 0; i < 1000; i++) {
     while (vctPage[i]->GetPageStatus() != PageStatus::VALID) {
       std::this_thread::yield();
     }
@@ -113,19 +111,23 @@ BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
     vctPage.push_back(page);
   }
 
-  for (uint32_t i = 1; i <= 1000; i++) {
+  for (uint32_t i = 0; i < 1000; i++) {
     while (vctPage[i]->GetPageStatus() != PageStatus::READED) {
       std::this_thread::yield();
     }
 
     CachePageEx *page = vctPage[i];
-    BOOST_TEST(b);
-    BOOST_TEST(100 == page.ReadInt(0));
+    BOOST_TEST(i + 101 == page->ReadInt(0));
     BOOST_TEST(
-        BytesEqual((const Byte *)pStrTest, sz, page.GetBysPage() + 4, sz));
-    BOOST_TEST(0x5A5A5A5A == page.ReadInt(CachePage::INDEX_PAGE_SIZE - 4));
-    delete vctPage[i];
+        BytesEqual((const Byte *)pStrTest, sz, page->GetBysPage() + 4, sz));
+    BOOST_TEST(0x5A5A5A5A == page->ReadInt(CachePage::INDEX_PAGE_SIZE - 4));
+    delete page;
   }
+
+  vctPage.clear();
+  idxTree.Close();
+  CachePagePool::ClearPool();
+  FilePagePool::Stop();
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

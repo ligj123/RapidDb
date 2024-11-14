@@ -96,8 +96,9 @@ void BranchPage::InsertRecord(BranchRecord *record, int32_t pos) {
   assert(_pageStatus.load(memory_order_relaxed) == PageStatus::VALID ||
          _pageStatus.load(memory_order_relaxed) == PageStatus::WRITING);
   assert(pos >= 0 && pos <= _recordNum);
-  if (_recordNum > 0 && _vctRecord.size() == 0)
+  if (_recordNum > 0 && _vctRecord.size() == 0) {
     LoadRecords();
+  }
 
   _committedDataLength += record->GetTotalLength() + UI16_LEN;
   _vctRecord.insert(_vctRecord.begin() + pos, record);

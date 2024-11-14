@@ -26,9 +26,21 @@ FilePagePool::FilePagePool(uint16_t lineNum)
 
 void FilePagePool::Run() {
   InitHandle();
-  while (!_bStop && !_readRapidQueue.IsEmpty() && !_writeRapidQueue.IsEmpty()) {
-    while (_readRapidQueue.IsEmpty() && _writeRapidQueue.IsEmpty() && !_bStop) {
-      std::this_thread::yield();
+  int tryNum = 3;
+  while (true) {
+    if (_readRapidQueue.IsEmpty() && _writeRapidQueue.IsEmpty()) {
+      if (_bStop) {
+        tryNum--;
+        if (tryNum > 0) {
+          this_thread::sleep_for(1ms);
+          continue;
+        } else {
+          break;
+        }
+      } else {
+        std::this_thread::yield();
+        continue;
+      }
     }
 
     _readRapidQueue.Pop(_readMQueue);

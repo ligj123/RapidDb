@@ -4,6 +4,9 @@
 namespace storage {
 extern const std::string ROOT_PATH;
 extern atomic_int32_t g_atmFileId;
+static int32_t GetFileId() {
+  return g_atmFileId.fetch_add(1, memory_order_relaxed);
+}
 
 inline uint32_t GenTestPrimaryKey(uint32_t num) {
   uint32_t by1 = num & 0xff;

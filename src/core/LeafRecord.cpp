@@ -29,11 +29,10 @@ RecStruct::RecStruct(Byte *bys, uint16_t keyLen, OverflowPage *ofPage) {
   _arrStamp = (uint64_t *)(_byVerFlow + 1);
   _arrValLen = (uint32_t *)(((Byte *)_arrStamp) + UI64_LEN);
 
-  if ((*_byVerFlow) & REC_OVERFLOW) [[unlikely]] {
+  if (ofPage != nullptr) [[unlikely]] {
     _arrCrc32 = (uint32_t *)(((Byte *)_arrValLen) + UI32_LEN);
     _pidStart = (PageID *)(((Byte *)_arrCrc32) + UI32_LEN);
     _pageNum = (uint16_t *)(((Byte *)_pidStart) + UI32_LEN);
-    assert(ofPage != nullptr);
     _bysValStart = ofPage->GetBysPage();
   } else {
     _arrCrc32 = nullptr;
@@ -75,7 +74,7 @@ LeafRecord::LeafRecord(IndexType idxType, Byte *bys)
 
 LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
                        Byte *bysPri, uint32_t lenPri, ActionType actType,
-                       Statement *stmt, uint64_t recStamp)
+                       uint64_t recStamp, Statement *stmt)
     : RawRecord(nullptr, true, idxTree->GetHeadPage()->GetIndexType()) {
   uint16_t lenKey = CalcKeyLength(vctKey);
   // The key is over length, failed to construct LeafRecord
@@ -84,14 +83,17 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
     return;
   }
 
-  _recLock = new RecordLock(actType, RecordStatus::INIT, false, false,
-                            stmt->GetTxId(), stmt);
+  if (stmt != nullptr) {
+    _recLock = new RecordLock(actType, RecordStatus::INIT, false, false,
+                              stmt->GetTxId(), stmt);
+  }
   int totalLen = lenKey + lenPri + UI16_2_LEN + UI64_LEN;
   _bysVal = CachePool::Apply(totalLen);
   Byte *bys = _bysVal;
   *((uint16_t *)bys) = totalLen;
   bys += UI16_LEN;
   *((uint16_t *)bys) = lenKey;
+  bys += UI16_LEN;
 
   for (int i = 0; i < vctKey.size(); i++) {
     bys += vctKey[i]->WriteData(bys, SavePosition::KEY);
@@ -112,8 +114,10 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
     return;
   }
 
-  _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,
-                            false, stmt->GetTxId(), stmt);
+  if (stmt != nullptr) {
+    _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,
+                              false, stmt->GetTxId(), stmt);
+  }
   uint32_t lenVal = CalcValueLength(idxTree, vctVal, ActionType::INSERT);
   uint16_t infoLen = 1 + UI64_LEN + UI32_LEN;
   uint32_t max_lenVal =
@@ -336,7 +340,7 @@ uint16_t LeafRecord::GetValueLength() const {
                          (*(uint16_t *)(_bysVal + UI16_LEN)) + UI64_LEN);
   } else {
     return *(uint16_t *)_bysVal - *(uint16_t *)(_bysVal + UI16_LEN) -
-           UI16_2_LEN;
+           UI16_2_LEN - UI64_LEN;
   }
 }
 
@@ -466,11 +470,15 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
         return ReleaseLock(idxTree, block);
       }
     } else {
+      delete _recLock;
+      _recLock = nullptr;
       return ReleaseResult::DELETED;
     }
   }
 
   LeafRecord *lr = _recLock->_undoRec;
+  delete _recLock;
+  _recLock = nullptr;
 
   while (lr != nullptr) {
     if (lr->_overflowPage != nullptr) {
@@ -489,7 +497,6 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
       lr = nullptr;
     } else {
       LeafRecord *lr2 = lr->_recLock->_undoRec;
-      delete lr;
       delete lr->_recLock;
       lr->_recLock = nullptr;
       delete lr;
