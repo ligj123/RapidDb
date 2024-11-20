@@ -2,6 +2,7 @@
 #include "../../src/core/CachePage.h"
 #include "../../src/core/IndexTree.h"
 #include "../../src/pool/CachePagePool.h"
+#include "../../src/utils/Log.h"
 #include "../TestHeader.h"
 
 #include <boost/test/unit_test.hpp>
@@ -27,6 +28,8 @@ public:
 
 BOOST_AUTO_TEST_SUITE(PoolTest)
 BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testPoolSync" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testSyncTable";
 
@@ -48,7 +51,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
   Byte *bys = page.GetBysPage();
   BytesCopy(bys + 4, pStrTest, sz);
   page.WriteInt(CachePage::INDEX_PAGE_SIZE - 4, 0x5A5A5A5A);
-  page.SetDirty(true);
+  page.SetDirty();
 
   bool b = FilePagePool::SyncWritePage(&page);
   BOOST_TEST(b);
@@ -65,6 +68,8 @@ BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
 }
 
 BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testPoolSync" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testSyncTable";
 
@@ -90,7 +95,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
     Byte *bys = page->GetBysPage();
     BytesCopy(bys + 4, pStrTest, sz);
     page->WriteInt(CachePage::INDEX_PAGE_SIZE - 4, 0x5A5A5A5A);
-    page->SetDirty(true);
+    page->SetDirty();
     FilePagePool::AddWritePage(0, page, true);
     vctPage.push_back(page);
   }

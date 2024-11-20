@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(UnitTest)
 
+if(POLICY CMP0167)
+cmake_policy(SET CMP0167 OLD)
+endif()
+
 set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.74.0 REQUIRED COMPONENTS log locale unit_test_framework stacktrace_backtrace coroutine)
 find_package(Threads)

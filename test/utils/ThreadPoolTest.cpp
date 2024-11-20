@@ -11,6 +11,8 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(ThreadPool_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   class TestTask : public ThreadTask {
   public:
     TestTask() { _bExclusive = true; }
@@ -50,6 +52,8 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ThreadPoolEx_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   class TestTask : public ThreadTask {
   public:
     TaskStatus Run() override {

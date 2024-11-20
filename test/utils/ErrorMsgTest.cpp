@@ -1,4 +1,6 @@
 ﻿#include "../../src/utils/ErrorMsg.h"
+#include "../../src/utils/Log.h"
+
 #include <boost/test/unit_test.hpp>
 #include <string>
 
@@ -8,6 +10,8 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(ErrorMsg_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   ErrorMsg err1(1);
   BOOST_TEST(err1.what(), "function test");
 

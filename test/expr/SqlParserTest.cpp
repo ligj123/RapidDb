@@ -5,6 +5,8 @@
 #include "../../src/expr/ExprLogic.h"
 #include "../../src/expr/ExprStatement.h"
 #include "../../src/sql/Parser.h"
+#include "../../src/utils/Log.h"
+
 #include <boost/test/unit_test.hpp>
 
 #define PRINT_FUNC(str) #str
@@ -13,6 +15,8 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(SqlParserBasicTest)
 
 BOOST_AUTO_TEST_CASE(ExprType_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   BOOST_TEST("EXPR_BASE" == ExprStr[(int)ExprType::EXPR_BASE]);
   BOOST_TEST("EXPR_COUNT" == ExprStr[(int)ExprType::EXPR_COUNT]);
   BOOST_TEST("EXPR_COMP" == ExprStr[(int)ExprType::EXPR_COMP]);
@@ -25,6 +29,8 @@ BOOST_AUTO_TEST_CASE(ExprType_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserDatabase_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   MString str = "create database db1;";
   ParserResult result;
   bool b = Parser::Parse(str, result);
@@ -106,6 +112,8 @@ BOOST_AUTO_TEST_CASE(ParserDatabase_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserCreateTable_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   MString str = "create table if not exists t1("
                 "i int AUTO_INCREMENT primary key,"
                 "j varchar(100) not null default 'abcd',"
@@ -168,6 +176,8 @@ BOOST_AUTO_TEST_CASE(ParserCreateTable_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserDropTable_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   MString str = "drop table if exists t1";
   ParserResult result;
   bool b = Parser::Parse(str, result);
@@ -197,6 +207,8 @@ BOOST_AUTO_TEST_CASE(ParserDropTable_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserShowTables_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   MString str = "show tables";
   ParserResult result;
   bool b = Parser::Parse(str, result);
@@ -220,6 +232,8 @@ BOOST_AUTO_TEST_CASE(ParserShowTables_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserTrunTable_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   MString str = "truncate table t1";
   ParserResult result;
   bool b = Parser::Parse(str, result);
@@ -247,6 +261,8 @@ BOOST_AUTO_TEST_CASE(ParserTrunTable_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserInsert_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   MString str = "insert into t1 values(100, 1.5, 'abcdefg', true, null)";
   ParserResult result;
   bool b = Parser::Parse(str, result);
@@ -308,6 +324,8 @@ BOOST_AUTO_TEST_CASE(ParserInsert_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserDelete_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   MString str = "delete from t1";
   ParserResult result;
   bool b = Parser::Parse(str, result);
@@ -377,6 +395,8 @@ BOOST_AUTO_TEST_CASE(ParserDelete_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserUpdate_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   MString str = "update db1.t1 set a=?, b=?, c=a+b where a=? && b=? && c>=?";
   ParserResult result;
   bool b = Parser::Parse(str, result);
@@ -439,6 +459,8 @@ BOOST_AUTO_TEST_CASE(ParserUpdate_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ParserSelect_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   MString str = "select * from t1";
   ParserResult result;
   bool b = Parser::Parse(str, result);

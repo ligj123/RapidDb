@@ -52,7 +52,7 @@ bool IndexTree::CreateIndexTree(const MString &indexName,
   _rootPage = ApplyIndexPages(nullptr, 0, 1, false).at(0);
   _rootPage->SetBeginPage(true);
   _rootPage->SetEndPage(true);
-  _rootPage->SetDirty(true);
+  _rootPage->SetDirty();
 
   _vctKey.swap(vctKey);
   _vctValue.swap(vctVal);
@@ -65,6 +65,7 @@ bool IndexTree::CreateIndexTree(const MString &indexName,
     _valOffset = 0;
   }
 
+  _indexType = iType;
   LOG_DEBUG << "Create index tree " << indexName;
   return true;
 }
@@ -83,6 +84,7 @@ bool IndexTree::LoadIndexTree(const MString &indexName, const MString &fileName,
   _fileHandle = FileHandle::OpenFile(_fileName);
   _headPage = new HeadPage(this);
   FilePagePool::SyncReadPage(_headPage);
+  _headPage->InitParameters();
   FileVersion &&fv = _headPage->ReadFileVersion();
   if (!(fv == CURRENT_FILE_VERSION)) {
     _threadErrorMsg.reset(
@@ -90,9 +92,19 @@ bool IndexTree::LoadIndexTree(const MString &indexName, const MString &fileName,
     return false;
   }
 
+  _indexType = _headPage->GetIndexType();
+  _garbageOwner = new GarbageOwner(this);
   uint32_t rootId = _headPage->GetRootPageID();
-  _rootPage = GetPage(rootId, rootId == 0 ? PageType::LEAF_PAGE
-                                          : PageType::BRANCH_PAGE);
+  if (rootId == 0) {
+    _rootPage = new LeafPage(this, rootId);
+  } else {
+    _rootPage = new BranchPage(this, rootId);
+  }
+
+  FilePagePool::SyncReadPage(_rootPage);
+  IncPages();
+  _rootPage->SetReferred(true);
+  CachePagePool::AddPage(_rootPage);
 
 #ifdef _DEBUG
   uint16_t count = 0;
@@ -114,7 +126,6 @@ bool IndexTree::LoadIndexTree(const MString &indexName, const MString &fileName,
     _valOffset = 0;
   }
 
-  _garbageOwner = new GarbageOwner(this);
   LOG_DEBUG << "Open index tree " << indexName;
   return true;
 }
@@ -193,8 +204,8 @@ OverflowPage *IndexTree::ApplyOvfPage(uint16_t num, bool block) {
 }
 
 IndexPage *IndexTree::GetPage(PageID pageId, PageType type,
-                              IndexPage *parentPage) {
-  assert(pageId < _headPage->ReadTotalPageCount());
+                              BranchPage *parentPage) {
+  assert(pageId < _headPage->GetTotalPageCount());
   IndexPage *page = (IndexPage *)CachePagePool::GetPage(_fileId, pageId);
 
   if (page == nullptr) {
@@ -207,6 +218,8 @@ IndexPage *IndexTree::GetPage(PageID pageId, PageType type,
     }
 
     IncPages();
+    page->SetReferred(true);
+    CachePagePool::AddPage(page);
     FilePagePool::AddReadPage(ThreadPool::GetThreadId(), page);
   }
 
@@ -238,7 +251,7 @@ bool IndexTree::SearchPage(const RawKey &key, IndexPage *&page) {
           GetPage(pageId, page->GetPageLevel() == 1 ? PageType::LEAF_PAGE
                                                     : PageType::BRANCH_PAGE);
       br.SetChildPage(childPage);
-      childPage->SetParentPage(page);
+      childPage->SetParentPage(bPage);
       if (childPage->GetPageStatus() != PageStatus::VALID) {
         return false;
       }
@@ -268,7 +281,7 @@ bool IndexTree::SearchPage(const LeafRecord &lr, IndexPage *&page) {
           GetPage(pageId, page->GetPageLevel() == 1 ? PageType::LEAF_PAGE
                                                     : PageType::BRANCH_PAGE);
       br.SetChildPage(childPage);
-      childPage->SetParentPage(page);
+      childPage->SetParentPage(bPage);
       if (childPage->GetPageStatus() != PageStatus::VALID) {
         return false;
       }

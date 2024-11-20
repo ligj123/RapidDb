@@ -53,7 +53,7 @@ public:
   OverflowPage *ApplyOvfPage(uint16_t num, bool block);
 
   IndexPage *GetPage(PageID pageId, PageType type,
-                     IndexPage *parentPage = nullptr);
+                     BranchPage *parentPage = nullptr);
 
   /**
    * @brief Recycle the unused pages into garbage owner
@@ -93,8 +93,10 @@ public:
   bool SearchPage(const LeafRecord &lr, IndexPage *&page);
   void Close();
 
+  void SettlePages(MTreeMap<uint64_t, CachePage *> &pageMap);
+
   inline uint64_t GetRecordsCount() const {
-    return _headPage->ReadTotalRecordCount();
+    return _headPage->GetTotalRecordCount();
   }
   inline const MString &GetFileName() const { return _fileName; }
   inline uint16_t GetFileId() const { return _fileId; }
@@ -120,6 +122,19 @@ public:
     return (LeafPage *)GetPage(pid, PageType::LEAF_PAGE);
   }
   inline FILE_HANDLE GetFileHandle() { return _fileHandle->FileDescriptor(); }
+  inline IndexType GetIndexType() { return _indexType; }
+  inline IndexPage *GetRootPage() { return _rootPage; }
+  void UpdateRootPage(IndexPage *root, bool block) {
+    if (block) {
+      _spinMutex.lock();
+    }
+
+    _rootPage = root;
+
+    if (block) {
+      _spinMutex.unlock();
+    }
+  }
 
 protected:
   MString _indexName;
@@ -148,6 +163,7 @@ protected:
   // Other: 0
   uint16_t _valOffset{0};
 
+  IndexType _indexType;
   friend class HeadPage;
 };
 } // namespace storage

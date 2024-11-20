@@ -69,7 +69,7 @@ public:
   inline uint32_t GetScore() const { return _score; }
 
   inline bool IsDirty() const { return _bDirty; }
-  inline void SetDirty(bool b) { _bDirty = true; }
+  inline void SetDirty() { _bDirty = true; }
   inline PageID GetPageId() const { return _pageId; }
   inline uint64_t HashCode() const { return CalcHashCode(_fileId, _pageId); }
   inline uint64_t GetFileId() const { return _fileId; }
@@ -89,6 +89,7 @@ public:
     return !_bRefered &&
            _pageStatus.load(memory_order_relaxed) == PageStatus::VALID;
   }
+  virtual Byte GetPageLevel() { return UINT8_MAX; }
 
   inline Byte ReadByte(uint32_t pos) const { return _bysPage[pos]; }
 
@@ -130,11 +131,11 @@ public:
   }
   inline uint32_t GetWaiting() { return _waiting; }
 
-  inline void AddWriteQueue(MHashSet<CachePage *> &pageSe) {
-    if (_bWriteQueue || !_bDirty)
+  inline void AddWriteQueue(MTreeMap<uint64_t, CachePage *> &pageMap) {
+    if (_bWriteQueue)
       return;
 
-    pageSe.insert(this);
+    pageMap.emplace((GetPageLevel() << 24) + GetPageId(), this);
     _bWriteQueue = true;
   }
   inline void ClearWriteQueue() { _bWriteQueue = false; }
@@ -153,6 +154,8 @@ protected:
   uint32_t _fileId;
   // If this page has been changed
   bool _bDirty{false};
+  // The records have changed or not, only used for IndexPage
+  bool _bRecordUpdated{false};
   // Page status, to mark if this page has been loaded and the data is valid.
   atomic<PageStatus> _pageStatus{PageStatus::EMPTY};
   // Page type
@@ -173,4 +176,22 @@ protected:
   uint32_t _waiting{0};
 };
 
+struct CachePageHash {
+  size_t operator()(const CachePage *page) const { return page->HashCode(); }
+};
+
+struct CachePageEqual {
+  bool operator()(const CachePage *lpage, const CachePage *rpage) const {
+    return lpage->HashCode() == rpage->HashCode();
+  }
+};
+
+struct CachePageLess {
+  bool operator()(const CachePage *lpage, const CachePage *rpage) const {
+    return lpage->HashCode() < rpage->HashCode();
+  }
+};
+
+using HashSetPage = MHashSet<CachePage *, CachePageHash, CachePageEqual>;
+using TreeSetPage = MTreeSet<CachePage *, CachePageLess>;
 } // namespace storage

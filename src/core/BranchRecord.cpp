@@ -23,11 +23,7 @@ BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId,
   *((uint32_t *)(_bysVal + lenKey + lenVal + UI16_2_LEN)) = childPageId;
 }
 
-BranchRecord::~BranchRecord() {
-  if (_childPage != nullptr) {
-    _childPage->SetReferred(false);
-  }
-}
+BranchRecord::~BranchRecord() {}
 
 int BranchRecord::CompareTo(const RawRecord &rr) const {
   if (_indexType != IndexType::NON_UNIQUE) {

@@ -1,6 +1,7 @@
 ﻿// #include "../../src/cache/CachePool.h"
 // #include "../../src/cache/BufferPool.h"
 // #include "../../src/config/Configure.h"
+// #include "../../src/utils/Log.h"
 // #include <boost/test/unit_test.hpp>
 
 // namespace storage {

@@ -1,4 +1,6 @@
 #include "../../src/utils/CharsetConvert.h"
+#include "../../src/utils/Log.h"
+
 #include <boost/test/unit_test.hpp>
 #include <string>
 

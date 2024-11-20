@@ -18,7 +18,7 @@ public:
   // Construct an existed branch page and send to read queue
   BranchPage(IndexTree *indexTree, uint32_t pageId)
       : IndexPage(indexTree, pageId, PageType::BRANCH_PAGE) {}
-  ~BranchPage() {}
+  ~BranchPage() { ClearRecords(); }
 
   void InitParameters() override;
   /**
@@ -63,7 +63,7 @@ public:
   void SetChild(int32_t pos, IndexPage *child);
   IndexPage *GetChild(int32_t pos);
 
-  bool SplitPage(MHashSet<CachePage *> &pageSet,
+  bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
                  Byte pageLevel = 0xFF) override;
 
   bool IsOverlength() override {

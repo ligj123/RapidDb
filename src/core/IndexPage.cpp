@@ -8,7 +8,7 @@
 
 namespace storage {
 const uint16_t IndexPage::LOAD_FACTOR = 90;
-const uint32_t IndexPage::LOAD_THRESHOLD = CachePage::INDEX_PAGE_SIZE * 3;
+const uint32_t IndexPage::LOAD_THRESHOLD = CachePage::INDEX_PAGE_SIZE * 5;
 const uint16_t IndexPage::PAGE_LEVEL_OFFSET = 0;
 const uint16_t IndexPage::PAGE_BEGIN_END_OFFSET = 1;
 const uint16_t IndexPage::PAGE_TRAN_COUNT_OFFSET = 2;
@@ -19,5 +19,26 @@ const uint16_t IndexPage::PARENT_PAGE_POINTER_OFFSET = 8;
 IndexPage::~IndexPage() {
   _indexTree->DecPages(1);
   CachePool::ReleasePage(_bysPage);
+}
+void IndexPage::AfterRead() {
+  boost::crc_32_type crc32;
+  crc32.reset();
+  crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
+  if (crc32.checksum() != (uint32_t)ReadInt(CRC32_INDEX_OFFSET)) {
+    _pageStatus.store(PageStatus::INVALID, memory_order_relaxed);
+    // TO DO
+    // Now if cache page is invalid, it will abort; In following version, it
+    // will add the function to fix the invalid page
+    abort();
+  } else {
+    _bDirty = false;
+    InitParameters();
+    if (_parentPage != nullptr && _parentPage->GetPageId() != _parentPageId)
+        [[unlikely]] {
+      _parentPageId = _parentPage->GetPageId();
+      _bDirty = true;
+      _pageStatus.store(PageStatus::READED, memory_order_release);
+    }
+  }
 }
 } // namespace storage

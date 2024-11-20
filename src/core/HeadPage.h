@@ -61,7 +61,7 @@ protected:
   /**The count of alterable columns in value*/
   uint16_t _valueAlterableFieldCount = 0;
   /**The stamp versions that this table support in current time*/
-  uint8_t _recordVerCount = 0;
+  uint8_t _recordVerCount = 1;
   /**Index type, primary, unique or non-unique*/
   IndexType _indexType = IndexType::PRIMARY;
   /**the count of total pages in this index*/
@@ -113,7 +113,9 @@ public:
   inline VersionStamp GetAndIncRecordStamp(uint64_t num = 1) {
     _bDirty = true;
     if (num == 1) {
-      return _currRecordStamp++;
+      auto tmp = _currRecordStamp;
+      _currRecordStamp++;
+      return tmp;
     } else {
       return atomic_ref<VersionStamp>(_currRecordStamp)
           .fetch_add(num, memory_order_relaxed);
@@ -123,7 +125,7 @@ public:
    * @brief Here does not consider data consistency, the caller should consider
    * it.
    */
-  inline VersionStamp ReadRecordStamp() { return _currRecordStamp; }
+  inline VersionStamp GetRecordStamp() { return _currRecordStamp; }
   // Set current record stamp when recover table from crash
   void SetRecordStamp(VersionStamp recordStamp) {
     _currRecordStamp = recordStamp;
@@ -155,7 +157,7 @@ public:
    * @brief Here does not consider data consistency, the caller should consider
    * it.
    */
-  inline uint32_t ReadTotalPageCount() { return _totalPageCount; }
+  inline uint32_t GetTotalPageCount() { return _totalPageCount; }
   /**
    * @brief Only used to recover table from crash
    */
@@ -168,23 +170,24 @@ public:
    * @param recNum The record number to update.
    * @param atm
    */
-  inline uint64_t IncAndGetTotalRecordCount(uint64_t recNum = 1,
+  inline uint64_t GetAndIncTotalRecordCount(uint64_t recNum = 1,
                                             bool atm = false) {
     _bDirty = true;
     if (atm) {
       uint64_t val = atomic_ref<uint64_t>(_totalRecordCount)
                          .fetch_add(recNum, memory_order_relaxed);
-      return val + recNum;
+      return val;
     } else {
+      auto tmp = _totalRecordCount;
       _totalRecordCount += recNum;
-      return _totalRecordCount;
+      return tmp;
     }
   }
   /**
    * @brief Read total record count. Here does not consider data consistency,
    * the caller should consider it.
    */
-  inline uint64_t ReadTotalRecordCount() { return _totalRecordCount; }
+  inline uint64_t GetTotalRecordCount() { return _totalRecordCount; }
   /**
    * @brief Only used to recover table from crash
    */
@@ -230,7 +233,7 @@ public:
    * @brief Get begin leaf page. Here does not consider data consistency,
    * the caller should consider it.
    */
-  inline uint64_t GetEndLeafPagePointer() { return _endLeafPageId; }
+  inline uint64_t GetEndLeafPageID() { return _endLeafPageId; }
   /**
    * @brief Get Index Type.
    */
@@ -245,11 +248,12 @@ public:
    * tree.
    * @return The start key
    */
-  inline uint64_t GetAndAddAutoIncrementKey(uint64_t step = 1) {
+  inline uint64_t GetAndIncAutoIncrementKey(uint64_t step = 1) {
     _bDirty = true;
     if (step == 1) {
+      auto tmp = _autoIncrementKey;
       _autoIncrementKey++;
-      return _autoIncrementKey;
+      return tmp;
     } else {
       return atomic_ref<uint64_t>(_autoIncrementKey)
           .fetch_add(step, memory_order_relaxed);

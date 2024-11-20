@@ -48,31 +48,34 @@ bool BranchPage::SaveRecords() {
     _parentPageId = _parentPage->GetPageId();
   }
 
-  Byte *tmp = _bysPage;
-  _bysPage = CachePool::ApplyPage();
+  if (_bRecordUpdated) {
+    Byte *tmp = _bysPage;
+    _bysPage = CachePool::ApplyPage();
 
-  _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
-  _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
+    _bysPage[PAGE_LEVEL_OFFSET] = tmp[PAGE_LEVEL_OFFSET];
+    _bysPage[PAGE_BEGIN_END_OFFSET] = tmp[PAGE_BEGIN_END_OFFSET];
+
+    uint16_t rec_pos = (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * UI16_LEN);
+    uint16_t off_pos = DATA_BEGIN_OFFSET;
+    Byte *bys_rec = _bysPage + rec_pos;
+
+    for (int i = 0; i < _vctRecord.size(); i++) {
+      WriteShort(off_pos, rec_pos);
+      BranchRecord *rr = (BranchRecord *)_vctRecord[i];
+      uint16_t sz = rr->SaveData(bys_rec);
+      rr->UpdateBysValue(bys_rec);
+      bys_rec += sz;
+      rec_pos += sz;
+      off_pos += UI16_LEN;
+    }
+
+    CachePool::ReleasePage(tmp);
+    _bRecordUpdated = false;
+  }
 
   WriteInt(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
   WriteShort(TOTAL_DATA_LENGTH_OFFSET, _committedDataLength);
   WriteShort(NUM_RECORD_OFFSET, _recordNum);
-
-  uint16_t rec_pos = (uint16_t)(DATA_BEGIN_OFFSET + _recordNum * UI16_LEN);
-  uint16_t off_pos = DATA_BEGIN_OFFSET;
-  Byte *bys_rec = _bysPage + rec_pos;
-
-  for (int i = 0; i < _vctRecord.size(); i++) {
-    WriteShort(off_pos, rec_pos);
-    BranchRecord *rr = (BranchRecord *)_vctRecord[i];
-    uint16_t sz = rr->SaveData(bys_rec);
-    rr->UpdateBysValue(bys_rec);
-    bys_rec += sz;
-    rec_pos += sz;
-    off_pos += UI16_LEN;
-  }
-
-  CachePool::ReleasePage(tmp);
   _bDirty = false;
   return true;
 }
@@ -89,6 +92,7 @@ BranchRecord *BranchPage::DeleteRecord(uint16_t index) {
   _recordNum--;
   _vctRecord.erase(_vctRecord.begin() + index);
   _bDirty = true;
+  _bRecordUpdated = true;
   return brDel;
 }
 
@@ -103,6 +107,7 @@ void BranchPage::InsertRecord(BranchRecord *record, int32_t pos) {
   _committedDataLength += record->GetTotalLength() + UI16_LEN;
   _vctRecord.insert(_vctRecord.begin() + pos, record);
   _recordNum++;
+  _bRecordUpdated = true;
   _bDirty = true;
 }
 
@@ -116,6 +121,7 @@ bool BranchPage::AddRecord(BranchRecord *rr) {
   _committedDataLength += rr->GetTotalLength() + UI16_LEN;
   _vctRecord.push_back(rr);
   _recordNum++;
+  _bRecordUpdated = true;
   _bDirty = true;
 
   return true;
@@ -238,7 +244,8 @@ IndexPage *BranchPage::GetChild(int32_t pos) {
   return br->GetChildPage();
 }
 
-bool BranchPage::SplitPage(MHashSet<CachePage *> &pageSet, Byte lockLevel) {
+bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
+                           Byte lockLevel) {
   if (_pageStatus.load(memory_order_relaxed) != PageStatus::VALID) {
     return false;
   }
@@ -251,16 +258,20 @@ bool BranchPage::SplitPage(MHashSet<CachePage *> &pageSet, Byte lockLevel) {
   }
 
   BranchRecord *brParentOld = nullptr;
-  BranchPage *parentPage = nullptr;
   int posInParent = 0;
+
   if (_parentPageId == PAGE_NULL_POINTER) {
-    parentPage = (BranchPage *)_indexTree
-                     ->ApplyIndexPages(nullptr, GetPageLevel() + 1, 1, block)
-                     .at(0);
-    parentPage->SetBeginPage(true);
-    parentPage->SetEndPage(true);
-    _parentPageId = parentPage->GetPageId();
+    _parentPage = (BranchPage *)_indexTree
+                      ->ApplyIndexPages(nullptr, GetPageLevel() + 1, 1, block)
+                      .at(0);
+    _parentPage->SetBeginPage(true);
+    _parentPage->SetEndPage(true);
+    _parentPageId = _parentPage->GetPageId();
   } else {
+    assert(_parentPage != nullptr &&
+           (_parentPage->GetPageStatus() == PageStatus::VALID ||
+            _parentPage->GetPageStatus() == PageStatus::WRITING));
+
     if (lockLevel <= _parentPage->GetPageLevel()) {
       _parentPage->Lock();
     }
@@ -276,7 +287,7 @@ bool BranchPage::SplitPage(MHashSet<CachePage *> &pageSet, Byte lockLevel) {
     brParentOld = ((BranchPage *)_parentPage)->DeleteRecord(posInParent);
   }
 
-  int maxLen = GetMaxDataLength() * LOAD_FACTOR / 100;
+  int limitLen = GetMaxDataLength() * LOAD_FACTOR / 100;
   int pos = 0;
   int len = 0;
 
@@ -286,7 +297,7 @@ bool BranchPage::SplitPage(MHashSet<CachePage *> &pageSet, Byte lockLevel) {
     RawRecord *rr = _vctRecord[pos];
 
     len += rr->GetTotalLength() + sizeof(uint16_t);
-    if (len > maxLen) {
+    if (len > limitLen) {
       if (len > GetMaxDataLength()) {
         len -= rr->GetTotalLength() + sizeof(uint16_t);
         pos--;
@@ -301,29 +312,35 @@ bool BranchPage::SplitPage(MHashSet<CachePage *> &pageSet, Byte lockLevel) {
   vctPos.push_back(pos);
   vctLen.push_back(len);
   _committedDataLength = vctLen[0];
-  _recordNum = vctLen[0];
+  _recordNum = vctPos[0];
 
   Byte level = GetPageLevel();
   MVector<IndexPage *> vctPage =
-      _indexTree->ApplyIndexPages(parentPage, level, vctPos.size() - 1, block);
+      _indexTree->ApplyIndexPages(_parentPage, level, vctPos.size() - 1, block);
 
   for (size_t i = 0; i < vctPage.size(); i++) {
     BranchPage *newPage = (BranchPage *)vctPage[i];
     newPage->_vctRecord.insert(newPage->_vctRecord.end(),
                                _vctRecord.begin() + vctPos[i],
                                _vctRecord.begin() + vctPos[i + 1]);
-    newPage->SetDirty(true);
+    newPage->SetDirty();
+    newPage->SetRecordUpdated();
     newPage->_committedDataLength = vctLen[i + 1];
     newPage->_recordNum = (uint32_t)newPage->_vctRecord.size();
   }
 
   _vctRecord.erase(_vctRecord.begin() + vctPos[0], _vctRecord.end());
 
+  if (IsEndPage()) {
+    SetEndPage(false);
+    vctPage[vctPage.size() - 1]->SetEndPage(true);
+  }
+
   // Insert this page' key and id to parent page
   RawRecord *last = _vctRecord[_vctRecord.size() - 1];
   BranchRecord *rec = new BranchRecord(
       _indexTree->GetHeadPage()->GetIndexType(), last, GetPageId(), this);
-  parentPage->InsertRecord(rec, posInParent);
+  _parentPage->InsertRecord(rec, posInParent);
   posInParent++;
 
   // Insert new page' key and id to parent page
@@ -341,7 +358,7 @@ bool BranchPage::SplitPage(MHashSet<CachePage *> &pageSet, Byte lockLevel) {
                              brPage->GetPageId(), brPage);
     }
 
-    parentPage->InsertRecord(rec, posInParent + i);
+    _parentPage->InsertRecord(rec, posInParent + i);
 
     for (RawRecord *rr : brPage->_vctRecord) {
       BranchRecord *br = (BranchRecord *)rr;
@@ -355,21 +372,23 @@ bool BranchPage::SplitPage(MHashSet<CachePage *> &pageSet, Byte lockLevel) {
 
       childPage->SetParentPage(brPage);
       childPage->SetParentPageID(brPage->GetPageId());
-      childPage->AddWriteQueue(pageSet);
+      childPage->SetDirty();
+      childPage->AddWriteQueue(pageMap);
     }
 
+    brPage->SetRecordUpdated();
+    brPage->SetDirty();
     brPage->SaveRecords();
-    brPage->AddWriteQueue(pageSet);
+    brPage->AddWriteQueue(pageMap);
   }
 
-  if (IsEndPage()) {
-    SetEndPage(false);
-    vctPage[vctPage.size() - 1]->SetEndPage(true);
-  }
-
+  SetRecordUpdated();
   SaveRecords();
-  AddWriteQueue(pageSet);
-  parentPage->AddWriteQueue(pageSet);
+  SetDirty();
+  AddWriteQueue(pageMap);
+  _parentPage->SetRecordUpdated();
+  _parentPage->SetDirty();
+  _parentPage->AddWriteQueue(pageMap);
 
   if (lockLevel <= GetPageLevel()) {
     if (brParentOld != nullptr && lockLevel <= _parentPage->GetPageLevel()) {
@@ -377,6 +396,15 @@ bool BranchPage::SplitPage(MHashSet<CachePage *> &pageSet, Byte lockLevel) {
     }
 
     _spinLock.unlock();
+  }
+
+  if (brParentOld != nullptr) {
+    delete brParentOld;
+    if (_parentPage->NeedForceSplit()) {
+      _parentPage->SplitPage(pageMap, pageLevel);
+    }
+  } else {
+    _indexTree->UpdateRootPage(_parentPage, block);
   }
 
   return true;

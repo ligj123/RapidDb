@@ -1,10 +1,12 @@
 ﻿#include "../../src/core/BranchPage.h"
 #include "../../src/core/BranchRecord.h"
 #include "../../src/core/IndexTree.h"
+#include "../../src/core/LeafPage.h"
 #include "../../src/dataType/DataValueDigit.h"
 #include "../../src/dataType/DataValueVarChar.h"
 #include "../../src/pool/CachePagePool.h"
 #include "../../src/utils/BytesFuncs.h"
+#include "../../src/utils/Log.h"
 #include "../../src/utils/Utilitys.h"
 #include "../TestHeader.h"
 
@@ -14,6 +16,8 @@
 namespace storage {
 BOOST_AUTO_TEST_SUITE(CoreTest)
 BOOST_AUTO_TEST_CASE(BranchPage_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testBranchPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
@@ -85,6 +89,8 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME =
       ROOT_PATH + "/testBranchPageSave" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
@@ -138,6 +144,8 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testBranchPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
   const int ROW_COUNT = 100;
@@ -200,6 +208,8 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME =
       ROOT_PATH + "/testBranchPageSearchKey" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
@@ -245,5 +255,173 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
   dvVal->DecRef();
   CachePagePool::ClearPool();
 }
+
+BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
+  const string FILE_NAME =
+      ROOT_PATH + "/testBranchPageSplit" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = IndexPage::MAX_DATA_LENGTH_BRANCH / 10;
+  MTreeMap<uint64_t, CachePage *> pageMap;
+
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, GetFileId(), IndexType::PRIMARY);
+  HeadPage *hp = indexTree->GetHeadPage();
+  MVector<IndexPage *> vctPage =
+      indexTree->ApplyIndexPages(nullptr, 0, ROW_COUNT, false);
+  BranchPage *bp =
+      (BranchPage *)indexTree->ApplyIndexPages(nullptr, 1, 1, false)[0];
+  bp->SetBeginPage(true);
+  bp->SetEndPage(true);
+
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
+
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i + ROW_COUNT;
+    *((DataValueLong *)vctVal[0]) = i + ROW_COUNT + 100LL;
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal,
+                                    hp->GetAndIncRecordStamp(), nullptr);
+    LeafPage *lp = (LeafPage *)vctPage[i];
+    lp->SetParentPage(bp);
+    lp->SetParentPageID(bp->GetPageId());
+    lp->InsertRecord(lr, 0);
+    BranchRecord *br =
+        new BranchRecord(IndexType::PRIMARY, lr, lp->GetPageId(), lp);
+    bp->InsertRecord(br, i);
+  }
+
+  bool b = bp->SplitPage(pageMap, UINT8_MAX);
+  BOOST_TEST(b);
+
+  BranchPage *root = (BranchPage *)bp->GetParentPage();
+  size_t mapSize =
+      ROW_COUNT - bp->GetRecordNumber() + 1 + root->GetRecordNumber();
+  size_t rootSize = root->GetRecordNumber();
+  BOOST_TEST(pageMap.size() == mapSize);
+
+  int count = 0;
+  int limitLen = root->GetMaxDataLength() * IndexPage::LOAD_FACTOR / 100;
+  int maxLen = root->GetMaxDataLength();
+  BranchRecord *pbr = nullptr;
+
+  for (uint32_t i = 0; i < root->GetRecordNumber(); i++) {
+    BranchRecord &br = root->GetRecord(i, false);
+    if (pbr != nullptr) {
+      BOOST_TEST(br.CompareKey(*pbr) > 0);
+    }
+
+    BranchPage *page = (BranchPage *)br.GetChildPage();
+    if (i < root->GetRecordNumber() - 1) {
+      BOOST_TEST(page->GetCommitedDataLength() >= limitLen);
+    }
+    BOOST_TEST(page->GetCommitedDataLength() <= maxLen);
+    BOOST_TEST(page->GetPageId() == br.GetChildPageId());
+    BOOST_TEST(page->GetParentPage() == root);
+
+    pbr = &br;
+    BranchRecord *pcbr = nullptr;
+
+    for (uint32_t j = 0; j < page->GetRecordNumber(); j++) {
+      BranchRecord &cbr = page->GetRecord(j, false);
+      if (pcbr != nullptr) {
+        BOOST_TEST(cbr.CompareKey(*pcbr) > 0);
+      }
+
+      LeafPage *cpage = (LeafPage *)cbr.GetChildPage();
+      BOOST_TEST(cpage->GetPageId() == cbr.GetChildPageId());
+      BOOST_TEST(cpage->GetParentPage() == page);
+      BOOST_TEST(cpage->GetParentPageId() == page->GetPageId());
+
+      pcbr = &cbr;
+      count++;
+    }
+
+    BOOST_TEST(pcbr->CompareKey(*pbr) == 0);
+  }
+
+  BOOST_TEST(count == ROW_COUNT);
+
+  MVector<IndexPage *> vctPage2 =
+      indexTree->ApplyIndexPages(nullptr, 0, ROW_COUNT, false);
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = i;
+    *((DataValueLong *)vctVal[0]) = i + 100LL;
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal,
+                                    hp->GetAndIncRecordStamp(), nullptr);
+    LeafPage *lp = (LeafPage *)vctPage2[i];
+    lp->SetParentPage(bp);
+    lp->SetParentPageID(bp->GetPageId());
+    lp->InsertRecord(lr, 0);
+    BranchRecord *br =
+        new BranchRecord(IndexType::PRIMARY, lr, lp->GetPageId(), lp);
+    bp->InsertRecord(br, i);
+  }
+
+  size_t bpSize = bp->GetRecordNumber();
+  b = bp->SplitPage(pageMap, UINT8_MAX);
+  BOOST_TEST(b);
+
+  mapSize +=
+      bpSize - bp->GetRecordNumber() + root->GetRecordNumber() - rootSize;
+  BOOST_TEST(pageMap.size() == mapSize);
+
+  pbr = nullptr;
+  count = 0;
+
+  for (uint32_t i = 0; i < root->GetRecordNumber(); i++) {
+    BranchRecord &br = root->GetRecord(i, false);
+    if (pbr != nullptr) {
+      BOOST_TEST(br.CompareKey(*pbr) > 0);
+    }
+
+    BranchPage *page = (BranchPage *)br.GetChildPage();
+    BOOST_TEST(page->GetCommitedDataLength() <= maxLen);
+    BOOST_TEST(page->GetPageId() == br.GetChildPageId());
+    BOOST_TEST(page->GetParentPage() == root);
+
+    pbr = &br;
+    BranchRecord *pcbr = nullptr;
+
+    for (uint32_t j = 0; j < page->GetRecordNumber(); j++) {
+      BranchRecord &cbr = page->GetRecord(j, false);
+      if (pcbr != nullptr) {
+        BOOST_TEST(cbr.CompareKey(*pcbr) > 0);
+      }
+
+      LeafPage *cpage = (LeafPage *)cbr.GetChildPage();
+      BOOST_TEST(cpage->GetPageId() == cbr.GetChildPageId());
+      BOOST_TEST(cpage->GetParentPage() == page);
+      BOOST_TEST(cpage->GetParentPageId() == page->GetPageId());
+      cpage->SetReferred(false);
+
+      pcbr = &cbr;
+      count++;
+    }
+
+    BOOST_TEST(pcbr->CompareKey(*pbr) == 0);
+    BOOST_TEST(page->IsBeginPage() == (i == 0));
+    BOOST_TEST(page->IsEndPage() == (i == root->GetRecordNumber() - 1));
+    page->SetReferred(false);
+  }
+
+  BOOST_TEST(count == 2 * ROW_COUNT);
+  BOOST_TEST(root->IsBeginPage());
+  BOOST_TEST(root->IsEndPage());
+  root->SetReferred(false);
+
+  indexTree->Close();
+  CachePagePool::ClearPool();
+  delete indexTree;
+  delete dvKey;
+  delete dvVal;
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

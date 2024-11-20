@@ -30,9 +30,9 @@ void HeadPage::InitHeadPage(IndexType iType, const VectorDataValue &vctVal) {
   memset(_bysPage, 0, PageSize());
   WriteByte(PAGE_TYPE_OFFSET, (Byte)PageType::HEAD_PAGE);
   _indexType = iType;
-  WriteByte(PAGE_TYPE_OFFSET, (Byte)iType);
+  WriteByte(INDEX_TYPE_OFFSET, (Byte)iType);
   _recordVerCount = 1;
-  WriteByte(RECORD_VERSION_COUNT_OFFSET, 1);
+  WriteByte(RECORD_VERSION_COUNT_OFFSET, _recordVerCount);
   WriteFileVersion();
 
   // In this version do not need to consider key veriable length fileds.
@@ -49,7 +49,7 @@ void HeadPage::InitHeadPage(IndexType iType, const VectorDataValue &vctVal) {
 void HeadPage::InitParameters() {
   assert((PageType)ReadByte(PAGE_TYPE_OFFSET) == PageType::HEAD_PAGE);
   assert(CURRENT_FILE_VERSION == ReadFileVersion());
-  assert(_pageStatus.load(memory_order_relaxed) == PageStatus::VALID);
+  _pageStatus.store(PageStatus::VALID, memory_order_relaxed);
 
   _indexType = (IndexType)ReadByte(INDEX_TYPE_OFFSET);
   _keyAlterableFieldCount = ReadShort(KEY_ALTERABLE_FIELD_COUNT_OFFSET);
@@ -69,6 +69,7 @@ bool HeadPage::SaveToBuffer() {
   if (!_bDirty || _pageStatus.load(memory_order_relaxed) != PageStatus::VALID)
     return false;
 
+  WriteByte(RECORD_VERSION_COUNT_OFFSET, _recordVerCount);
   WriteLong(TOTAL_PAGES_COUNT_OFFSET, _totalPageCount);
   WriteLong(ROOT_PAGE_OFFSET, _rootPageId);
   WriteLong(BEGIN_LEAF_PAGE_OFFSET, _beginLeafPageId);

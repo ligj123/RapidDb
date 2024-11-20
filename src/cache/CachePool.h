@@ -106,9 +106,9 @@ public:
   /**Apply a memory block from cache*/
   static inline Byte *Apply(uint32_t bufSize) {
     uint32_t sz = CalcBufSize(bufSize);
-    if (sz == UINT32_MAX)
-      return new Byte[bufSize];
-    else {
+    if (sz == UINT32_MAX) {
+      return MallocLargeBlock(bufSize);
+    } else {
       CachePool *pool = GetInstance();
       return pool->_localMap.Pop(sz);
     }
@@ -118,7 +118,7 @@ public:
     realSize = CalcBufSize(bufSize);
     if (realSize == UINT32_MAX) {
       realSize = bufSize;
-      return new Byte[realSize];
+      return MallocLargeBlock(bufSize);
     } else {
       CachePool *pool = GetInstance();
       return pool->_localMap.Pop((uint16_t)realSize);
@@ -127,9 +127,9 @@ public:
   /**Release a memory block with unfixed size*/
   static inline void Release(Byte *pBuf, uint32_t bufSize) {
     uint32_t sz = CalcBufSize(bufSize);
-    if (sz == UINT32_MAX)
-      delete[] pBuf;
-    else {
+    if (sz == UINT32_MAX) {
+      FreeLargeBlock(pBuf, bufSize);
+    } else {
       CachePool *pool = GetInstance();
       pool->_localMap.Push(pBuf, (uint16_t)sz);
     }
@@ -149,7 +149,6 @@ protected:
   static void BatchRelease(uint32_t bufSize, vector<Byte *> &vct,
                            bool bAll = false);
 
-protected:
   static inline uint32_t CalcBufSize(uint32_t sz) {
     if (sz <= 64)
       return ((sz + 15) & 0xFFF0);
@@ -164,6 +163,12 @@ protected:
     else
       return UINT32_MAX;
   }
+
+  static Byte *MallocLargeBlock(uint32_t bufsize);
+
+  static void FreeLargeBlock(Byte *buf, uint32_t bufsize);
+
+protected:
   static thread_local LocalMap _localMap;
   static CachePool *_gCachePool;
 

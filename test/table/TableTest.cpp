@@ -3,6 +3,7 @@
 // #include "../../src/table/Column.h"
 // #include "../../src/table/Database.h"
 // #include "../../src/utils/Utilitys.h"
+// #include "../../src/utils/Log.h"
 
 // #include <boost/test/unit_test.hpp>
 // #include <cstring>

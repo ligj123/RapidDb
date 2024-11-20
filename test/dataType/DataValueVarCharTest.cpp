@@ -1,11 +1,15 @@
 ﻿#include "../../src/dataType/DataValueVarChar.h"
 #include "../../src/dataType/DataValueDigit.h"
+#include "../../src/utils/Log.h"
+
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(DataTypeTest)
 
 BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   DataValueVarChar dv1;
   BOOST_TEST(dv1.GetDataType() == DataType::VARCHAR);
   BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
@@ -125,6 +129,8 @@ BOOST_AUTO_TEST_CASE(DataValueVarChar_test) {
 }
 
 BOOST_AUTO_TEST_CASE(DataValueVarCharCopy_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   class DataValueVarCharEx : public DataValueVarChar {
   public:
     using DataValueVarChar::bysValue_;

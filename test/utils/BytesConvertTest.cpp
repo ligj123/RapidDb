@@ -1,4 +1,6 @@
 #include "../../src/utils/BytesFuncs.h"
+#include "../../src/utils/Log.h"
+
 #include <boost/test/unit_test.hpp>
 #include <string>
 
@@ -8,6 +10,8 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(BytesConvert_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   int64_t val = 0x0102030405060708LL;
   int64_t rt = Int64FromBytes((Byte *)&val, false);
   BOOST_TEST(rt == 0x0102030405060708LL);

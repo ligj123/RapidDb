@@ -1,4 +1,6 @@
 ﻿#include "../../src/utils/ConcurrentHashMap.h"
+#include "../../src/utils/Log.h"
+
 #include <boost/test/unit_test.hpp>
 #include <string>
 
@@ -8,6 +10,8 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   class ConcurrentHashMapEx : public ConcurrentHashMap<int, MString, false> {
   public:
     using ConcurrentHashMap::_groupCount;
@@ -52,6 +56,8 @@ BOOST_AUTO_TEST_CASE(ConcurrentHashMap_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ConcurrentHashMap_UseFunc_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   int64_t count = 0;
   ConcurrentHashMap<int, int, true> hMap(
       100, 1000000, [&count](int ii) { count += ii; },

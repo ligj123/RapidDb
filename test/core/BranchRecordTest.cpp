@@ -5,6 +5,7 @@
 #include "../../src/pool/CachePagePool.h"
 #include "../../src/statement/Statement.h"
 #include "../../src/utils/BytesFuncs.h"
+#include "../../src/utils/Log.h"
 #include "../../src/utils/Utilitys.h"
 #include "../TestHeader.h"
 
@@ -25,6 +26,8 @@ public:
 
 BOOST_AUTO_TEST_SUITE(CoreTest)
 BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME =
       ROOT_PATH + "/testBranchRecord_PrimaryKey_test" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
@@ -68,7 +71,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
   BOOST_TEST(br->GetChildPage() == bp);
   BOOST_TEST(br2->GetChildPage() == bp);
 
-  lr->SetRecordStatus(RecordStatus::ROLLBACKED);
+  lr->SubmitStatement(stmt, RecordStatus::ROLLBACKED);
   lr->ReleaseLock(&indexTree, false);
   delete lr;
   delete br;
@@ -80,6 +83,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME1 =
       ROOT_PATH + "/testBranchRecord_PriKey_test" + StrMSTime() + ".dat";
   const string TABLE_NAME1 = "testPriTable";
@@ -129,11 +134,11 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
   BOOST_TEST(br2->GetBysValue() == buff);
   BOOST_TEST(br->GetTotalLength() == br2->GetTotalLength());
 
-  lr->SetRecordStatus(RecordStatus::COMMITED);
+  lr->SubmitStatement(stmt, RecordStatus::COMMITED);
   lr->ReleaseLock(&indexPri, false);
   delete lr;
 
-  lrSec->SetRecordStatus(RecordStatus::COMMITED);
+  lrSec->SubmitStatement(stmt, RecordStatus::COMMITED);
   lrSec->ReleaseLock(&indexSec, false);
   delete lrSec;
 
@@ -146,6 +151,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
 }
 
 BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME1 =
       ROOT_PATH + "/testBranchRecord_PriKey_test" + StrMSTime() + ".dat";
   const string TABLE_NAME1 = "testPriTable";
@@ -197,11 +204,11 @@ BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   BOOST_TEST(br2->GetBysValue() == buff);
   BOOST_TEST(br->GetTotalLength() == br2->GetTotalLength());
 
-  lr->SetRecordStatus(RecordStatus::COMMITED);
+  lr->SubmitStatement(stmt, RecordStatus::COMMITED);
   lr->ReleaseLock(&indexPri, false);
   delete lr;
 
-  lrSec->SetRecordStatus(RecordStatus::COMMITED);
+  lrSec->SubmitStatement(stmt, RecordStatus::COMMITED);
   lrSec->ReleaseLock(&indexSec, false);
   delete lrSec;
 

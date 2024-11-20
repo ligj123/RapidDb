@@ -1,10 +1,14 @@
 ﻿#include "../../src/utils/SpinMutex.h"
+#include "../../src/utils/Log.h"
+
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(SpinMutexTest)
 
 BOOST_AUTO_TEST_CASE(SpinMutex_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   SpinMutex sm;
   BOOST_TEST(sm.try_lock());
   BOOST_TEST(sm.is_locked());
@@ -35,6 +39,8 @@ BOOST_AUTO_TEST_CASE(SpinMutex_test) {
 }
 
 BOOST_AUTO_TEST_CASE(SharedSpinMutex_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   SharedSpinMutex sm;
   BOOST_TEST(sm.try_lock());
   BOOST_TEST(!sm.try_lock_shared());
@@ -126,6 +132,8 @@ BOOST_AUTO_TEST_CASE(SharedSpinMutex_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   ReentrantSpinMutex sm;
   BOOST_TEST(sm.try_lock());
   BOOST_TEST(sm.is_locked());
@@ -185,6 +193,8 @@ BOOST_AUTO_TEST_CASE(ReentrantSpinMutex_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ReentrantSharedSpinMutex_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   ReentrantSharedSpinMutex sm;
   BOOST_TEST(sm.try_lock());
   BOOST_TEST(!sm.try_lock_shared());

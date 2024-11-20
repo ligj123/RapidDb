@@ -26,7 +26,7 @@ public:
   RawKey(Byte *bys, uint32_t len, bool sole = false)
       : _bysVal(bys), _length(len), _bSole(sole) {}
 
-  RawKey(uint32_t len, const Byte *bys) : _length(len), _bSole(false) {
+  RawKey(uint32_t len, const Byte *bys) : _length(len), _bSole(true) {
     _bysVal = CachePool::Apply(_length);
     BytesCopy(_bysVal, bys, _length);
   }

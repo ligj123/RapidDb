@@ -142,12 +142,7 @@ public:
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
              const VectorDataValue &vctVal, uint64_t recStamp,
              Statement *stmt = nullptr, bool block = true);
-  LeafRecord(LeafRecord &&src)
-      : RawRecord(move(src)), _recLock(src._recLock),
-        _overflowPage(src._overflowPage) {
-    src._recLock = nullptr;
-    src._overflowPage = nullptr;
-  }
+  LeafRecord(LeafRecord &&src) = delete;
   LeafRecord(const LeafRecord &src) = delete;
   LeafRecord() : RawRecord() {}
   ~LeafRecord() {
@@ -170,16 +165,16 @@ public:
   }
   LeafRecord &operator=(const LeafRecord &src) = delete;
 
-  int32_t UpdateRecord(LeafPage *parentPage, const VectorDataValue &newVal,
-                       uint64_t recStamp, Statement *stmt, ActionType type,
-                       bool gapLock, bool block);
+  LeafRecord *UpdateRecord(IndexTree *idxTree, const VectorDataValue &newVal,
+                           uint64_t recStamp, Statement *stmt, ActionType type,
+                           bool gapLock, bool block);
 
   ReadResult ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
-                           VectorDataValue &vct, LeafPage *parentPage,
+                           VectorDataValue &vct, IndexTree *idxTree,
                            Statement *stmt = nullptr,
                            ActionType atype = ActionType::NO_ACTION,
                            bool bGapLock = false);
-  bool LoadOverflowPage(IndexTree *idxTree);
+  bool LoadOverflowPage(IndexTree *idxTree, bool bsync = false);
   ReleaseResult ReleaseLock(IndexTree *idxTree, bool block);
   uint16_t GetValueLength() const override;
 
@@ -188,11 +183,17 @@ public:
    */
   bool ReleaseLockAble() const;
 
+  void SubmitStatement(Statement &stmt, RecordStatus s);
+
+  /**
+   * @brief Get key from record, deep copy
+   */
   inline RawKey GetKey() const {
     return RawKey(GetKeyLength(), _bysVal + UI16_2_LEN);
   }
 
-  /**Only for secondary index, Get the primary key, deep copy.*/
+  /**
+   * @brief Only for secondary index, Get the primary key, deep copy.*/
   inline RawKey GetPrimayKey() const {
     int start = GetKeyLength() + UI16_2_LEN;
     int len = GetTotalLength() - start - UI64_LEN;
@@ -206,19 +207,18 @@ public:
   }
 
   inline int CompareKey(const RawKey &key) const {
-    return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength() - UI16_2_LEN,
-                        key.GetBysVal(), key.GetLength());
+    return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(), key.GetBysVal(),
+                        key.GetLength());
   }
   inline int CompareKey(const LeafRecord &lr) const {
-    return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength() - UI16_2_LEN,
-                        lr.GetBysValue() + UI16_2_LEN,
-                        lr.GetKeyLength() - UI16_2_LEN);
+    return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(),
+                        lr.GetBysValue() + UI16_2_LEN, lr.GetKeyLength());
   }
 
   /**Only the bytes' length in IndexPage, key length + value length without
    * overflow page content*/
   inline uint16_t GetTotalLength() const override {
-    if (_recLock->_actType == ActionType::DELETE) {
+    if (_recLock != nullptr && _recLock->_actType == ActionType::DELETE) {
       return 0;
     } else {
       return *((uint16_t *)_bysVal);
@@ -232,9 +232,6 @@ public:
     return len;
   }
 
-  inline bool IsSole() const override {
-    return _recLock == nullptr ? _bSole : _recLock->_undoRec->IsSole();
-  }
   /**-
    * @brief True: The record has committed or abort and can be visit and saved
    * into disk. False: The record is uncommitted.
@@ -242,12 +239,12 @@ public:
   inline bool IsStable() {
     if (_recLock == nullptr ||
         (_recLock->_actType & ActionType::UPDATE_MASK) == 0) {
-      return false;
-    } else if (_recLock->_status == RecordStatus::COMMITED) {
-      return false;
+      return true;
+    } else if (_recLock->_status >= RecordStatus::COMMITED) {
+      return true;
     }
 
-    return true;
+    return false;
   }
 
   inline bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
@@ -258,11 +255,6 @@ public:
 
   inline ActionType GetAction() {
     return _recLock == nullptr ? ActionType::NO_ACTION : _recLock->_actType;
-  }
-
-  inline void SetRecordStatus(RecordStatus s) {
-    assert(_recLock != nullptr);
-    _recLock->_status = s;
   }
 
   // To calc key length
@@ -280,6 +272,9 @@ public:
 
     return static_cast<uint16_t>(lenKey);
   }
+
+  OverflowPage *GetOverflowPage() { return _overflowPage; }
+  RecordLock *GetLock() { return _recLock; }
 
 protected:
   // To calc a version's value length

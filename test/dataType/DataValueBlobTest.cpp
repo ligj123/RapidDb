@@ -1,11 +1,15 @@
 ﻿#include "../../src/dataType/DataValueBlob.h"
 #include "../../src/dataType/DataValueDigit.h"
+#include "../../src/utils/Log.h"
+
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(DataTypeTest)
 
 BOOST_AUTO_TEST_CASE(DataValueBlob_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   DataValueBlob dv1;
   BOOST_TEST(dv1.GetDataType() == DataType::BLOB);
   BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
@@ -94,6 +98,8 @@ BOOST_AUTO_TEST_CASE(DataValueBlob_test) {
 }
 
 BOOST_AUTO_TEST_CASE(DataValueBlobCopy_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   class DataValueBlobEx : public DataValueBlob {
   public:
     using DataValueBlob::bysValue_;

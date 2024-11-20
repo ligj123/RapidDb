@@ -1,10 +1,14 @@
 ﻿#include "../../src/dataType/DataValueFixChar.h"
 #include "../../src/dataType/DataValueDigit.h"
+#include "../../src/utils/Log.h"
+
 #include <boost/test/unit_test.hpp>
 
 namespace storage {
 BOOST_AUTO_TEST_SUITE(DataTypeTest)
 BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   DataValueFixChar dv1;
   BOOST_TEST(dv1.GetDataType() == DataType::FIXCHAR);
   BOOST_TEST(dv1.GetValueType() == ValueType::NULL_VALUE);
@@ -127,6 +131,8 @@ BOOST_AUTO_TEST_CASE(DataValueFixChar_test) {
 }
 
 BOOST_AUTO_TEST_CASE(DataValueFixCharCopy_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   class DataValueFixCharEx : public DataValueFixChar {
   public:
     using DataValueFixChar::bysValue_;

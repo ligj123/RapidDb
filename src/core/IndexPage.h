@@ -13,6 +13,7 @@
 
 namespace storage {
 class HeadPage;
+class BranchPage;
 
 class IndexPage : public CachePage {
 public:
@@ -56,7 +57,9 @@ public:
     // New page, do not read data from disk and init.
     _pageStatus.store(PageStatus::VALID, memory_order_relaxed);
   }
+
   ~IndexPage() override;
+  void AfterRead() override;
 
   inline uint16_t GetMaxDataLength() const {
     return _pageType == PageType::LEAF_PAGE ? MAX_DATA_LENGTH_LEAF
@@ -67,31 +70,11 @@ public:
     _parentPageId = parentPageId;
     _bDirty = true;
   }
-  void AfterRead() override {
-    boost::crc_32_type crc32;
-    crc32.reset();
-    crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
-    if (crc32.checksum() != (uint32_t)ReadInt(CRC32_INDEX_OFFSET)) {
-      _pageStatus.store(PageStatus::INVALID, memory_order_relaxed);
-      // TO DO
-      // Now if cache page is invalid, it will abort; In following version, it
-      // will add the function to fix the invalid page
-      abort();
-    } else {
-      _bDirty = false;
-      InitParameters();
-      if (_parentPage != nullptr && _parentPage->GetPageId() != _parentPageId)
-          [[unlikely]] {
-        _parentPageId = _parentPage->GetPageId();
-        _bDirty = true;
-        _pageStatus.store(PageStatus::READED, memory_order_release);
-      }
-    }
-  }
+
   inline PageID GetParentPageId() { return _parentPageId; }
-  inline Byte GetPageLevel() { return _bysPage[PAGE_LEVEL_OFFSET]; }
+  Byte GetPageLevel() override { return _bysPage[PAGE_LEVEL_OFFSET]; }
   inline uint32_t GetCommitedDataLength() { return _committedDataLength; }
-  inline uint32_t GetTempDataLength() {
+  inline uint32_t GetTotalDataLength() {
     assert(_pageType == PageType::LEAF_PAGE);
     return _tempDataLength;
   }
@@ -112,10 +95,16 @@ public:
         bEnd ? (_bysPage[PAGE_BEGIN_END_OFFSET] | END_PAGE_BIT)
              : (_bysPage[PAGE_BEGIN_END_OFFSET] & NOT_END_PAGE_BIT);
   }
-  inline void SetParentPage(IndexPage *parentPage) { _parentPage = parentPage; }
-  inline IndexPage *GetParentPage() { return _parentPage; }
+  inline void SetParentPage(BranchPage *parentPage) {
+    _parentPage = parentPage;
+  }
+  inline BranchPage *GetParentPage() { return _parentPage; }
   uint32_t PageSize() const override { return INDEX_PAGE_SIZE; }
-
+  inline void SetRecordUpdated() { _bRecordUpdated = true; }
+  bool NeedForceSplit() {
+    return _committedDataLength > LOAD_THRESHOLD ||
+           _tempDataLength > _tempDataLength;
+  }
   virtual bool IsOverlength() = 0;
 
   /**
@@ -128,7 +117,7 @@ public:
    * @return True: The split conditions can be meet and has split this page
    *         False: Failed to split the page
    */
-  virtual bool SplitPage(MHashSet<CachePage *> &pageSet,
+  virtual bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
                          Byte pageLevel = 0xFF) = 0;
 
 protected:
@@ -142,7 +131,7 @@ protected:
   // The record number in this page
   uint32_t _recordNum{0};
   // parent page
-  IndexPage *_parentPage{nullptr};
+  BranchPage *_parentPage{nullptr};
   // The vector to save records in this page
   MVector<RawRecord *> _vctRecord;
 };

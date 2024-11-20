@@ -3,6 +3,14 @@
 #include "StackTrace.h"
 #include <iostream>
 
+#ifdef _MSVC_LANG
+#include <malloc.h>
+#include <stdio.h>
+#else
+#include <cstdio>
+#include <cstdlib>
+#endif // _MSVC_LANG
+
 namespace storage {
 CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
 thread_local LocalMap CachePool::_localMap;
@@ -208,9 +216,9 @@ void CachePool::ReleasePage(Byte *page) {
 Byte *CachePool::Apply(uint32_t bufSize) {
   assert(bufSize > 0);
   uint32_t sz = CalcBufSize(bufSize);
-  if (sz == UINT32_MAX)
-    return new Byte[bufSize];
-  else {
+  if (sz == UINT32_MAX) {
+    return MallocLargeBlock(bufSize);
+  } else {
     CachePool *pool = GetInstance();
     Byte *bys = pool->_localMap.Pop(sz);
 
@@ -227,7 +235,7 @@ Byte *CachePool::Apply(uint32_t bufSize, uint32_t &realSize) {
   realSize = CalcBufSize(bufSize);
   if (realSize == UINT32_MAX) {
     realSize = bufSize;
-    return new Byte[realSize];
+    return MallocLargeBlock(bufSize);
   } else {
     CachePool *pool = GetInstance();
     Byte *bys = pool->_localMap.Pop((uint16_t)realSize);
@@ -243,9 +251,9 @@ Byte *CachePool::Apply(uint32_t bufSize, uint32_t &realSize) {
 /**Release a memory block with unfixed size*/
 void CachePool::Release(Byte *pBuf, uint32_t bufSize) {
   uint32_t sz = CalcBufSize(bufSize);
-  if (sz == UINT32_MAX)
-    delete[] pBuf;
-  else {
+  if (sz == UINT32_MAX) {
+    FreeLargeBlock(pBuf, bufSize);
+  } else {
     CachePool *pool = GetInstance();
     pool->_localMap.Push(pBuf, (uint16_t)sz);
 
@@ -255,4 +263,28 @@ void CachePool::Release(Byte *pBuf, uint32_t bufSize) {
   }
 }
 #endif // CACHE_TRACE
+
+Byte *CachePool::MallocLargeBlock(uint32_t bufsize) {
+  if ((bufsize & 0x3FFF) == 0) {
+#ifdef _MSVC_LANG
+    return (Byte *)_aligned_malloc(bufsize, 4096);
+#else
+    return (Byte *)aligned_alloc(4096, bufsize);
+#endif // _MSVC_LANG
+  } else {
+    return new Byte[bufsize];
+  }
+}
+
+void CachePool::FreeLargeBlock(Byte *buf, uint32_t bufsize) {
+  if ((bufsize & 0xFFF) == 0) {
+#ifdef _MSVC_LANG
+    _aligned_free(buf);
+#else
+    free(buf);
+#endif // _MSVC_LANG
+  } else {
+    delete[] buf;
+  }
+}
 } // namespace storage

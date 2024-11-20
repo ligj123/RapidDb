@@ -2,6 +2,7 @@
 #include "../../src/utils/Log.h"
 #include "../../src/utils/RapidQueue.h"
 #include "../../src/utils/ThreadPool.h"
+
 #include <boost/test/unit_test.hpp>
 #include <string>
 #include <thread>
@@ -12,6 +13,8 @@ namespace storage {
 BOOST_AUTO_TEST_SUITE(UtilsTest)
 
 BOOST_AUTO_TEST_CASE(LineQueue_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   class LineqQueueEx : public LineQueue<uint64_t> {
   public:
     using LineQueue<uint64_t>::_startNode;
@@ -78,6 +81,8 @@ BOOST_AUTO_TEST_CASE(LineQueue_test) {
 }
 
 BOOST_AUTO_TEST_CASE(RapidQueue_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   const uint64_t CNT = 100000;
   uint64_t *arr = new uint64_t[CNT];
   for (size_t i = 0; i < CNT; i++) {
