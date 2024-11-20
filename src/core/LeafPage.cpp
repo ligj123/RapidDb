@@ -66,6 +66,7 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap,
     LeafRecord *lr = (LeafRecord *)_vctRecord[i];
 
     if (lr->GetLock() != nullptr && lr->ReleaseLockAble()) {
+      _bRecordUpdated = true;
       ReleaseResult res = lr->ReleaseLock(GetIndexTree(), block);
       if (res == ReleaseResult::DELETED) {
         assert(lr->_overflowPage == nullptr);
@@ -104,6 +105,7 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap,
     }
   }
 
+  _recordNum = vctLr.size();
   if (_committedDataLength > MAX_DATA_LENGTH_LEAF)
     return false;
 
@@ -127,15 +129,18 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap,
 
     CachePool::ReleasePage(tmp);
     _bRecordUpdated = false;
+
+    WriteShort(NUM_RECORD_OFFSET, (uint16_t)vctLr.size());
+    WriteShort(TOTAL_DATA_LENGTH_OFFSET, _committedDataLength);
   }
 
-  WriteShort(NUM_RECORD_OFFSET, (uint16_t)vctLr.size());
-  WriteShort(TOTAL_DATA_LENGTH_OFFSET, _committedDataLength);
   WriteInt(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
-
   WriteInt(PREV_PAGE_POINTER_OFFSET, _prevPageId);
   WriteInt(NEXT_PAGE_POINTER_OFFSET, _nextPageId);
 
+  boost::crc_32_type crc32;
+  crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
+  WriteInt(CRC32_INDEX_OFFSET, crc32.checksum());
   _bDirty = false;
   return true;
 }
@@ -147,6 +152,9 @@ void LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
   }
 
   _tempDataLength += lr->GetTotalLength() + UI16_LEN;
+  if (lr->GetLock() == nullptr) {
+    _committedDataLength += lr->GetTotalLength() + UI16_LEN;
+  }
   _vctRecord.insert(_vctRecord.begin() + pos, lr);
   _recordNum++;
 
@@ -164,6 +172,7 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
     LoadRecords();
   }
 
+  assert(lr->GetLock() == nullptr);
   _committedDataLength += lr->GetTotalLength() + UI16_LEN;
   _vctRecord.push_back(lr);
   _recordNum++;
@@ -509,7 +518,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   }
 
   for (int i = 0; i < vctPage.size(); i++) {
-    SetRecordUpdated();
+    ((LeafPage *)vctPage[i])->SetRecordUpdated();
     ((LeafPage *)vctPage[i])->SaveRecords(pageMap, block);
     vctPage[i]->AddWriteQueue(pageMap);
   }

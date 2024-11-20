@@ -92,8 +92,16 @@ public:
    */
   bool SearchPage(const LeafRecord &lr, IndexPage *&page);
   void Close();
-
-  void SettlePages(MTreeMap<uint64_t, CachePage *> &pageMap);
+  /**
+   * @brief To split the overlength page and save the contents into page buffer,
+   * then push the pages into write queue
+   * @param pageMap The map of waitting pages
+   * @param pageLevel The page level that the BranchRecords in those pages will
+   * be as borders that split the statements into different index task.
+   *                  If =0xFF, means only one index task to run.
+   */
+  void SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
+                          Byte pageLevel = UINT8_MAX);
 
   inline uint64_t GetRecordsCount() const {
     return _headPage->GetTotalRecordCount();

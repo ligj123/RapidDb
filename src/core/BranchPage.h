@@ -69,11 +69,11 @@ public:
   bool IsOverlength() override {
     return _committedDataLength >= MAX_DATA_LENGTH_BRANCH;
   }
-
-protected:
   inline BranchRecord *GetVctRecord(int pos) const {
     return (BranchRecord *)_vctRecord[pos];
   }
+
+protected:
   int CompareTo(uint32_t recPos, const BranchRecord &rr) const;
   int CompareTo(uint32_t recPos, const RawKey &key) const;
 

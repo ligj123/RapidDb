@@ -102,6 +102,8 @@ bool IndexTree::LoadIndexTree(const MString &indexName, const MString &fileName,
   }
 
   FilePagePool::SyncReadPage(_rootPage);
+  _rootPage->AfterRead();
+  _rootPage->SetPageStatus(PageStatus::VALID);
   IncPages();
   _rootPage->SetReferred(true);
   CachePagePool::AddPage(_rootPage);
@@ -263,7 +265,6 @@ bool IndexTree::SearchPage(const RawKey &key, IndexPage *&page) {
 
 bool IndexTree::SearchPage(const LeafRecord &lr, IndexPage *&page) {
   assert(page != nullptr);
-  BranchRecord brs(GetHeadPage()->GetIndexType(), (RawRecord *)&lr, 0);
 
   while (true) {
     if (page->GetPageType() == PageType::LEAF_PAGE) {
@@ -272,6 +273,7 @@ bool IndexTree::SearchPage(const LeafRecord &lr, IndexPage *&page) {
 
     BranchPage *bPage = (BranchPage *)page;
     bool bFind;
+    BranchRecord brs(GetHeadPage()->GetIndexType(), (RawRecord *)&lr, 0);
     uint32_t pos = bPage->SearchRecord(brs, bFind);
     BranchRecord &br = bPage->GetRecord(pos, true);
     IndexPage *childPage = br.GetChildPage();
@@ -289,5 +291,61 @@ bool IndexTree::SearchPage(const LeafRecord &lr, IndexPage *&page) {
 
     page = childPage;
   }
+}
+
+void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
+                                   Byte pageLevel) {
+  for (auto iter = pageMap.begin(); iter != pageMap.end(); iter++) {
+    if (iter->second->GetPageType() == PageType::LEAF_PAGE ||
+        iter->second->GetPageType() == PageType::BRANCH_PAGE) {
+      IndexPage *page = (IndexPage *)iter->second;
+      if (page->IsOverlength()) {
+        page->SplitPage(pageMap, pageLevel);
+      }
+    }
+  }
+
+  for (auto iter = pageMap.begin(); iter != pageMap.end();) {
+    bool move = true;
+    switch (iter->second->GetPageType()) {
+    case PageType::BRANCH_PAGE: {
+      BranchPage *page = (BranchPage *)iter->second;
+      assert(!page->IsOverlength());
+      if (page->IsDirty()) {
+        bool b = page->SaveRecords();
+        assert(b);
+      }
+
+      break;
+    }
+    case PageType::LEAF_PAGE: {
+      LeafPage *page = (LeafPage *)iter->second;
+      assert(!page->IsOverlength());
+      if (page->IsDirty()) {
+        bool b = page->SaveRecords(pageMap, (pageLevel != UINT8_MAX));
+        if (!b) {
+          move = false;
+        }
+      }
+      break;
+    }
+    case PageType::HEAD_PAGE: {
+      HeadPage *page = (HeadPage *)iter->second;
+      page->SaveToBuffer();
+      break;
+    }
+    default:
+      break;
+    }
+
+    FilePagePool::AddWritePage(ThreadPool::GetThreadId(), iter->second, false);
+    if (move) {
+      iter = pageMap.erase(iter);
+    } else {
+      iter++;
+    }
+  }
+
+  FilePagePool::SubmitWritePage(ThreadPool::GetThreadId());
 }
 } // namespace storage

@@ -70,12 +70,16 @@ bool BranchPage::SaveRecords() {
     }
 
     CachePool::ReleasePage(tmp);
+    WriteShort(TOTAL_DATA_LENGTH_OFFSET, _committedDataLength);
+    WriteShort(NUM_RECORD_OFFSET, _recordNum);
     _bRecordUpdated = false;
   }
 
   WriteInt(PARENT_PAGE_POINTER_OFFSET, _parentPageId);
-  WriteShort(TOTAL_DATA_LENGTH_OFFSET, _committedDataLength);
-  WriteShort(NUM_RECORD_OFFSET, _recordNum);
+
+  boost::crc_32_type crc32;
+  crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
+  WriteInt(CRC32_INDEX_OFFSET, crc32.checksum());
   _bDirty = false;
   return true;
 }
@@ -401,7 +405,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   if (brParentOld != nullptr) {
     delete brParentOld;
     if (_parentPage->NeedForceSplit()) {
-      _parentPage->SplitPage(pageMap, pageLevel);
+      _parentPage->SplitPage(pageMap, lockLevel);
     }
   } else {
     _indexTree->UpdateRootPage(_parentPage, block);

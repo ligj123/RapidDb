@@ -273,6 +273,8 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
   indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
                              vctVal, GetFileId(), IndexType::PRIMARY);
   HeadPage *hp = indexTree->GetHeadPage();
+  indexTree->GetRootPage()->SetReferred(false);
+
   MVector<IndexPage *> vctPage =
       indexTree->ApplyIndexPages(nullptr, 0, ROW_COUNT, false);
   BranchPage *bp =

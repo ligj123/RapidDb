@@ -103,7 +103,7 @@ public:
   inline void SetRecordUpdated() { _bRecordUpdated = true; }
   bool NeedForceSplit() {
     return _committedDataLength > LOAD_THRESHOLD ||
-           _tempDataLength > _tempDataLength;
+           _tempDataLength > LOAD_THRESHOLD;
   }
   virtual bool IsOverlength() = 0;
 
@@ -112,7 +112,7 @@ public:
    * @param pageSet The save the changed pages and put them into write queue in
    * future
    * @param pageLevel The page level that the BranchRecords in those pages will
-   * split into multi index tasks to run the statement.
+   * be as borders that split the statements into different index task.
    *                  If =0xFF, means only one index task to run.
    * @return True: The split conditions can be meet and has split this page
    *         False: Failed to split the page

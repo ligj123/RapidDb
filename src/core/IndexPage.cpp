@@ -22,7 +22,6 @@ IndexPage::~IndexPage() {
 }
 void IndexPage::AfterRead() {
   boost::crc_32_type crc32;
-  crc32.reset();
   crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
   if (crc32.checksum() != (uint32_t)ReadInt(CRC32_INDEX_OFFSET)) {
     _pageStatus.store(PageStatus::INVALID, memory_order_relaxed);
@@ -31,14 +30,17 @@ void IndexPage::AfterRead() {
     // will add the function to fix the invalid page
     abort();
   } else {
-    _bDirty = false;
+
     InitParameters();
     if (_parentPage != nullptr && _parentPage->GetPageId() != _parentPageId)
         [[unlikely]] {
       _parentPageId = _parentPage->GetPageId();
       _bDirty = true;
-      _pageStatus.store(PageStatus::READED, memory_order_release);
+    } else {
+      _bDirty = false;
     }
+
+    _pageStatus.store(PageStatus::READED, memory_order_release);
   }
 }
 } // namespace storage

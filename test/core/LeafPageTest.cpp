@@ -134,6 +134,9 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   lp->SaveRecords(pageMap, false);
   FilePagePool::SyncWritePage(lp);
   lp->SetReferred(false);
+  LeafPage *root = (LeafPage *)indexTree->GetRootPage();
+  root->SaveRecords(pageMap, false);
+  FilePagePool::SyncWritePage(root);
   indexTree->Close();
   CachePagePool::ClearPool();
   delete indexTree;

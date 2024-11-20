@@ -140,6 +140,8 @@ public:
   static inline int GetThreadId() { return _threadID; }
   static void SetStop() { _stopThreads.store(true, memory_order_relaxed); }
   static bool IsStoped() { return _stopThreads.load(memory_order_relaxed); }
+  // Set current thread id, only used for test
+  static inline void SetThreadId(uint16_t id) { _threadID = id; }
 
 public:
   ThreadPool(string threadPrefix, int minThreads = 1,
