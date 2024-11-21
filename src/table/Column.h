@@ -13,6 +13,14 @@ using namespace std;
 
 class PhysColumn {
 public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+public:
   PhysColumn(int32_t index)
       : _name(), _index(index), _dataType(DataType::UNKNOWN), _bNullable(false),
         _comments(), _maxLength(-1), _initVal(-1), _incStep(-1),

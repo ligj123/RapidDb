@@ -62,9 +62,15 @@ public:
 
   void SetChild(int32_t pos, IndexPage *child);
   IndexPage *GetChild(int32_t pos);
+  /**
+   * @brief Find the BranchRecord included this child and clear child page in
+   * the BranchRecord
+   * @param child The IndexPage need to clear
+   */
+  void ClearChild(IndexPage *child);
 
   bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                 Byte pageLevel = 0xFF) override;
+                 Byte lockPageLevel = UINT8_MAX) override;
 
   bool IsOverlength() override {
     return _committedDataLength >= MAX_DATA_LENGTH_BRANCH;

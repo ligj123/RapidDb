@@ -210,7 +210,7 @@ void DataValueBlob::SetMaxValue() {
   valType_ = ValueType::SOLE_VALUE;
   soleLength_ = 4;
   bysValue_ = CachePool::Apply(soleLength_);
-  bysValue_[0] = bysValue_[1] = bysValue_[2] = bysValue_[3] = 0xff;
+  bysValue_[0] = bysValue_[1] = bysValue_[2] = bysValue_[3] = UINT8_MAX;
 }
 
 void DataValueBlob::SetDefaultValue() {

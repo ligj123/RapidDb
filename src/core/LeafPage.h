@@ -107,7 +107,7 @@ public:
    */
   void LoadRecords();
   bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                 Byte pageLevel = 0xFF) override;
+                 Byte lockPageLevel = UINT8_MAX) override;
 
 protected:
   int CompareTo(uint32_t recPos, const RawKey &key);
@@ -118,5 +118,7 @@ protected:
   uint32_t _nextPageId{PAGE_NULL_POINTER};
   LeafPage *_prevPage{nullptr};
   LeafPage *_nextPage{nullptr};
+  bool _bRangeEndPage{false};
+  bool _bRangeBeginPage{false};
 };
 } // namespace storage

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../core/IndexPage.h"
+#include "../core/IndexTree.h"
 #include "../utils/SpinMutex.h"
 #include "../utils/TimerThread.h"
 
@@ -18,11 +19,8 @@ public:
   static void AddPage(CachePage *page);
   static void AddPages(MVector<IndexPage *> &vctPage);
 
-  static CachePage *GetPage(uint64_t fileId, uint32_t pageId) {
-    return GetPage(CachePage::CalcHashCode(fileId, pageId));
-  }
+  static CachePage *GetPage(IndexTree *idxTree, uint32_t pageId, PageType type);
 
-  static CachePage *GetPage(uint64_t hashId);
   static uint64_t GetCacheSize() { return _mapCache.size(); }
   static void InitPool();
   static void StopPool();

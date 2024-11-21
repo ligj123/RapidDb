@@ -141,7 +141,7 @@ public:
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
              const VectorDataValue &vctVal, uint64_t recStamp,
-             Statement *stmt = nullptr, bool block = true);
+             Statement *stmt = nullptr, bool block = false);
   LeafRecord(LeafRecord &&src) = delete;
   LeafRecord(const LeafRecord &src) = delete;
   LeafRecord() : RawRecord() {}
@@ -201,9 +201,10 @@ public:
   }
 
   inline int CompareTo(const LeafRecord &lr) const {
-    return BytesCompare(_bysVal + UI16_2_LEN, GetTotalLength() - UI16_2_LEN,
-                        lr._bysVal + UI16_2_LEN,
-                        lr.GetTotalLength() - UI16_2_LEN);
+    assert(_indexType == IndexType::NON_UNIQUE);
+    return BytesCompare(
+        _bysVal + UI16_2_LEN, GetTotalLength() - UI16_2_LEN - UI64_LEN,
+        lr._bysVal + UI16_2_LEN, lr.GetTotalLength() - UI16_2_LEN - UI64_LEN);
   }
 
   inline int CompareKey(const RawKey &key) const {

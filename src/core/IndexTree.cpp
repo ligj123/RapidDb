@@ -208,30 +208,39 @@ OverflowPage *IndexTree::ApplyOvfPage(uint16_t num, bool block) {
 IndexPage *IndexTree::GetPage(PageID pageId, PageType type,
                               BranchPage *parentPage) {
   assert(pageId < _headPage->GetTotalPageCount());
-  IndexPage *page = (IndexPage *)CachePagePool::GetPage(_fileId, pageId);
-
-  if (page == nullptr) {
-    if (type == PageType::LEAF_PAGE) {
-      page = new LeafPage(this, pageId);
-    } else if (type == PageType::BRANCH_PAGE) {
-      page = new BranchPage(this, pageId);
-    } else {
-      abort();
-    }
-
-    IncPages();
-    page->SetReferred(true);
-    CachePagePool::AddPage(page);
-    FilePagePool::AddReadPage(ThreadPool::GetThreadId(), page);
-  }
+  IndexPage *page = (IndexPage *)CachePagePool::GetPage(this, pageId, type);
 
   if (parentPage != nullptr) {
     page->SetParentPage(parentPage);
   }
 
+  if (page->GetPageStatus() == PageStatus::EMPTY) {
+    FilePagePool::AddReadPage(ThreadPool::GetThreadId(), page);
+  }
+
   return page;
 }
 
+LeafPage *IndexTree::GetLeafPage(PageID pageId, BranchPage *parentPage,
+                                 LeafPage *prev, LeafPage *next) {
+  assert(pageId < _headPage->GetTotalPageCount());
+  LeafPage *page =
+      (LeafPage *)CachePagePool::GetPage(this, pageId, PageType::LEAF_PAGE);
+  if (parentPage != nullptr) {
+    page->SetParentPage(parentPage);
+  }
+  if (prev != nullptr) {
+    page->SetPrevPage(prev);
+  }
+  if (next != nullptr) {
+    page->SetNextPage(next);
+  }
+  if (page->GetPageStatus() == PageStatus::EMPTY) {
+    FilePagePool::AddReadPage(ThreadPool::GetThreadId(), page);
+  }
+
+  return page;
+}
 /**
  * @brief
  */
@@ -294,13 +303,13 @@ bool IndexTree::SearchPage(const LeafRecord &lr, IndexPage *&page) {
 }
 
 void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
-                                   Byte pageLevel) {
+                                   Byte lockPageLevel) {
   for (auto iter = pageMap.begin(); iter != pageMap.end(); iter++) {
     if (iter->second->GetPageType() == PageType::LEAF_PAGE ||
         iter->second->GetPageType() == PageType::BRANCH_PAGE) {
       IndexPage *page = (IndexPage *)iter->second;
       if (page->IsOverlength()) {
-        page->SplitPage(pageMap, pageLevel);
+        page->SplitPage(pageMap, lockPageLevel);
       }
     }
   }
@@ -322,7 +331,7 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
       LeafPage *page = (LeafPage *)iter->second;
       assert(!page->IsOverlength());
       if (page->IsDirty()) {
-        bool b = page->SaveRecords(pageMap, (pageLevel != UINT8_MAX));
+        bool b = page->SaveRecords(pageMap, (lockPageLevel != UINT8_MAX));
         if (!b) {
           move = false;
         }
@@ -347,5 +356,44 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
   }
 
   FilePagePool::SubmitWritePage(ThreadPool::GetThreadId());
+}
+
+void IndexTree::ReleaseIndexPage(IndexPage *idxPage, bool bParent,
+                                 Byte lockPageLevel) {
+  bool bAllTree = (idxPage == _rootPage);
+  assert(!bAllTree || (bAllTree && !bParent));
+
+  if (bParent) {
+    assert(idxPage->GetParentPage() != nullptr);
+    BranchPage *parentPage = idxPage->GetParentPage();
+    parentPage->ClearChild(idxPage);
+  }
+
+  MDeque<IndexPage *> queue;
+  queue.push_back(idxPage);
+
+  while (queue.size() > 0) {
+    IndexPage *page = queue.front();
+    queue.pop_front();
+
+    while (page->GetPageStatus() != PageStatus::VALID) {
+      this_thread::yield();
+    }
+
+    if (page->GetPageType() == PageType::BRANCH_PAGE) {
+      BranchPage *bp = (BranchPage *)page;
+      for (uint32_t i = 0; i < bp->GetRecordNumber(); i++) {
+        BranchRecord *br = bp->GetVctRecord(i);
+        queue.push_back(br->GetChildPage());
+        br->SetChildPage(nullptr);
+      }
+    } else {
+      LeafPage *lp = (LeafPage *)page;
+      lp->SetNextPage(nullptr);
+    }
+
+    page->SetParentPage(nullptr);
+    page->SetReferred(false);
+  }
 }
 } // namespace storage

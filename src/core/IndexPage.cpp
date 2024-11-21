@@ -30,16 +30,7 @@ void IndexPage::AfterRead() {
     // will add the function to fix the invalid page
     abort();
   } else {
-
     InitParameters();
-    if (_parentPage != nullptr && _parentPage->GetPageId() != _parentPageId)
-        [[unlikely]] {
-      _parentPageId = _parentPage->GetPageId();
-      _bDirty = true;
-    } else {
-      _bDirty = false;
-    }
-
     _pageStatus.store(PageStatus::READED, memory_order_release);
   }
 }

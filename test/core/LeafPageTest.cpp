@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   BOOST_TEST(bFind);
 
   const LeafRecord &lr2 = lp->GetRecord(0);
-  BOOST_TEST(lr->CompareTo(lr2) == 0);
+  BOOST_TEST(lr->CompareKey(lr2) == 0);
 
   delete lr;
   delete key;
@@ -75,7 +75,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   key = new RawKey(vctKey);
 
   const LeafRecord &lr3 = lp->GetRecord(ROW_COUNT - 1);
-  BOOST_TEST(lr->CompareTo(lr3) == 0);
+  BOOST_TEST(lr->CompareKey(lr3) == 0);
 
   BOOST_TEST(ROW_COUNT - 1 == lp->SearchRecord(*lr, bFind));
   BOOST_TEST(bFind);

@@ -24,6 +24,22 @@ void LeafPage::InitParameters() {
 
   _prevPageId = ReadInt(PREV_PAGE_POINTER_OFFSET);
   _nextPageId = ReadInt(NEXT_PAGE_POINTER_OFFSET);
+
+  if (_parentPage != nullptr && _parentPageId != _parentPage->GetPageId())
+      [[unlikely]] {
+    _parentPageId = _parentPage->GetPageId();
+    _bDirty = true;
+  }
+  if (_prevPage != nullptr && _prevPageId != _prevPage->GetPageId())
+      [[unlikely]] {
+    _prevPageId = _prevPage->GetPageId();
+    _bDirty = true;
+  }
+  if (_nextPage != nullptr && _nextPageId != _nextPage->GetPageId())
+      [[unlikely]] {
+    _nextPageId = _nextPage->GetPageId();
+    _bDirty = true;
+  }
 }
 
 void LeafPage::LoadRecords() {
@@ -46,16 +62,6 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap,
   if (GetPageStatus() != PageStatus::VALID ||
       _committedDataLength > MAX_DATA_LENGTH_LEAF)
     return false;
-
-  if (_parentPage != nullptr && _parentPageId != _parentPage->GetPageId()) {
-    _parentPageId = _parentPage->GetPageId();
-  }
-  if (_prevPage != nullptr && _prevPageId != _prevPage->GetPageId()) {
-    _prevPageId = _prevPage->GetPageId();
-  }
-  if (_nextPage != nullptr && _nextPageId != _nextPage->GetPageId()) {
-    _nextPageId = _nextPage->GetPageId();
-  }
 
   MVector<LeafRecord *> vctLr;
   vctLr.reserve(_vctRecord.size());
@@ -334,13 +340,13 @@ void LeafPage::ClearRecords() {
 }
 
 bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                         Byte pageLevel) {
+                         Byte lockPageLevel) {
   if (_pageStatus.load(memory_order_relaxed) != PageStatus::VALID) {
     return false;
   }
 
-  bool block = (pageLevel != 0xFF);
-  if (pageLevel <= GetPageLevel()) {
+  bool block = (lockPageLevel != UINT8_MAX);
+  if (lockPageLevel <= GetPageLevel()) {
     if (_spinLock.try_lock()) {
       return false;
     }
@@ -360,7 +366,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     assert(_parentPage != nullptr &&
            (_parentPage->GetPageStatus() == PageStatus::VALID ||
             _parentPage->GetPageStatus() == PageStatus::WRITING));
-    if (pageLevel <= _parentPage->GetPageLevel()) {
+    if (lockPageLevel <= _parentPage->GetPageLevel()) {
       _parentPage->Lock();
     }
 
@@ -529,8 +535,9 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   _parentPage->SetRecordUpdated();
   _parentPage->AddWriteQueue(pageMap);
 
-  if (pageLevel <= GetPageLevel()) {
-    if (brParentOld != nullptr && pageLevel <= _parentPage->GetPageLevel()) {
+  if (lockPageLevel <= GetPageLevel()) {
+    if (brParentOld != nullptr &&
+        lockPageLevel <= _parentPage->GetPageLevel()) {
       _parentPage->Unlock();
     }
 
@@ -540,7 +547,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   if (brParentOld != nullptr) {
     delete brParentOld;
     if (_parentPage->NeedForceSplit()) {
-      _parentPage->SplitPage(pageMap, pageLevel);
+      _parentPage->SplitPage(pageMap, lockPageLevel);
     }
   } else {
     _indexTree->UpdateRootPage(_parentPage, block);

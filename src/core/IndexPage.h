@@ -111,18 +111,18 @@ public:
    * @brief Split current page if this page's length exceed LOAD_FACTOR
    * @param pageSet The save the changed pages and put them into write queue in
    * future
-   * @param pageLevel The page level that the BranchRecords in those pages will
-   * be as borders that split the statements into different index task.
-   *                  If =0xFF, means only one index task to run.
+   * @param lockPageLevel The page level that the BranchRecords in those pages
+   * will be as borders that split the statements into different index task. If
+   * =0xFF, means only one index task to run.
    * @return True: The split conditions can be meet and has split this page
    *         False: Failed to split the page
    */
   virtual bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                         Byte pageLevel = 0xFF) = 0;
+                         Byte lockPageLevel = UINT8_MAX) = 0;
 
 protected:
   // Parent page ID
-  uint32_t _parentPageId{0};
+  PageID parentPageId{0};
   // Total commited data length in this page
   uint32_t _committedDataLength{0};
   // Total data length in the page, include Committed and uncommitted records,

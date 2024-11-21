@@ -54,7 +54,7 @@ bool SysTable::GenerateSysTables(Database *sysDb,
 
     PhysTable *table =
         new PhysTable(sysDb, *et->_tName, tid, MilliSecTime(), MilliSecTime());
-    tid += 0xff;
+    tid += UINT8_MAX;
 
     for (ExprColumnItem *citem : ect->_vctColumn) {
       if (citem->_autoInc) {

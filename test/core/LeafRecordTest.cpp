@@ -86,7 +86,6 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   BOOST_TEST(hr == ReadResult::OK_NOLOCK);
   BOOST_TEST(vctVal2[0]->GetLong() == 200LL);
 
-  BOOST_TEST(lr->CompareTo(*lr2) == 0);
   BOOST_TEST(lr->CompareKey(key) == 0);
   BOOST_TEST(lr->CompareKey(*lr2) == 0);
 
@@ -152,7 +151,6 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   BOOST_TEST(*vctVal2[1] == dvFix);
   BOOST_TEST(*vctVal2[2] == dvBlob);
 
-  BOOST_TEST(lr->CompareTo(*lr2) == 0);
   BOOST_TEST(lr->CompareKey(rkey) == 0);
   BOOST_TEST(lr->CompareKey(*lr2) == 0);
 
@@ -186,7 +184,6 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   BOOST_TEST(*vctVal2[1] == dvFix);
   BOOST_TEST(*vctVal2[2] == dvBlob2);
 
-  BOOST_TEST(lr->CompareTo(*lr2) == 0);
   BOOST_TEST(lr->CompareKey(*lr2) == 0);
 
   delete lr;

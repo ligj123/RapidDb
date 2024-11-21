@@ -19,7 +19,22 @@ using namespace std;
 class LeafPage;
 class BranchPage;
 
+struct IndexRange {
+  LeafRecord _lrBorder;
+  MVector<BranchPage *> _vctRangePage;
+  LeafPage *_startPage{nullptr};
+  LeafPage *_endPage{nullptr};
+};
+
 class IndexTree {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
 public:
   IndexTree() {}
   ~IndexTree();
@@ -54,7 +69,8 @@ public:
 
   IndexPage *GetPage(PageID pageId, PageType type,
                      BranchPage *parentPage = nullptr);
-
+  LeafPage *GetLeafPage(PageID pageId, BranchPage *parentPage, LeafPage *prev,
+                        LeafPage *next);
   /**
    * @brief Recycle the unused pages into garbage owner
    * @param firstId The first page id of a series of pages.
@@ -96,12 +112,24 @@ public:
    * @brief To split the overlength page and save the contents into page buffer,
    * then push the pages into write queue
    * @param pageMap The map of waitting pages
-   * @param pageLevel The page level that the BranchRecords in those pages will
-   * be as borders that split the statements into different index task.
-   *                  If =0xFF, means only one index task to run.
+   * @param lockPageLevel The page level that the BranchRecords in those pages
+   * will be as borders that split the statements into different index task. If
+   * =0xFF, means only one index task to run.
    */
   void SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
-                          Byte pageLevel = UINT8_MAX);
+                          Byte lockPageLevel = UINT8_MAX);
+  /**
+   * @brief Remove a IndexPage and its child and all their relationships from
+   * IndexTree, include parent page, prev page, next page, child page.
+   * @param idxPage The index page that will be removed from index tree
+   * @param bParent True: needs to set _childPage=nullptr in parent page's
+   * BranchRecord
+   * @param lockPageLevel The page level that the BranchRecords in those pages
+   * will be as borders that split the statements into different index task. If
+   * =0xFF, means only one index task to run.
+   */
+  void ReleaseIndexPage(IndexPage *idxPage, bool bParent = false,
+                        Byte lockPageLevel = UINT8_MAX);
 
   inline uint64_t GetRecordsCount() const {
     return _headPage->GetTotalRecordCount();
@@ -170,6 +198,8 @@ protected:
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t) + Field Null bits
   // Other: 0
   uint16_t _valOffset{0};
+
+  MVector<IndexRange> _vctRange;
 
   IndexType _indexType;
   friend class HeadPage;

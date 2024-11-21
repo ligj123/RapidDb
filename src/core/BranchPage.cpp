@@ -2,7 +2,7 @@
 #include "../pool/StoragePool.h"
 #include "BranchRecord.h"
 #include "IndexTree.h"
-#include <shared_mutex>
+#include "LeafPage.h"
 
 namespace storage {
 const uint16_t BranchPage::DATA_BEGIN_OFFSET = 12;
@@ -14,6 +14,12 @@ void BranchPage::InitParameters() {
   _recordNum = ReadShort(NUM_RECORD_OFFSET);
   _committedDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
   _parentPageId = ReadInt(PARENT_PAGE_POINTER_OFFSET);
+
+  if (_parentPage != nullptr && _parentPage->GetPageId() != _parentPageId)
+      [[unlikely]] {
+    _parentPageId = _parentPage->GetPageId();
+    _bDirty = true;
+  }
 }
 
 void BranchPage::LoadRecords() {
@@ -42,10 +48,6 @@ bool BranchPage::SaveRecords() {
   if (GetPageStatus() != PageStatus::VALID ||
       _committedDataLength > MAX_DATA_LENGTH_BRANCH) {
     return false;
-  }
-
-  if (_parentPage != nullptr && _parentPage->GetPageId() != _parentPageId) {
-    _parentPageId = _parentPage->GetPageId();
   }
 
   if (_bRecordUpdated) {
@@ -249,13 +251,13 @@ IndexPage *BranchPage::GetChild(int32_t pos) {
 }
 
 bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                           Byte lockLevel) {
+                           Byte lockPageLevel) {
   if (_pageStatus.load(memory_order_relaxed) != PageStatus::VALID) {
     return false;
   }
 
-  bool block = (lockLevel != 0xFF);
-  if (lockLevel <= GetPageLevel()) {
+  bool block = (lockPageLevel != UINT8_MAX);
+  if (lockPageLevel <= GetPageLevel()) {
     if (_spinLock.try_lock()) {
       return false;
     }
@@ -276,7 +278,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
            (_parentPage->GetPageStatus() == PageStatus::VALID ||
             _parentPage->GetPageStatus() == PageStatus::WRITING));
 
-    if (lockLevel <= _parentPage->GetPageLevel()) {
+    if (lockPageLevel <= _parentPage->GetPageLevel()) {
       _parentPage->Lock();
     }
 
@@ -394,8 +396,9 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   _parentPage->SetDirty();
   _parentPage->AddWriteQueue(pageMap);
 
-  if (lockLevel <= GetPageLevel()) {
-    if (brParentOld != nullptr && lockLevel <= _parentPage->GetPageLevel()) {
+  if (lockPageLevel <= GetPageLevel()) {
+    if (brParentOld != nullptr &&
+        lockPageLevel <= _parentPage->GetPageLevel()) {
       _parentPage->Unlock();
     }
 
@@ -405,12 +408,41 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   if (brParentOld != nullptr) {
     delete brParentOld;
     if (_parentPage->NeedForceSplit()) {
-      _parentPage->SplitPage(pageMap, lockLevel);
+      _parentPage->SplitPage(pageMap, lockPageLevel);
     }
   } else {
     _indexTree->UpdateRootPage(_parentPage, block);
   }
 
   return true;
+}
+
+void BranchPage::ClearChild(IndexPage *child) {
+  if (child->GetPageType() == PageType::BRANCH_PAGE) {
+    BranchPage *bp = (BranchPage *)child;
+    BranchRecord &br = bp->GetRecord(INT32_MAX, true);
+    bool bFind;
+    int32_t pos = SearchRecord(br, bFind);
+    if (!bFind) {
+      pos = INT32_MAX;
+    }
+
+    BranchRecord &brp = GetRecord(pos, true);
+    assert(child == brp.GetChildPage());
+    brp.SetChildPage(nullptr);
+  } else {
+    LeafPage *lp = (LeafPage *)child;
+    LeafRecord &lr = lp->GetRecord(lp->GetRecordNumber() - 1);
+    BranchRecord br(lr.GetIndexType(), &lr, lp->GetPageId());
+    bool bFind;
+    int32_t pos = SearchRecord(br, bFind);
+    if (!bFind) {
+      pos = INT32_MAX;
+    }
+
+    BranchRecord &brp = GetRecord(pos, true);
+    assert(child == brp.GetChildPage());
+    brp.SetChildPage(nullptr);
+  }
 }
 } // namespace storage
