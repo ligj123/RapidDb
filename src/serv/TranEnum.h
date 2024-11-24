@@ -2,6 +2,12 @@
 #include <ostream>
 
 namespace storage {
+enum class CcProtocol : uint8_t {
+  OCC = 0, // Optimistic Read + Optimistic Write
+  OccRead, // Optimistic Read + Pessimistic Write
+  Locking, // Pessimistic Read + Pessimistic Write
+};
+
 enum class IsoLevel : uint8_t {
   ReadUncommited = 0,
   ReadCommited,

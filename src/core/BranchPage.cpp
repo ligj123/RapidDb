@@ -143,7 +143,7 @@ bool BranchPage::KeyExist(const RawKey &key) const {
   return bFind;
 }
 
-int32_t BranchPage::SearchRecord(const BranchRecord &rr, bool &bFind) const {
+int32_t BranchPage::SearchRecord(const RawRecord &rr, bool &bFind) const {
   bFind = true;
   int32_t start = 0;
   int32_t end = _recordNum - 1;
@@ -200,17 +200,19 @@ int32_t BranchPage::SearchKey(const RawKey &key, bool &bFind) const {
   }
 }
 
-int BranchPage::CompareTo(uint32_t recPos, const BranchRecord &rr) const {
+int BranchPage::CompareTo(uint32_t recPos, const RawRecord &rr) const {
   assert(recPos < _recordNum);
-  uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
-  uint32_t lenKey = ReadShort(start + UI16_LEN);
+  uint32_t startPos = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
+  uint32_t lenKey = ReadShort(startPos + UI16_LEN);
 
-  if (_indexTree->GetHeadPage()->GetIndexType() != IndexType::NON_UNIQUE) {
-    return BytesCompare(_bysPage + start, ReadShort(start + UI16_LEN),
-                        rr.GetBysValue(), rr.GetKeyLength());
+  if (rr.GetIndexType() != IndexType::NON_UNIQUE) {
+    return BytesCompare(_bysPage + startPos + UI16_2_LEN,
+                        ReadShort(startPos + UI16_LEN),
+                        rr.GetBysValue() + UI16_2_LEN, rr.GetKeyLength());
   } else {
-    return BytesCompare(_bysPage + start, ReadShort(start), rr.GetBysValue(),
-                        rr.GetTotalLength());
+    return BytesCompare(_bysPage + startPos + UI16_2_LEN,
+                        ReadShort(startPos) - UI16_2_LEN - PAGE_ID_LEN,
+                        rr.GetBysValue() + UI16_2_LEN, rr.GetDataLength());
   }
 }
 
@@ -218,8 +220,9 @@ int BranchPage::CompareTo(uint32_t recPos, const RawKey &key) const {
   assert(recPos < _recordNum);
   uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
 
-  return BytesCompare(_bysPage + start, ReadShort(start + UI16_LEN),
-                      key.GetBysVal(), key.GetLength());
+  return BytesCompare(_bysPage + start + UI16_2_LEN,
+                      ReadShort(start + UI16_LEN), key.GetBysVal() + UI16_2_LEN,
+                      key.GetLength());
 }
 
 BranchRecord &BranchPage::GetRecord(int32_t pos, bool bAutoLast) {

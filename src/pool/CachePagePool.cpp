@@ -1,7 +1,7 @@
 ﻿#include "CachePagePool.h"
+#include "../core/BranchPage.h"
+#include "../core/LeafPage.h"
 #include "../utils/Log.h"
-#include "PageDividePool.h"
-#include "StoragePool.h"
 
 #include <forward_list>
 #include <shared_mutex>
@@ -30,18 +30,17 @@ void CachePagePool::AddPages(MVector<IndexPage *> &vctPage) {
 }
 
 CachePage *CachePagePool::GetPage(IndexTree *idxTree, uint32_t pageId,
-                                  PageType type);
-{
+                                  PageType type) {
   unique_lock<SpinMutex> lock(_spinMutex);
   uint64_t hashId = CachePage::CalcHashCode(idxTree->GetFileId(), pageId);
   auto iter = _mapCache.find(hashId);
   if (iter == _mapCache.end()) {
     IndexPage *page;
     if (type == PageType::LEAF_PAGE) {
-      page = new LeafPage(this, pageId);
+      page = new LeafPage(idxTree, pageId);
     } else {
       assert(type == PageType::BRANCH_PAGE);
-      page = new BranchPage(this, pageId);
+      page = new BranchPage(idxTree, pageId);
     }
 
     idxTree->IncPages();

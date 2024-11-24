@@ -41,6 +41,10 @@ public:
   inline LeafPage *GetPrevPage() { return _prevPage; }
   inline void SetNextPage(LeafPage *page) { _nextPage = page; }
   inline LeafPage *GetNextPage() { return _nextPage; }
+  inline bool IsRangBeginPage() { return _bRangeBeginPage; }
+  inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }
+  inline bool IsRangEndPage() { return _bRangeEndPage; }
+  inline void SetRangeEndPage(bool b) { _bRangeEndPage = b; }
 
   bool IsOverlength() override {
     return _committedDataLength >= MAX_DATA_LENGTH_LEAF;
@@ -54,7 +58,7 @@ public:
    * @param lr The leaf record will be inserted
    * @param pos The position for insert.
    */
-  void InsertRecord(LeafRecord *lr, int32_t pos);
+  bool InsertRecord(LeafRecord *lr, int32_t pos);
   /**
    * @brief For test aim, if insert fail will put the error message into
    * _threadErrorMsg
@@ -73,6 +77,14 @@ public:
     InsertRecord(lr, pos);
     return true;
   }
+  /**
+   * @brief Delete a LeafRecord, only use new LeafRecord with delete status to
+   * replace old record, old record will save into _undoRec and all of them will
+   * be removed when commit or recover old record when rollback.
+   * @param lr New LeafRecor with delete status
+   * @param pos The position of record to delete
+   */
+  bool DeleteRecord(LeafRecord *lr, int32_t pos);
   /** @brief Add a new record to the last position of this page. Only used wehn
    * batch add for ordered records, does not need transaction.
    * @param record The new record

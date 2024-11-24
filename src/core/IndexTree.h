@@ -6,6 +6,7 @@
 #include "../utils/SpinMutex.h"
 #include "GarbageOwner.h"
 #include "HeadPage.h"
+#include "IndexAction.h"
 #include "LeafRecord.h"
 #include "RawKey.h"
 
@@ -20,10 +21,31 @@ class LeafPage;
 class BranchPage;
 
 struct IndexRange {
+  // The end border of this range
   LeafRecord _lrBorder;
+  // The top level BrangePages assigned to this range
   MVector<BranchPage *> _vctRangePage;
+  // The Start leafPage of this range
   LeafPage *_startPage{nullptr};
+  // The end LeafPage of this range
   LeafPage *_endPage{nullptr};
+  // The queue to save running IndexActions
+  MDeque<IndexAction *> _queueAction;
+  // The queue to temp save IndexActions that insert from other threads and will
+  // be moved into _queueAction before run.
+  MDeque<IndexAction *> _queueTempAction;
+  // The SpinMutex used for _queueTempAction
+  SpinMutex _mutex;
+
+  void AddAction(IndexAction *act) {
+    unique_lock<SpinMutex> lock(_mutex);
+    _queueTempAction.push_back(act);
+  }
+  void AddActions(MDeque<IndexAction *> &queue) {
+    unique_lock<SpinMutex> lock(_mutex);
+    _queueTempAction.insert(_queueTempAction.end(), queue.begin(), queue.end());
+    queue.clear();
+  }
 };
 
 class IndexTree {
@@ -160,7 +182,7 @@ public:
   inline FILE_HANDLE GetFileHandle() { return _fileHandle->FileDescriptor(); }
   inline IndexType GetIndexType() { return _indexType; }
   inline IndexPage *GetRootPage() { return _rootPage; }
-  void UpdateRootPage(IndexPage *root, bool block) {
+  inline void UpdateRootPage(IndexPage *root, bool block) {
     if (block) {
       _spinMutex.lock();
     }
@@ -171,6 +193,13 @@ public:
       _spinMutex.unlock();
     }
   }
+
+  LeafRecord MakeMaxLeafRecord();
+  LeafRecord MakeMinLeafRecord();
+
+  MVector<IndexRange> &GetVctRange() { return _vctRange; }
+  int CalcIndexRange(LeafRecord &lr);
+  int CalcIndexRange(RawKey &key);
 
 protected:
   MString _indexName;

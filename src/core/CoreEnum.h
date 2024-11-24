@@ -64,6 +64,12 @@ enum class RecordStatus : uint8_t {
   FREEED      // The lock has been freed from LOCK_ONLY status.
 };
 
+enum class RecordResult : uint8_t {
+  INIT = 0, // The record just create and not insert into page
+  IN_PAGE,  // The record has inserted into page successfully
+  ERROR     // The record failed to insert into page due to error
+};
+
 /**The result to read list value*/
 enum class ReadResult : int8_t {
   // Passed to read values and does not add lock for current read.

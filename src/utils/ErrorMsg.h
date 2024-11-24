@@ -12,6 +12,14 @@ extern thread_local unique_ptr<ErrorMsg> _threadErrorMsg;
 
 class ErrorMsg : public exception {
 public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+public:
   static void ClearErrorMsg() { _mapErrorMsg.clear(); }
 
 public:

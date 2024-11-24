@@ -282,8 +282,7 @@ bool IndexTree::SearchPage(const LeafRecord &lr, IndexPage *&page) {
 
     BranchPage *bPage = (BranchPage *)page;
     bool bFind;
-    BranchRecord brs(GetHeadPage()->GetIndexType(), (RawRecord *)&lr, 0);
-    uint32_t pos = bPage->SearchRecord(brs, bFind);
+    uint32_t pos = bPage->SearchRecord(lr, bFind);
     BranchRecord &br = bPage->GetRecord(pos, true);
     IndexPage *childPage = br.GetChildPage();
     if (childPage == nullptr) {
@@ -396,4 +395,86 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage, bool bParent,
     page->SetReferred(false);
   }
 }
+
+int IndexTree::CalcIndexRange(LeafRecord &lr) {
+  if (_vctRange.size() == 0) {
+    return 0;
+  }
+
+  for (size_t i = 0; i < _vctRange.size(); i++) {
+    IndexRange &range = _vctRange[i];
+    if (_indexType == IndexType::NON_UNIQUE) {
+      if (range._lrBorder.CompareTo(lr) >= 0) {
+        return i;
+      }
+    } else {
+      if (range._lrBorder.CompareKey(lr) >= 0) {
+        return i;
+      }
+    }
+  }
+
+  assert(false);
+  return -1;
+}
+
+int IndexTree::CalcIndexRange(RawKey &key) {
+  assert(GetHeadPage()->GetIndexType() == IndexType::PRIMARY);
+  if (_vctRange.size() == 0) {
+    return 0;
+  }
+
+  for (size_t i = 0; i < _vctRange.size(); i++) {
+    IndexRange &range = _vctRange[i];
+    if (range._lrBorder.CompareKey(key) >= 0) {
+      return i;
+    }
+  }
+
+  assert(false);
+  return -1;
+}
+
+LeafRecord IndexTree::MakeMaxLeafRecord() {
+  VectorDataValue vctKey, vctVal;
+  CloneKeys(vctKey);
+  CloneValues(vctVal);
+  for (IDataValue *dv : vctKey) {
+    dv->SetMaxValue();
+  }
+
+  for (IDataValue *dv : vctVal) {
+    dv->SetMaxValue();
+  }
+
+  if (_indexType == IndexType::PRIMARY) {
+    return LeafRecord(this, vctKey, vctVal, 1);
+  } else {
+    RawKey key(vctVal);
+    return LeafRecord(this, vctKey, key.GetBysVal(), key.GetLength(),
+                      ActionType::INSERT, 1);
+  }
+}
+
+LeafRecord IndexTree::MakeMinLeafRecord() {
+  VectorDataValue vctKey, vctVal;
+  CloneKeys(vctKey);
+  CloneValues(vctVal);
+  for (IDataValue *dv : vctKey) {
+    dv->SetMinValue();
+  }
+
+  for (IDataValue *dv : vctVal) {
+    dv->SetMinValue();
+  }
+
+  if (_indexType == IndexType::PRIMARY) {
+    return LeafRecord(this, vctKey, vctVal, 1);
+  } else {
+    RawKey key(vctVal);
+    return LeafRecord(this, vctKey, key.GetBysVal(), key.GetLength(),
+                      ActionType::INSERT, 1);
+  }
+}
+
 } // namespace storage

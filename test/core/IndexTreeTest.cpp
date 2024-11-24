@@ -355,116 +355,97 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
   delete dvVal;
 }
 
-// BOOST_AUTO_TEST_CASE(IndexTreeUniqueIndex_test) {
-//   LOG_INFO << "Run testcase: "
-//            << boost::unit_test::framework::current_test_case().p_name;
-//   const string FILE_NAME =
-//       ROOT_PATH + "/testIndexUniqueRecord" + StrMSTime() + ".dat";
-//   const string TABLE_NAME = "testTable";
+BOOST_AUTO_TEST_CASE(IndexTreeUniqueIndex_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
+  const string FILE_NAME =
+      ROOT_PATH + "/testIndexUniqueRecord" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  MTreeMap<uint64_t, CachePage *> pageMap;
 
-//   DataValueLong *dvKey = new DataValueLong(100);
-//   DataValueLong *dvVal = new DataValueLong(200);
-//   VectorDataValue vctKey = {dvKey->Clone()};
-//   VectorDataValue vctVal = {dvVal->Clone()};
-//   IndexTree *indexTree = new IndexTree();
-//   indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-//                              vctVal, 3004, IndexType::UNIQUE);
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, 3004, IndexType::UNIQUE);
 
-//   vctKey.push_back(dvKey->Clone());
-//   vctVal.push_back(dvVal->Clone());
-//   int64_t arr[] = {9, 3, 5, 8, 7, 2, 4, 0, 6, 1};
-//   Byte bys[100];
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
+  int64_t arr[] = {9, 3, 5, 8, 7, 2, 4, 0, 6, 1};
+  Byte bys[100];
 
-//   for (int i = 0; i < 10; i++) {
-//     *((DataValueLong *)vctKey[0]) = arr[i];
-//     Int64ToBytes(i + 100, bys, true);
-//     LeafRecord *rr = new LeafRecord(indexTree, vctKey, bys, UI64_LEN,
-//                                     ActionType::INSERT, nullptr);
+  for (int i = 0; i < 10; i++) {
+    *((DataValueLong *)vctKey[0]) = arr[i];
+    Int64ToBytes(i + 100, bys, true);
+    LeafRecord *rr =
+        new LeafRecord(indexTree, vctKey, bys, UI64_LEN, ActionType::INSERT,
+                       indexTree->GetHeadPage()->GetRecordStamp());
 
-//     IndexPage *idxPage = indexTree->GetRootPage();
-//     bool b = indexTree->SearchPage(*rr, idxPage);
-//     BOOST_TEST(b);
-//     BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
+    IndexPage *idxPage = indexTree->GetRootPage();
+    bool b = indexTree->SearchPage(*rr, idxPage);
+    BOOST_TEST(b);
+    BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
 
-//     LeafPage *lp = (LeafPage *)idxPage;
-//     bool bFind;
-//     int32_t pos = lp->SearchRecord(*rr, bFind);
-//     BOOST_TEST(!bFind);
-//     lp->InsertRecord(rr, pos);
+    LeafPage *lp = (LeafPage *)idxPage;
+    bool bFind;
+    int32_t pos = lp->SearchRecord(*rr, bFind);
+    BOOST_TEST(!bFind);
+    lp->InsertRecord(rr, pos);
 
-//     lp->AddWriteQueue(pageMap);
-//     if (lp->NeedForceSplit()) {
-//       lp->SplitPage(pageMap, UINT8_MAX);
-//     }
-//   }
-//   indexTree->SettleUpdatedPages(pageMap);
-//   assert(pageMap.size() == 0);
+    lp->AddWriteQueue(pageMap);
+    if (lp->NeedForceSplit()) {
+      lp->SplitPage(pageMap, UINT8_MAX);
+    }
+  }
 
-//   IndexPage *root = indexTree->GetRootPage();
-//   MDeque<IndexPage *> queue;
-//   queue.push_back(root);
+  LeafPage *lp = (LeafPage *)indexTree->GetRootPage();
+  lp->SaveRecords(pageMap, false);
+  FilePagePool::SyncWritePage(lp);
 
-//   while (queue.size() > 0) {
-//     IndexPage *page = queue.front();
-//     queue.pop_front();
+  indexTree->Close();
+  CachePagePool::ClearPool();
+  delete indexTree;
 
-//     while (page->GetPageStatus() != PageStatus::VALID) {
-//       this_thread::yield();
-//     }
+  indexTree = new IndexTree();
+  indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                           vctVal, GetFileId());
+  vctKey.push_back(dvKey->Clone());
+  lp = indexTree->GetBeginPage();
 
-//     if (page->GetPageType() == PageType::BRANCH_PAGE) {
-//       BranchPage *bpage = (BranchPage *)page;
-//       for (uint32_t i = 0; i < bpage->GetRecordNumber(); i++) {
-//         BranchRecord *br = bpage->GetVctRecord(i);
-//         queue.push_back(br->GetChildPage());
-//       }
-//     }
+  for (int i = 0; i < 10; i++) {
+    *((DataValueLong *)vctKey[0]) = arr[i];
+    RawKey key(vctKey);
+    bool bfind;
+    int32_t pos = lp->SearchKey(key, bfind);
+    BOOST_TEST(bfind);
+    LeafRecord &lr = lp->GetRecord(pos);
+    BOOST_TEST(lr.CompareKey(key) == 0);
 
-//     page->SetReferred(false);
-//   }
+    *((DataValueLong *)vctKey[0]) = i + 100;
+    RawKey key2(vctKey);
+    RawKey pkey = lr.GetPrimayKey();
+    BOOST_TEST(pkey.CompareTo(key2) == 0);
+  }
 
-//   indexTree->Close();
-//   CachePagePool::ClearPool();
-//   delete indexTree;
+  *((DataValueLong *)vctKey[0]) = arr[2];
+  Int64ToBytes(100, bys, true);
+  LeafRecord *rr =
+      new LeafRecord(indexTree, vctKey, bys, UI64_LEN, ActionType::INSERT,
+                     indexTree->GetHeadPage()->GetRecordStamp());
+  bool bFind;
+  int32_t pos = lp->SearchRecord(*rr, bFind);
+  BOOST_TEST(bFind);
+  delete rr;
 
-//   indexTree = new IndexTree();
-//   indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-//                            vctVal, 3004);
-//   vctKey.push_back(dvKey->Clone());
-//   LeafPage *lp = indexTree->GetBeginPage();
-//   lp->WriteLock();
-
-//   for (int i = 0; i < 10; i++) {
-//     *((DataValueLong *)vctKey[0]) = arr[i];
-//     RawKey key(vctKey);
-//     bool bfind;
-//     int32_t pos = lp->SearchKey(key, bfind);
-//     LeafRecord *lr = lp->GetRecord(pos);
-//     BOOST_TEST(lr->CompareKey(key) == 0);
-
-//     *((DataValueLong *)vctKey[0]) = i + 100;
-//     RawKey key2(vctKey);
-//     RawKey *pkey = lr->GetPrimayKey();
-//     BOOST_TEST(pkey->CompareTo(key2) == 0);
-//     delete pkey;
-//     lr->DecRef();
-//   }
-
-//   *((DataValueLong *)vctKey[0]) = arr[2];
-//   Int64ToBytes(100, bys, true);
-//   LeafRecord *rr = new LeafRecord(indexTree, vctKey, bys, UI64_LEN,
-//                                   ActionType::INSERT, nullptr);
-//   bool b = lp->InsertRecord(rr);
-//   BOOST_TEST(!b);
-//   BOOST_TEST(_threadErrorMsg->getErrId() == CORE_REPEATED_RECORD);
-//   rr->DecRef();
-
-//   lp->DecRef();
-//   lp->WriteUnlock();
-//   IndexTree::TestCloseWait(indexTree);
-//   delete dvKey;
-//   delete dvVal;
-// }
+  lp->SetReferred(false);
+  indexTree->Close();
+  CachePagePool::ClearPool();
+  delete indexTree;
+  delete dvKey;
+  delete dvVal;
+}
 
 // BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
 //   const string FILE_NAME =

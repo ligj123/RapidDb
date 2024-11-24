@@ -84,8 +84,8 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
   }
 
   if (stmt != nullptr) {
-    _recLock = new RecordLock(actType, RecordStatus::INIT, false, false,
-                              stmt->GetTxId(), stmt);
+    _recLock = new RecordLock(actType, RecordStatus::INIT, false,
+                              RecordResult::INIT, stmt->GetTxId(), stmt);
   }
   int totalLen = lenKey + lenPri + UI16_2_LEN + UI64_LEN;
   _bysVal = CachePool::Apply(totalLen);
@@ -116,7 +116,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
 
   if (stmt != nullptr) {
     _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,
-                              false, stmt->GetTxId(), stmt);
+                              RecordResult::INIT, stmt->GetTxId(), stmt);
   }
   uint32_t lenVal = CalcValueLength(idxTree, vctVal, ActionType::INSERT);
   uint16_t infoLen = 1 + UI64_LEN + UI32_LEN;
@@ -182,8 +182,9 @@ LeafRecord *LeafRecord::UpdateRecord(IndexTree *idxTree,
     gapLock = true;
   }
 
-  lrNew->_recLock = new RecordLock(type, RecordStatus::INIT, gapLock, true,
-                                   stmt->GetTxId(), stmt);
+  lrNew->_recLock =
+      new RecordLock(type, RecordStatus::INIT, gapLock, RecordResult::IN_PAGE,
+                     stmt->GetTxId(), stmt);
   lrNew->_recLock->_undoRec = this;
 
   uint32_t lenVal = CalcValueLength(idxTree, vctVal, type);
@@ -287,8 +288,8 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
   if (atype != ActionType::NO_ACTION) {
     assert(lr == this);
     if (_recLock == nullptr) {
-      _recLock = new RecordLock(atype, RecordStatus::LOCK_ONLY, bGapLock, true,
-                                stmt->GetTxId(), stmt);
+      _recLock = new RecordLock(atype, RecordStatus::LOCK_ONLY, bGapLock,
+                                RecordResult::IN_PAGE, stmt->GetTxId(), stmt);
     } else {
       for (auto txid : _recLock->_lstTxid) {
         if (txid == stmt->GetTxId()) {
@@ -482,7 +483,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
          _recLock->_actType == ActionType::UPDATE ||
          _recLock->_actType == ActionType::DELETE);
 
-  if (_recLock->_status == RecordStatus::ROLLBACKED) {
+  if (_recLock->GetRecordStatus() == RecordStatus::ROLLBACKED) {
     if (_overflowPage != nullptr) {
       idxTree->RecyclePageId(_overflowPage->GetPageId(),
                              _overflowPage->GetPageNum(), block);
@@ -565,16 +566,17 @@ bool LeafRecord::ReleaseLockAble() const {
 
     return true;
   } else {
-    return _recLock->_status >= RecordStatus::COMMITED;
+    return _recLock->GetRecordStatus() >= RecordStatus::COMMITED;
   }
 }
 
 void LeafRecord::SubmitStatement(Statement &stmt, RecordStatus sts) {
   assert(_recLock != nullptr);
+  assert(_recLock->GetRecordResult() != RecordResult::ERROR);
   assert(
-      _recLock->_status == RecordStatus::INIT &&
+      _recLock->GetRecordStatus() == RecordStatus::INIT &&
           (sts == RecordStatus::COMMITED || sts == RecordStatus::ROLLBACKED) ||
-      _recLock->_status == RecordStatus::LOCK_ONLY &&
+      _recLock->GetRecordStatus() == RecordStatus::LOCK_ONLY &&
           sts == RecordStatus::FREEED);
 
   if (sts == RecordStatus::FREEED &&
@@ -589,8 +591,8 @@ void LeafRecord::SubmitStatement(Statement &stmt, RecordStatus sts) {
     assert(false);
   } else {
     assert(&stmt == _recLock->_stmt);
-    _recLock->_status = sts;
     _recLock->_stmt = nullptr;
+    _recLock->SetRecordStatus(sts);
   }
 }
 

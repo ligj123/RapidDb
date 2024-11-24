@@ -11,10 +11,6 @@ namespace storage {
 class IndexPage;
 class BranchRecord : public RawRecord {
 public:
-  /**Page Id length*/
-  static const uint32_t PAGE_ID_LEN;
-
-public:
   /** Construct an exist record from page buffer */
   BranchRecord(IndexType type, Byte *bys, IndexPage *childPage = nullptr)
       : RawRecord(bys, false, type), _childPage(childPage) {}
@@ -40,7 +36,10 @@ public:
     return (uint16_t)(*((uint16_t *)_bysVal) - UI16_2_LEN - PAGE_ID_LEN -
                       *((uint16_t *)(_bysVal + sizeof(uint16_t))));
   }
-
+  uint16_t GetDataLength() const override {
+    assert(_indexType == IndexType::NON_UNIQUE);
+    return (uint16_t)(*((uint16_t *)_bysVal) - UI16_2_LEN - PAGE_ID_LEN);
+  }
   PageID GetChildPageId() const {
     return *((PageID *)(_bysVal + GetTotalLength() - PAGE_ID_LEN));
   }

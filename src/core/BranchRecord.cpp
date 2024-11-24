@@ -5,8 +5,6 @@
 #include <memory>
 
 namespace storage {
-const uint32_t BranchRecord::PAGE_ID_LEN = sizeof(PageID);
-
 BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId,
                            IndexPage *childPage)
     : RawRecord(nullptr, true, type), _childPage(childPage) {
@@ -30,10 +28,8 @@ int BranchRecord::CompareTo(const RawRecord &rr) const {
     return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(),
                         rr.GetBysValue() + UI16_2_LEN, rr.GetKeyLength());
   } else {
-    return BytesCompare(_bysVal + UI16_2_LEN,
-                        GetTotalLength() - UI16_2_LEN - PAGE_ID_LEN,
-                        rr.GetBysValue() + UI16_2_LEN,
-                        rr.GetTotalLength() - UI16_2_LEN - PAGE_ID_LEN);
+    return BytesCompare(_bysVal + UI16_2_LEN, GetDataLength(),
+                        rr.GetBysValue() + UI16_2_LEN, rr.GetDataLength());
   }
 }
 

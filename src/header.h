@@ -19,6 +19,7 @@ const int UI64_LEN = sizeof(uint64_t);
 const int UI16_2_LEN = sizeof(uint16_t) * 2;
 const int UI16_3_LEN = sizeof(uint16_t) * 3;
 const int BYTE_SIZE = 8;
+const int PAGE_ID_LEN = sizeof(PageID);
 const uint64_t NANO_SEC = 1000000000;
 /**Invalid page id = UINT32_MAX*/
 const PageID PAGE_NULL_POINTER = UINT32_MAX;

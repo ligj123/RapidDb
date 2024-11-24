@@ -22,10 +22,10 @@ class LeafPage;
 
 // LeafRecord lock
 struct RecordLock {
-  RecordLock(ActionType t, RecordStatus s, bool gapLock, bool inPage,
+  RecordLock(ActionType t, RecordStatus s, bool gapLock, RecordResult recRst,
              TranID txid, Statement *stmt = nullptr,
              LeafRecord *undoRec = nullptr)
-      : _actType(t), _status(s), _bGapLock(gapLock), _bInPage(inPage),
+      : _actType(t), _recStatus(s), _bGapLock(gapLock), _recResult(recRst),
         _undoRec(undoRec) {
     if (t == ActionType::READ_SHARE && !_bGapLock) {
       _stmt = nullptr;
@@ -35,31 +35,51 @@ struct RecordLock {
 
     _lstTxid.push_back(txid);
   }
+
+  ~RecordLock() { assert(_errMsg == nullptr); }
   // Get transaction id, if more than 1, return the first txid
   uint64_t TxID() {
     assert(_lstTxid.size() > 0);
     return *_lstTxid.begin();
   }
 
+  RecordStatus GetRecordStatus(bool acquire = false) {
+    if (acuqire) {
+      return _recStatus.load(memory_order_acquire);
+    } else {
+      return _recStatus.load(memory_order_relaxed);
+    }
+  }
+  RecordResult GetRecordResult(bool acquire = false) {
+    if (acuqire) {
+      return _recResult.load(memory_order_acquire);
+    } else {
+      return _recResult.load(memory_order_relaxed);
+    }
+  }
+
   ActionType _actType;
-  RecordStatus _status;
+  atomic<RecordStatus> _recStatus;
   // True: locked the range between this and previous record, only valid
   // repeatable read isolation level. In this version, a record can only has a
   // gap lock.
   bool _bGapLock;
-  // If the record is in LeafPage or just create and not added into LeafPage
-  bool _bInPage;
+  // The operated result of this record
+  atomic<RecordResult> _recResult;
   // The statement that inserted, updated or deleted the record. If
   // ActionType::READ_SHARE and _bGapLock=FALSE , it should be nullptr.
   Statement *_stmt;
   // The transaction id locked this record, If write lock, should have only one
   // transaction id. If ActionType=READ_SHARE, It need to set the related txid
   // to TXID_NULL, when all txid=TXID_NULL, this lock can be releases, else it
-  // should update _status and set txid=TXID_NULL at the same time.
+  // should update _recStatus and set txid=TXID_NULL at the same time.
   MList<uint64_t> _lstTxid;
   // To save old version for rollback statement, only valid for primary key.
   LeafRecord *_undoRec;
+  // To save error message that happened in operation
+  ErrorMsg *_errMsg{nullptr};
 
+public:
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
   }
@@ -142,7 +162,12 @@ public:
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
              const VectorDataValue &vctVal, uint64_t recStamp,
              Statement *stmt = nullptr, bool block = false);
-  LeafRecord(LeafRecord &&src) = delete;
+  LeafRecord(LeafRecord &&src)
+      : RawRecord(move(src)), _recLock(src._recLock),
+        _overflowPage(src._overflowPage) {
+    src._recLock = nullptr;
+    src._overflowPage = nullptr;
+  }
   LeafRecord(const LeafRecord &src) = delete;
   LeafRecord() : RawRecord() {}
   ~LeafRecord() {
@@ -177,7 +202,10 @@ public:
   bool LoadOverflowPage(IndexTree *idxTree, bool bsync = false);
   ReleaseResult ReleaseLock(IndexTree *idxTree, bool block);
   uint16_t GetValueLength() const override;
-
+  uint16_t GetDataLength() const override {
+    assert(_indexType == IndexType::NON_UNIQUE);
+    return (uint16_t)(*((uint16_t *)_bysVal) - UI16_2_LEN - UI64_LEN);
+  }
   /**
    * @brief To judge if the lock can be released
    */
@@ -241,7 +269,7 @@ public:
     if (_recLock == nullptr ||
         (_recLock->_actType & ActionType::UPDATE_MASK) == 0) {
       return true;
-    } else if (_recLock->_status >= RecordStatus::COMMITED) {
+    } else if (_recLock->GetRecordStatus() >= RecordStatus::COMMITED) {
       return true;
     }
 
@@ -276,6 +304,25 @@ public:
 
   OverflowPage *GetOverflowPage() { return _overflowPage; }
   RecordLock *GetLock() { return _recLock; }
+  bool IsConflict(TranID txid, ActionType atype) {
+    if (_recLock == nullptr ||
+        _recLock->GetRecordStatus() >= RecordStatus::COMMITED) {
+      return false;
+    }
+
+    if (atype == ActionType::READ_SHARE &&
+        _recLock->_actType == ActionType::READ_SHARE) {
+      return false;
+    }
+
+    for (TranID id : _recLock->_lstTxid) {
+      if (id != txid && id != TXID_NULL) {
+        return true;
+      }
+    }
+
+    return false;
+  }
 
 protected:
   // To calc a version's value length

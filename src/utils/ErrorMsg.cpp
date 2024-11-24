@@ -67,10 +67,11 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
      "The byte array for statement's parameters is invalid."},
 
     // Statement
-    {STAT_PARAM_NUM_INVALID,
+    {STMT_PARAM_NUM_INVALID,
      "Invalid statement's parameters number, expect {1}, actual {2}."},
-    {STAT_PARAM_LEN_INVALID,
+    {STMT_PARAM_LEN_INVALID,
      "Invalid statement's parameters values length, expect {1}, actual {2}."},
+    {STMT_LOCK_CONFLICT, "Failed to update locked record."},
 
     // SQLParser
     {SQL_PARSER_INIT_FAILED, "SQLParser: Error when initializing lexer!"},

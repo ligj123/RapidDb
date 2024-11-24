@@ -282,8 +282,7 @@ void DataValueFixChar::SetMaxValue() {
   }
 
   valType_ = ValueType::SOLE_VALUE;
-  bysValue_[0] = bysValue_[1] = bysValue_[2] = -1;
-  bysValue_[3] = 0;
+  memset(bysValue_, 0xFF, maxLength_);
 }
 
 void DataValueFixChar::SetDefaultValue() {

@@ -49,10 +49,12 @@ public:
     return *((uint16_t *)(_bysVal + UI16_LEN));
   }
   virtual bool IsSole() const { return _bSole; }
-  bool IsNull() { return _bysVal == nullptr; }
+  bool IsNull() const { return _bysVal == nullptr; }
   virtual uint16_t GetTotalLength() const = 0;
   virtual uint16_t GetValueLength() const = 0;
-  IndexType GetIndexType() { return _indexType; }
+  /**Get the length of key + value, now only support NON_UNIQUE IndexType */
+  virtual uint16_t GetDataLength() const = 0;
+  IndexType GetIndexType() const { return _indexType; }
 
 public:
   static void *operator new(size_t size) {

@@ -194,8 +194,9 @@ uint32_t DataValueBlob::ReadData(Byte *buf) {
 }
 
 void DataValueBlob::SetMinValue() {
-  if (valType_ == ValueType::SOLE_VALUE)
+  if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, soleLength_);
+  }
 
   valType_ = ValueType::SOLE_VALUE;
   soleLength_ = 1;
@@ -204,13 +205,14 @@ void DataValueBlob::SetMinValue() {
 }
 
 void DataValueBlob::SetMaxValue() {
-  if (valType_ == ValueType::SOLE_VALUE)
+  if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, soleLength_);
+  }
 
   valType_ = ValueType::SOLE_VALUE;
-  soleLength_ = 4;
+  soleLength_ = maxLength_;
   bysValue_ = CachePool::Apply(soleLength_);
-  bysValue_[0] = bysValue_[1] = bysValue_[2] = bysValue_[3] = UINT8_MAX;
+  memset(bysValue_, UINT8_MAX, soleLength_);
 }
 
 void DataValueBlob::SetDefaultValue() {

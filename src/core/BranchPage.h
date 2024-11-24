@@ -56,7 +56,7 @@ public:
    */
   bool KeyExist(const RawKey &key) const;
 
-  int32_t SearchRecord(const BranchRecord &rr, bool &bFind) const;
+  int32_t SearchRecord(const RawRecord &rr, bool &bFind) const;
   int32_t SearchKey(const RawKey &key, bool &bFind) const;
   BranchRecord &GetRecord(int32_t pos, bool bAutoLast);
 
@@ -80,7 +80,7 @@ public:
   }
 
 protected:
-  int CompareTo(uint32_t recPos, const BranchRecord &rr) const;
+  int CompareTo(uint32_t recPos, const RawRecord &rr) const;
   int CompareTo(uint32_t recPos, const RawKey &key) const;
 
 protected:

@@ -122,7 +122,7 @@ public:
 
 protected:
   // Parent page ID
-  PageID parentPageId{0};
+  PageID _parentPageId{0};
   // Total commited data length in this page
   uint32_t _committedDataLength{0};
   // Total data length in the page, include Committed and uncommitted records,

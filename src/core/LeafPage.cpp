@@ -151,11 +151,11 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap,
   return true;
 }
 
-void LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
+bool LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
+  assert(lr->_recLock == nullptr ||
+         lr->_recLock->_actType == ActionType::INSERT);
   assert(pos >= 0 && pos <= _recordNum);
-  if (_recordNum > 0 && _vctRecord.size() == 0) {
-    LoadRecords();
-  }
+  assert(_recordNum == 0 || _vctRecord.size() > 0);
 
   _tempDataLength += lr->GetTotalLength() + UI16_LEN;
   if (lr->GetLock() == nullptr) {
@@ -166,6 +166,31 @@ void LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
 
   _bDirty = true;
   _bRecordUpdated = true;
+
+  return true;
+}
+
+bool LeafPage::DeleteRecord(LeafRecord *lr, int32_t pos) {
+  assert(lr->_recLock->_actType == ActionType::DELETE);
+  assert(pos >= 0 && pos <= _recordNum);
+  assert(_recordNum == 0 || _vctRecord.size() > 0);
+
+  LeafRecord *old = (LeafRecord *)_vctRecord[pos];
+  RecordLock *lock = lr->_recLock;
+
+  if (old->IsConflict(lock->TxID(), lock->_actType)) {
+    // Now only support to return error if meet conflict, following time will
+    // add the function to wait until exist statement commit or abort.
+    lock->_errMsg.SetMsg(STMT_LOCK_CONFLICT, {});
+    lock->_recResult.store(RecordResult::ERROR, memory_order_release);
+  } else {
+    lock->_undoRec = old;
+    _tempDataLength -= lr->GetTotalLength() + UI16_LEN;
+    _vctRecord[pos] = lr;
+    lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
+  }
+
+  return true;
 }
 
 bool LeafPage::AddRecord(LeafRecord *lr) {
@@ -514,13 +539,22 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     SetEndPage(false);
     ((LeafPage *)vctPage[vctPage.size() - 1])->SetEndPage(true);
   } else {
-    if (lastPage == nullptr) {
-      lastPage = (LeafPage *)_indexTree->GetPage(lastId, PageType::LEAF_PAGE);
-    }
+    if (IsRangEndPage()) {
+      ((LeafPage *)vctPage[vctPage.size() - 1])->SetRangeEndPage(true);
+      SetRangeEndPage(false);
+      size_t pos = _indexTree->CalcIndexRange(GetRecord(0)) + 1;
+      PrevPageAction *act = new PrevPageAction(
+          _indexTree, pos, lastId, (vctPage[vctPage.size() - 1])->GetPageId());
+      _indexTree->GetVctRange()[pos].AddAction(act);
+    } else {
+      if (lastPage == nullptr) {
+        lastPage = (LeafPage *)_indexTree->GetPage(lastId, PageType::LEAF_PAGE);
+      }
 
-    ((LeafPage *)vctPage[vctPage.size() - 1])->SetNextPage(lastPage);
-    lastPage->SetPrevPage(((LeafPage *)vctPage[vctPage.size() - 1]));
-    lastPage->SetPrevPageId((vctPage[vctPage.size() - 1])->GetPageId());
+      ((LeafPage *)vctPage[vctPage.size() - 1])->SetNextPage(lastPage);
+      lastPage->SetPrevPage(((LeafPage *)vctPage[vctPage.size() - 1]));
+      lastPage->SetPrevPageId((vctPage[vctPage.size() - 1])->GetPageId());
+    }
   }
 
   for (int i = 0; i < vctPage.size(); i++) {

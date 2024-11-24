@@ -272,14 +272,14 @@ void DataValueVarChar::SetMinValue() {
 }
 
 void DataValueVarChar::SetMaxValue() {
-  if (valType_ == ValueType::SOLE_VALUE)
+  if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, soleLength_);
+  }
 
   valType_ = ValueType::SOLE_VALUE;
-  soleLength_ = 4;
+  soleLength_ = maxLength_;
   bysValue_ = CachePool::Apply(soleLength_);
-  bysValue_[0] = bysValue_[1] = bysValue_[2] = -1;
-  bysValue_[3] = 0;
+  memset(bysValue_, UINT8_MAX, soleLength_);
 }
 
 void DataValueVarChar::SetDefaultValue() {
