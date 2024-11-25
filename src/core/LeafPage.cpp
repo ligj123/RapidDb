@@ -333,18 +333,21 @@ int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, int32_t start,
 
 int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
-  return BytesCompare(_bysPage + start, ReadShort(start + UI16_LEN),
-                      key.GetBysVal(), key.GetLength());
+  return BytesCompare(_bysPage + start + UI16_2_LEN,
+                      ReadShort(start + UI16_LEN), key.GetBysVal(),
+                      key.GetLength());
 }
 
 int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
   uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
   if (key) {
-    return BytesCompare(_bysPage + start, ReadShort(start + UI16_LEN),
-                        rr.GetBysValue(), rr.GetKeyLength());
+    return BytesCompare(_bysPage + start + UI16_2_LEN,
+                        ReadShort(start + UI16_LEN),
+                        rr.GetBysValue() + UI16_2_LEN, rr.GetKeyLength());
   } else {
-    return BytesCompare(_bysPage + start, ReadShort(start), rr.GetBysValue(),
-                        rr.GetTotalLength());
+    return BytesCompare(
+        _bysPage + start + UI16_2_LEN, ReadShort(start) - UI16_2_LEN,
+        rr.GetBysValue() + UI16_2_LEN, rr.GetTotalLength() - UI16_2_LEN);
   }
 }
 
@@ -455,9 +458,12 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     }
   }
 
-  vctPos.push_back(pos);
-  vctCLen.push_back(clen);
-  vctCLen.push_back(tlen);
+  if (tlen > 0) {
+    vctPos.push_back(pos);
+    vctCLen.push_back(clen);
+    vctCLen.push_back(tlen);
+  }
+
   _committedDataLength = vctCLen[0];
   _tempDataLength = vctTLen[0];
   _recordNum = vctPos[0];
@@ -580,5 +586,31 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   }
 
   return true;
+}
+
+LeafPage *LeafPage::GetPrevPage() {
+  if (_prevPage != nullptr) {
+    return _prevPage;
+  }
+  if (IsRangBeginPage() || _prevPageId == PAGE_NULL_POINTER) {
+    return nullptr;
+  }
+
+  _prevPage = (LeafPage *)_indexTree->GetPage(_prevPageId, PageType::LEAF_PAGE);
+  _prevPage->SetNextPage(this);
+  return _prevPage;
+}
+
+LeafPage *LeafPage::GetNextPage() {
+  if (_nextPage != nullptr) {
+    return _nextPage;
+  }
+  if (IsRangEndPage() || _nextPageId == PAGE_NULL_POINTER) {
+    return nullptr;
+  }
+
+  _nextPage = (LeafPage *)_indexTree->GetPage(_nextPageId, PageType::LEAF_PAGE);
+  _nextPage->SetPrevPage(this);
+  return _nextPage;
 }
 } // namespace storage

@@ -76,7 +76,8 @@ void CachePagePool::ClearPool() {
   unique_lock<SpinMutex> lock(_spinMutex);
   for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
     CachePage *page = iter->second;
-    assert(!page->IsRefered());
+    assert(!page->IsRefered() && !page->IsDirty() &&
+           page->GetPageStatus() == PageStatus::VALID);
     delete page;
   }
 

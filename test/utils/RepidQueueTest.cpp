@@ -1,7 +1,6 @@
 #include "../../src/dataType/DataValueDigit.h"
 #include "../../src/utils/Log.h"
 #include "../../src/utils/RapidQueue.h"
-#include "../../src/utils/ThreadPool.h"
 
 #include <boost/test/unit_test.hpp>
 #include <string>

@@ -36,6 +36,13 @@ struct IndexRange {
   MDeque<IndexAction *> _queueTempAction;
   // The SpinMutex used for _queueTempAction
   SpinMutex _mutex;
+  // To save the increase-decrease of records in current range, it will be added
+  // into the total record number in the HeadPage when write disk.
+  int64_t _recordNumber{0};
+  // To decrease atomic operation, every range will apply a batch of stamp one
+  // time.
+  VersionStamp _recordStampStart{0};
+  VersionStamp _recordStampEnd{0};
 
   void AddAction(IndexAction *act) {
     unique_lock<SpinMutex> lock(_mutex);
@@ -145,14 +152,8 @@ public:
    * @brief Remove a IndexPage and its child and all their relationships from
    * IndexTree, include parent page, prev page, next page, child page.
    * @param idxPage The index page that will be removed from index tree
-   * @param bParent True: needs to set _childPage=nullptr in parent page's
-   * BranchRecord
-   * @param lockPageLevel The page level that the BranchRecords in those pages
-   * will be as borders that split the statements into different index task. If
-   * =0xFF, means only one index task to run.
    */
-  void ReleaseIndexPage(IndexPage *idxPage, bool bParent = false,
-                        Byte lockPageLevel = UINT8_MAX);
+  void ReleaseIndexPage(IndexPage *idxPage);
 
   inline uint64_t GetRecordsCount() const {
     return _headPage->GetTotalRecordCount();
@@ -191,6 +192,7 @@ public:
     }
 
     _rootPage = root;
+    _headPage->SetRootPageID(root->GetPageId());
 
     if (block) {
       _spinMutex.unlock();

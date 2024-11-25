@@ -15,7 +15,7 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   class TestTask : public ThreadTask {
   public:
-    TestTask() { _bExclusive = true; }
+    TestTask() { SetExclusiveTask(true); }
     TaskStatus Run() override {
       _val = ThreadPool::GetThreadId();
       LOG_INFO << "thread id: " << _val;
@@ -23,7 +23,7 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
         this_thread::sleep_for(1ms);
       }
 
-      _bExclusive = false;
+      SetExclusiveTask(false);
       return TaskStatus::FINISHED;
     }
 

@@ -19,7 +19,7 @@ TaskStatus PrevPageAction::Run() {
     }
 
     if (ps == PageStatus::READED) {
-      _idxPage->SetPageStatus(PageStatus::VALID, memory_order_acquire);
+      _idxPage->SetPageStatus(PageStatus::VALID, true);
     }
 
     if (_idxPage->GetPageType() == PageType::LEAF_PAGE) {

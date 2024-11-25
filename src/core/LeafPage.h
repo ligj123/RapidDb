@@ -38,9 +38,7 @@ public:
   inline PageID GetNextPageId() { return _nextPageId; }
 
   inline void SetPrevPage(LeafPage *page) { _prevPage = page; }
-  inline LeafPage *GetPrevPage() { return _prevPage; }
   inline void SetNextPage(LeafPage *page) { _nextPage = page; }
-  inline LeafPage *GetNextPage() { return _nextPage; }
   inline bool IsRangBeginPage() { return _bRangeBeginPage; }
   inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }
   inline bool IsRangEndPage() { return _bRangeEndPage; }
@@ -53,6 +51,9 @@ public:
     return !_bRefered &&
            _pageStatus.load(memory_order_relaxed) == PageStatus::VALID;
   }
+
+  LeafPage *GetPrevPage();
+  LeafPage *GetNextPage();
 
   /**
    * @brief Insert a leaf record into position pos in this page

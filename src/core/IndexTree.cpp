@@ -78,6 +78,7 @@ bool IndexTree::LoadIndexTree(const MString &indexName, const MString &fileName,
   _tableName = tableName;
   _indexName = indexName;
   _fileName = fileName;
+  _fileId = indexId;
   for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {
     if (*iter == '\\')
       *iter = '/';
@@ -359,13 +360,8 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
   FilePagePool::SubmitWritePage(ThreadPool::GetThreadId());
 }
 
-void IndexTree::ReleaseIndexPage(IndexPage *idxPage, bool bParent,
-                                 Byte lockPageLevel) {
-  bool bAllTree = (idxPage == _rootPage);
-  assert(!bAllTree || (bAllTree && !bParent));
-
-  if (bParent) {
-    assert(idxPage->GetParentPage() != nullptr);
+void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
+  if (idxPage->GetParentPage() != nullptr) {
     BranchPage *parentPage = idxPage->GetParentPage();
     parentPage->ClearChild(idxPage);
   }
@@ -381,6 +377,8 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage, bool bParent,
       this_thread::yield();
     }
 
+    assert(!page->IsDirty());
+
     if (page->GetPageType() == PageType::BRANCH_PAGE) {
       BranchPage *bp = (BranchPage *)page;
       for (uint32_t i = 0; i < bp->GetRecordNumber(); i++) {
@@ -390,7 +388,23 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage, bool bParent,
       }
     } else {
       LeafPage *lp = (LeafPage *)page;
-      lp->SetNextPage(nullptr);
+      LeafPage *pnext = lp->GetNextPage();
+      if (pnext != nullptr) {
+        if (pnext->GetParentPage() == nullptr) {
+          queue.push_back(pnext);
+        }
+
+        lp->SetNextPage(nullptr);
+      }
+
+      LeafPage *pprev = lp->GetPrevPage();
+      if (pprev != nullptr) {
+        if (pprev->GetParentPage() != nullptr) {
+          queue.push_back(pprev);
+        }
+
+        lp->SetPrevPage(nullptr);
+      }
     }
 
     page->SetParentPage(nullptr);

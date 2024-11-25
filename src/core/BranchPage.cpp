@@ -221,7 +221,7 @@ int BranchPage::CompareTo(uint32_t recPos, const RawKey &key) const {
   uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
 
   return BytesCompare(_bysPage + start + UI16_2_LEN,
-                      ReadShort(start + UI16_LEN), key.GetBysVal() + UI16_2_LEN,
+                      ReadShort(start + UI16_LEN), key.GetBysVal(),
                       key.GetLength());
 }
 
@@ -318,8 +318,11 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     }
   }
 
-  vctPos.push_back(pos);
-  vctLen.push_back(len);
+  if (len > 0) {
+    vctPos.push_back(pos);
+    vctLen.push_back(len);
+  }
+
   _committedDataLength = vctLen[0];
   _recordNum = vctPos[0];
 
