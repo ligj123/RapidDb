@@ -34,3 +34,5 @@ const TranID TXID_NULL = UINT64_MAX;
 #define SINGLE_VERSION
 #define LINUX_OS
 #define CACHE_TRACE
+
+extern const char *HexStr[];

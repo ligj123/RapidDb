@@ -151,7 +151,7 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap,
   return true;
 }
 
-bool LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
+void LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
   assert(lr->_recLock == nullptr ||
          lr->_recLock->_actType == ActionType::INSERT);
   assert(pos >= 0 && pos <= _recordNum);
@@ -161,36 +161,28 @@ bool LeafPage::InsertRecord(LeafRecord *lr, int32_t pos) {
   if (lr->GetLock() == nullptr) {
     _committedDataLength += lr->GetTotalLength() + UI16_LEN;
   }
+
   _vctRecord.insert(_vctRecord.begin() + pos, lr);
   _recordNum++;
-
   _bDirty = true;
   _bRecordUpdated = true;
-
-  return true;
 }
 
-bool LeafPage::DeleteRecord(LeafRecord *lr, int32_t pos) {
-  assert(lr->_recLock->_actType == ActionType::DELETE);
+void LeafPage::DeleteRecord(LeafRecord *lr, int32_t pos) {
+  assert(lr->GetAction() == ActionType::DELETE);
   assert(pos >= 0 && pos <= _recordNum);
   assert(_recordNum == 0 || _vctRecord.size() > 0);
 
   LeafRecord *old = (LeafRecord *)_vctRecord[pos];
+  assert(!old->_bDelete);
+
   RecordLock *lock = lr->_recLock;
-
-  if (old->IsConflict(lock->TxID(), lock->_actType)) {
-    // Now only support to return error if meet conflict, following time will
-    // add the function to wait until exist statement commit or abort.
-    lock->_errMsg.SetMsg(STMT_LOCK_CONFLICT, {});
-    lock->_recResult.store(RecordResult::ERROR, memory_order_release);
-  } else {
-    lock->_undoRec = old;
-    _tempDataLength -= lr->GetTotalLength() + UI16_LEN;
-    _vctRecord[pos] = lr;
-    lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
-  }
-
-  return true;
+  lock->_undoRec = old;
+  _tempDataLength -= old->GetTotalLength() + UI16_LEN;
+  _vctRecord[pos] = lr;
+  _bDirty = true;
+  _bRecordUpdated = true;
+  lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
 }
 
 bool LeafPage::AddRecord(LeafRecord *lr) {

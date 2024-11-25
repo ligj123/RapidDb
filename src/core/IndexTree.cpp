@@ -34,8 +34,9 @@ bool IndexTree::CreateIndexTree(const MString &indexName,
                                 const MString &fileName,
                                 VectorDataValue &vctKey,
                                 VectorDataValue &vctVal, uint32_t indexId,
-                                IndexType iType) {
+                                IndexType iType, const MString &tableName) {
   assert(_headPage == nullptr);
+  _tableName = tableName;
   _indexName = indexName;
   _fileName = fileName;
   for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {
@@ -72,8 +73,9 @@ bool IndexTree::CreateIndexTree(const MString &indexName,
 
 bool IndexTree::LoadIndexTree(const MString &indexName, const MString &fileName,
                               VectorDataValue &vctKey, VectorDataValue &vctVal,
-                              uint32_t indexId) {
+                              uint32_t indexId, const MString &tableName) {
   assert(_headPage == nullptr);
+  _tableName = tableName;
   _indexName = indexName;
   _fileName = fileName;
   for (auto iter = _fileName.begin(); iter != _fileName.end(); iter++) {

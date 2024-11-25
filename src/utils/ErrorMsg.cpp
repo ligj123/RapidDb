@@ -72,6 +72,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
     {STMT_PARAM_LEN_INVALID,
      "Invalid statement's parameters values length, expect {1}, actual {2}."},
     {STMT_LOCK_CONFLICT, "Failed to update locked record."},
+    {STMT_DUPLICATE_ENTRY, "Duplicate entry '{1}' for key '{2}.{3}'"},
 
     // SQLParser
     {SQL_PARSER_INIT_FAILED, "SQLParser: Error when initializing lexer!"},

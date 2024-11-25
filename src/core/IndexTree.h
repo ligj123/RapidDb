@@ -63,10 +63,11 @@ public:
 
   bool CreateIndexTree(const MString &indexName, const MString &fileName,
                        VectorDataValue &vctKey, VectorDataValue &vctVal,
-                       uint32_t indexId, IndexType iType);
+                       uint32_t indexId, IndexType iType,
+                       const MString &tableName = "");
   bool LoadIndexTree(const MString &indexName, const MString &fileName,
                      VectorDataValue &vctKey, VectorDataValue &vctVal,
-                     uint32_t indexId);
+                     uint32_t indexId, const MString &tableName = "");
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
   /**
@@ -156,6 +157,8 @@ public:
   inline uint64_t GetRecordsCount() const {
     return _headPage->GetTotalRecordCount();
   }
+  inline const MString &GetTableName() { return _tableName; }
+  inline const MString &GetIndexName() { return _indexName; }
   inline const MString &GetFileName() const { return _fileName; }
   inline uint16_t GetFileId() const { return _fileId; }
   inline bool IsClosed() const { return _bClosed.load(memory_order_relaxed); }
@@ -200,8 +203,10 @@ public:
   MVector<IndexRange> &GetVctRange() { return _vctRange; }
   int CalcIndexRange(LeafRecord &lr);
   int CalcIndexRange(RawKey &key);
+  bool IsMultiRange() { return _vctRange.size() > 1; }
 
 protected:
+  MString _tableName;
   MString _indexName;
   MString _fileName;
   // The file handle for tree file

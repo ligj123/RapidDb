@@ -53,12 +53,13 @@ public:
     return !_bRefered &&
            _pageStatus.load(memory_order_relaxed) == PageStatus::VALID;
   }
+
   /**
    * @brief Insert a leaf record into position pos in this page
    * @param lr The leaf record will be inserted
    * @param pos The position for insert.
    */
-  bool InsertRecord(LeafRecord *lr, int32_t pos);
+  void InsertRecord(LeafRecord *lr, int32_t pos);
   /**
    * @brief For test aim, if insert fail will put the error message into
    * _threadErrorMsg
@@ -84,7 +85,7 @@ public:
    * @param lr New LeafRecor with delete status
    * @param pos The position of record to delete
    */
-  bool DeleteRecord(LeafRecord *lr, int32_t pos);
+  void DeleteRecord(LeafRecord *lr, int32_t pos);
   /** @brief Add a new record to the last position of this page. Only used wehn
    * batch add for ordered records, does not need transaction.
    * @param record The new record
@@ -132,5 +133,7 @@ protected:
   LeafPage *_nextPage{nullptr};
   bool _bRangeEndPage{false};
   bool _bRangeBeginPage{false};
+
+  friend class InsertAction;
 };
 } // namespace storage

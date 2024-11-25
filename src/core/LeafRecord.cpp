@@ -512,6 +512,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
     } else {
       delete _recLock;
       _recLock = nullptr;
+      _bDelete = true;
       return ReleaseResult::DELETED;
     }
   }
@@ -548,7 +549,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
       lr = lr2;
     }
   }
-
+  _bDelete = bDel;
   return bDel ? ReleaseResult::DELETED : ReleaseResult::FISHED;
 }
 
@@ -592,19 +593,31 @@ void LeafRecord::SubmitStatement(Statement &stmt, RecordStatus sts) {
   } else {
     assert(&stmt == _recLock->_stmt);
     _recLock->_stmt = nullptr;
-    _recLock->SetRecordStatus(sts);
+    _recLock->_recStatus.store(sts, memory_order_release);
   }
+}
+
+MString LeafRecord::GetKeyString() {
+  MString ss;
+  ss.reserve(GetKeyLength() * 2 + 2);
+  ss.append("0x");
+  Byte *bys = _bysVal + UI16_2_LEN;
+  for (uint32_t i = 0; i < GetKeyLength(); i++) {
+    ss.append(HexStr[*bys]);
+    bys++;
+  }
+
+  return ss;
 }
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr) {
   os << "TotalLen=" << lr.GetTotalLength() << "  Keys=";
 
-  os << std::uppercase << std::hex << std::setfill('0') << "0x";
+  os << "0x";
   Byte *bys = lr._bysVal + UI16_2_LEN;
   for (uint32_t i = 0; i < lr.GetKeyLength(); i++) {
-    os << std::setw(2) << bys++;
-    if (i % 4 == 0)
-      os << ' ';
+    os << HexStr[*bys];
+    bys++;
   }
 
   return os;

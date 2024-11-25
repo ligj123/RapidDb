@@ -17,7 +17,7 @@ public:
       : _bysVal(nullptr), _bSole(false), _indexType(IndexType::UNKNOWN) {}
   RawRecord(RawRecord &&src)
       : _bysVal(src._bysVal), _bSole(src._bSole), _indexType(src._indexType),
-        _bValid(src._bValid) {
+        _bValid(src._bValid), _bDelete(src._bDelete) {
     src._bysVal = nullptr;
   }
   RawRecord(const RawRecord &src) = delete;
@@ -26,6 +26,7 @@ public:
     _bSole = src._bSole;
     _indexType = src._indexType;
     _bValid = src._bValid;
+    _bDelete = src._bDelete;
     src._bysVal = nullptr;
     return *this;
   }
@@ -55,6 +56,7 @@ public:
   /**Get the length of key + value, now only support NON_UNIQUE IndexType */
   virtual uint16_t GetDataLength() const = 0;
   IndexType GetIndexType() const { return _indexType; }
+  bool IsDelete() { return _bDelete; }
 
 public:
   static void *operator new(size_t size) {
@@ -74,5 +76,7 @@ protected:
   // The record is valid or not. If the key is exceed the length limit, it will
   // set to invliad and set exception when construct the record.
   bool _bValid{true};
+  // This record has been deleted or not, only valid for LeafRecord
+  bool _bDelete{false};
 };
 } // namespace storage

@@ -44,14 +44,14 @@ struct RecordLock {
   }
 
   RecordStatus GetRecordStatus(bool acquire = false) {
-    if (acuqire) {
+    if (acquire) {
       return _recStatus.load(memory_order_acquire);
     } else {
       return _recStatus.load(memory_order_relaxed);
     }
   }
   RecordResult GetRecordResult(bool acquire = false) {
-    if (acuqire) {
+    if (acquire) {
       return _recResult.load(memory_order_acquire);
     } else {
       return _recResult.load(memory_order_relaxed);
@@ -213,6 +213,8 @@ public:
 
   void SubmitStatement(Statement &stmt, RecordStatus s);
 
+  MString GetKeyString();
+
   /**
    * @brief Get key from record, deep copy
    */
@@ -247,7 +249,8 @@ public:
   /**Only the bytes' length in IndexPage, key length + value length without
    * overflow page content*/
   inline uint16_t GetTotalLength() const override {
-    if (_recLock != nullptr && _recLock->_actType == ActionType::DELETE) {
+    if (_bDelete ||
+        _recLock != nullptr && _recLock->_actType == ActionType::DELETE) {
       return 0;
     } else {
       return *((uint16_t *)_bysVal);
@@ -322,6 +325,19 @@ public:
     }
 
     return false;
+  }
+  void GetLength(int32_t &tempLen, int32_t &commitLen) {
+    tempLen = GetTotalLength();
+    LeafRecord *lr = this;
+    while (lr->_recLock != nullptr && lr->_recLock->_undoRec != nullptr) {
+      lr = lr->_recLock->_undoRec;
+    }
+
+    if (lr->IsStable()) {
+      commitLen = lr->GetTotalLength();
+    } else {
+      commitLen = 0;
+    }
   }
 
 protected:
