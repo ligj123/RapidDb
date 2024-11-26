@@ -22,6 +22,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testIndexTreeInsertRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
+
   const int ROW_COUNT = 1000;
   MTreeMap<uint64_t, CachePage *> pageMap;
   uint16_t tidOld = ThreadPool::SetThreadId(0);
@@ -32,9 +34,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  bool rt =
-      indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                                 vctVal, GetFileId(), IndexType::PRIMARY);
+  bool rt = indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                                       FILE_NAME.c_str(), vctKey, vctVal,
+                                       GetFileId(), IndexType::PRIMARY);
   BOOST_TEST(rt);
 
   vctKey.push_back(dvKey->Clone());
@@ -92,8 +94,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
   delete indexTree;
 
   indexTree = new IndexTree();
-  rt = indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                                vctVal, GetFileId());
+  rt = indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                                FILE_NAME.c_str(), vctKey, vctVal, GetFileId());
   BOOST_TEST(rt);
   LeafPage *lp = indexTree->GetBeginPage();
   uint64_t idx = 0;
@@ -143,6 +145,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testIndexRepeatedKey" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = 3000;
 
   MTreeMap<uint64_t, CachePage *> pageMap;
@@ -154,9 +157,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  bool rt =
-      indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                                 vctVal, GetFileId(), IndexType::NON_UNIQUE);
+  bool rt = indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                                       FILE_NAME.c_str(), vctKey, vctVal,
+                                       GetFileId(), IndexType::NON_UNIQUE);
   BOOST_TEST(rt);
 
   vctKey.push_back(dvKey->Clone());
@@ -216,8 +219,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
   delete indexTree;
 
   indexTree = new IndexTree();
-  rt = indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                                vctVal, GetFileId());
+  rt = indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                                FILE_NAME.c_str(), vctKey, vctVal, GetFileId());
   BOOST_TEST(rt);
   LeafPage *lp = indexTree->GetBeginPage();
   uint64_t idx = 0;
@@ -270,14 +273,16 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToPrimaryKey_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testIndexRepeatedKey" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
 
   DataValueLong *dvKey = new DataValueLong(100);
   DataValueLong *dvVal = new DataValueLong(200);
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                             vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::PRIMARY);
 
   vctKey.push_back(new DataValueLong(10));
   vctVal.push_back(new DataValueLong(100));
@@ -310,14 +315,16 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testIndexRepeatedRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
 
   DataValueLong *dvKey = new DataValueLong(100);
   DataValueLong *dvVal = new DataValueLong(200);
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                             vctVal, GetFileId(), IndexType::NON_UNIQUE);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::NON_UNIQUE);
 
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
@@ -363,6 +370,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeUniqueIndex_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testIndexUniqueRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   MTreeMap<uint64_t, CachePage *> pageMap;
 
   DataValueLong *dvKey = new DataValueLong(100);
@@ -370,8 +378,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeUniqueIndex_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                             vctVal, 3004, IndexType::UNIQUE);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, 3004,
+                             IndexType::UNIQUE);
 
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
@@ -411,8 +420,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeUniqueIndex_test) {
   delete indexTree;
 
   indexTree = new IndexTree();
-  indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                           vctVal, GetFileId());
+  indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                           FILE_NAME.c_str(), vctKey, vctVal, GetFileId());
   vctKey.push_back(dvKey->Clone());
   lp = indexTree->GetBeginPage();
 
@@ -454,6 +463,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME =
       ROOT_PATH + "/testIndexGetRecord" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "test";
   const string INDEX_NAME = "Index";
   const int ROW_COUNT = 6000;
   MTreeMap<uint64_t, CachePage *> pageMap;
@@ -465,8 +475,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndexTree(INDEX_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                             vctVal, GetFileId(), IndexType::NON_UNIQUE);
+  indexTree->CreateIndexTree(INDEX_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::NON_UNIQUE);
 
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
@@ -502,8 +513,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
   delete indexTree;
 
   indexTree = new IndexTree();
-  bool b = indexTree->LoadIndexTree(INDEX_NAME.c_str(), FILE_NAME.c_str(),
-                                    vctKey, vctVal, GetFileId());
+  bool b =
+      indexTree->LoadIndexTree(INDEX_NAME.c_str(), INDEX_NAME.c_str(),
+                               FILE_NAME.c_str(), vctKey, vctVal, GetFileId());
   BOOST_TEST(b);
 
   vctKey.push_back(dvKey->Clone());
@@ -571,7 +583,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithPrimaryKey_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testIndexRepeatedRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = 10000;
+
   MTreeMap<uint64_t, CachePage *> pageMap;
   uint16_t tidOld = ThreadPool::SetThreadId(0);
   FilePagePool::Start(1);
@@ -581,8 +595,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithPrimaryKey_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                             vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::PRIMARY);
 
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
@@ -619,8 +634,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithPrimaryKey_test) {
   delete indexTree;
 
   indexTree = new IndexTree();
-  bool b = indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(),
-                                    vctKey, vctVal, GetFileId());
+  bool b =
+      indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                               FILE_NAME.c_str(), vctKey, vctVal, GetFileId());
   BOOST_TEST(b);
 
   vctKey.push_back(dvKey->Clone());
@@ -669,6 +685,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryWithUniqueKeys_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testIndexQueryUniqueKeys" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = 6000;
 
   MTreeMap<uint64_t, CachePage *> pageMap;
@@ -680,8 +697,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryWithUniqueKeys_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                             vctVal, GetFileId(), IndexType::UNIQUE);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::UNIQUE);
 
   vctKey.push_back(dvKey->Clone());
   vctVal.push_back(dvVal->Clone());
@@ -719,8 +737,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryWithUniqueKeys_test) {
   delete indexTree;
 
   indexTree = new IndexTree();
-  indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                           vctVal, GetFileId());
+  indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                           FILE_NAME.c_str(), vctKey, vctVal, GetFileId());
   vctKey.push_back(dvKey->Clone());
 
   for (int i = 0; i < ROW_COUNT; i++) {

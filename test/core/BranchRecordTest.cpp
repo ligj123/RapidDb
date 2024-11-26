@@ -31,14 +31,16 @@ BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testBranchRecord_PrimaryKey_test" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
 
   DataValueLong dvKey(100);
   DataValueLong dvVal(200);
   VectorDataValue vctKey = {dvKey.Clone()};
   VectorDataValue vctVal = {dvVal.Clone()};
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                            IndexType::PRIMARY);
   BranchPage *bp =
       (BranchPage *)indexTree.ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
 
@@ -87,17 +89,20 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME1 =
       ROOT_PATH + "/testBranchRecord_PriKey_test" + StrMSTime() + ".dat";
-  const string TABLE_NAME1 = "testPriTable";
+  const string TABLE_NAME1 = "testPriTable1";
   const string FILE_NAME2 =
       ROOT_PATH + "/testBranchRecord_UniqueKey_test" + StrMSTime() + ".dat";
-  const string TABLE_NAME2 = "testUniqueTable";
+  const string TABLE_NAME2 = "testUniqueTable2";
+  const string INDEX_NAME1 = "test1";
+  const string INDEX_NAME2 = "test2";
   DataValueLong dvKey(100);
   DataValueLong dvVal(200);
   VectorDataValue vctKey = {dvKey.Clone()};
   VectorDataValue vctVal = {dvVal.Clone()};
   IndexTree indexPri;
-  indexPri.CreateIndexTree(TABLE_NAME1.c_str(), FILE_NAME1.c_str(), vctKey,
-                           vctVal, GetFileId(), IndexType::PRIMARY);
+  indexPri.CreateIndexTree(TABLE_NAME1.c_str(), INDEX_NAME1.c_str(),
+                           FILE_NAME1.c_str(), vctKey, vctVal, GetFileId(),
+                           IndexType::PRIMARY);
 
   StatementEx stmt(1, 1);
   vctKey.push_back(dvKey.Clone(true));
@@ -107,8 +112,9 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
   DataValueFixChar dvFix("1234567890abcdefghijklmn", 26, 100);
   VectorDataValue vctSec = {dvFix.Clone(), dvKey.Clone()};
   IndexTree indexSec;
-  indexSec.CreateIndexTree(TABLE_NAME2.c_str(), FILE_NAME2.c_str(), vctSec,
-                           vctKey, GetFileId(), IndexType::UNIQUE);
+  indexSec.CreateIndexTree(TABLE_NAME2.c_str(), INDEX_NAME2.c_str(),
+                           FILE_NAME2.c_str(), vctSec, vctKey, GetFileId(),
+                           IndexType::UNIQUE);
   vctSec = {dvFix.Clone(true), dvKey.Clone(true)};
   Byte *bys = lr->GetBysValue() + UI16_2_LEN;
   uint16_t lKey = lr->GetKeyLength();
@@ -159,14 +165,17 @@ BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   const string FILE_NAME2 =
       ROOT_PATH + "/testBranchRecord_NonUniqueKey_test" + StrMSTime() + ".dat";
   const string TABLE_NAME2 = "testNonUniqueKeyTable";
+  const string INDEX_NAME1 = "test1";
+  const string INDEX_NAME2 = "test2";
 
   DataValueLong dvKey(100);
   DataValueLong dvVal(200);
   VectorDataValue vctKey = {dvKey.Clone()};
   VectorDataValue vctVal = {dvVal.Clone()};
   IndexTree indexPri;
-  indexPri.CreateIndexTree(TABLE_NAME1.c_str(), FILE_NAME1.c_str(), vctKey,
-                           vctVal, GetFileId(), IndexType::PRIMARY);
+  indexPri.CreateIndexTree(TABLE_NAME1.c_str(), INDEX_NAME1.c_str(),
+                           FILE_NAME1.c_str(), vctKey, vctVal, GetFileId(),
+                           IndexType::PRIMARY);
 
   StatementEx stmt(1, 1);
   vctKey.push_back(dvKey.Clone(true));
@@ -176,8 +185,9 @@ BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   DataValueFixChar dvFix("1234567890abcdefghijklmn", 26, 100);
   VectorDataValue vctSec = {dvFix.Clone(), dvKey.Clone()};
   IndexTree indexSec;
-  indexSec.CreateIndexTree(TABLE_NAME2.c_str(), FILE_NAME2.c_str(), vctSec,
-                           vctKey, GetFileId(), IndexType::NON_UNIQUE);
+  indexSec.CreateIndexTree(TABLE_NAME2.c_str(), INDEX_NAME2.c_str(),
+                           FILE_NAME2.c_str(), vctSec, vctKey, GetFileId(),
+                           IndexType::NON_UNIQUE);
   vctSec = {dvFix.Clone(true), dvKey.Clone(true)};
   Byte *bys = lr->GetBysValue() + UI16_2_LEN;
   uint16_t lKey = lr->GetKeyLength();

@@ -20,6 +20,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testBranchPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = 100;
 
   DataValueLong *dvKey = new DataValueLong(100);
@@ -27,8 +28,9 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                            IndexType::PRIMARY);
   BranchPage *bp =
       (BranchPage *)indexTree.ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
 
@@ -92,6 +94,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testBranchPageSave" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = IndexPage::MAX_DATA_LENGTH_BRANCH / 32;
 
   DataValueLong *dvKey = new DataValueLong(100);
@@ -99,8 +102,9 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                            IndexType::PRIMARY);
   BranchPage *bp =
       (BranchPage *)indexTree.ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
 
@@ -145,6 +149,7 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testBranchPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = 100;
 
   DataValueLong *dvKey = new DataValueLong(100);
@@ -152,8 +157,9 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                            IndexType::PRIMARY);
   BranchPage *bp =
       (BranchPage *)indexTree.ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
 
@@ -215,14 +221,16 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testBranchPageSearchKey" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
 
   DataValueVarChar *dvKey = new DataValueVarChar(1000);
   DataValueLong *dvVal = new DataValueLong(200);
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, 2003, IndexType::PRIMARY);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, 2003,
+                            IndexType::PRIMARY);
 
   BranchPage *bp =
       (BranchPage *)indexTree.ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
@@ -263,6 +271,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testBranchPageSplit" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = IndexPage::MAX_DATA_LENGTH_BRANCH / 10;
   MTreeMap<uint64_t, CachePage *> pageMap;
 
@@ -271,8 +280,9 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                             vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::PRIMARY);
   HeadPage *hp = indexTree->GetHeadPage();
   indexTree->GetRootPage()->SetReferred(false);
 

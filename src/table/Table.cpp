@@ -333,6 +333,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
 bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   assert(idx >= 0 && idx < _vctIndex.size());
   IndexProp &prop = _vctIndex[idx];
+  assert(prop._position == idx);
   MString path = Configure::GetDbRootPath().c_str();
   path += "/" + _db->GetDbPath() + "/" + _name + "/" + _vctIndex[idx]._name +
           ".idx";
@@ -366,10 +367,10 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
 
   prop._tree = new IndexTree();
   if (bCreate)
-    prop._tree->CreateIndexTree(prop._name, path, dvKey, dvVal,
+    prop._tree->CreateIndexTree(_name, prop._name, path, dvKey, dvVal,
                                 _tid + (uint32_t)idx, prop._type);
   else
-    prop._tree->LoadIndexTree(prop._name, path, dvKey, dvVal,
+    prop._tree->LoadIndexTree(_name, prop._name, path, dvKey, dvVal,
                               _tid + (uint32_t)idx);
   return true;
 }

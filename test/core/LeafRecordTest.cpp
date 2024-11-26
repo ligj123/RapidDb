@@ -38,15 +38,16 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testLeafRecord" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
 
   DataValueLong *dvKey = new DataValueLong(100LL);
   DataValueLong *dvVal = new DataValueLong(200LL);
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree indexTree;
-  bool b =
-      indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                                vctVal, GetFileId(), IndexType::PRIMARY);
+  bool b = indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                                     FILE_NAME.c_str(), vctKey, vctVal,
+                                     GetFileId(), IndexType::PRIMARY);
   BOOST_TEST(b);
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
@@ -105,6 +106,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testLeafRecordBig" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
 
   DataValueInt dvInt(100);
   const char *p1 = "abcdefghijklmnopqrst";
@@ -119,8 +121,9 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                            IndexType::PRIMARY);
 
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
@@ -201,6 +204,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_SecIndex_test) {
       ROOT_PATH + "/testLeafRecordSecIndex" + StrMSTime() + "2.dat";
   const string TABLE_NAME = "testTable";
   const string TABLE_NAME2 = "testTable2";
+  const string INDEX_NAME = "test1";
+  const string INDEX_NAME2 = "test2";
 
   DataValueInt dvInt(100);
   const char *p1 = "abcdefghijklmnopqrst";
@@ -210,8 +215,9 @@ BOOST_AUTO_TEST_CASE(LeafRecord_SecIndex_test) {
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone()};
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                            IndexType::PRIMARY);
 
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true)};
@@ -222,8 +228,9 @@ BOOST_AUTO_TEST_CASE(LeafRecord_SecIndex_test) {
   VectorDataValue vctSec = {dvLKey.Clone(true), dvVar.Clone(true)};
   vctKey = {dvInt.Clone(), dvVar.Clone()};
   IndexTree secTree;
-  secTree.CreateIndexTree(TABLE_NAME2.c_str(), FILE_NAME2.c_str(), vctSec,
-                          vctKey, GetFileId(), IndexType::UNIQUE);
+  secTree.CreateIndexTree(TABLE_NAME2.c_str(), INDEX_NAME2.c_str(),
+                          FILE_NAME2.c_str(), vctSec, vctKey, GetFileId(),
+                          IndexType::UNIQUE);
 
   vctSec = {dvLong.Clone(true), dvVar.Clone(true)};
   Byte *bys = lr->GetBysValue() + UI16_2_LEN;
@@ -250,6 +257,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testLeafRecordUpdate" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
 
   DataValueInt dvInt(100);
   const char *p1 = "abcdefghijklmnopqrst";
@@ -264,8 +272,9 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                            IndexType::PRIMARY);
 
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};

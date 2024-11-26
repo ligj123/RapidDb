@@ -68,13 +68,13 @@ public:
   IndexTree() {}
   ~IndexTree();
 
-  bool CreateIndexTree(const MString &indexName, const MString &fileName,
-                       VectorDataValue &vctKey, VectorDataValue &vctVal,
-                       uint32_t indexId, IndexType iType,
-                       const MString &tableName = "");
-  bool LoadIndexTree(const MString &indexName, const MString &fileName,
-                     VectorDataValue &vctKey, VectorDataValue &vctVal,
-                     uint32_t indexId, const MString &tableName = "");
+  bool CreateIndexTree(const MString &tableName, const MString &indexName,
+                       const MString &fileName, VectorDataValue &vctKey,
+                       VectorDataValue &vctVal, uint32_t indexId,
+                       IndexType iType);
+  bool LoadIndexTree(const MString &tableName, const MString &indexName,
+                     const MString &fileName, VectorDataValue &vctKey,
+                     VectorDataValue &vctVal, uint32_t indexId);
   void CloneKeys(VectorDataValue &vct);
   void CloneValues(VectorDataValue &vct);
   /**

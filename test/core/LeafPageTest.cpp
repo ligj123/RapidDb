@@ -22,6 +22,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testLeafPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = 100;
 
   DataValueLong *dvKey = new DataValueLong(100);
@@ -30,8 +31,9 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                            IndexType::PRIMARY);
   LeafPage *lp =
       (LeafPage *)indexTree.ApplyIndexPages(nullptr, (Byte)0, 1, false)[0];
   MTreeMap<uint64_t, CachePage *> pageMap;
@@ -107,6 +109,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testLeafPageSaveLoad" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = LeafPage::MAX_DATA_LENGTH_LEAF / 100;
   MTreeMap<uint64_t, CachePage *> pageMap;
 
@@ -116,8 +119,9 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
   int32_t fileId = GetFileId();
-  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                             vctVal, fileId, IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, fileId,
+                             IndexType::PRIMARY);
   LeafPage *lp =
       (LeafPage *)indexTree->ApplyIndexPages(nullptr, (Byte)0, 1, false)[0];
 
@@ -142,8 +146,8 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   delete indexTree;
 
   indexTree = new IndexTree();
-  indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                           vctVal, fileId);
+  indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                           FILE_NAME.c_str(), vctKey, vctVal, fileId);
   lp = new LeafPage(indexTree, 1);
   indexTree->IncPages();
   FilePagePool::SyncReadPage(lp);
@@ -175,6 +179,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSplit_test) {
   const string FILE_NAME =
       ROOT_PATH + "/testLeafPageSplit" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
   const int ROW_COUNT = IndexPage::MAX_DATA_LENGTH_LEAF / 10;
   MTreeMap<uint64_t, CachePage *> pageMap;
 
@@ -183,8 +188,9 @@ BOOST_AUTO_TEST_CASE(LeafPageSplit_test) {
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
   IndexTree *indexTree = new IndexTree();
-  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                             vctVal, GetFileId(), IndexType::PRIMARY);
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::PRIMARY);
 
   HeadPage *hp = indexTree->GetHeadPage();
   LeafPage *lp = (LeafPage *)indexTree->GetRootPage();

@@ -30,11 +30,12 @@ IndexTree::~IndexTree() {
   LOG_DEBUG << "Close index tree " << _indexName;
 }
 
-bool IndexTree::CreateIndexTree(const MString &indexName,
+bool IndexTree::CreateIndexTree(const MString &tableName,
+                                const MString &indexName,
                                 const MString &fileName,
                                 VectorDataValue &vctKey,
                                 VectorDataValue &vctVal, uint32_t indexId,
-                                IndexType iType, const MString &tableName) {
+                                IndexType iType) {
   assert(_headPage == nullptr);
   _tableName = tableName;
   _indexName = indexName;
@@ -71,9 +72,10 @@ bool IndexTree::CreateIndexTree(const MString &indexName,
   return true;
 }
 
-bool IndexTree::LoadIndexTree(const MString &indexName, const MString &fileName,
+bool IndexTree::LoadIndexTree(const MString &tableName,
+                              const MString &indexName, const MString &fileName,
                               VectorDataValue &vctKey, VectorDataValue &vctVal,
-                              uint32_t indexId, const MString &tableName) {
+                              uint32_t indexId) {
   assert(_headPage == nullptr);
   _tableName = tableName;
   _indexName = indexName;

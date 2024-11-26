@@ -1,5 +1,4 @@
-﻿#pragma once
-#include "header.h"
+﻿#include "header.h"
 
 const char *HexStr[] = {
     "01", "02", "03", "04", "05", "06", "07", "08", "09", "0A", "0B", "0C",

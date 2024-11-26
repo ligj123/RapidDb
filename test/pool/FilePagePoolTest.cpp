@@ -32,6 +32,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testPoolSync" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testSyncTable";
+  const string INDEX_NAME = "test";
 
   string strTest = "abcdefg1234567890中文测试abcdefghigjlmnopqrstuvwrst";
   strTest += strTest;
@@ -43,8 +44,9 @@ BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
   VectorDataValue vctVal;
 
   IndexTree idxTree;
-  idxTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                          GetFileId(), IndexType::PRIMARY);
+  idxTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                          FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                          IndexType::PRIMARY);
 
   CachePageEx page(&idxTree, 1);
   page.WriteInt(0, 100);
@@ -72,6 +74,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testPoolSync" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testSyncTable";
+  const string INDEX_NAME = "test";
 
   string strTest = "abcdefg1234567890中文测试abcdefghigjlmnopqrstuvwrst";
   strTest += strTest;
@@ -84,8 +87,9 @@ BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
   VectorDataValue vctVal;
 
   IndexTree idxTree;
-  idxTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey, vctVal,
-                          GetFileId(), IndexType::PRIMARY);
+  idxTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                          FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                          IndexType::PRIMARY);
 
   MVector<CachePageEx *> vctPage;
   vctPage.reserve(1000);

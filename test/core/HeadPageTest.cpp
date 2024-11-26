@@ -20,11 +20,14 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const string FILE_NAME = ROOT_PATH + "/testHeadPage" + StrMSTime() + ".dat";
   const string TABLE_NAME = "testTable";
+  const string INDEX_NAME = "test";
+
   VectorDataValue vctKey;
   VectorDataValue vctVal;
   IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-                            vctVal, GetFileId(), IndexType::NON_UNIQUE);
+  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                            IndexType::NON_UNIQUE);
 
   VectorDataValue vctDv;
   vctDv.push_back(new DataValueInt(1));
