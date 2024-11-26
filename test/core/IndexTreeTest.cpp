@@ -513,9 +513,11 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
     RawKey key(vctKey);
 
     IndexPage *idp = indexTree->GetRootPage();
-    bool b = indexTree->SearchPage(key, idp);
-    BOOST_TEST(b);
+    while (!indexTree->SearchPage(key, idp)) {
+      this_thread::yield();
+    }
     BOOST_TEST(idp->GetPageType() == PageType::LEAF_PAGE);
+    BOOST_TEST(idp->GetPageStatus() == PageStatus::VALID);
 
     LeafPage *lp = (LeafPage *)idp;
     bool bFind;
@@ -559,155 +561,205 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
   delete dvKey;
   delete dvVal;
 
+  FilePagePool::Stop();
   ThreadPool::SetThreadId(tidOld);
 }
 
-// BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithPrimaryKey_test) {
-//   const string FILE_NAME =
-//       ROOT_PATH + "/testIndexRepeatedRecord" + StrMSTime() + ".dat";
-//   const string TABLE_NAME = "testTable";
-//   const int ROW_COUNT = 10000;
+BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithPrimaryKey_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
+  const string FILE_NAME =
+      ROOT_PATH + "/testIndexRepeatedRecord" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = 10000;
+  MTreeMap<uint64_t, CachePage *> pageMap;
+  uint16_t tidOld = ThreadPool::SetThreadId(0);
+  FilePagePool::Start(1);
 
-//   DataValueLong *dvKey = new DataValueLong(100);
-//   DataValueLong *dvVal = new DataValueLong(200);
-//   VectorDataValue vctKey = {dvKey->Clone()};
-//   VectorDataValue vctVal = {dvVal->Clone()};
-//   IndexTree *indexTree = new IndexTree();
-//   indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-//                              vctVal, 3006, IndexType::PRIMARY);
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, GetFileId(), IndexType::PRIMARY);
 
-//   vctKey.push_back(dvKey->Clone());
-//   vctVal.push_back(dvVal->Clone());
-//   for (int i = 0; i < ROW_COUNT; i++) {
-//     *((DataValueLong *)vctKey[0]) = GenTestPrimaryKey(i);
-//     *((DataValueLong *)vctVal[0]) = i + 100LL;
-//     LeafRecord *rr =
-//         new LeafRecord(indexTree, vctKey, vctVal,
-//                        indexTree->GetHeadPage()->ReadRecordStamp(), nullptr);
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
 
-//     IndexPage *idxPage = nullptr;
-//     bool b = indexTree->SearchRecursively(*rr, true, idxPage, true);
-//     BOOST_TEST(b);
-//     BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = GenTestPrimaryKey(i);
+    *((DataValueLong *)vctVal[0]) = i + 100LL;
+    LeafRecord *rr =
+        new LeafRecord(indexTree, vctKey, vctVal,
+                       indexTree->GetHeadPage()->GetAndIncRecordStamp());
 
-//     ((LeafPage *)idxPage)->InsertRecord(rr, false);
-//     PageDividePool::AddPage(idxPage, false);
-//     idxPage->WriteUnlock();
-//   }
+    IndexPage *idxPage = indexTree->GetRootPage();
+    bool b = indexTree->SearchPage(*rr, idxPage);
+    BOOST_TEST(b);
+    BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
 
-//   IndexTree::TestCloseWait(indexTree);
+    LeafPage *lp = (LeafPage *)idxPage;
+    bool bFind;
+    int32_t pos = lp->SearchRecord(*rr, bFind);
+    BOOST_TEST(!bFind);
 
-//   indexTree = new IndexTree();
-//   bool b = indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(),
-//                                     vctKey, vctVal, 3005);
-//   BOOST_TEST(b);
+    lp->InsertRecord(rr, pos);
+    lp->AddWriteQueue(pageMap);
+    if (lp->NeedForceSplit()) {
+      lp->SplitPage(pageMap, UINT8_MAX);
+    }
+  }
 
-//   vctKey.push_back(dvKey->Clone());
+  indexTree->SettleUpdatedPages(pageMap);
+  assert(pageMap.size() == 0);
+  indexTree->ReleaseIndexPage(indexTree->GetRootPage());
+  indexTree->Close();
+  CachePagePool::ClearPool();
+  delete indexTree;
 
-//   for (int i = 0; i < ROW_COUNT; i++) {
-//     *((DataValueLong *)vctKey[0]) = GenTestPrimaryKey(i);
-//     RawKey key(vctKey);
+  indexTree = new IndexTree();
+  bool b = indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(),
+                                    vctKey, vctVal, GetFileId());
+  BOOST_TEST(b);
 
-//     IndexPage *idp = nullptr;
-//     bool b = indexTree->SearchRecursively(key, false, idp, true);
-//     BOOST_TEST(b);
-//     BOOST_TEST(idp->GetPageType() == PageType::LEAF_PAGE);
+  vctKey.push_back(dvKey->Clone());
 
-//     LeafPage *lp = (LeafPage *)idp;
-//     bool bFind;
-//     int32_t pos = lp->SearchKey(key, bFind);
-//     BOOST_TEST(bFind);
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = GenTestPrimaryKey(i);
+    RawKey key(vctKey);
 
-//     LeafRecord *lr = lp->GetRecord(pos);
-//     BOOST_TEST(lr->CompareKey(key) == 0);
+    IndexPage *idp = indexTree->GetRootPage();
+    while (!indexTree->SearchPage(key, idp)) {
+      this_thread::yield();
+    }
 
-//     int rt = lr->GetListValue(vctVal);
-//     BOOST_TEST(rt == 0);
-//     BOOST_TEST(vctVal[0]->GetLong() == i + 100LL);
-//     lr->DecRef();
+    BOOST_TEST(idp->GetPageStatus() == PageStatus::VALID);
+    BOOST_TEST(idp->GetPageType() == PageType::LEAF_PAGE);
 
-//     lp->DecRef();
-//     lp->ReadUnlock();
-//   }
+    LeafPage *lp = (LeafPage *)idp;
+    bool bFind;
+    int32_t pos = lp->SearchKey(key, bFind);
+    BOOST_TEST(bFind);
 
-//   IndexTree::TestCloseWait(indexTree);
-//   delete dvKey;
-//   delete dvVal;
-// }
+    LeafRecord &lr = lp->GetRecord(pos);
+    BOOST_TEST(lr.CompareKey(key) == 0);
 
-// BOOST_AUTO_TEST_CASE(IndexTreeReadPrimaryKeysUnique_test) {
-//   const string FILE_NAME =
-//       ROOT_PATH + "/testIndexReadPrimaryKeys" + StrMSTime() + ".dat";
-//   const string TABLE_NAME = "testTable";
-//   const int ROW_COUNT = 6000;
+    vctVal.clear();
+    ReadResult rt = lr.ReadListValue({}, vctVal, indexTree);
+    BOOST_TEST(rt == ReadResult::OK_NOLOCK);
+    BOOST_TEST(vctVal[0]->GetLong() == i + 100LL);
+  }
 
-//   DataValueLong *dvKey = new DataValueLong(100);
-//   DataValueLong *dvVal = new DataValueLong(200);
-//   VectorDataValue vctKey = {dvKey->Clone()};
-//   VectorDataValue vctVal = {dvVal->Clone()};
-//   IndexTree *indexTree = new IndexTree();
-//   indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-//                              vctVal, 3006, IndexType::UNIQUE);
+  indexTree->ReleaseIndexPage(indexTree->GetRootPage());
+  indexTree->Close();
+  CachePagePool::ClearPool();
+  delete indexTree;
 
-//   vctKey.push_back(dvKey->Clone());
-//   vctVal.push_back(dvVal->Clone());
-//   Byte bys[100];
+  delete dvKey;
+  delete dvVal;
 
-//   for (int i = 0; i < ROW_COUNT; i++) {
-//     *((DataValueLong *)vctKey[0]) = GenTestPrimaryKey(i);
-//     Int64ToBytes(100 + i, bys, true);
-//     LeafRecord *rr = new LeafRecord(indexTree, vctKey, bys, sizeof(int64_t),
-//                                     ActionType::INSERT, nullptr);
+  FilePagePool::Stop();
+  ThreadPool::SetThreadId(tidOld);
+}
 
-//     IndexPage *idxPage = nullptr;
-//     bool b = indexTree->SearchRecursively(*rr, true, idxPage, true);
-//     BOOST_TEST(b);
-//     BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
+BOOST_AUTO_TEST_CASE(IndexTreeQueryWithUniqueKeys_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
+  const string FILE_NAME =
+      ROOT_PATH + "/testIndexQueryUniqueKeys" + StrMSTime() + ".dat";
+  const string TABLE_NAME = "testTable";
+  const int ROW_COUNT = 6000;
 
-//     ((LeafPage *)idxPage)->InsertRecord(rr, false);
-//     PageDividePool::AddPage(idxPage, false);
-//     idxPage->WriteUnlock();
-//   }
+  MTreeMap<uint64_t, CachePage *> pageMap;
+  uint16_t tidOld = ThreadPool::SetThreadId(0);
+  FilePagePool::Start(1);
 
-//   IndexTree::TestCloseWait(indexTree);
+  DataValueLong *dvKey = new DataValueLong(100);
+  DataValueLong *dvVal = new DataValueLong(200);
+  VectorDataValue vctKey = {dvKey->Clone()};
+  VectorDataValue vctVal = {dvVal->Clone()};
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                             vctVal, GetFileId(), IndexType::UNIQUE);
 
-//   indexTree = new IndexTree();
-//   indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
-//                            vctVal, 3006);
-//   vctKey.push_back(dvKey->Clone());
+  vctKey.push_back(dvKey->Clone());
+  vctVal.push_back(dvVal->Clone());
+  Byte bys[100];
 
-//   for (int i = 0; i < ROW_COUNT; i++) {
-//     *((DataValueLong *)vctKey[0]) = GenTestPrimaryKey(i);
-//     RawKey key(vctKey);
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = GenTestPrimaryKey(i);
+    Int64ToBytes(100 + i, bys, true);
+    LeafRecord *rr = new LeafRecord(
+        indexTree, vctKey, bys, sizeof(int64_t), ActionType::INSERT,
+        indexTree->GetHeadPage()->GetAndIncRecordStamp());
 
-//     IndexPage *idp = nullptr;
-//     bool b = indexTree->SearchRecursively(key, false, idp, true);
-//     BOOST_TEST(b);
-//     BOOST_TEST(idp->GetPageType() == PageType::LEAF_PAGE);
+    IndexPage *idxPage = indexTree->GetRootPage();
+    bool b = indexTree->SearchPage(*rr, idxPage);
+    BOOST_TEST(b);
+    BOOST_TEST(idxPage->GetPageType() == PageType::LEAF_PAGE);
 
-//     LeafPage *lp = (LeafPage *)idp;
-//     bool bFind;
-//     int32_t pos = lp->SearchKey(key, bFind);
-//     BOOST_TEST(bFind);
+    LeafPage *lp = (LeafPage *)idxPage;
+    bool bFind;
+    int32_t pos = lp->SearchRecord(*rr, bFind);
+    BOOST_TEST(!bFind);
 
-//     LeafRecord *lr = lp->GetRecord(pos);
-//     BOOST_TEST(lr->CompareKey(key) == 0);
+    lp->InsertRecord(rr, pos);
+    lp->AddWriteQueue(pageMap);
+    if (lp->NeedForceSplit()) {
+      lp->SplitPage(pageMap, UINT8_MAX);
+    }
+  }
 
-//     RawKey *pkey = lr->GetPrimayKey();
-//     *((DataValueLong *)vctKey[0]) = i + 100;
-//     RawKey key2(vctKey);
-//     BOOST_TEST(key2.CompareTo(*pkey) == 0);
-//     delete pkey;
-//     lr->DecRef();
+  indexTree->SettleUpdatedPages(pageMap);
+  assert(pageMap.size() == 0);
+  indexTree->ReleaseIndexPage(indexTree->GetRootPage());
+  indexTree->Close();
+  CachePagePool::ClearPool();
+  delete indexTree;
 
-//     lp->DecRef();
-//     lp->ReadUnlock();
-//   }
+  indexTree = new IndexTree();
+  indexTree->LoadIndexTree(TABLE_NAME.c_str(), FILE_NAME.c_str(), vctKey,
+                           vctVal, GetFileId());
+  vctKey.push_back(dvKey->Clone());
 
-//   IndexTree::TestCloseWait(indexTree);
-//   delete dvKey;
-//   delete dvVal;
-// }
+  for (int i = 0; i < ROW_COUNT; i++) {
+    *((DataValueLong *)vctKey[0]) = GenTestPrimaryKey(i);
+    RawKey key(vctKey);
+
+    IndexPage *idp = indexTree->GetRootPage();
+    while (!indexTree->SearchPage(key, idp)) {
+      this_thread::yield();
+    }
+
+    BOOST_TEST(idp->GetPageStatus() == PageStatus::VALID);
+    BOOST_TEST(idp->GetPageType() == PageType::LEAF_PAGE);
+
+    LeafPage *lp = (LeafPage *)idp;
+    bool bFind;
+    int32_t pos = lp->SearchKey(key, bFind);
+    BOOST_TEST(bFind);
+
+    LeafRecord &lr = lp->GetRecord(pos);
+    BOOST_TEST(lr.CompareKey(key) == 0);
+
+    RawKey pkey = lr.GetPrimayKey();
+    *((DataValueLong *)vctKey[0]) = i + 100;
+    RawKey key2(vctKey);
+    BOOST_TEST(key2.CompareTo(pkey) == 0);
+  }
+
+  indexTree->ReleaseIndexPage(indexTree->GetRootPage());
+  indexTree->Close();
+  CachePagePool::ClearPool();
+  delete indexTree;
+
+  delete dvKey;
+  delete dvVal;
+
+  FilePagePool::Stop();
+  ThreadPool::SetThreadId(tidOld);
+}
 
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

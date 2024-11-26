@@ -133,24 +133,16 @@ bool BranchPage::AddRecord(BranchRecord *rr) {
   return true;
 }
 
-bool BranchPage::KeyExist(const RawKey &key) const {
-  if (_recordNum == 0) {
-    return false;
-  }
-
-  bool bFind;
-  SearchKey(key, bFind);
-  return bFind;
-}
-
-int32_t BranchPage::SearchRecord(const RawRecord &rr, bool &bFind) const {
-  bFind = true;
+int32_t BranchPage::SearchRecord(const RawRecord &rr) const {
   int32_t start = 0;
   int32_t end = _recordNum - 1;
 
   while (true) {
     if (start > end) {
-      bFind = false;
+      if (start >= _recordNum) {
+        start = _recordNum - 1;
+      }
+
       return start;
     }
 
@@ -167,16 +159,18 @@ int32_t BranchPage::SearchRecord(const RawRecord &rr, bool &bFind) const {
   }
 }
 
-int32_t BranchPage::SearchKey(const RawKey &key, bool &bFind) const {
+int32_t BranchPage::SearchKey(const RawKey &key) const {
   bool bUnique =
       (_indexTree->GetHeadPage()->GetIndexType() != IndexType::NON_UNIQUE);
   int32_t start = 0;
   int32_t end = _recordNum - 1;
-  bFind = true;
 
   while (true) {
     if (start > end) {
-      bFind = false;
+      if (start >= _recordNum) {
+        start = _recordNum - 1;
+      }
+
       return start;
     }
 
@@ -287,12 +281,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
 
     BranchRecord br(_indexTree->GetHeadPage()->GetIndexType(),
                     _vctRecord[_recordNum - 1], GetPageId());
-    bool bFind;
-    posInParent = ((BranchPage *)_parentPage)->SearchRecord(br, bFind);
-    if (!bFind) {
-      posInParent = _parentPage->GetRecordNumber() - 1;
-    }
-
+    posInParent = ((BranchPage *)_parentPage)->SearchRecord(br);
     brParentOld = ((BranchPage *)_parentPage)->DeleteRecord(posInParent);
   }
 
@@ -427,11 +416,7 @@ void BranchPage::ClearChild(IndexPage *child) {
   if (child->GetPageType() == PageType::BRANCH_PAGE) {
     BranchPage *bp = (BranchPage *)child;
     BranchRecord &br = bp->GetRecord(INT32_MAX, true);
-    bool bFind;
-    int32_t pos = SearchRecord(br, bFind);
-    if (!bFind) {
-      pos = INT32_MAX;
-    }
+    int32_t pos = SearchRecord(br);
 
     BranchRecord &brp = GetRecord(pos, true);
     assert(child == brp.GetChildPage());
@@ -440,11 +425,7 @@ void BranchPage::ClearChild(IndexPage *child) {
     LeafPage *lp = (LeafPage *)child;
     LeafRecord &lr = lp->GetRecord(lp->GetRecordNumber() - 1);
     BranchRecord br(lr.GetIndexType(), &lr, lp->GetPageId());
-    bool bFind;
-    int32_t pos = SearchRecord(br, bFind);
-    if (!bFind) {
-      pos = INT32_MAX;
-    }
+    int32_t pos = SearchRecord(br);
 
     BranchRecord &brp = GetRecord(pos, true);
     assert(child == brp.GetChildPage());

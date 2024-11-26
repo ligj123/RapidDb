@@ -51,13 +51,9 @@ public:
    * page due to the page length exceeded the limit.
    */
   bool AddRecord(BranchRecord *record);
-  /**
-   * @brief To judge if a key exist
-   */
-  bool KeyExist(const RawKey &key) const;
 
-  int32_t SearchRecord(const RawRecord &rr, bool &bFind) const;
-  int32_t SearchKey(const RawKey &key, bool &bFind) const;
+  int32_t SearchRecord(const RawRecord &rr) const;
+  int32_t SearchKey(const RawKey &key) const;
   BranchRecord &GetRecord(int32_t pos, bool bAutoLast);
 
   void SetChild(int32_t pos, IndexPage *child);

@@ -35,9 +35,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   vctKey.push_back(new DataValueLong(1LL));
   vctVal.push_back(new DataValueLong(1LL));
   RawKey key(vctKey);
-  bool bFind;
-  int32_t pos = bp->SearchKey(key, bFind);
-  BOOST_TEST(!bFind);
+  int32_t pos = bp->SearchKey(key);
 
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
@@ -127,8 +125,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
     LeafRecord *lr =
         new LeafRecord(&indexTree, vctKey, vctVal, 1, nullptr, false);
     BranchRecord *rr = new BranchRecord(IndexType::PRIMARY, lr, i);
-    bool bFind;
-    uint32_t index = bp->SearchRecord(*rr, bFind);
+    uint32_t index = bp->SearchRecord(*rr);
     BranchRecord &br = bp->GetRecord(index, false);
     BOOST_TEST(br.CompareTo(*rr) == 0);
 
@@ -189,14 +186,19 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     RawKey key(vctKey);
-    bool bFind;
 
-    int32_t pos = bp->SearchKey(key, bFind);
-    if (i % 2 == 1) {
-      BOOST_TEST(!bFind);
+    int32_t pos = bp->SearchKey(key);
+    BranchRecord &br = bp->GetRecord(pos, true);
+
+    if (i == 99) {
+      BOOST_TEST(pos == 49);
+      BOOST_TEST(br.CompareKey(key) < 0);
+    } else if (i % 2 == 1) {
+      BOOST_TEST(pos - 1 == i / 2);
+      BOOST_TEST(br.CompareKey(key) > 0);
     } else {
-      BOOST_TEST(bFind);
       BOOST_TEST(pos == i / 2);
+      BOOST_TEST(br.CompareKey(key) == 0);
     }
   }
 
@@ -240,13 +242,12 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
   }
 
   uint64_t arKey[] = {0, 20, 135, 70, 999};
-  int arPos[] = {0, 2, 2, 3, 5};
+  int arPos[] = {0, 2, 2, 3, 4};
   for (int i = 0; i < 5; i++) {
     MString str = "testString" + ToMString(arKey[i]);
     *((DataValueVarChar *)vctKey[0]) = str.c_str();
     RawKey key(vctKey);
-    bool bFind;
-    BOOST_TEST(arPos[i] == bp->SearchKey(key, bFind));
+    BOOST_TEST(arPos[i] == bp->SearchKey(key));
   }
 
   bp->SetReferred(false);

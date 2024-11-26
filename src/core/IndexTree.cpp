@@ -250,25 +250,28 @@ LeafPage *IndexTree::GetLeafPage(PageID pageId, BranchPage *parentPage,
 bool IndexTree::SearchPage(const RawKey &key, IndexPage *&page) {
   assert(page != nullptr);
   while (true) {
+    PageStatus status = page->GetPageStatus();
+    if (status == PageStatus::READED) {
+      page->SetPageStatus(PageStatus::VALID, true);
+    } else if (status != PageStatus::VALID) {
+      return false;
+    }
+
     if (page->GetPageType() == PageType::LEAF_PAGE) {
       return true;
     }
 
     BranchPage *bPage = (BranchPage *)page;
-    bool bFind;
-    uint32_t pos = bPage->SearchKey(key, bFind);
+    uint32_t pos = bPage->SearchKey(key);
     BranchRecord &br = bPage->GetRecord(pos, true);
     IndexPage *childPage = br.GetChildPage();
     if (childPage == nullptr) {
       uint32_t pageId = br.GetChildPageId();
-      childPage =
-          GetPage(pageId, page->GetPageLevel() == 1 ? PageType::LEAF_PAGE
-                                                    : PageType::BRANCH_PAGE);
+      childPage = GetPage(pageId,
+                          page->GetPageLevel() == 1 ? PageType::LEAF_PAGE
+                                                    : PageType::BRANCH_PAGE,
+                          bPage);
       br.SetChildPage(childPage);
-      childPage->SetParentPage(bPage);
-      if (childPage->GetPageStatus() != PageStatus::VALID) {
-        return false;
-      }
     }
 
     page = childPage;
@@ -284,8 +287,7 @@ bool IndexTree::SearchPage(const LeafRecord &lr, IndexPage *&page) {
     }
 
     BranchPage *bPage = (BranchPage *)page;
-    bool bFind;
-    uint32_t pos = bPage->SearchRecord(lr, bFind);
+    uint32_t pos = bPage->SearchRecord(lr);
     BranchRecord &br = bPage->GetRecord(pos, true);
     IndexPage *childPage = br.GetChildPage();
     if (childPage == nullptr) {
@@ -383,8 +385,10 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
       BranchPage *bp = (BranchPage *)page;
       for (uint32_t i = 0; i < bp->GetRecordNumber(); i++) {
         BranchRecord *br = bp->GetVctRecord(i);
-        queue.push_back(br->GetChildPage());
-        br->SetChildPage(nullptr);
+        if (br->GetChildPage() != nullptr) {
+          queue.push_back(br->GetChildPage());
+          br->SetChildPage(nullptr);
+        }
       }
     } else {
       LeafPage *lp = (LeafPage *)page;

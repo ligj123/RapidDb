@@ -392,9 +392,8 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
 
     BranchRecord br(_indexTree->GetHeadPage()->GetIndexType(),
                     _vctRecord[_recordNum - 1], GetPageId());
-    bool bFind;
-    posInParent = ((BranchPage *)_parentPage)->SearchRecord(br, bFind);
-    if (!bFind) {
+    posInParent = ((BranchPage *)_parentPage)->SearchRecord(br);
+    if (posInParent > _parentPage->GetRecordNumber() - 1) {
       posInParent = _parentPage->GetRecordNumber() - 1;
     }
 
