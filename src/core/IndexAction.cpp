@@ -6,7 +6,7 @@
 #include "LeafRecord.h"
 
 namespace storage {
-TaskStatus PrevPageAction::Run() {
+TaskStatus PrevPageAction::Exec() {
   assert(_rangePos >= 0 && _rangePos < _indexTree->GetVctRange().size());
   if (_idxPage == nullptr) {
     _idxPage = _indexTree->GetVctRange()[_rangePos]._vctRangePage[0];
@@ -40,7 +40,7 @@ TaskStatus PrevPageAction::Run() {
   }
 }
 
-TaskStatus InsertAction::Run() {
+TaskStatus InsertAction::Exec() {
   if (_idxPage == nullptr) {
     _idxPage = _indexTree->GetRootPage();
   }
@@ -112,7 +112,7 @@ TaskStatus InsertAction::Run() {
 
 int InsertAction::JudgeRange() { return _indexTree->CalcIndexRange(*_lr); }
 
-TaskStatus PriKeyAction::Run() { return TaskStatus::FINISHED; }
+TaskStatus PriKeyAction::Exec() { return TaskStatus::FINISHED; }
 
 int PriKeyAction::JudgeRange() { return _indexTree->CalcIndexRange(_key); }
 

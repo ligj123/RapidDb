@@ -36,8 +36,6 @@ struct IndexRange {
   // The queue to temp save IndexActions that insert from other threads and will
   // be moved into _queueAction before run.
   MDeque<IndexAction *> _queueTempAction;
-  // The SpinMutex used for _queueTempAction
-  SpinMutex _mutex;
   // To save the increase-decrease of records in current range, it will be added
   // into the total record number in the HeadPage when write disk.
   int64_t _recordNumber{0};
@@ -215,20 +213,22 @@ public:
   void AddAction(int iRange, IndexAction *act) {
     assert(iRange >= 0 && iRange < _vctRange.size());
     IndexRange &range = _vctRange[iRange];
-    unique_lock<SpinMutex> lock(range._mutex);
+    unique_lock<SpinMutex> lock(_rangMutex);
     range._queueTempAction.push_back(act);
   }
 
   void AddActions(int iRange, MDeque<IndexAction *> &queue) {
     assert(iRange >= 0 && iRange < _vctRange.size());
     IndexRange &range = _vctRange[iRange];
-    unique_lock<SpinMutex> lock(range._mutex);
+    unique_lock<SpinMutex> lock(_rangMutex);
     range._queueTempAction.insert(range._queueTempAction.end(), queue.begin(),
                                   queue.end());
     queue.clear();
   }
 
 protected:
+  // To record how much pages of this index tree are in CachePagePool.
+  atomic_uint32_t _pagesInMem{0};
   MString _tableName;
   MString _indexName;
   MString _fileName;
@@ -240,25 +240,23 @@ protected:
   GarbageOwner *_garbageOwner = nullptr;
   IndexPage *_rootPage = nullptr;
 
+  SpinMutex _spinMutex;
   VectorDataValue _vctKey;
   VectorDataValue _vctValue;
-  SpinMutex _spinMutex;
 
-  // To record how much pages of this index tree are in CachePagePool.
-  atomic_uint32_t _pagesInMem{0};
   // Every index will assign a unique id, it is table id + index  seriel number
   uint32_t _fileId{0};
-  atomic_bool _bClosed{false};
+
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t)
   // Other: 0
   uint16_t _valVarLen{0};
   // PrimaryKey: ValVarFieldNum * sizeof(uint32_t) + Field Null bits
   // Other: 0
   uint16_t _valOffset{0};
-
-  MVector<IndexRange> _vctRange;
-
+  atomic_bool _bClosed{false};
   IndexType _indexType;
+  MVector<IndexRange> _vctRange;
+  SpinMutex _rangMutex;
   friend class HeadPage;
 };
 } // namespace storage

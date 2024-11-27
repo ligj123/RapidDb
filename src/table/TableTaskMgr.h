@@ -8,22 +8,8 @@ namespace storage {
 class PriIndexTask;
 class SecIndexTask;
 
-// To save the selected primay key from secondary index by where conditions,
-// they and related statement will be send into primary index tasks for
-// following actions.
-struct PriKeyStmt {
-  // Primary key from secondary index
-  RawKey _key;
-  // The statement owned the key
-  Statement *_stmt;
-  // When search the position of the key in b+ tree, if the related page is not
-  // in memory, here is used to save the page addr and as start page in next
-  // procedure.
-  IndexPage *_midPage{nullptr};
-};
-
 /**Response for a primary index in the table */
-struct PriIndexTaskQueue {
+struct PrmaryIndexTaskQueue {
   /**
    * Construct for primary index tasks queues
    * @param maxSessionGroupNum The max session groups number, one group response

@@ -32,7 +32,7 @@ public:
   TaskStatus Run() override;
 
 protected:
-  // There maybe has more than 1 index tasks to execute the statement at the
+  // There maybe has more than 1 index tasks to execute the statements at the
   // same time, use it as the seriel number start from 0.
   uint16_t _sn;
   // The total index task for this index.

@@ -25,7 +25,7 @@ public:
   /**
    * @brief Run this action, and return the status to know if it has finished.
    */
-  virtual TaskStatus Run() = 0;
+  virtual TaskStatus Exec() = 0;
   /**
    * @brief After the index range has been adjusted, calc again its index range
    * @return If pass, return its new range, or abort
@@ -54,7 +54,7 @@ public:
                  PageID prevpageId)
       : IndexAction(idxTree), _rangePos(rangePos), _pageId(pageId),
         _prevPageId(prevpageId) {}
-  TaskStatus Run() override;
+  TaskStatus Exec() override;
 
   bool RearrangeAble() override { return false; }
 
@@ -69,7 +69,7 @@ class InsertAction : public IndexAction {
 public:
   InsertAction(IndexTree *idxTree, LeafRecord *lr)
       : IndexAction(idxTree), _lr(lr) {}
-  TaskStatus Run() override;
+  TaskStatus Exec() override;
   int JudgeRange() override;
 
 protected:
@@ -81,7 +81,7 @@ class PriKeyAction : public IndexAction {
 public:
   PriKeyAction(IndexTree *idxTree, RawKey &&key, Statement *stmt)
       : IndexAction(idxTree), _key(move(key)), _stmt(stmt) {}
-  TaskStatus Run() override;
+  TaskStatus Exec() override;
   int JudgeRange() override;
 
 protected:
