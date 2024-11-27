@@ -542,7 +542,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
       size_t pos = _indexTree->CalcIndexRange(GetRecord(0)) + 1;
       PrevPageAction *act = new PrevPageAction(
           _indexTree, pos, lastId, (vctPage[vctPage.size() - 1])->GetPageId());
-      _indexTree->GetVctRange()[pos].AddAction(act);
+      _indexTree->AddAction(pos, act);
     } else {
       if (lastPage == nullptr) {
         lastPage = (LeafPage *)_indexTree->GetPage(lastId, PageType::LEAF_PAGE);

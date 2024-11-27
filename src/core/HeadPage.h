@@ -170,7 +170,7 @@ public:
    * @param recNum The record number to update.
    * @param atm
    */
-  inline uint64_t GetAndIncTotalRecordCount(uint64_t recNum = 1,
+  inline uint64_t GetAndIncTotalRecordCount(int64_t recNum = 1,
                                             bool atm = false) {
     _bDirty = true;
     if (atm) {

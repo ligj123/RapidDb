@@ -499,4 +499,29 @@ LeafRecord IndexTree::MakeMinLeafRecord() {
   }
 }
 
+void IndexTree::UpdateRecordNumber(int iRange, int64_t recNum) {
+  if (_vctRange.size() > 1) {
+    assert(iRange >= 0 && iRange < _vctRange.size());
+    _vctRange[iRange]._recordNumber += recNum;
+  } else {
+    _headPage->GetAndIncTotalRecordCount(recNum, false);
+  }
+}
+
+VersionStamp IndexTree::ApplyStamp(int iRange) {
+  if (_vctRange.size() > 1) {
+    assert(iRange >= 0 && iRange < _vctRange.size());
+    IndexRange &range = _vctRange[iRange];
+    if (range._recordStampStart >= range._recordStampEnd) {
+      range._recordStampStart = _headPage->GetAndIncRecordStamp(STAMP_BATCH);
+      range._recordStampEnd = range._recordStampStart + STAMP_BATCH;
+    }
+
+    VersionStamp tmp = range._recordStampStart;
+    range._recordStampStart++;
+    return tmp;
+  } else {
+    return _headPage->GetAndIncRecordStamp();
+  }
+}
 } // namespace storage

@@ -15,6 +15,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#define STAMP_BATCH 16
+
 namespace storage {
 using namespace std;
 class LeafPage;
@@ -206,6 +208,25 @@ public:
   int CalcIndexRange(LeafRecord &lr);
   int CalcIndexRange(RawKey &key);
   bool IsMultiRange() { return _vctRange.size() > 1; }
+
+  void UpdateRecordNumber(int iRange, int64_t recNum);
+  VersionStamp ApplyStamp(int iRange);
+
+  void AddAction(int iRange, IndexAction *act) {
+    assert(iRange >= 0 && iRange < _vctRange.size());
+    IndexRange &range = _vctRange[iRange];
+    unique_lock<SpinMutex> lock(range._mutex);
+    range._queueTempAction.push_back(act);
+  }
+
+  void AddActions(int iRange, MDeque<IndexAction *> &queue) {
+    assert(iRange >= 0 && iRange < _vctRange.size());
+    IndexRange &range = _vctRange[iRange];
+    unique_lock<SpinMutex> lock(range._mutex);
+    range._queueTempAction.insert(range._queueTempAction.end(), queue.begin(),
+                                  queue.end());
+    queue.clear();
+  }
 
 protected:
   MString _tableName;
