@@ -86,8 +86,8 @@ public:
   const MString &GetFullName() const { return _fullName; }
   uint32_t TableID() { return _tid; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
-  const IndexProp &GetPrimaryKey() const { return _vctIndex[0]; }
-  const MVector<IndexProp> &GetVectorIndex() const { return _vctIndex; }
+  IndexProp &GetPrimaryKey() { return _vctIndex[0]; }
+  MVector<IndexProp> &GetVectorIndex() { return _vctIndex; }
   IndexType GetIndexType(const MString &indexName) const {
     auto iter = _mapIndexNamePos.find(indexName);
     if (iter == _mapIndexNamePos.end())

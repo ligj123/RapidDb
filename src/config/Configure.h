@@ -65,6 +65,10 @@ public:
   static DiskType GetDiskType() { return GetInstance()._diskType; }
   // The database root path, all db data will be saved into here
   static const string &GetDbRootPath() { return GetInstance()._strDbRootPath; }
+  /**The number of max seesion group */
+  static int16_t GetMaxSessionGroupNum() { return 8; }
+  /** The number of max index task for an IndexTree */
+  static int16_t GetMaxIndexTaskNum() { return 16; }
 
 protected:
   static Configure &GetInstance() {

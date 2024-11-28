@@ -1,3 +1,6 @@
+#include "../config/Configure.h"
+#include "../core/IndexAction.h"
+#include "../core/IndexTree.h"
 #include "../table/Table.h"
 #include "../utils/RapidQueue.h"
 #include "../utils/Utilitys.h"
@@ -5,122 +8,179 @@
 #include <vector>
 
 namespace storage {
-class PriIndexTask;
-class SecIndexTask;
 
 /**Response for a primary index in the table */
-struct PrmaryIndexTaskQueue {
-  /**
-   * Construct for primary index tasks queues
-   * @param maxSessionGroupNum The max session groups number, one group response
-   * a thread.
-   * @param sessionGroupCount The session groups number.
-   */
-  PriIndexTaskQueue(uint16_t maxSessionGroupNum, uint16_t sessionGroupNum,
-                    MVector<LeafRecord> &&vctRecBorder)
-      : _fqStmt(maxSessionGroupNum, sessionGroupNum),
-        _vctRecBorder(move(vctRecBorder)), _createTime(MilliSecTime()) {
-    assert(maxSessionGroupNum >= sessionGroupNum);
+struct PrimaryIndexTaskQueue {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
-  // To receive statement from sessions. Its size equal session groups number
-  RapidQueue<Statement> _fqStmt;
-  // The border LeafRecords for this index tasks, its size equal this index
-  // tasks number -1.
-  MVector<LeafRecord> _vctRecBorder;
+public:
+  /**
+   * Construct for primary index tasks queues
+   * @param sessionGroupCount The session groups number.
+   * @param idxTree The primary index tree
+   */
+  PrimaryIndexTaskQueue(uint16_t sessionGroupNum, IndexTree *idxTree)
+      : _sessionQueue(Configure::GetMaxSessionGroupNum(), sessionGroupNum),
+        _indexTree(idxTree), _createTime(MilliSecTime()) {}
+
+  // To receive IndexAction from sessions. Its lines equal session groups number
+  RapidQueue<IndexAction> _sessionQueue;
+  // The IndexTree that this queue belong to.
+  IndexTree *_indexTree;
   // The time of this IndexTaskQueue created
   DT_MilliSec _createTime;
-
-  SpinMutex _spinMutex;
 };
 
 /**Response for a secondary index in the table */
-struct SecIndexTaskQueue {
+struct SecondaryIndexTaskQueue {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+public:
   /**
    * Construct for secondary index tasks queues
-   * @param maxSessionGroupNum The max session groups number, one group response
-   * a thread.
    * @param sessionGroupCount The session groups number.
    * @param maxTaskNum The max task number for a index,
    * @param secTaskNum The secondary index task number.
    * @param priTaskNum The primary index task number.
    */
-  SecIndexTaskQueue(uint16_t maxSessionGroupNum, uint16_t sessionGroupNum,
-                    uint16_t maxTaskNum, uint16_t secTaskNum,
-                    uint16_t priTaskNum, MVector<LeafRecord> &&vctRecBorder)
-      : _fqStmt(maxSessionGroupNum, sessionGroupNum),
-        _fqRec(maxTaskNum, priTaskNum), _fqPriKeyStmt(maxTaskNum, secTaskNum),
-        _createTime(MilliSecTime()), _vctRecBorder(move(vctRecBorder)) {
-    assert(maxSessionGroupNum >= sessionGroupNum);
-    assert(maxTaskNum >= secTaskNum && maxTaskNum >= priTaskNum);
-  }
-
-  // To receive statement from sessions. Its size equal session groups number
-  RapidQueue<Statement> _fqStmt;
-  // To receive the leaf records from primary index tasks. Its size equal the
-  // primary index tasks number. For primary index, it should be empty.
-  RapidQueue<LeafRecord> _fqRec;
-  // To send the selected pri keys by where conditions to primary index tasks.
-  // For primary index, it should be empty.
-  RapidQueue<PriKeyStmt> _fqPriKeyStmt;
-  // The border LeafRecords for this index tasks, its size equal this index
-  // tasks number -1.
-  MVector<LeafRecord> _vctRecBorder;
+  SecondaryIndexTaskQueue(uint16_t sessionGroupNum, uint16_t secTaskNum,
+                          uint16_t priTaskNum, IndexTree *idxTree)
+      : _sessionQueue(Configure::GetMaxSessionGroupNum(), sessionGroupNum),
+        _fromPrimaryQueue(Configure::GetMaxIndexTaskNum(), priTaskNum),
+        _toPrimaryQueue(Configure::GetMaxIndexTaskNum(), secTaskNum),
+        _indexTree(idxTree), _createTime(MilliSecTime()) {}
+  // To receive IndexAction from sessions. Its lines equal session groups number
+  RapidQueue<IndexAction> _sessionQueue;
+  // To receive the IndexAction from primary index tasks. Its lines equal to the
+  // primary index tasks number.
+  RapidQueue<IndexAction> _fromPrimaryQueue;
+  // To send the IndexAction to primary index tasks.Its lines equal to current
+  // index tasks number.
+  RapidQueue<IndexAction> _toPrimaryQueue;
+  // The IndexTree that this queue belong to.
+  IndexTree *_indexTree;
   // The time of this IndexTaskQueue created
   DT_MilliSec _createTime;
+};
 
-  SpinMutex _spinMutex;
+class TableTaskMgr;
+class IndexTask : public ThreadTask {
+public:
+  /**
+   * @param table The table that this task belong to
+   * @param indexPos Which index of the table
+   * @param stNum The thread number of session pool
+   * @param mtNum The thread number of parmary index task
+   */
+  IndexTask(IndexTree *indexTree, uint16_t taskCnt, uint16_t taskSn,
+            TableTaskMgr *taskMgr, PhysTable *table)
+      : _indexTree(indexTree), _taskCnt(taskCnt), _taskSn(taskSn),
+        _taskMgr(taskMgr), _table(table) {}
+
+  TaskStatus Run() override;
+
+protected:
+  IndexTree *_indexTree;
+  // The total number of IndexTask's for this IndexTree.
+  uint16_t _taskCnt;
+  // It use to sign which number IndexTask for this IndexTree.
+  uint16_t _taskSn;
+
+  TableTaskMgr *_taskMgr;
+  PhysTable *_table;
+
+  friend class TableTaskMgr;
 };
 
 class TableTaskMgr {
 public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+public:
   /**
    * @brief Constructor
    */
-  TableTaskMgr(uint16_t secIdxSz, uint16_t maxSessionGroupNum,
-               uint16_t sessionGroupNum, uint16_t maxTaskNum)
-      : _priIndexTaskQueue(maxSessionGroupNum, sessionGroupNum, {}) /*,
-         _vctSecIndexTaskQueue(
-             secIdxSz, SecIndexTaskQueue(maxSessionGroupNum, sessionGroupNum,
-                                         maxTaskNum, 1, 1, {}))*/
-  {}
+  TableTaskMgr(PhysTable *table, uint16_t sessionGroupNum)
+      : _table(table), _sessionGroupNum(sessionGroupNum),
+        _priIndexTaskQueue(sessionGroupNum, table->GetPrimaryKey()._tree) {
+    _vctPriIndexTask.push_back(
+        new IndexTask(table->GetPrimaryKey()._tree, 1, 0, this, table));
+
+    MVector<IndexProp> &vctIndex = table->GetVectorIndex();
+    _vctSecIndexTaskQueue.reserve(vctIndex.size());
+    for (auto &prop : vctIndex) {
+      _vctSecIndexTaskQueue.push_back(
+          SecondaryIndexTaskQueue(sessionGroupNum, 1, 1, prop._tree));
+      MVector<IndexTask *> vct;
+      vct.push_back(new IndexTask(prop._tree, 1, 0, this, table));
+      _vctSecIndexTasks.push_back(move(vct));
+    }
+  }
 
   void ResetSessionGroupNum(uint16_t sessionGroupNum) {
-    _priIndexTaskQueue._fqStmt.ResetLiveThreadNumber(sessionGroupNum);
+    _sessionGroupNum = sessionGroupNum;
+    _priIndexTaskQueue._sessionQueue.ResetLiveThreadNumber(sessionGroupNum);
 
-    for (SecIndexTaskQueue &itq : _vctSecIndexTaskQueue) {
-      itq._fqStmt.ResetLiveThreadNumber(sessionGroupNum);
+    for (SecondaryIndexTaskQueue &itq : _vctSecIndexTaskQueue) {
+      itq._sessionQueue.ResetLiveThreadNumber(sessionGroupNum);
     }
   }
 
-  bool ResetPriIndexTaskNum(uint16_t priTaskNum,
-                            MVector<LeafRecord> &&vctRecBorder) {
-    assert(priTaskNum - 1 == vctRecBorder.size());
-    _priIndexTaskQueue._vctRecBorder = move(vctRecBorder);
+  void ResetPriIndexTaskNum(uint16_t priTaskNum) {
+    uint16_t actualNum = CalcTaskRanges(0, priTaskNum);
 
-    for (SecIndexTaskQueue &itq : _vctSecIndexTaskQueue) {
-      itq._fqRec.ResetLiveThreadNumber(priTaskNum);
+    for (SecondaryIndexTaskQueue &itq : _vctSecIndexTaskQueue) {
+      itq._fromPrimaryQueue.ResetLiveThreadNumber(actualNum);
     }
   }
 
-  bool ResetSecIndexTaskNum(uint16_t idxPos, uint16_t secTaskNum,
-                            MVector<LeafRecord> &&vctRecBorder) {
+  void ResetSecIndexTaskNum(uint16_t idxPos, uint16_t secTaskNum) {
     assert(idxPos <= _vctSecIndexTaskQueue.size());
-    assert(secTaskNum - 1 == vctRecBorder.size());
+    uint16_t actualNum = CalcTaskRanges(idxPos, secTaskNum);
 
-    SecIndexTaskQueue &itq = _vctSecIndexTaskQueue[idxPos - 1];
-    itq._fqPriKeyStmt.ResetLiveThreadNumber(secTaskNum);
-    itq._vctRecBorder = move(vctRecBorder);
+    SecondaryIndexTaskQueue &itq = _vctSecIndexTaskQueue[idxPos - 1];
+    itq._toPrimaryQueue.ResetLiveThreadNumber(secTaskNum);
   }
 
   void CollectPrimaryTaskData();
   void CollectSecondaryTaskData(uint16_t idxPos);
 
 protected:
-  PriIndexTaskQueue _priIndexTaskQueue;
-  MVector<SecIndexTaskQueue> _vctSecIndexTaskQueue;
-  MVector<PriIndexTask> _vctPriIndexTask;
-  MVector<MVector<SecIndexTask>> _vctSecIndexTasks;
+  /**
+   * @brief Calc how to split the IndexTree and split the pages into different
+   * ranges.
+   * @param indexPos Which index to split, it is same with IndexProp::_position
+   * inPhysTable.
+   * @param exptTaskNum The expected ranges to split, it will adjust in
+   * according to actual conditions.
+   * @return The actual range number to split
+   */
+  uint16_t CalcTaskRanges(uint16_t indexPos, uint16_t exptTaskNum);
+
+protected:
+  PhysTable *_table;
+  uint16_t _sessionGroupNum;
+  PrimaryIndexTaskQueue _priIndexTaskQueue;
+  MVector<SecondaryIndexTaskQueue> _vctSecIndexTaskQueue;
+  MVector<IndexTask *> _vctPriIndexTask;
+  MVector<MVector<IndexTask *>> _vctSecIndexTasks;
 };
 
 } // namespace storage
