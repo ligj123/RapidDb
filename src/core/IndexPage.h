@@ -120,6 +120,11 @@ public:
   virtual bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
                          Byte lockPageLevel = UINT8_MAX) = 0;
 
+  inline bool IsRangBeginPage() { return _bRangeBeginPage; }
+  inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }
+  inline bool IsRangEndPage() { return _bRangeEndPage; }
+  inline void SetRangeEndPage(bool b) { _bRangeEndPage = b; }
+
 protected:
   // Parent page ID
   PageID _parentPageId{0};
@@ -134,5 +139,8 @@ protected:
   BranchPage *_parentPage{nullptr};
   // The vector to save records in this page
   MVector<RawRecord *> _vctRecord;
+
+  bool _bRangeEndPage{false};
+  bool _bRangeBeginPage{false};
 };
 } // namespace storage

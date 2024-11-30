@@ -93,7 +93,7 @@ public:
   ThreadTask &operator=(ThreadTask &&src) = delete;
 
   virtual TaskStatus Run() = 0;
-  // inline TaskStatus Status() { return _status; }
+  inline TaskStatus GetStatus() { return _taskStatus; }
   // inline void SetStatus(TaskStatus s) { _status = s; }
   inline BusyDegree GetBusyDegree() { return _busyDegree; }
   inline uint16_t GetRepeatTime() { return _repeatTime; }
@@ -117,6 +117,7 @@ protected:
   BusyDegree _busyDegree = BusyDegree::FREE;
   uint16_t _repeatTime{0}; // The same busy degree repeat time
   bool _bExclusive{false}; // To occupy a thread entirely or not
+  TaskStatus _taskStatus;
 
   // The count of current exclusive tasks,it must less than _maxThreads in
   // thread pool

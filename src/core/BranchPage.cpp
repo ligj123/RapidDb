@@ -254,7 +254,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   }
 
   bool block = (lockPageLevel != UINT8_MAX);
-  if (lockPageLevel <= GetPageLevel()) {
+  if (lockPageLevel < GetPageLevel()) {
     if (_spinLock.try_lock()) {
       return false;
     }
@@ -275,7 +275,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
            (_parentPage->GetPageStatus() == PageStatus::VALID ||
             _parentPage->GetPageStatus() == PageStatus::WRITING));
 
-    if (lockPageLevel <= _parentPage->GetPageLevel()) {
+    if (lockPageLevel < _parentPage->GetPageLevel()) {
       _parentPage->Lock();
     }
 
@@ -383,6 +383,26 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     brPage->AddWriteQueue(pageMap);
   }
 
+  if (GetPageLevel() == lockPageLevel) {
+    if (IsRangEndPage()) {
+      SetRangeEndPage(false);
+      vctPage[vctPage.size() - 1]->SetRangeEndPage(true);
+    }
+
+    int pos = _indexTree->CalcIndexRange(*last);
+    IndexRange &range = _indexTree->GetVctRange().at(pos);
+    size_t i = 0;
+    for (i < range._vctRangePage.size(); i++) {
+      if (range._vctRangePage[i] == this) {
+        break;
+      }
+    }
+
+    assert(i < range._vctRangePage.size());
+    range._vctRangePage.insert(range._vctRangePage.begin() + i + 1,
+                               vctPage.begin(), vctPage.end());
+  }
+
   SetRecordUpdated();
   SaveRecords();
   SetDirty();
@@ -391,13 +411,11 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   _parentPage->SetDirty();
   _parentPage->AddWriteQueue(pageMap);
 
-  if (lockPageLevel <= GetPageLevel()) {
-    if (brParentOld != nullptr &&
-        lockPageLevel <= _parentPage->GetPageLevel()) {
-      _parentPage->Unlock();
-    }
-
+  if (lockPageLevel < GetPageLevel()) {
     _spinLock.unlock();
+  }
+  if (brParentOld != nullptr && lockPageLevel < _parentPage->GetPageLevel()) {
+    _parentPage->Unlock();
   }
 
   if (brParentOld != nullptr) {
@@ -430,6 +448,44 @@ void BranchPage::ClearChild(IndexPage *child) {
     BranchRecord &brp = GetRecord(pos, true);
     assert(child == brp.GetChildPage());
     brp.SetChildPage(nullptr);
+  }
+}
+
+IndexPage *BranchPage::RecursiveLeftChild() {
+  BranchPage *bp = this;
+  while (true) {
+    BranchRecord br = bp->GetRecord(0, false);
+    IndexPage *child = br.GetChildPage();
+    if (child == nullptr) {
+      PageType type = (bp->GetPageLevel() == 1 ? PageType::LEAF_PAGE
+                                               : PageType::BRANCH_PAGE);
+      child = _indexTree->GetPage(br.GetChildPageId(), type, bp,
+                                  type != PageType::LEAF_PAGE);
+    }
+
+    if (child->GetPageType() == PageType::LEAF_PAGE) {
+      return child;
+    }
+    bp = (BranchPage *)child;
+  }
+}
+
+IndexPage *BranchPage::RecursiveRightChild() {
+  BranchPage *bp = this;
+  while (true) {
+    BranchRecord br = bp->GetRecord(bp->GetRecordNumber() - 1, false);
+    IndexPage *child = br.GetChildPage();
+    if (child == nullptr) {
+      PageType type = (bp->GetPageLevel() == 1 ? PageType::LEAF_PAGE
+                                               : PageType::BRANCH_PAGE);
+      child = _indexTree->GetPage(br.GetChildPageId(), type, bp,
+                                  type != PageType::LEAF_PAGE);
+    }
+
+    if (child->GetPageType() == PageType::LEAF_PAGE) {
+      return child;
+    }
+    bp = (BranchPage *)child;
   }
 }
 } // namespace storage

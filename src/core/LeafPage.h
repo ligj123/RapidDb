@@ -39,10 +39,6 @@ public:
 
   inline void SetPrevPage(LeafPage *page) { _prevPage = page; }
   inline void SetNextPage(LeafPage *page) { _nextPage = page; }
-  inline bool IsRangBeginPage() { return _bRangeBeginPage; }
-  inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }
-  inline bool IsRangEndPage() { return _bRangeEndPage; }
-  inline void SetRangeEndPage(bool b) { _bRangeEndPage = b; }
 
   bool IsOverlength() override {
     return _committedDataLength >= MAX_DATA_LENGTH_LEAF;
@@ -132,8 +128,6 @@ protected:
   uint32_t _nextPageId{PAGE_NULL_POINTER};
   LeafPage *_prevPage{nullptr};
   LeafPage *_nextPage{nullptr};
-  bool _bRangeEndPage{false};
-  bool _bRangeBeginPage{false};
 
   friend class InsertAction;
 };

@@ -24,7 +24,7 @@ class BranchPage;
 
 struct IndexRange {
   // The end border of this range
-  LeafRecord _lrBorder;
+  BranchRecord _lrBorder;
   // The top level BrangePages assigned to this range
   MVector<BranchPage *> _vctRangePage;
   // The Start leafPage of this range
@@ -43,16 +43,6 @@ struct IndexRange {
   // time.
   VersionStamp _recordStampStart{0};
   VersionStamp _recordStampEnd{0};
-
-  void AddAction(IndexAction *act) {
-    unique_lock<SpinMutex> lock(_mutex);
-    _queueTempAction.push_back(act);
-  }
-  void AddActions(MDeque<IndexAction *> &queue) {
-    unique_lock<SpinMutex> lock(_mutex);
-    _queueTempAction.insert(_queueTempAction.end(), queue.begin(), queue.end());
-    queue.clear();
-  }
 };
 
 class IndexTree {
@@ -98,7 +88,7 @@ public:
   OverflowPage *ApplyOvfPage(uint16_t num, bool block);
 
   IndexPage *GetPage(PageID pageId, PageType type,
-                     BranchPage *parentPage = nullptr);
+                     BranchPage *parentPage = nullptr, bool bSyncRead = false);
   LeafPage *GetLeafPage(PageID pageId, BranchPage *parentPage, LeafPage *prev,
                         LeafPage *next);
   /**
@@ -203,7 +193,7 @@ public:
   LeafRecord MakeMinLeafRecord();
 
   MVector<IndexRange> &GetVctRange() { return _vctRange; }
-  int CalcIndexRange(LeafRecord &lr);
+  int CalcIndexRange(RawRecord &rr);
   int CalcIndexRange(RawKey &key);
   bool IsMultiRange() { return _vctRange.size() > 1; }
 
@@ -225,6 +215,12 @@ public:
                                   queue.end());
     queue.clear();
   }
+
+  bool IsReranging() { return _bReranging; }
+  void SetReRanging(bool b) { _bReranging = b; }
+  Byte GetSplitPageLevel() { return _splitPageLevel; }
+  void SetSplitPageLevel(Byte n) { _splitPageLevel = n; }
+  SpinMutex &GetRangeMutex() { return _rangMutex; }
 
 protected:
   // To record how much pages of this index tree are in CachePagePool.
@@ -255,7 +251,13 @@ protected:
   uint16_t _valOffset{0};
   atomic_bool _bClosed{false};
   IndexType _indexType;
+  // The IndexTree is reranging or not
+  atomic_bool _bReranging{false};
+  // The page level to split range
+  Byte _splitPageLevel{UINT8_MAX};
+  // The vector of IndexRange
   MVector<IndexRange> _vctRange;
+
   SpinMutex _rangMutex;
   friend class HeadPage;
 };

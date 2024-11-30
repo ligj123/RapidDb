@@ -75,6 +75,9 @@ public:
     return (BranchRecord *)_vctRecord[pos];
   }
 
+  IndexPage *RecursiveLeftChild();
+  IndexPage *RecursiveRightChild();
+
 protected:
   int CompareTo(uint32_t recPos, const RawRecord &rr) const;
   int CompareTo(uint32_t recPos, const RawKey &key) const;

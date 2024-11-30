@@ -22,6 +22,14 @@ BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId,
 }
 
 BranchRecord::~BranchRecord() {}
+BranchRecord &BranchRecord::operator=(const BranchRecord &src) {
+  assert(_bysVal == nullptr);
+  uint16_t tlen = src.GetTotalLength();
+  _bysVal = CachePool::Apply(tlen);
+  BytesCopy(_bysVal, src._bysVal, tlen);
+  _bSole = true;
+  _indexType = src._indexType;
+}
 
 int BranchRecord::CompareTo(const RawRecord &rr) const {
   if (_indexType != IndexType::NON_UNIQUE) {

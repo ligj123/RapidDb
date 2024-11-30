@@ -211,7 +211,7 @@ OverflowPage *IndexTree::ApplyOvfPage(uint16_t num, bool block) {
 }
 
 IndexPage *IndexTree::GetPage(PageID pageId, PageType type,
-                              BranchPage *parentPage) {
+                              BranchPage *parentPage, bool bSyncRead) {
   assert(pageId < _headPage->GetTotalPageCount());
   IndexPage *page = (IndexPage *)CachePagePool::GetPage(this, pageId, type);
 
@@ -220,7 +220,14 @@ IndexPage *IndexTree::GetPage(PageID pageId, PageType type,
   }
 
   if (page->GetPageStatus() == PageStatus::EMPTY) {
-    FilePagePool::AddReadPage(ThreadPool::GetThreadId(), page);
+    if (bSyncRead) {
+      bool b = FilePagePool::SyncReadPage(page);
+      assert(b);
+      page->AfterRead();
+      page->SetPageStatus(PageStatus::VALID);
+    } else {
+      FilePagePool::AddReadPage(ThreadPool::GetThreadId(), page);
+    }
   }
 
   return page;
@@ -418,7 +425,7 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
   }
 }
 
-int IndexTree::CalcIndexRange(LeafRecord &lr) {
+int IndexTree::CalcIndexRange(RawRecord &rr) {
   if (_vctRange.size() == 0) {
     return 0;
   }
@@ -426,11 +433,11 @@ int IndexTree::CalcIndexRange(LeafRecord &lr) {
   for (size_t i = 0; i < _vctRange.size(); i++) {
     IndexRange &range = _vctRange[i];
     if (_indexType == IndexType::NON_UNIQUE) {
-      if (range._lrBorder.CompareTo(lr) >= 0) {
+      if (range._lrBorder.CompareTo(rr) >= 0) {
         return i;
       }
     } else {
-      if (range._lrBorder.CompareKey(lr) >= 0) {
+      if (range._lrBorder.CompareKey(rr) >= 0) {
         return i;
       }
     }
