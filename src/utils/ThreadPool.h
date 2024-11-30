@@ -15,6 +15,7 @@
 
 namespace storage {
 using namespace std;
+class ThreadPool;
 
 enum class TaskStatus : Byte {
   UNINIT = 0, // Before initialize
@@ -81,7 +82,7 @@ public:
   }
 
 public:
-  ThreadTask() {}
+  ThreadTask(ThreadPool *threadPool) : _threadPool(threadPool) {}
   ThreadTask(const ThreadTask &src) = delete;
   ThreadTask(ThreadTask &&src) = delete;
   virtual ~ThreadTask() {
@@ -113,6 +114,7 @@ public:
   virtual bool IsNeedDelete() { return false; }
 
 protected:
+  ThreadPool *_threadPool;
   // TaskStatus _status = TaskStatus::UNINIT;
   BusyDegree _busyDegree = BusyDegree::FREE;
   uint16_t _repeatTime{0}; // The same busy degree repeat time

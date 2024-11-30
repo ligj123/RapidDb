@@ -9,6 +9,14 @@
 #include <shared_mutex>
 
 namespace storage {
+IndexRange::~IndexRange() {
+  assert(_queueAction.size() == 0);
+  assert(_queueTempAction.size() == 0);
+  if (_brBorder != nullptr) {
+    delete _brBorder;
+  }
+}
+
 IndexTree::~IndexTree() {
   while (_pagesInMem.load(memory_order_acquire) > 0) {
     this_thread::sleep_for(chrono::milliseconds(1));
@@ -433,11 +441,11 @@ int IndexTree::CalcIndexRange(RawRecord &rr) {
   for (size_t i = 0; i < _vctRange.size(); i++) {
     IndexRange &range = _vctRange[i];
     if (_indexType == IndexType::NON_UNIQUE) {
-      if (range._lrBorder.CompareTo(rr) >= 0) {
+      if (range._brBorder->CompareTo(rr) >= 0) {
         return i;
       }
     } else {
-      if (range._lrBorder.CompareKey(rr) >= 0) {
+      if (range._brBorder->CompareKey(rr) >= 0) {
         return i;
       }
     }
@@ -455,7 +463,7 @@ int IndexTree::CalcIndexRange(RawKey &key) {
 
   for (size_t i = 0; i < _vctRange.size(); i++) {
     IndexRange &range = _vctRange[i];
-    if (range._lrBorder.CompareKey(key) >= 0) {
+    if (range._brBorder->CompareKey(key) >= 0) {
       return i;
     }
   }

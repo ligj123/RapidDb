@@ -392,15 +392,18 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     int pos = _indexTree->CalcIndexRange(*last);
     IndexRange &range = _indexTree->GetVctRange().at(pos);
     size_t i = 0;
-    for (i < range._vctRangePage.size(); i++) {
+    for (; i < range._vctRangePage.size(); i++) {
       if (range._vctRangePage[i] == this) {
         break;
       }
     }
 
     assert(i < range._vctRangePage.size());
-    range._vctRangePage.insert(range._vctRangePage.begin() + i + 1,
-                               vctPage.begin(), vctPage.end());
+    auto iter = range._vctRangePage.begin() + i + 1;
+    for (auto page : vctPage) {
+      iter = range._vctRangePage.insert(iter, (BranchPage *)page);
+      iter++;
+    }
   }
 
   SetRecordUpdated();
@@ -454,7 +457,7 @@ void BranchPage::ClearChild(IndexPage *child) {
 IndexPage *BranchPage::RecursiveLeftChild() {
   BranchPage *bp = this;
   while (true) {
-    BranchRecord br = bp->GetRecord(0, false);
+    BranchRecord &br = bp->GetRecord(0, false);
     IndexPage *child = br.GetChildPage();
     if (child == nullptr) {
       PageType type = (bp->GetPageLevel() == 1 ? PageType::LEAF_PAGE
@@ -473,7 +476,7 @@ IndexPage *BranchPage::RecursiveLeftChild() {
 IndexPage *BranchPage::RecursiveRightChild() {
   BranchPage *bp = this;
   while (true) {
-    BranchRecord br = bp->GetRecord(bp->GetRecordNumber() - 1, false);
+    BranchRecord &br = bp->GetRecord(bp->GetRecordNumber() - 1, false);
     IndexPage *child = br.GetChildPage();
     if (child == nullptr) {
       PageType type = (bp->GetPageLevel() == 1 ? PageType::LEAF_PAGE

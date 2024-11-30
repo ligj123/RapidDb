@@ -24,8 +24,9 @@ public:
   ~BranchRecord();
 
   BranchRecord &operator=(BranchRecord &&src) = delete;
-  BranchRecord &operator=(const BranchRecord &src);
+  BranchRecord &operator=(const BranchRecord &src) = delete;
 
+  void Copy(const BranchRecord &src);
   int CompareTo(const RawRecord &other) const;
   int CompareKey(const RawKey &key) const;
   int CompareKey(const RawRecord &other) const;

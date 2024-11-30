@@ -2,17 +2,20 @@
 #include "../core/BranchPage.h"
 #include "../core/BranchRecord.h"
 #include "../core/LeafPage.h"
+#include "../utils/ThreadPool.h"
 
 namespace storage {
 TaskStatus IndexTask::Run() {
   _taskStatus = TaskStatus::RUNNING;
 
-  IndexTree *idxTree = _taskMgr->_table->GetVectorIndex().at(idxPos)._tree;
+  IndexTree *idxTree = _taskMgr->_table->GetVectorIndex().at(_indexPos)._tree;
+  IndexRange &range = idxTree->GetVctRange().at(_taskSn);
+
   if (idxTree->IsReranging()) [[unlikely]] {
     MDeque<IndexAction *> &queue =
-        _taskMgr->_vctSecIndexTaskQueue[_indexPos]._queueTempAction;
+        _taskMgr->_vctIndexTaskQueue[_indexPos]->_queueTempAction;
     unique_lock<SpinMutex> lock(idxTree->GetRangeMutex());
-    IndexRange &range = idxTree->GetVctRange().at(_taskSn);
+
     if (range._queueTempAction.size() > 0) {
       range._queueAction.insert(range._queueAction.end(),
                                 range._queueTempAction.begin(),
@@ -44,7 +47,6 @@ TaskStatus IndexTask::Run() {
                               range._queueTempAction.end());
   }
 
-  IndexRange &range = idxTree->GetVctRange().at(_taskSn);
   for (auto iter = range._queueAction.begin();
        iter != range._queueAction.end();) {
     TaskStatus status = (*iter)->Exec();
@@ -57,19 +59,8 @@ TaskStatus IndexTask::Run() {
   return TaskStatus::RUNNING;
 }
 
-void TableTaskMgr::ResetIndexTaskNum(uint16_t idxPos, uint16_t secTaskNum) {
-  // assert(idxPos <= _vctIndexTaskQueue.size());
-  // uint16_t actualNum = CalcTaskRanges(idxPos, secTaskNum);
-
-  // SecondaryIndexTaskQueue &itq = _vctSecIndexTaskQueue[idxPos - 1];
-  // itq._toPrimaryQueue.ResetLiveThreadNumber(secTaskNum);
-  // for (SecondaryIndexTaskQueue &itq : _vctSecIndexTaskQueue) {
-  //     itq._fromPrimaryQueue.ResetLiveThreadNumber(actualNum);
-  //   }
-}
-
 void TableTaskMgr::CollectTaskData(uint16_t idxPos) {
-  assert(idxPos < _vctSecIndexTaskQueue.size());
+  assert(idxPos < _vctIndexTaskQueue.size());
   IndexTree *idxTree = _table->GetVectorIndex().at(idxPos)._tree;
   IndexTaskQueue *itq = _vctIndexTaskQueue[idxPos];
 
@@ -82,9 +73,9 @@ void TableTaskMgr::CollectTaskData(uint16_t idxPos) {
 
   if (idxPos == 0) {
     // Primary Key
-    for (size_t i = 1; i < _vctSecIndexTaskQueue.size(); i++) {
+    for (size_t i = 1; i < _vctIndexTaskQueue.size(); i++) {
       SecondaryIndexTaskQueue *tqueue =
-          (SecondaryIndexTaskQueue *)_vctSecIndexTaskQueue[i];
+          (SecondaryIndexTaskQueue *)_vctIndexTaskQueue[i];
       tqueue->_toPrimaryQueue.Pop(qs);
     }
   } else {
@@ -103,7 +94,7 @@ void TableTaskMgr::CollectTaskData(uint16_t idxPos) {
 uint16_t TableTaskMgr::CalcAndSpliteTaskRanges(uint16_t indexPos,
                                                uint16_t exptTaskNum) {
   assert(exptTaskNum > 0 && exptTaskNum <= Configure::GetMaxIndexTaskNum());
-  IndexTree *idxTree = _tableTaskMgr->_table->GetVectorIndex().at(_indexPos);
+  IndexTree *idxTree = _table->GetVectorIndex().at(indexPos)._tree;
   MVector<IndexRange> &vctRange = idxTree->GetVctRange();
   assert(idxTree->GetVctRange().size() == 0);
   if (exptTaskNum == 1) {
@@ -131,8 +122,8 @@ uint16_t TableTaskMgr::CalcAndSpliteTaskRanges(uint16_t indexPos,
       BranchRecord &br = bpRoot->GetRecord(pos, false);
       BranchPage *child = (BranchPage *)br.GetChildPage();
       if (child == nullptr) {
-        child = idxTree->GetPage(br.GetChildPageId(), PageType::BRANCH_PAGE,
-                                 bpRoot);
+        child = (BranchPage *)idxTree->GetPage(br.GetChildPageId(),
+                                               PageType::BRANCH_PAGE, bpRoot);
         br.SetChildPage(child);
       }
 
@@ -163,7 +154,8 @@ TaskStatus IndexAdjustTask::Run() {
     }
   }
 
-  IndexTree *idxTree = _tableTaskMgr->_table->GetVectorIndex().at(_indexPos);
+  IndexTree *idxTree =
+      _tableTaskMgr->_table->GetVectorIndex().at(_indexPos)._tree;
   MVector<IndexRange> &vctRange = idxTree->GetVctRange();
   for (IndexRange &range : vctRange) {
     assert(range._queueAction.size() == 0);
@@ -173,12 +165,44 @@ TaskStatus IndexAdjustTask::Run() {
     range._endPage->SetRangeEndPage(false);
     (*range._vctRangePage.begin())->SetRangeBeginPage(false);
     (*range._vctRangePage.rbegin())->SetRangeEndPage(false);
+    range._brBorder = new BranchRecord();
+    range._brBorder->Copy(
+        (*range._vctRangePage.rbegin())->GetRecord(INT32_MAX, true));
   }
 
   vctTask.clear();
-  vctRange.clear;
+  vctRange.clear();
+  _exptTaskNum =
+      _tableTaskMgr->CalcAndSpliteTaskRanges(_indexPos, _exptTaskNum);
+  _tableTaskMgr->CalcAndSpliteTaskRanges(_indexPos, _exptTaskNum);
+
+  if (_indexPos == 0) {
+    for (size_t i = 1; i < _tableTaskMgr->_vctIndexTaskQueue.size(); i++) {
+      SecondaryIndexTaskQueue *itq =
+          (SecondaryIndexTaskQueue *)&_tableTaskMgr->_vctIndexTaskQueue[i];
+      itq->_fromPrimaryQueue.ResetLiveThreadNumber(_exptTaskNum);
+    }
+  } else {
+    SecondaryIndexTaskQueue *itq = (SecondaryIndexTaskQueue *)&_tableTaskMgr
+                                       ->_vctIndexTaskQueue[_indexPos];
+    itq->_toPrimaryQueue.ResetLiveThreadNumber(_exptTaskNum);
+  }
+
+  vctTask.reserve(_exptTaskNum);
+  for (int64_t i = 0; i < _exptTaskNum; i++) {
+    vctTask.push_back(
+        new IndexTask(_threadPool, _tableTaskMgr, _exptTaskNum, i));
+  }
 
   idxTree->SetReRanging(false);
+
+  MVector<ThreadTask *> vct;
+  vct.reserve(vctTask.size());
+  for (auto t : vctTask) {
+    vct.push_back(t);
+  }
+
+  _threadPool->AddTasks(vct);
   return TaskStatus::FINISHED;
 }
 } // namespace storage

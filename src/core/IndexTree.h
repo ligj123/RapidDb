@@ -21,10 +21,13 @@ namespace storage {
 using namespace std;
 class LeafPage;
 class BranchPage;
+class BranchRecord;
 
 struct IndexRange {
+  ~IndexRange();
+
   // The end border of this range
-  BranchRecord _lrBorder;
+  BranchRecord *_brBorder{nullptr};
   // The top level BrangePages assigned to this range
   MVector<BranchPage *> _vctRangePage;
   // The Start leafPage of this range

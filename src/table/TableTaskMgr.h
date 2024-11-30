@@ -3,6 +3,7 @@
 #include "../core/IndexTree.h"
 #include "../table/Table.h"
 #include "../utils/RapidQueue.h"
+#include "../utils/ThreadPool.h"
 #include "../utils/Utilitys.h"
 
 #include <vector>
@@ -82,8 +83,10 @@ public:
    * @param stNum The thread number of session pool
    * @param mtNum The thread number of parmary index task
    */
-  IndexTask(TableTaskMgr *taskMgr, uint16_t indexPos, uint16_t taskSn)
-      : _taskMgr(taskMgr), _indexPos(indexPos), _taskSn(taskSn) {}
+  IndexTask(ThreadPool *pool, TableTaskMgr *taskMgr, uint16_t indexPos,
+            uint16_t taskSn)
+      : ThreadTask(pool), _taskMgr(taskMgr), _indexPos(indexPos),
+        _taskSn(taskSn) {}
 
   TaskStatus Run() override;
 
@@ -109,23 +112,30 @@ public:
   /**
    * @brief Constructor
    */
-  TableTaskMgr(PhysTable *table, uint16_t sessionGroupNum)
-      : _table(table), _sessionGroupNum(sessionGroupNum),
-        _priIndexTaskQueue(sessionGroupNum, table->GetPrimaryKey()._tree) {
-
+  TableTaskMgr(ThreadPool *pool, PhysTable *table, uint16_t sessionGroupNum)
+      : _threadPool(pool), _table(table), _sessionGroupNum(sessionGroupNum) {
     MVector<IndexProp> &vctIndex = table->GetVectorIndex();
-    _vctSecIndexTaskQueue.reserve(vctIndex.size());
-    for (aize_t i = 0; i < vctIndex.size(); i++) {
+    _vctIndexTaskQueue.reserve(vctIndex.size());
+    MVector<ThreadTask *> vctTask;
+    vctTask.reserve(vctIndex.size());
+
+    for (size_t i = 0; i < vctIndex.size(); i++) {
       auto &prop = vctIndex[i];
-      if (i > 0) {
-        _vctSecIndexTaskQueue.push_back(
-            SecondaryIndexTaskQueue(sessionGroupNum, 1, 1, prop._tree));
+      if (i == 0) {
+        _vctIndexTaskQueue.push_back(new IndexTaskQueue(sessionGroupNum));
+      } else {
+        _vctIndexTaskQueue.push_back(
+            new SecondaryIndexTaskQueue(sessionGroupNum, 1, 1));
       }
 
       MVector<IndexTask *> vct;
-      vct.push_back(new IndexTask(prop._tree, 1, 0, this, table));
+      IndexTask *task = new IndexTask(pool, this, 1, 0);
+      vct.push_back(task);
+      vctTask.push_back(task);
       _vctIndexTasks.push_back(move(vct));
     }
+
+    pool->AddTasks(vctTask);
   }
 
   ~TableTaskMgr() {
@@ -150,28 +160,7 @@ public:
     }
   }
 
-  /**
-   * @brief Reset the ranges for an IndexTree. It will calcute the actual number
-   * of ranges and split the pages into different ranges, then collect all old
-   * tasks and create new IndexTask for it.
-   * @param idxPos The position of IndexTree in table. It is same with PhysTable
-   * @param exptTaskNum The expected number of the ranges to split
-   */
-  void ResetIndexTaskNum(uint16_t idxPos, uint16_t exptTaskNum);
-
   void CollectTaskData(uint16_t idxPos);
-
-  bool IsAllTaskFinished(uint16_t idxPos) {
-    assert(idxPos < (uint16_t)_vctIndexTasks.size());
-    MVector<IndexTask *> &vct = _vctIndexTasks[idxPos];
-    for (IndexTask *task : vct) {
-      if (task->GetStatus() != TaskStatus::FINISHED) {
-        return false;
-      }
-    }
-
-    return true;
-  }
 
 protected:
   /**
@@ -186,6 +175,7 @@ protected:
   uint16_t CalcAndSpliteTaskRanges(uint16_t indexPos, uint16_t exptTaskNum);
 
 protected:
+  ThreadPool *_threadPool;
   PhysTable *_table;
   uint16_t _sessionGroupNum;
   MVector<IndexTaskQueue *> _vctIndexTaskQueue;
@@ -196,9 +186,9 @@ protected:
 
 class IndexAdjustTask : public ThreadTask {
 public:
-  IndexAdjustTask(TableTaskMgr *tableTaskMgr, uint16_t indexPos,
-                  int16_t exptTaskNum)
-      : _tableTaskMgr(tableTaskMgr), _indexPos(indexPos),
+  IndexAdjustTask(ThreadPool *pool, TableTaskMgr *tableTaskMgr,
+                  uint16_t indexPos, int16_t exptTaskNum)
+      : ThreadTask(pool), _tableTaskMgr(tableTaskMgr), _indexPos(indexPos),
         _exptTaskNum(exptTaskNum) {}
   TaskStatus Run() override;
   bool IsNeedDelete() { return true; }
