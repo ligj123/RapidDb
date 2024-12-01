@@ -12,7 +12,7 @@ namespace storage {
 const uint32_t DatabaseManager::FAST_SIZE = 127;
 MStrTreeMap<Database *> DatabaseManager::_mapDb;
 SpinMutex DatabaseManager::_spinMutex;
-vector<Database *> DatabaseManager::_fastDbCache(FAST_SIZE, nullptr);
+Database *DatabaseManager::_fastDbCache[FAST_SIZE] = {};
 vector<Database *> DatabaseManager::_discardDb;
 
 bool DatabaseManager::InitDb(PhysTable *dbTable) {
@@ -107,4 +107,16 @@ Database *DatabaseManager::FindDb(MString dbName) {
     return iter->second;
 }
 
+void DatabaseManager::ClearDB() {
+  for (auto iter = _mapDb.begin(); iter != _mapDb.end(); iter++) {
+    delete iter->second;
+  }
+
+  _mapDb.clear();
+  for (size_t i = 0; i < FAST_SIZE; i++) {
+    _fastDbCache[i] = nullptr;
+  }
+
+  _discardDb.clear();
+}
 } // namespace storage

@@ -280,10 +280,8 @@ uint32_t PhysTable::LoadData(Byte *bys) {
   // Database name
   MString db_name = _fullName.substr(0, pos);
   _db = DatabaseManager::FindDb(db_name);
-  if (_db == nullptr) {
-    _threadErrorMsg.reset(new ErrorMsg(DB_NOT_FOUNF, {db_name}));
-    return UINT32_MAX;
-  }
+  assert(_db != nullptr);
+
   // Table create time
   _dtCreate = *(uint64_t *)buf;
   buf += UI64_LEN;
@@ -327,7 +325,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     }
   }
 
-  return (uint32_t)(bys - buf);
+  return (uint32_t)(buf - bys);
 }
 
 bool PhysTable::OpenIndex(size_t idx, bool bCreate) {

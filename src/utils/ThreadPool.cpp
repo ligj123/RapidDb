@@ -59,6 +59,7 @@ void ThreadPool::CreateThread(int id) {
   _aliveThreads++;
   _vctThreadPara[id]._thread = new thread([this, id]() {
     _threadName = _threadPrefix + "_" + to_string(id);
+    LOG_INFO << "Start thread in thread pool, Name = " << _threadName;
     assert(_threadName.size() <= 15);
     _threadID = id;
 #ifdef LINUX_OS
@@ -119,7 +120,7 @@ void ThreadPool::CreateThread(int id) {
         }
       }
 
-      ManageThreadPool();
+      // ManageThreadPool();
 
       if ((tpara._busyDegree == BusyDegree::BLOCKED && tpara._repeatTime >= 3 ||
            tpara._busyDegree == BusyDegree::BUSY && tpara._repeatTime >= 5) &&
@@ -139,6 +140,7 @@ void ThreadPool::CreateThread(int id) {
 
         AddTask(*itSel);
         tpara._vctTask.erase(itSel);
+        LOG_INFO << "Busy";
         continue;
       } else if (_poolBusyDegree == BusyDegree::FREE &&
                  !tpara._bExclusiveTask &&
@@ -146,6 +148,7 @@ void ThreadPool::CreateThread(int id) {
                  _aliveThreads > _minThreads) {
         // The thread pool is free and this thread is free too, free this
         // thread.
+        LOG_INFO << "Empty";
         if (IsStoped()) {
           if (tpara._vctTask.size() > 0) {
             continue;
@@ -163,11 +166,13 @@ void ThreadPool::CreateThread(int id) {
         tpara._vctTask.clear();
         break;
       } else if (tpara._bExclusiveTask) {
+        LOG_INFO << "Exclusive";
         // If this thread is running exclusing task, does not need to change
         // anything
         continue;
       }
 
+      LOG_INFO << "LOCK";
       std::unique_lock<SpinMutex> queue_lock(_task_mutex);
       if (_queueTask.size() == 0) {
         if (_stopThreads.load(memory_order_relaxed)) {
@@ -200,6 +205,7 @@ void ThreadPool::CreateThread(int id) {
       }
 
       tpara._vctTask.push_back(task);
+      LOG_INFO << "task";
     }
 
     if (!_stopThreads.load(memory_order_relaxed)) {
@@ -211,6 +217,8 @@ void ThreadPool::CreateThread(int id) {
     std::unique_lock<SpinMutex> thread_lock(_threadMutex);
     tpara._bRunning = false;
     _aliveThreads--;
+
+    LOG_INFO << "Stop thread in thread pool, Name = " << _threadName;
   });
 }
 
@@ -242,32 +250,37 @@ void ThreadPool::AddTask(ThreadTask *task) {
       ThreadTask::GetExclusiveTaskCount() > GetAliveThreadCount()) {
     CreateThread();
   }
+
+  _taskCv.notify_one();
+  LOG_INFO << "AddTask";
 }
 
-void ThreadPool::AddTasks(MVector<ThreadTask *> &vct) {
+void ThreadPool::AddTasks(MVector<ThreadTask *> &vct, bool bLock) {
   if (vct.size() == 0)
     return;
   assert(!_stopThreads);
-  {
-    std::unique_lock<SpinMutex> queue_lock(_task_mutex);
-    if (_queueTask.size() == 0) {
-      _taskTime = MicroSecTime();
-    }
 
-    for (auto task : vct) {
-      _queueTask.push_back(task);
-    }
+  if (bLock) {
+    _task_mutex.lock();
   }
+  if (_queueTask.size() == 0) {
+    _taskTime = MicroSecTime();
+  }
+
+  for (auto task : vct) {
+    _queueTask.push_back(task);
+  }
+
+  if (bLock) {
+    _task_mutex.unlock();
+  }
+
   _taskCv.notify_all();
 }
 
 void ThreadPool::ManageThreadPool() {
   DT_MicroSec ts = MicroSecTime();
-  if (ts - _checkBusyTime.load(memory_order_relaxed) < 100000)
-    return;
-
-  std::unique_lock<SpinMutex> thread_lock(_threadMutex);
-  if (ts - _checkBusyTime.load(memory_order_relaxed) < 100000)
+  if (ts - _checkBusyTime.load(memory_order_acquire) < 10000)
     return;
 
   int alive = 0;
@@ -315,7 +328,6 @@ void ThreadPool::ManageThreadPool() {
   }
 
   _checkBusyTime.store(MicroSecTime(), memory_order_release);
-  thread_lock.unlock();
 
   if (_poolBusyDegree == BusyDegree::BUSY && alive < _maxThreads) {
     int num = (int)_queueTask.size() / 3;

@@ -115,11 +115,10 @@ public:
 
 protected:
   ThreadPool *_threadPool;
-  // TaskStatus _status = TaskStatus::UNINIT;
   BusyDegree _busyDegree = BusyDegree::FREE;
   uint16_t _repeatTime{0}; // The same busy degree repeat time
   bool _bExclusive{false}; // To occupy a thread entirely or not
-  TaskStatus _taskStatus;
+  TaskStatus _taskStatus{TaskStatus::UNINIT};
 
   // The count of current exclusive tasks,it must less than _maxThreads in
   // thread pool
@@ -166,7 +165,7 @@ public:
   ThreadPool &operator=(const ThreadPool &) = delete;
 
   void AddTask(ThreadTask *task);
-  void AddTasks(MVector<ThreadTask *> &vct);
+  void AddTasks(MVector<ThreadTask *> &vct, bool bLock = true);
   void CreateThread(int id = -1);
 
   uint32_t GetTaskCount() { return (uint32_t)(_queueTask.size()); }
@@ -199,7 +198,7 @@ protected:
   // The last time to check if this thread pool is busy or not.
   atomic<DT_MicroSec> _checkBusyTime;
   // The busy status checked at last time.
-  BusyDegree _poolBusyDegree;
+  BusyDegree _poolBusyDegree{BusyDegree::RELAXED};
 
 protected:
   static ThreadPool *_instMain;

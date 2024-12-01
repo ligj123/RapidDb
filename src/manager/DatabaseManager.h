@@ -32,13 +32,14 @@ public:
     assert(_spinMutex.is_locked());
     _spinMutex.unlock();
   }
+  static void ClearDB();
 
 protected:
   static MStrTreeMap<Database *> _mapDb;
   static SpinMutex _spinMutex;
   // Allocate fixed spaces when program initialization and save database pointer
   // into it according db name' hash remainder if the position is nullptr.
-  static vector<Database *> _fastDbCache;
+  static Database *_fastDbCache[];
   // To temporary save the dropped database.
   static vector<Database *> _discardDb;
 };
