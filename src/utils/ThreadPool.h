@@ -149,9 +149,16 @@ public:
     _threadID = id;
     return tmp;
   }
+  static ThreadPool *GetMainPool() {
+    assert(_instMain != nullptr);
+    return _instMain;
+  }
+  static void CreateMainPool(const string &threadPrefix = "main",
+                             int minThreads = 1,
+                             int maxThreads = DEFAULT_MAX_THREADS);
 
 public:
-  ThreadPool(string threadPrefix, int minThreads = 1,
+  ThreadPool(const string &threadPrefix, int minThreads = 1,
              int maxThreads = DEFAULT_MAX_THREADS);
   ~ThreadPool();
 
@@ -195,6 +202,7 @@ protected:
   BusyDegree _poolBusyDegree;
 
 protected:
+  static ThreadPool *_instMain;
   static atomic_bool _stopThreads;
   static thread_local int _threadID;
   static thread_local string _threadName;

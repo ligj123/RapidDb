@@ -6,14 +6,24 @@
 #include <stdexcept>
 
 namespace storage {
+std::once_flag mainInstFlag;
 atomic_uint32_t ThreadTask::_exclusiveTasksCount{0};
 atomic_bool ThreadPool::_stopThreads{false};
+ThreadPool *ThreadPool::_instMain{nullptr};
 
 // The default thread id is -1 expected threads from pool.
 thread_local string ThreadPool::_threadName = "main";
 thread_local int ThreadPool::_threadID = -1;
 
-ThreadPool::ThreadPool(string threadPrefix, int minThreads, int maxThreads)
+void ThreadPool::CreateMainPool(const string &threadPrefix, int minThreads,
+                                int maxThreads) {
+  call_once(mainInstFlag, [threadPrefix, minThreads, maxThreads]() {
+    _instMain = new ThreadPool(threadPrefix, minThreads, maxThreads);
+  });
+}
+
+ThreadPool::ThreadPool(const string &threadPrefix, int minThreads,
+                       int maxThreads)
     : _threadPrefix(threadPrefix), _minThreads(minThreads),
       _maxThreads(maxThreads) {
   assert(_minThreads >= 1 && _minThreads <= _maxThreads);
