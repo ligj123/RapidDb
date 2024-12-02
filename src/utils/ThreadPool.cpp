@@ -39,7 +39,7 @@ ThreadPool::ThreadPool(const string &threadPrefix, int minThreads,
 }
 
 void ThreadPool::CreateThread(int id) {
-  std::unique_lock<SpinMutex> thread_lock(_threadMutex);
+  std::unique_lock<mutex> thread_lock(_threadMutex);
 
   if (id == -1) {
     for (size_t i = 0; i < _vctThreadPara.size(); i++) {
@@ -140,7 +140,6 @@ void ThreadPool::CreateThread(int id) {
 
         AddTask(*itSel);
         tpara._vctTask.erase(itSel);
-        LOG_INFO << "Busy";
         continue;
       } else if (_poolBusyDegree == BusyDegree::FREE &&
                  !tpara._bExclusiveTask &&
@@ -148,7 +147,6 @@ void ThreadPool::CreateThread(int id) {
                  _aliveThreads > _minThreads) {
         // The thread pool is free and this thread is free too, free this
         // thread.
-        LOG_INFO << "Empty";
         if (IsStoped()) {
           if (tpara._vctTask.size() > 0) {
             continue;
@@ -156,7 +154,7 @@ void ThreadPool::CreateThread(int id) {
             break;
           }
         }
-        std::unique_lock<SpinMutex> thread_lock(_threadMutex);
+        std::unique_lock<mutex> thread_lock(_threadMutex);
         if (_aliveThreads <= _minThreads) {
           continue;
         }
@@ -166,14 +164,12 @@ void ThreadPool::CreateThread(int id) {
         tpara._vctTask.clear();
         break;
       } else if (tpara._bExclusiveTask) {
-        LOG_INFO << "Exclusive";
         // If this thread is running exclusing task, does not need to change
         // anything
         continue;
       }
 
-      LOG_INFO << "LOCK";
-      std::unique_lock<SpinMutex> queue_lock(_task_mutex);
+      std::unique_lock<mutex> queue_lock(_task_mutex);
       if (_queueTask.size() == 0) {
         if (_stopThreads.load(memory_order_relaxed)) {
           break;
@@ -205,7 +201,6 @@ void ThreadPool::CreateThread(int id) {
       }
 
       tpara._vctTask.push_back(task);
-      LOG_INFO << "task";
     }
 
     if (!_stopThreads.load(memory_order_relaxed)) {
@@ -214,7 +209,7 @@ void ThreadPool::CreateThread(int id) {
       tpara._thread = nullptr;
     }
 
-    std::unique_lock<SpinMutex> thread_lock(_threadMutex);
+    std::unique_lock<mutex> thread_lock(_threadMutex);
     tpara._bRunning = false;
     _aliveThreads--;
 
@@ -236,49 +231,24 @@ ThreadPool::~ThreadPool() {
 }
 
 void ThreadPool::AddTask(ThreadTask *task) {
-  assert(!_stopThreads);
+  assert(!_stopThreads.load(memory_order_relaxed));
 
-  {
-    std::unique_lock<SpinMutex> queue_lock(_task_mutex);
-    if (_queueTask.size() == 0) {
-      _taskTime = MicroSecTime();
-    }
-    _queueTask.push_back(task);
-  }
-
-  if (task->IsExclusiveTask() &&
-      ThreadTask::GetExclusiveTaskCount() > GetAliveThreadCount()) {
-    CreateThread();
-  }
-
-  _taskCv.notify_one();
-  LOG_INFO << "AddTask";
+  std::unique_lock<mutex> queue_lock(_task_mutex);
+  _queueTask.push_back(task);
 }
 
-void ThreadPool::AddTasks(MVector<ThreadTask *> &vct, bool bLock) {
+void ThreadPool::AddTasks(MVector<ThreadTask *> &vct) {
+  assert(!_stopThreads.load(memory_order_relaxed));
   if (vct.size() == 0)
     return;
-  assert(!_stopThreads);
 
-  if (bLock) {
-    _task_mutex.lock();
-  }
-  if (_queueTask.size() == 0) {
-    _taskTime = MicroSecTime();
-  }
-
+  std::unique_lock<mutex> queue_lock(_task_mutex);
   for (auto task : vct) {
     _queueTask.push_back(task);
   }
-
-  if (bLock) {
-    _task_mutex.unlock();
-  }
-
-  _taskCv.notify_all();
 }
 
-void ThreadPool::ManageThreadPool() {
+void ThreadPool::CheckBusyStatus() {
   DT_MicroSec ts = MicroSecTime();
   if (ts - _checkBusyTime.load(memory_order_acquire) < 10000)
     return;
@@ -339,6 +309,94 @@ void ThreadPool::ManageThreadPool() {
 
     for (int i = 0; i < num; i++) {
       CreateThread();
+    }
+  }
+}
+
+void ThreadPool::ManageProc() {
+  _threadName = _threadPrefix + "_Mgr";
+  LOG_INFO << "Start managing thread for thread pool, Name = " << _threadName;
+  assert(_threadName.size() <= 15);
+  _threadID = id;
+#ifdef LINUX_OS
+  pthread_setname_np(pthread_self(), _threadName.c_str());
+#endif
+
+  while (true) {
+    _nowMicroSec = chrono::duration_cast<chrono::microseconds>(
+                       chrono::system_clock::now().time_since_epoch())
+                       .count();
+
+    MDeque<ThreadTask *> queue;
+    if (_queueTask.size() > 0) {
+      unique_lock<SpinMutex> lock(_taskMutex);
+      queue.swap(_queueTask);
+    }
+
+    _rapidTaskQueue.Pop(queue);
+
+    if (_nowMicroSec - _checkBusyTime) {
+      CheckBusyStatus();
+      _checkBusyTime = _nowMicroSec;
+
+      if (_poolBusyDegree >= BusyDegree::BUSY && _aliveThreads < _maxThreads &&
+          queue.size() > 0) {
+        int num = (int)_queue.size() / 3;
+        if (num > _maxThreads - _aliveThreads) {
+          num = _maxThreads - _aliveThreads;
+        } else if (num == 0) {
+          num = 1;
+        }
+
+        for (int i = 0; i < num; i++) {
+          CreateWorkThread();
+        }
+      }
+    }
+
+    int32_t idx = 0;
+    int32_t ring = 0;
+    while (queue.size() > 0) {
+      ThreadTask *task = queue.front();
+      queue.pop_front();
+
+      if (task->IsExclusiveTask()) {
+        int32_t pos = -1;
+        BusyDegree degree = BusyDegree::BLOCKED;
+        for (int32_t i = 0; i < _maxThreads; i++) {
+          if (_vctThreadPara[i]._bRunning &&
+              !_vctThreadPara[i]._bExclusiveTask) {
+            if (degree > _vctThreadPara[i]._busyDegree) {
+              pos = i;
+              degree = _vctThreadPara[i]._busyDegree;
+            }
+          }
+        }
+
+        assert(pos >= 0);
+        _vctThreadPara[i]._bExclusiveTask = true;
+        _vctThreadPara[i]._lineQueueTask.Push(task);
+      } else {
+        while (true) {
+          if (idx == _maxThreads) {
+            idx = 0;
+            ring++;
+          }
+
+          if (!_vctThreadPara[idx]._bRunning ||
+              _vctThreadPara[idx]._bExclusiveTask) {
+            idx++;
+          }
+
+          if (_vctThreadPara[idx]._busyDegree < BusyDegree::RELAXED ||
+              (_vctThreadPara[idx]._busyDegree < BusyDegree::RELAXED &&
+               ring > 0) ||
+              (ring > 1)) {
+            _vctThreadPara[i]._lineQueueTask.Push(task);
+            break;
+          }
+        }
+      }
     }
   }
 }

@@ -37,7 +37,7 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
     tp->AddTask(&arr[i]);
   }
 
-  this_thread::sleep_for(100ms);
+  this_thread::sleep_for(10s);
   LOG_INFO << "SetStop";
   tp->SetStop();
   delete tp;

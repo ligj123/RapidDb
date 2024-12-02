@@ -112,6 +112,7 @@ public:
   }
   // Delete this task or not after this task has finished
   virtual bool IsNeedDelete() { return false; }
+  virtual bool IsCycleTask() { rreturn true; }
 
 protected:
   ThreadPool *_threadPool;
@@ -129,6 +130,8 @@ struct ThreadPara {
   thread *_thread{nullptr};
   // The periodic tasks are run in this thread
   MVector<ThreadTask *> _vctTask;
+  // To receive task from manage thread of Pool
+  LineQueue<ThreadTask> _lineQueueTask;
   uint16_t _repeatTime{0}; // The same busy degree repeat time
   uint16_t _id;            // Thread id
   BusyDegree _busyDegree = BusyDegree::FREE;
@@ -164,9 +167,22 @@ public:
   ThreadPool(const ThreadPool &) = delete;
   ThreadPool &operator=(const ThreadPool &) = delete;
 
+  void AddTask(uint16_t tid, ThreadTask *task) {
+    assert(!_stopThreads.load(memory_order_relaxed));
+    _rapidTaskQueue.Push(tid, task);
+  }
+
+  void AddTasks(uint16_t, MVector<ThreadTask *> &vct) {
+    assert(!_stopThreads.load(memory_order_relaxed));
+    for (auto task : vct) {
+      _rapidTaskQueue.Push(tid, task);
+    }
+
+    vct.clear();
+  }
+
   void AddTask(ThreadTask *task);
-  void AddTasks(MVector<ThreadTask *> &vct, bool bLock = true);
-  void CreateThread(int id = -1);
+  void AddTasks(MVector<ThreadTask *> &vct);
 
   uint32_t GetTaskCount() { return (uint32_t)(_queueTask.size()); }
 
@@ -175,30 +191,39 @@ public:
   uint32_t GetMaxThreads() const { return _maxThreads; }
 
 protected:
+  void CreateWorkThread(int id = -1);
   // Check if the thread pool is busy or not, it will create new threads if
   // need.
-  void ManageThreadPool();
+  void CheckBusyStatus();
+  // The process for work thread
+  void ManageProc();
+  // The process for managing thread
+  void WorkProc(uint16_t tid);
 
 protected:
   string _threadPrefix;
   int32_t _minThreads;
   int32_t _maxThreads;
   int32_t _aliveThreads{0};
-
+  // The threads' parameters in this poll
   vector<ThreadPara> _vctThreadPara;
-  SpinMutex _task_mutex;
-  SpinMutex _threadMutex;
-  condition_variable_any _taskCv;
-  // To save new added tasks from outside
+  // Receive IndexTask From the threads in this pool
+  RapidQueue<ThreadTask *> _rapidTaskQueue;
+  // The managing thread of this pool. It will response create work threads,
+  // collect work threads data, and decide if the work threads will stop and
+  // hand out the IndexTasks to work threads.
+  thread _threadMgr;
+  // Only used for NON pool thread to add tasks.
+  SpinMutex _taskMutex;
+  // To accept new tasks from NON pool threads, it will use mutex to ensure data
+  // consistency
   MDeque<ThreadTask *> _queueTask;
-  // For new added tasks. If ther has waitting tasks in _queueNewTask, below is
-  // the last time to pop tasks from the _queueNewTask, or the time to add the
-  // first tasks in _queueNewTask.
-  DT_MicroSec _taskTime;
-  // The last time to check if this thread pool is busy or not.
-  atomic<DT_MicroSec> _checkBusyTime;
-  // The busy status checked at last time.
+  // The last time to check the busy status of the thread pool.
+  DT_MicroSec _checkBusyTime;
+  // The busy status of this thread pool
   BusyDegree _poolBusyDegree{BusyDegree::RELAXED};
+  // The current datetime in micro second
+  DT_MicroSec _nowMicroSec;
 
 protected:
   static ThreadPool *_instMain;
