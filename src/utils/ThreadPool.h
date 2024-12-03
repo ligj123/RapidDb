@@ -13,6 +13,7 @@
 #include <type_traits>
 #include <unordered_map>
 
+#define MASK_SIZE 4
 namespace storage {
 using namespace std;
 class ThreadPool;
@@ -56,12 +57,12 @@ enum class BusyDegree : Byte {
   BLOCKED    // More than 10ms every round
 };
 
-static inline BusyDegree GetBusyDegree(DT_MicroSec ts) {
+static inline BusyDegree CalcBusyDegree(DT_MicroSec ts) {
   if (ts < 10) {
     return BusyDegree::FREE;
-  } else if (ts < 50) {
+  } else if (ts < 100) {
     return BusyDegree::RELAXED;
-  } else if (ts < 200) {
+  } else if (ts < 1000) {
     return BusyDegree::BUSY;
   } else {
     return BusyDegree::BLOCKED;
@@ -97,7 +98,7 @@ public:
   inline TaskStatus GetStatus() { return _taskStatus; }
   // inline void SetStatus(TaskStatus s) { _status = s; }
   inline BusyDegree GetBusyDegree() { return _busyDegree; }
-  inline uint16_t GetRepeatTime() { return _repeatTime; }
+  inline uint8_t GetRepeatTime() { return _repeatTime; }
 
   // To occupy a thread entirely or not
   bool IsExclusiveTask() { return _bExclusive; };
@@ -112,21 +113,64 @@ public:
   }
   // Delete this task or not after this task has finished
   virtual bool IsNeedDelete() { return false; }
-  virtual bool IsCycleTask() { rreturn true; }
+  virtual bool IsCycleTask() { return true; }
+  inline uint32_t GetTaskMask() { return _taskMask; }
 
 protected:
   ThreadPool *_threadPool;
   BusyDegree _busyDegree = BusyDegree::FREE;
-  uint16_t _repeatTime{0}; // The same busy degree repeat time
+  uint8_t _repeatTime{0};  // The same busy degree repeat time
   bool _bExclusive{false}; // To occupy a thread entirely or not
   TaskStatus _taskStatus{TaskStatus::UNINIT};
-
+  // If the tasks has same mask, they will try to avoid to hand out them into
+  // one thread. If equal 0, means it does not to avoid it.
+  uint32_t _taskMask{0};
   // The count of current exclusive tasks,it must less than _maxThreads in
   // thread pool
   static atomic_uint32_t _exclusiveTasksCount;
 };
 
 struct ThreadPara {
+  ThreadPara() {}
+  ThreadPara(ThreadPara &&src) {}
+
+  bool IsMaskConflict(uint32_t mask) {
+    if (mask == 0) {
+      return false;
+    }
+
+    for (int i = 0; i < MASK_SIZE; i++) {
+      if (_arrTaskMask[i] == mask) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  void SetMask(uint32_t mask) {
+    if (mask == 0) {
+      return;
+    }
+
+    int pos = -1;
+    for (int i = 0; i < MASK_SIZE; i++) {
+      if (_arrTaskMask[i] == mask) {
+        return;
+      } else if (_arrTaskMask[i] == 0) {
+        pos = i;
+      }
+    }
+    if (pos >= 0) {
+      _arrTaskMask[pos] = mask;
+    }
+  }
+
+  void ClearMask() {
+    for (int i = 0; i < MASK_SIZE; i++) {
+      _arrTaskMask[i] = 0;
+    }
+  }
+
   thread *_thread{nullptr};
   // The periodic tasks are run in this thread
   MVector<ThreadTask *> _vctTask;
@@ -135,8 +179,11 @@ struct ThreadPara {
   uint16_t _repeatTime{0}; // The same busy degree repeat time
   uint16_t _id;            // Thread id
   BusyDegree _busyDegree = BusyDegree::FREE;
-  bool _bRunning{false};
+  atomic_bool _bRunning{false};
+  bool _bStop{true};
   bool _bExclusiveTask{false}; // The running task is exclusive
+
+  uint32_t _arrTaskMask[MASK_SIZE]{};
 };
 
 class ThreadPool {
@@ -168,12 +215,10 @@ public:
   ThreadPool &operator=(const ThreadPool &) = delete;
 
   void AddTask(uint16_t tid, ThreadTask *task) {
-    assert(!_stopThreads.load(memory_order_relaxed));
     _rapidTaskQueue.Push(tid, task);
   }
 
-  void AddTasks(uint16_t, MVector<ThreadTask *> &vct) {
-    assert(!_stopThreads.load(memory_order_relaxed));
+  void AddTasks(uint16_t tid, MVector<ThreadTask *> &vct) {
     for (auto task : vct) {
       _rapidTaskQueue.Push(tid, task);
     }
@@ -181,8 +226,20 @@ public:
     vct.clear();
   }
 
-  void AddTask(ThreadTask *task);
-  void AddTasks(MVector<ThreadTask *> &vct);
+  void AddTask(ThreadTask *task) {
+    std::unique_lock<SpinMutex> queue_lock(_taskMutex);
+    _queueTask.push_back(task);
+  }
+
+  void AddTasks(MVector<ThreadTask *> &vct) {
+    if (vct.size() == 0)
+      return;
+
+    std::unique_lock<SpinMutex> queue_lock(_taskMutex);
+    for (auto task : vct) {
+      _queueTask.push_back(task);
+    }
+  }
 
   uint32_t GetTaskCount() { return (uint32_t)(_queueTask.size()); }
 
@@ -208,7 +265,7 @@ protected:
   // The threads' parameters in this poll
   vector<ThreadPara> _vctThreadPara;
   // Receive IndexTask From the threads in this pool
-  RapidQueue<ThreadTask *> _rapidTaskQueue;
+  RapidQueue<ThreadTask> _rapidTaskQueue;
   // The managing thread of this pool. It will response create work threads,
   // collect work threads data, and decide if the work threads will stop and
   // hand out the IndexTasks to work threads.

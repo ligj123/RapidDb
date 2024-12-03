@@ -31,13 +31,13 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
     int _val = 0;
   };
 
-  ThreadPool *tp = new ThreadPool("TestPool", 8, 8);
+  ThreadPool *tp = new ThreadPool("TestPool", 1, 8);
   TestTask arr[8];
   for (int i = 0; i < 8; i++) {
     tp->AddTask(&arr[i]);
   }
 
-  this_thread::sleep_for(10s);
+  this_thread::sleep_for(10000s);
   LOG_INFO << "SetStop";
   tp->SetStop();
   delete tp;
