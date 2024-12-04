@@ -37,7 +37,7 @@ ThreadPool::ThreadPool(const string &threadPrefix, int minThreads,
     }
   }
 
-  _threadMgr = thread([this]() { ManageProc(); });
+  _threadMgr = new thread([this]() { ManageProc(); });
 }
 
 void ThreadPool::CreateWorkThread(int id) {
@@ -64,6 +64,9 @@ void ThreadPool::CreateWorkThread(int id) {
 
 ThreadPool::~ThreadPool() {
   assert(_stopThreads.load(memory_order_relaxed));
+
+  _threadMgr->join();
+  delete _threadMgr;
 
   for (int i = 0; i < _maxThreads; i++) {
     ThreadPara &tpara = _vctThreadPara[i];
@@ -121,7 +124,7 @@ void ThreadPool::CheckBusyStatus() {
     }
   } else if (exclusive == alive) {
     _poolBusyDegree = BusyDegree::BUSY;
-    assert(alive < _maxThreads);
+    assert(alive <= _maxThreads);
   } else {
     _poolBusyDegree = BusyDegree::RELAXED;
   }
@@ -198,12 +201,34 @@ void ThreadPool::ManageProc() {
     }
 
     int32_t idx = 0;
+    if ((queue.size() >
+             (_aliveThreads - ThreadTask::GetExclusiveTaskCount()) * 3 &&
+         _aliveThreads < _maxThreads)) {
+      int num = (int)queue.size() / 3;
+      if (num > _maxThreads - _aliveThreads) {
+        num = _maxThreads - _aliveThreads;
+      } else if (num == 0) {
+        num = 1;
+      }
+
+      for (int i = 0; i < num; i++) {
+        CreateWorkThread();
+      }
+    }
 
     while (queue.size() > 0) {
       ThreadTask *task = queue.front();
       queue.pop_front();
 
       if (task->IsExclusiveTask()) {
+        if (_aliveThreads < ThreadTask::GetExclusiveTaskCount()) {
+          assert(ThreadTask::GetExclusiveTaskCount() < _maxThreads);
+          int num = ThreadTask::GetExclusiveTaskCount() - _aliveThreads + 1;
+          for (int i = 0; i < num; i++) {
+            CreateWorkThread();
+          }
+        }
+
         int32_t pos = -1;
         BusyDegree degree = BusyDegree::BLOCKED;
         for (int32_t i = 0; i < _maxThreads; i++) {

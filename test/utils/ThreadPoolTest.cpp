@@ -31,13 +31,15 @@ BOOST_AUTO_TEST_CASE(ThreadPool_test) {
     int _val = 0;
   };
 
-  ThreadPool *tp = new ThreadPool("TestPool", 1, 8);
-  TestTask arr[8];
-  for (int i = 0; i < 8; i++) {
+  const int TASK_NUM = 8;
+
+  ThreadPool *tp = new ThreadPool("TestPool", TASK_NUM, TASK_NUM + 1);
+  TestTask arr[TASK_NUM];
+  for (int i = 0; i < TASK_NUM; i++) {
     tp->AddTask(&arr[i]);
   }
 
-  this_thread::sleep_for(10000s);
+  this_thread::sleep_for(10s);
   LOG_INFO << "SetStop";
   tp->SetStop();
   delete tp;
@@ -119,7 +121,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolEx_test) {
   int excCount = 0;
   int norCount = 0;
   for (auto &tpara : tp._vctThreadPara) {
-    if (tpara._vctTask.size() == 1) {
+    if (tpara._vctTask.size() == 1 && tpara._vctTask[0]->IsExclusiveTask()) {
       excCount++;
     } else {
       norCount += tpara._vctTask.size();

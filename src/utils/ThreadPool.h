@@ -269,7 +269,7 @@ protected:
   // The managing thread of this pool. It will response create work threads,
   // collect work threads data, and decide if the work threads will stop and
   // hand out the IndexTasks to work threads.
-  thread _threadMgr;
+  thread *_threadMgr{nullptr};
   // Only used for NON pool thread to add tasks.
   SpinMutex _taskMutex;
   // To accept new tasks from NON pool threads, it will use mutex to ensure data
