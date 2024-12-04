@@ -148,6 +148,7 @@ void ThreadPool::ManageProc() {
       if (stopTryTime <= 0) {
         for (int32_t i = 0; i < _maxThreads; i++) {
           _vctThreadPara[i]._bStop = true;
+          // LOG_INFO << "1. Stop thread " << i;
         }
 
         _aliveThreads = 0;
@@ -188,15 +189,18 @@ void ThreadPool::ManageProc() {
         BusyDegree degree = BusyDegree::RELAXED;
         int pos = -1;
         for (int32_t i = 0; i < _maxThreads; i++) {
-          if (_vctThreadPara[i]._busyDegree <= degree) {
+          if (!_vctThreadPara[i]._bStop &&
+              _vctThreadPara[i]._busyDegree <= degree) {
             degree = _vctThreadPara[i]._busyDegree;
             pos = i;
           }
         }
 
-        assert(pos >= 0);
-        _vctThreadPara[pos]._bStop = true;
-        _aliveThreads--;
+        if (pos >= 0) {
+          _vctThreadPara[pos]._bStop = true;
+          //  LOG_INFO << "2. Stop thread " << pos;
+          _aliveThreads--;
+        }
       }
     }
 
