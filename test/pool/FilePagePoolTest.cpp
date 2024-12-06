@@ -43,12 +43,12 @@ BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
   VectorDataValue vctKey;
   VectorDataValue vctVal;
 
-  IndexTree idxTree;
-  idxTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
-                          FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
-                          IndexType::PRIMARY);
+  IndexTree *idxTree = new IndexTree();
+  idxTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                           FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                           IndexType::PRIMARY);
 
-  CachePageEx page(&idxTree, 1);
+  CachePageEx page(idxTree, 1);
   page.WriteInt(0, 100);
   Byte *bys = page.GetBysPage();
   BytesCopy(bys + 4, pStrTest, sz);
@@ -57,7 +57,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
 
   bool b = FilePagePool::SyncWritePage(&page);
   BOOST_TEST(b);
-  CachePageEx page2(&idxTree, 1);
+  CachePageEx page2(idxTree, 1);
   b = FilePagePool::SyncReadPage(&page2);
   BOOST_TEST(b);
   BOOST_TEST(100 == page2.ReadInt(0));
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
       BytesEqual((const Byte *)pStrTest, sz, page2.GetBysPage() + 4, sz));
   BOOST_TEST(0x5A5A5A5A == page2.ReadInt(CachePage::INDEX_PAGE_SIZE - 4));
 
-  idxTree.Close();
+  idxTree->Close();
   CachePagePool::ClearPool();
 }
 
@@ -86,15 +86,15 @@ BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
   VectorDataValue vctKey;
   VectorDataValue vctVal;
 
-  IndexTree idxTree;
-  idxTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
-                          FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
-                          IndexType::PRIMARY);
+  IndexTree *idxTree = new IndexTree();
+  idxTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                           FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                           IndexType::PRIMARY);
 
   MVector<CachePageEx *> vctPage;
   vctPage.reserve(1000);
   for (uint32_t i = 1; i <= 1000; i++) {
-    CachePageEx *page = new CachePageEx(&idxTree, i);
+    CachePageEx *page = new CachePageEx(idxTree, i);
     page->WriteInt(0, i + 100);
     Byte *bys = page->GetBysPage();
     BytesCopy(bys + 4, pStrTest, sz);
@@ -114,7 +114,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
 
   vctPage.clear();
   for (uint32_t i = 1; i <= 1000; i++) {
-    CachePageEx *page = new CachePageEx(&idxTree, i);
+    CachePageEx *page = new CachePageEx(idxTree, i);
     page->SetPageStatus(PageStatus::EMPTY);
     FilePagePool::AddReadPage(0, page, true);
     vctPage.push_back(page);
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
   }
 
   vctPage.clear();
-  idxTree.Close();
+  idxTree->Close();
   CachePagePool::ClearPool();
   FilePagePool::Stop();
 }

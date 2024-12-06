@@ -38,6 +38,7 @@ struct IndexProp {
       : _name(name), _position(pos), _type(type) {
     _vctCol.swap(vctCol);
   }
+  ~IndexProp();
 
   uint32_t Write(Byte *bys);
   uint32_t Read(Byte *bys, uint32_t pos,

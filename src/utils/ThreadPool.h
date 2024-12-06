@@ -188,7 +188,7 @@ struct ThreadPara {
 
 class ThreadPool {
 public:
-  static inline string GetThreadName() { return _threadName; }
+  static inline const MString &GetThreadName() { return _threadName; }
   static inline int GetThreadId() { return _threadID; }
   static void SetStop() { _stopThreads.store(true, memory_order_relaxed); }
   static bool IsStoped() { return _stopThreads.load(memory_order_relaxed); }
@@ -202,12 +202,12 @@ public:
     assert(_instMain != nullptr);
     return _instMain;
   }
-  static void CreateMainPool(const string &threadPrefix = "main",
+  static void CreateMainPool(const MString &threadPrefix = "main",
                              int minThreads = 1,
                              int maxThreads = DEFAULT_MAX_THREADS);
 
 public:
-  ThreadPool(const string &threadPrefix, int minThreads = 1,
+  ThreadPool(const MString &threadPrefix, int minThreads = 1,
              int maxThreads = DEFAULT_MAX_THREADS);
   ~ThreadPool();
 
@@ -258,7 +258,7 @@ protected:
   void WorkProc(uint16_t tid);
 
 protected:
-  string _threadPrefix;
+  MString _threadPrefix;
   int32_t _minThreads;
   int32_t _maxThreads;
   int32_t _aliveThreads{0};
@@ -286,7 +286,7 @@ protected:
   static ThreadPool *_instMain;
   static atomic_bool _stopThreads;
   static thread_local int _threadID;
-  static thread_local string _threadName;
+  static thread_local MString _threadName;
 };
 
 } // namespace storage

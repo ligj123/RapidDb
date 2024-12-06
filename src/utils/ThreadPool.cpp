@@ -12,17 +12,17 @@ atomic_bool ThreadPool::_stopThreads{false};
 ThreadPool *ThreadPool::_instMain{nullptr};
 
 // The default thread id is -1 expected threads from pool.
-thread_local string ThreadPool::_threadName = "main";
+thread_local MString ThreadPool::_threadName = "main";
 thread_local int ThreadPool::_threadID = -1;
 
-void ThreadPool::CreateMainPool(const string &threadPrefix, int minThreads,
+void ThreadPool::CreateMainPool(const MString &threadPrefix, int minThreads,
                                 int maxThreads) {
   call_once(mainInstFlag, [threadPrefix, minThreads, maxThreads]() {
     _instMain = new ThreadPool(threadPrefix, minThreads, maxThreads);
   });
 }
 
-ThreadPool::ThreadPool(const string &threadPrefix, int minThreads,
+ThreadPool::ThreadPool(const MString &threadPrefix, int minThreads,
                        int maxThreads)
     : _threadPrefix(threadPrefix), _minThreads(minThreads),
       _maxThreads(maxThreads), _rapidTaskQueue(maxThreads, maxThreads) {
@@ -288,7 +288,7 @@ void ThreadPool::ManageProc() {
 }
 
 void ThreadPool::WorkProc(uint16_t tid) {
-  _threadName = _threadPrefix + "_" + to_string(tid);
+  _threadName = _threadPrefix + "_" + ToMString(tid);
   LOG_INFO << "Start thread in thread pool, Name = " << _threadName;
   assert(_threadName.size() <= 15);
   _threadID = tid;

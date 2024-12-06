@@ -91,7 +91,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
 
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   indexTree = new IndexTree();
   rt = indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
@@ -131,7 +130,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
 
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   delete dvKey;
   delete dvVal;
@@ -216,7 +214,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
 
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   indexTree = new IndexTree();
   rt = indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
@@ -259,7 +256,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
 
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   delete dvKey;
   delete dvVal;
@@ -305,7 +301,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToPrimaryKey_test) {
 
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   delete dvKey;
   delete dvVal;
@@ -359,7 +354,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
 
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
+
   delete dvKey;
   delete dvVal;
 }
@@ -417,7 +412,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeUniqueIndex_test) {
 
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   indexTree = new IndexTree();
   indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
@@ -453,7 +447,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeUniqueIndex_test) {
   lp->SetReferred(false);
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
+
   delete dvKey;
   delete dvVal;
 }
@@ -510,7 +504,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
   indexTree->ReleaseIndexPage(indexTree->GetRootPage());
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   indexTree = new IndexTree();
   bool b =
@@ -569,7 +562,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
   indexTree->ReleaseIndexPage(indexTree->GetRootPage());
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
+
   delete dvKey;
   delete dvVal;
 
@@ -631,7 +624,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithPrimaryKey_test) {
   indexTree->ReleaseIndexPage(indexTree->GetRootPage());
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   indexTree = new IndexTree();
   bool b =
@@ -670,7 +662,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithPrimaryKey_test) {
   indexTree->ReleaseIndexPage(indexTree->GetRootPage());
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   delete dvKey;
   delete dvVal;
@@ -734,7 +725,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryWithUniqueKeys_test) {
   indexTree->ReleaseIndexPage(indexTree->GetRootPage());
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   indexTree = new IndexTree();
   indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
@@ -770,7 +760,6 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryWithUniqueKeys_test) {
   indexTree->ReleaseIndexPage(indexTree->GetRootPage());
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   delete dvKey;
   delete dvVal;

@@ -5,6 +5,7 @@
 #include "../../src/table/Database.h"
 #include "../../src/utils/Log.h"
 #include "../../src/utils/Utilitys.h"
+#include "../TestHeader.h"
 
 #include <boost/test/unit_test.hpp>
 #include <cstring>
@@ -58,8 +59,8 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   const char *var_default = "this is default value for the varchr column";
   const char *fix_default = "this is default value for the fixchar column";
-  Database *db =
-      new Database(1, "./", "testdb", MilliSecTime(), MicroSecTime());
+  Database *db = new Database(1, ROOT_PATH.c_str(), "testdb", MilliSecTime(),
+                              MicroSecTime());
   DatabaseManager::AddDb(db);
 
   PhysTable ptable(db, "testtable", 0x100, MilliSecTime(), MilliSecTime());

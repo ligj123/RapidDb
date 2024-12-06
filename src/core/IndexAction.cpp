@@ -1,4 +1,5 @@
 #include "IndexAction.h"
+#include "../statement/Statement.h"
 #include "BranchPage.h"
 #include "BranchRecord.h"
 #include "IndexTree.h"
@@ -9,7 +10,8 @@ namespace storage {
 TaskStatus PrevPageAction::Exec() {
   assert(_rangePos >= 0 && _rangePos < _indexTree->GetVctRange().size());
   if (_idxPage == nullptr) {
-    _idxPage = _indexTree->GetVctRange()[_rangePos]._vctRangePage[0];
+    _idxPage =
+        _indexTree->GetVctRange()[_rangePos]._vctRangeRecord[0]->GetChildPage();
   }
 
   while (true) {
@@ -110,10 +112,20 @@ TaskStatus InsertAction::Exec() {
   }
 }
 
-int InsertAction::JudgeRange() { return _indexTree->CalcIndexRange(*_lr); }
+int InsertAction::JudgeRange() {
+  _rangePos = _indexTree->CalcIndexRange(*_lr);
+  return _rangePos;
+}
 
 TaskStatus PriKeyAction::Exec() { return TaskStatus::FINISHED; }
 
-int PriKeyAction::JudgeRange() { return _indexTree->CalcIndexRange(_key); }
+int PriKeyAction::JudgeRange() {
+  _rangePos = _indexTree->CalcIndexRange(_key);
+  return _rangePos;
+}
+
+TaskStatus StatementAction::Exec() { return TaskStatus::FINISHED; }
+
+int StatementAction::JudgeRange() { return _stmt->CalcIndexRange(_indexTree); }
 
 } // namespace storage

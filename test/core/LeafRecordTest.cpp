@@ -26,9 +26,7 @@ public:
   ExprType GetActionType() override { return ExprType::EXPR_INSERT; }
   bool Exec() override { return false; }
   bool IsReadonly() override { return true; }
-  MVector<uint16_t> SpliteRange(const MVector<LeafRecord> &vctBorder) override {
-    return MVector<uint16_t>();
-  }
+  int CalcIndexRange(IndexTree *idxTree) override { return -1; }
 };
 
 BOOST_AUTO_TEST_SUITE(CoreTest)
@@ -44,16 +42,16 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   DataValueLong *dvVal = new DataValueLong(200LL);
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
-  IndexTree indexTree;
-  bool b = indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
-                                     FILE_NAME.c_str(), vctKey, vctVal,
-                                     GetFileId(), IndexType::PRIMARY);
+  IndexTree *indexTree = new IndexTree();
+  bool b = indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                                      FILE_NAME.c_str(), vctKey, vctVal,
+                                      GetFileId(), IndexType::PRIMARY);
   BOOST_TEST(b);
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
 
   StatementEx stmt(1, 1);
-  LeafRecord *lr = new LeafRecord(&indexTree, vctKey, vctVal, 1, &stmt, false);
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, &stmt, false);
   BOOST_TEST(8 == lr->GetKeyLength());
   BOOST_TEST(9 == lr->GetValueLength());
   BOOST_TEST(34 == lr->GetTotalLength());
@@ -68,7 +66,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 
   lr->SubmitStatement(stmt, RecordStatus::COMMITED);
   BOOST_TEST(lr->IsStable());
-  BOOST_TEST(lr->ReleaseLock(&indexTree, false) == ReleaseResult::FISHED);
+  BOOST_TEST(lr->ReleaseLock(indexTree, false) == ReleaseResult::FISHED);
   BOOST_TEST(lr->IsStable());
   BOOST_TEST(lr->GetAction() == ActionType::NO_ACTION);
 
@@ -83,7 +81,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   BOOST_TEST(!lr2->IsSole());
 
   VectorDataValue vctVal2;
-  ReadResult hr = lr2->ReadListValue({}, vctVal2, &indexTree);
+  ReadResult hr = lr2->ReadListValue({}, vctVal2, indexTree);
   BOOST_TEST(hr == ReadResult::OK_NOLOCK);
   BOOST_TEST(vctVal2[0]->GetLong() == 200LL);
 
@@ -93,7 +91,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   delete lr;
   delete lr2;
 
-  indexTree.Close();
+  indexTree->Close();
   CachePagePool::ClearPool();
 
   delete dvKey;
@@ -120,16 +118,16 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
 
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
-  IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
-                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
-                            IndexType::PRIMARY);
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::PRIMARY);
 
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
 
   StatementEx stmt(1, 1);
-  LeafRecord *lr = new LeafRecord(&indexTree, vctKey, vctVal, 1, &stmt, false);
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, &stmt, false);
 
   BOOST_TEST(25 == lr->GetKeyLength());
   BOOST_TEST(173 == lr->GetValueLength());
@@ -138,7 +136,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   BOOST_TEST(!lr->IsGapLock());
 
   lr->SubmitStatement(stmt, RecordStatus::COMMITED);
-  BOOST_TEST(lr->ReleaseLock(&indexTree, false) == ReleaseResult::FISHED);
+  BOOST_TEST(lr->ReleaseLock(indexTree, false) == ReleaseResult::FISHED);
 
   Byte byArr[512];
   lr->SaveData(byArr);
@@ -148,7 +146,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   BOOST_TEST(lr2->CompareKey(rkey) == 0);
 
   VectorDataValue vctVal2;
-  ReadResult hr = lr2->ReadListValue({}, vctVal2, &indexTree);
+  ReadResult hr = lr2->ReadListValue({}, vctVal2, indexTree);
   BOOST_TEST(hr == ReadResult::OK_NOLOCK);
   BOOST_TEST(*vctVal2[0] == dvLong);
   BOOST_TEST(*vctVal2[1] == dvFix);
@@ -164,10 +162,10 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   DataValueBlob dvBlob2(str.c_str(), (uint32_t)str.size(), 20000);
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob2.Clone(true)};
-  lr = new LeafRecord(&indexTree, vctKey, vctVal, 1, nullptr, false);
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
 
   vctVal2.clear();
-  hr = lr->ReadListValue({}, vctVal2, &indexTree);
+  hr = lr->ReadListValue({}, vctVal2, indexTree);
   BOOST_TEST(hr == ReadResult::OK_NOLOCK);
   BOOST_TEST(*vctVal2[0] == dvLong);
   BOOST_TEST(*vctVal2[1] == dvFix);
@@ -177,11 +175,11 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   FilePagePool::SyncWritePage(lr->GetOverflowPage());
 
   lr2 = new LeafRecord(IndexType::PRIMARY, byArr);
-  lr2->LoadOverflowPage(&indexTree, true);
+  lr2->LoadOverflowPage(indexTree, true);
   BOOST_TEST(lr2->CompareKey(rkey) == 0);
 
   vctVal2.clear();
-  hr = lr2->ReadListValue({}, vctVal2, &indexTree);
+  hr = lr2->ReadListValue({}, vctVal2, indexTree);
   BOOST_TEST(hr == ReadResult::OK_NOLOCK);
   BOOST_TEST(*vctVal2[0] == dvLong);
   BOOST_TEST(*vctVal2[1] == dvFix);
@@ -191,7 +189,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
 
   delete lr;
   delete lr2;
-  indexTree.Close();
+  indexTree->Close();
   CachePagePool::ClearPool();
 }
 
@@ -214,29 +212,28 @@ BOOST_AUTO_TEST_CASE(LeafRecord_SecIndex_test) {
 
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone()};
-  IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
-                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
-                            IndexType::PRIMARY);
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::PRIMARY);
 
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true)};
-  LeafRecord *lr =
-      new LeafRecord(&indexTree, vctKey, vctVal, 1, nullptr, false);
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
 
   DataValueLong dvLKey(200);
   VectorDataValue vctSec = {dvLKey.Clone(true), dvVar.Clone(true)};
   vctKey = {dvInt.Clone(), dvVar.Clone()};
-  IndexTree secTree;
-  secTree.CreateIndexTree(TABLE_NAME2.c_str(), INDEX_NAME2.c_str(),
-                          FILE_NAME2.c_str(), vctSec, vctKey, GetFileId(),
-                          IndexType::UNIQUE);
+  IndexTree *secTree = new IndexTree();
+  secTree->CreateIndexTree(TABLE_NAME2.c_str(), INDEX_NAME2.c_str(),
+                           FILE_NAME2.c_str(), vctSec, vctKey, GetFileId(),
+                           IndexType::UNIQUE);
 
   vctSec = {dvLong.Clone(true), dvVar.Clone(true)};
   Byte *bys = lr->GetBysValue() + UI16_2_LEN;
   uint16_t lKey = lr->GetKeyLength();
   LeafRecord *lrSec =
-      new LeafRecord(&secTree, vctSec, bys, lKey, ActionType::INSERT, 1);
+      new LeafRecord(secTree, vctSec, bys, lKey, ActionType::INSERT, 1);
 
   RawKey rkey(vctSec);
   BOOST_TEST(lrSec->CompareKey(rkey) == 0);
@@ -246,8 +243,8 @@ BOOST_AUTO_TEST_CASE(LeafRecord_SecIndex_test) {
 
   delete lrSec;
   delete lr;
-  indexTree.Close();
-  secTree.Close();
+  indexTree->Close();
+  secTree->Close();
   CachePagePool::ClearPool();
 }
 
@@ -271,32 +268,32 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
 
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
-  IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
-                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
-                            IndexType::PRIMARY);
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::PRIMARY);
 
   vctKey = {dvInt.Clone(true), dvVar.Clone(true)};
   vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
 
   // A transaction repeat to update a record.
   StatementEx stmt(1, 1);
-  LeafRecord *lr = new LeafRecord(&indexTree, vctKey, vctVal, 1, &stmt, false);
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, &stmt, false);
 
   ((DataValueLong *)vctVal[0])->SetValue(300);
   vctVal = {dvLong.Clone(true), dvFix.Clone(true), dvBlob.Clone(true)};
   StatementEx stmt2(2, 1);
-  LeafRecord *lr2 = lr->UpdateRecord(&indexTree, vctVal, 2, &stmt2,
+  LeafRecord *lr2 = lr->UpdateRecord(indexTree, vctVal, 2, &stmt2,
                                      ActionType::UPDATE, false, false);
 
   VectorDataValue vctDv;
-  ReadResult res = lr2->ReadListValue({}, vctDv, &indexTree, nullptr);
+  ReadResult res = lr2->ReadListValue({}, vctDv, indexTree, nullptr);
   BOOST_TEST(res == ReadResult::LOCKED);
 
   StatementEx stmt3(3, 1);
   vctDv.clear();
   res =
-      lr2->ReadListValue({}, vctDv, &indexTree, &stmt3, ActionType::READ_SHARE);
+      lr2->ReadListValue({}, vctDv, indexTree, &stmt3, ActionType::READ_SHARE);
   BOOST_TEST(res == ReadResult::OK_NOLOCK);
 
   BOOST_TEST(*vctDv[0] == *vctVal[0]);
@@ -306,7 +303,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   StatementEx stmt4(1, 2);
   vctDv.clear();
   res =
-      lr2->ReadListValue({}, vctDv, &indexTree, &stmt4, ActionType::READ_SHARE);
+      lr2->ReadListValue({}, vctDv, indexTree, &stmt4, ActionType::READ_SHARE);
   BOOST_TEST(res == ReadResult::LOCKED);
 
   BOOST_TEST(!lr2->ReleaseLockAble());
@@ -314,11 +311,11 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   lr->SubmitStatement(stmt, RecordStatus::COMMITED);
   BOOST_TEST(lr2->ReleaseLockAble());
 
-  ReleaseResult rres = lr2->ReleaseLock(&indexTree, false);
+  ReleaseResult rres = lr2->ReleaseLock(indexTree, false);
   BOOST_TEST(rres == ReleaseResult::FISHED);
 
   vctDv.clear();
-  res = lr2->ReadListValue({}, vctDv, &indexTree);
+  res = lr2->ReadListValue({}, vctDv, indexTree);
   BOOST_TEST(res == ReadResult::OK_NOLOCK);
 
   BOOST_TEST(vctDv[0]->GetLong() == 200);
@@ -328,53 +325,53 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   delete lr2;
 
   // Delete stable record
-  lr = new LeafRecord(&indexTree, vctKey, vctVal, 1, nullptr, false);
-  lr2 = lr->UpdateRecord(&indexTree, {}, 2, &stmt, ActionType::DELETE, false,
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
+  lr2 = lr->UpdateRecord(indexTree, {}, 2, &stmt, ActionType::DELETE, false,
                          false);
 
   vctDv.clear();
   res =
-      lr2->ReadListValue({}, vctDv, &indexTree, &stmt2, ActionType::READ_SHARE);
+      lr2->ReadListValue({}, vctDv, indexTree, &stmt2, ActionType::READ_SHARE);
   BOOST_TEST(res == ReadResult::REC_DELETE);
 
   lr2->SubmitStatement(stmt, RecordStatus::COMMITED);
-  rres = lr2->ReleaseLock(&indexTree, false);
+  rres = lr2->ReleaseLock(indexTree, false);
   BOOST_TEST(rres == ReleaseResult::DELETED);
   BOOST_TEST(lr2->GetLock() == nullptr);
   delete lr2;
 
   // Update stable record
-  lr = new LeafRecord(&indexTree, vctKey, vctVal, 1, nullptr, false);
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
   ((DataValueLong *)vctVal[0])->SetValue(400);
-  lr2 = lr->UpdateRecord(&indexTree, vctVal, 2, &stmt, ActionType::DELETE,
-                         false, false);
+  lr2 = lr->UpdateRecord(indexTree, vctVal, 2, &stmt, ActionType::DELETE, false,
+                         false);
   BOOST_TEST(lr2->GetLock()->_undoRec == lr);
 
   vctDv.clear();
-  res = lr2->ReadListValue({{0, 0}}, vctDv, &indexTree);
+  res = lr2->ReadListValue({{0, 0}}, vctDv, indexTree);
   BOOST_TEST(res == ReadResult::OK_NOLOCK);
 
   BOOST_TEST(vctDv.size() == 1);
   BOOST_TEST(vctDv[0]->GetLong() == 200);
 
   vctDv.clear();
-  res = lr2->ReadListValue({{0, 0}}, vctDv, &indexTree, &stmt4,
+  res = lr2->ReadListValue({{0, 0}}, vctDv, indexTree, &stmt4,
                            ActionType::READ_SHARE);
   BOOST_TEST(res == ReadResult::LOCKED);
 
   vctDv.clear();
-  res = lr2->ReadListValue({{0, 0}, {2, 1}}, vctDv, &indexTree);
+  res = lr2->ReadListValue({{0, 0}, {2, 1}}, vctDv, indexTree);
   BOOST_TEST(res == ReadResult::OK_NOLOCK);
   BOOST_TEST(vctDv.size() == 2);
   BOOST_TEST(vctDv[0]->GetLong() == 200);
   lr2->SubmitStatement(stmt, RecordStatus::COMMITED);
-  rres = lr2->ReleaseLock(&indexTree, false);
+  rres = lr2->ReleaseLock(indexTree, false);
   delete lr2;
 
   // Test ReadShare, ReadUpdate
-  lr = new LeafRecord(&indexTree, vctKey, vctVal, 10, nullptr, false);
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 10, nullptr, false);
   vctDv.clear();
-  res = lr->ReadListValue({}, vctDv, &indexTree, &stmt, ActionType::READ_SHARE);
+  res = lr->ReadListValue({}, vctDv, indexTree, &stmt, ActionType::READ_SHARE);
   BOOST_TEST(res == ReadResult::OK_LOCK);
   BOOST_TEST(vctDv.size() == 3);
   BOOST_TEST(*vctDv[0] == *vctVal[0]);
@@ -382,8 +379,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   BOOST_TEST(*vctDv[2] == *vctVal[2]);
 
   vctDv.clear();
-  res =
-      lr->ReadListValue({}, vctDv, &indexTree, &stmt4, ActionType::READ_SHARE);
+  res = lr->ReadListValue({}, vctDv, indexTree, &stmt4, ActionType::READ_SHARE);
   BOOST_TEST(res == ReadResult::OK_LOCK);
   BOOST_TEST(vctDv.size() == 3);
   BOOST_TEST(*vctDv[0] == *vctVal[0]);
@@ -391,23 +387,22 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   BOOST_TEST(*vctDv[2] == *vctVal[2]);
 
   vctDv.clear();
-  res =
-      lr->ReadListValue({}, vctDv, &indexTree, &stmt, ActionType::READ_UPDATE);
+  res = lr->ReadListValue({}, vctDv, indexTree, &stmt, ActionType::READ_UPDATE);
   BOOST_TEST(res == ReadResult::LOCKED);
 
   lr->SubmitStatement(stmt4, RecordStatus::FREEED);
   vctDv.clear();
-  res = lr->ReadListValue({{0, 0}, {UINT32_MAX, 1}}, vctDv, &indexTree, &stmt3,
+  res = lr->ReadListValue({{0, 0}, {UINT32_MAX, 1}}, vctDv, indexTree, &stmt3,
                           ActionType::READ_UPDATE);
   BOOST_TEST(res == ReadResult::OK_NOLOCK);
   BOOST_TEST(vctDv.size() == 2);
   BOOST_TEST(*vctDv[0] == *vctVal[0]);
   BOOST_TEST(vctDv[1]->GetLong() == 10);
   lr->SubmitStatement(stmt3, RecordStatus::FREEED);
-  lr->ReleaseLock(&indexTree, false);
+  lr->ReleaseLock(indexTree, false);
   delete lr;
 
-  indexTree.Close();
+  indexTree->Close();
   CachePagePool::ClearPool();
 }
 

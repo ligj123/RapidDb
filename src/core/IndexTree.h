@@ -26,10 +26,13 @@ class BranchRecord;
 struct IndexRange {
   ~IndexRange();
 
-  // The end border of this range
-  BranchRecord *_brBorder{nullptr};
-  // The top level BrangePages assigned to this range
-  MVector<BranchPage *> _vctRangePage;
+  IndexPage *GetTopPage(IndexType type, RawRecord &rr);
+  BranchRecord *GetLastRecord() {
+    return _vctRangeRecord[_vctRangeRecord.size() - 1];
+  }
+
+  // The top level BrangeRecords assigned to this range
+  MVector<BranchRecord *> _vctRangeRecord;
   // The Start leafPage of this range
   LeafPage *_startPage{nullptr};
   // The end LeafPage of this range
@@ -56,6 +59,17 @@ public:
   static void operator delete(void *ptr, size_t size) {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
+
+  /**
+   * @brief To split the overlength page and save the contents into page buffer,
+   * then push the pages into write queue
+   * @param pageMap The map of waitting pages
+   * @param lockPageLevel The page level that the BranchRecords in those pages
+   * will be as borders that split the statements into different index task. If
+   * =0xFF, means only one index task to run.
+   */
+  static void SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
+                                 Byte lockPageLevel = UINT8_MAX);
 
 public:
   IndexTree() {}
@@ -131,16 +145,7 @@ public:
    */
   bool SearchPage(const LeafRecord &lr, IndexPage *&page);
   void Close();
-  /**
-   * @brief To split the overlength page and save the contents into page buffer,
-   * then push the pages into write queue
-   * @param pageMap The map of waitting pages
-   * @param lockPageLevel The page level that the BranchRecords in those pages
-   * will be as borders that split the statements into different index task. If
-   * =0xFF, means only one index task to run.
-   */
-  void SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
-                          Byte lockPageLevel = UINT8_MAX);
+
   /**
    * @brief Remove a IndexPage and its child and all their relationships from
    * IndexTree, include parent page, prev page, next page, child page.
@@ -166,6 +171,9 @@ public:
   inline void DecPages(uint32_t pnum = 1) {
     uint32_t old = _pagesInMem.fetch_sub(pnum);
     assert(old >= pnum);
+    if (old == pnum) {
+      delete this;
+    }
   }
 
   inline uint16_t GetValVarLen() { return _valVarLen; }

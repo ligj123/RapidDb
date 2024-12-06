@@ -12,9 +12,22 @@ namespace storage {
 IndexRange::~IndexRange() {
   assert(_queueAction.size() == 0);
   assert(_queueTempAction.size() == 0);
-  if (_brBorder != nullptr) {
-    delete _brBorder;
+}
+
+IndexPage *IndexRange::GetTopPage(IndexType type, RawRecord &rr) {
+  for (size_t i = 0; i < _vctRangeRecord.size(); i++) {
+    if (type == IndexType::NON_UNIQUE) {
+      if (_vctRangeRecord[i]->CompareTo(rr) >= 0) {
+        return _vctRangeRecord[i]->GetChildPage();
+      }
+    } else {
+      if (_vctRangeRecord[i]->CompareKey(rr) >= 0) {
+        return _vctRangeRecord[i]->GetChildPage();
+      }
+    }
   }
+
+  return _vctRangeRecord[_vctRangeRecord.size() - 1]->GetChildPage();
 }
 
 IndexTree::~IndexTree() {
@@ -441,11 +454,11 @@ int IndexTree::CalcIndexRange(RawRecord &rr) {
   for (size_t i = 0; i < _vctRange.size(); i++) {
     IndexRange &range = _vctRange[i];
     if (_indexType == IndexType::NON_UNIQUE) {
-      if (range._brBorder->CompareTo(rr) >= 0) {
+      if (range.GetLastRecord()->CompareTo(rr) >= 0) {
         return i;
       }
     } else {
-      if (range._brBorder->CompareKey(rr) >= 0) {
+      if (range.GetLastRecord()->CompareKey(rr) >= 0) {
         return i;
       }
     }
@@ -463,7 +476,7 @@ int IndexTree::CalcIndexRange(RawKey &key) {
 
   for (size_t i = 0; i < _vctRange.size(); i++) {
     IndexRange &range = _vctRange[i];
-    if (range._brBorder->CompareKey(key) >= 0) {
+    if (range.GetLastRecord()->CompareKey(key) >= 0) {
       return i;
     }
   }

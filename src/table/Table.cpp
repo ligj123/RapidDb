@@ -5,6 +5,11 @@
 #include <filesystem>
 
 namespace storage {
+IndexProp::~IndexProp() {
+  if (_tree != nullptr) {
+    _tree->Close();
+  }
+}
 
 uint32_t IndexProp::CalcSize() {
   uint32_t sz = UI16_LEN + (uint32_t)_name.size();

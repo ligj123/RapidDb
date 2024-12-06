@@ -30,12 +30,12 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
       new DataValueFixChar("1234567890abcdefghijklmn", 24, 100);
   VectorDataValue vctKey = {dvKey->Clone()};
   VectorDataValue vctVal = {dvVal->Clone()};
-  IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
-                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
-                            IndexType::PRIMARY);
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::PRIMARY);
   LeafPage *lp =
-      (LeafPage *)indexTree.ApplyIndexPages(nullptr, (Byte)0, 1, false)[0];
+      (LeafPage *)indexTree->ApplyIndexPages(nullptr, (Byte)0, 1, false)[0];
   MTreeMap<uint64_t, CachePage *> pageMap;
 
   vctKey.push_back(dvKey->Clone(true));
@@ -49,15 +49,14 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     LeafRecord *lr =
-        new LeafRecord(&indexTree, vctKey, vctVal, i, nullptr, false);
+        new LeafRecord(indexTree, vctKey, vctVal, i, nullptr, false);
     lp->InsertRecord(lr, i);
   }
   lp->SaveRecords(pageMap, false);
   assert(pageMap.size() == 0);
 
   *((DataValueLong *)vctKey[0]) = 0;
-  LeafRecord *lr =
-      new LeafRecord(&indexTree, vctKey, vctVal, 0, nullptr, false);
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 0, nullptr, false);
   key = new RawKey(vctKey);
   bool bFind;
   BOOST_TEST(0 == lp->SearchRecord(*lr, bFind));
@@ -72,8 +71,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   delete key;
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT - 1;
-  lr =
-      new LeafRecord(&indexTree, vctKey, vctVal, ROW_COUNT - 1, nullptr, false);
+  lr = new LeafRecord(indexTree, vctKey, vctVal, ROW_COUNT - 1, nullptr, false);
   key = new RawKey(vctKey);
 
   const LeafRecord &lr3 = lp->GetRecord(ROW_COUNT - 1);
@@ -88,7 +86,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   delete key;
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT / 2;
-  lr = new LeafRecord(&indexTree, vctKey, vctVal, 1, nullptr, false);
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
   key = new RawKey(vctKey);
   BOOST_TEST(ROW_COUNT / 2 == lp->SearchRecord(*lr, bFind));
   BOOST_TEST(ROW_COUNT / 2 == lp->SearchKey(*key, bFind));
@@ -99,7 +97,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   delete dvKey;
   delete dvVal;
   lp->SetReferred(false);
-  indexTree.Close();
+  indexTree->Close();
   CachePagePool::ClearPool();
 }
 
@@ -143,7 +141,6 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   FilePagePool::SyncWritePage(root);
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
 
   indexTree = new IndexTree();
   indexTree->LoadIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
@@ -168,7 +165,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   delete lp;
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
+
   delete dvKey;
   delete dvVal;
 }
@@ -330,7 +327,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSplit_test) {
 
   indexTree->Close();
   CachePagePool::ClearPool();
-  delete indexTree;
+
   delete dvKey;
   delete dvVal;
 }

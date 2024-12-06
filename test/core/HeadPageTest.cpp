@@ -24,17 +24,17 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
 
   VectorDataValue vctKey;
   VectorDataValue vctVal;
-  IndexTree indexTree;
-  indexTree.CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
-                            FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
-                            IndexType::NON_UNIQUE);
+  IndexTree *indexTree = new IndexTree();
+  indexTree->CreateIndexTree(TABLE_NAME.c_str(), INDEX_NAME.c_str(),
+                             FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
+                             IndexType::NON_UNIQUE);
 
   VectorDataValue vctDv;
   vctDv.push_back(new DataValueInt(1));
   vctDv.push_back(new DataValueFixChar(15));
   vctDv.push_back(new DataValueVarChar(100));
 
-  HeadPage *headPage = indexTree.GetHeadPage();
+  HeadPage *headPage = indexTree->GetHeadPage();
   headPage->InitHeadPage(IndexType::NON_UNIQUE, vctDv);
 
   BOOST_TEST(headPage->GetValueVariableFieldCount() == 1);
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
   headPage->SaveToBuffer();
   FilePagePool::SyncWritePage(headPage);
 
-  headPage = new HeadPage(&indexTree);
+  headPage = new HeadPage(indexTree);
   FilePagePool::SyncReadPage(headPage);
   headPage->InitParameters();
 
@@ -93,7 +93,7 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
   BOOST_TEST(103 == headPage->GetRecordStamp());
 
   delete headPage;
-  indexTree.Close();
+  indexTree->Close();
   CachePagePool::ClearPool();
 }
 BOOST_AUTO_TEST_SUITE_END()

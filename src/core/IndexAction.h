@@ -39,9 +39,11 @@ public:
    * run after adjusted
    */
   virtual bool RearrangeAble() { return true; }
+  void SetRangePos(int pos) { _rangePos = pos; }
 
 protected:
   IndexTree *_indexTree;
+  int _rangePos{-1}; // The range position thia action belong to
 };
 
 /**
@@ -52,14 +54,14 @@ class PrevPageAction : public IndexAction {
 public:
   PrevPageAction(IndexTree *idxTree, int rangePos, PageID pageId,
                  PageID prevpageId)
-      : IndexAction(idxTree), _rangePos(rangePos), _pageId(pageId),
-        _prevPageId(prevpageId) {}
+      : IndexAction(idxTree), _pageId(pageId), _prevPageId(prevpageId) {
+    _rangePos = rangePos;
+  }
   TaskStatus Exec() override;
 
   bool RearrangeAble() override { return false; }
 
 protected:
-  int _rangePos;                // The range position thia action belong to
   PageID _pageId;               // The page need to update previous page
   PageID _prevPageId;           // The new previous page id
   IndexPage *_idxPage{nullptr}; // Temp save
@@ -86,6 +88,19 @@ public:
 
 protected:
   RawKey _key;
+  Statement *_stmt;
+  IndexPage *_idxPage{nullptr}; // Temp save
+};
+
+class StatementAction : public IndexAction {
+public:
+  StatementAction(IndexTree *idxTree, Statement *stmt)
+      : IndexAction(idxTree), _stmt(stmt) {}
+
+  TaskStatus Exec() override;
+  int JudgeRange() override;
+
+protected:
   Statement *_stmt;
   IndexPage *_idxPage{nullptr}; // Temp save
 };

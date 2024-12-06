@@ -4,6 +4,7 @@
 
 namespace storage {
 class BranchRecord;
+class LeafPage;
 
 class BranchPage : public IndexPage {
 public:
@@ -75,8 +76,8 @@ public:
     return (BranchRecord *)_vctRecord[pos];
   }
 
-  IndexPage *RecursiveLeftChild();
-  IndexPage *RecursiveRightChild();
+  LeafPage *GetLeftLeafChild();
+  LeafPage *GetRightLeafChild();
 
 protected:
   int CompareTo(uint32_t recPos, const RawRecord &rr) const;

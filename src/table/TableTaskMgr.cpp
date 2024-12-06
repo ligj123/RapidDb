@@ -127,15 +127,19 @@ uint16_t TableTaskMgr::CalcAndSpliteTaskRanges(uint16_t indexPos,
         br.SetChildPage(child);
       }
 
-      range._vctRangePage.push_back(child);
+      range._vctRangeRecord.push_back(&br);
     }
 
-    range._vctRangePage[0]->SetRangeBeginPage(true);
-    (*range._vctRangePage.rbegin())->SetRangeEndPage(true);
+    range._vctRangeRecord[0]->GetChildPage()->SetRangeBeginPage(true);
+    range.GetLastRecord()->GetChildPage()->SetRangeEndPage(true);
 
-    range._startPage = (LeafPage *)range._vctRangePage[0]->RecursiveLeftChild();
-    range._endPage =
-        (LeafPage *)(*range._vctRangePage.rbegin())->RecursiveRightChild();
+    IndexPage *child = range._vctRangeRecord[0]->GetChildPage();
+    assert(child->GetPageType() == PageType::BRANCH_PAGE);
+    range._startPage = ((BranchPage *)child)->GetLeftLeafChild();
+
+    child = range.GetLastRecord()->GetChildPage();
+    assert(child->GetPageType() == PageType::BRANCH_PAGE);
+    range._endPage = ((BranchPage *)child)->GetRightLeafChild();
   }
 
   return exptTaskNum;
@@ -163,11 +167,8 @@ TaskStatus IndexAdjustTask::Run() {
 
     range._startPage->SetRangeBeginPage(false);
     range._endPage->SetRangeEndPage(false);
-    (*range._vctRangePage.begin())->SetRangeBeginPage(false);
-    (*range._vctRangePage.rbegin())->SetRangeEndPage(false);
-    range._brBorder = new BranchRecord();
-    range._brBorder->Copy(
-        (*range._vctRangePage.rbegin())->GetRecord(INT32_MAX, true));
+    range._vctRangeRecord[0]->GetChildPage()->SetRangeBeginPage(false);
+    range.GetLastRecord()->GetChildPage()->SetRangeEndPage(false);
   }
 
   vctTask.clear();

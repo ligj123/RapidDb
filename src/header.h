@@ -33,6 +33,5 @@ const TranID TXID_NULL = UINT64_MAX;
 #define DEFAULT_MAX_THREADS 8
 #define SINGLE_VERSION
 #define LINUX_OS
-#define CACHE_TRACE
 
 extern const char *HexStr[];
