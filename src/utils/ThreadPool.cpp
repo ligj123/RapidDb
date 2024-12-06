@@ -161,12 +161,15 @@ void ThreadPool::ManageProc() {
                        .count();
 
     MDeque<ThreadTask *> queue;
+    _rapidTaskQueue.Pop(queue);
+    if (queue.size() > 0) {
+      LOG_INFO << "queue size = " << queue.size();
+    }
+
     if (_queueTask.size() > 0) {
       unique_lock<SpinMutex> lock(_taskMutex);
       queue.swap(_queueTask);
     }
-
-    _rapidTaskQueue.Pop(queue);
 
     if (_nowMicroSec - _checkBusyTime >= 10000) {
       CheckBusyStatus();
@@ -214,6 +217,7 @@ void ThreadPool::ManageProc() {
       } else if (num == 0) {
         num = 1;
       }
+      LOG_INFO << "1. Start threads number " << num;
 
       for (int i = 0; i < num; i++) {
         CreateWorkThread();
@@ -228,6 +232,7 @@ void ThreadPool::ManageProc() {
         if (_aliveThreads < ThreadTask::GetExclusiveTaskCount()) {
           assert(ThreadTask::GetExclusiveTaskCount() < _maxThreads);
           int num = ThreadTask::GetExclusiveTaskCount() - _aliveThreads + 1;
+          LOG_INFO << "2. Start threads number " << num;
           for (int i = 0; i < num; i++) {
             CreateWorkThread();
           }
@@ -248,6 +253,7 @@ void ThreadPool::ManageProc() {
         _vctThreadPara[pos]._bExclusiveTask = true;
         _vctThreadPara[pos]._lineQueueTask.Push(task);
         _vctThreadPara[pos].ClearMask();
+        LOG_INFO << "queue.front " << (void *)task << "  tid: " << pos;
       } else {
         int32_t ring = 0;
 
@@ -260,6 +266,7 @@ void ThreadPool::ManageProc() {
           if (_vctThreadPara[idx]._bStop ||
               _vctThreadPara[idx]._bExclusiveTask) {
             idx++;
+            continue;
           }
 
           if (ring == 0 &&
@@ -274,6 +281,7 @@ void ThreadPool::ManageProc() {
               (ring > 1)) {
             _vctThreadPara[idx]._lineQueueTask.Push(task);
             _vctThreadPara[idx].SetMask(task->GetTaskMask());
+            LOG_INFO << "queue.front " << (void *)task << "  tid: " << idx;
             idx++;
             break;
           }
@@ -324,6 +332,7 @@ void ThreadPool::WorkProc(uint16_t tid) {
               task = *iter;
             } else {
               AddTask(GetThreadId(), *iter);
+              LOG_INFO << "1. AddTask " << (void *)(*iter);
             }
           }
 
@@ -391,7 +400,8 @@ void ThreadPool::WorkProc(uint16_t tid) {
     if ((tpara._busyDegree == BusyDegree::BLOCKED && tpara._repeatTime >= 3 ||
          tpara._busyDegree == BusyDegree::BUSY && tpara._repeatTime >= 5) &&
         tpara._vctTask.size() > 1 && !tpara._bExclusiveTask &&
-        _poolBusyDegree <= BusyDegree::RELAXED) {
+        _poolBusyDegree <= BusyDegree::RELAXED &&
+        tpara._dtRemoveTask < _checkBusyTime) {
       // This thread is busy and other threads is relax, move one of small
       // tasks to other thread.
       auto iter = tpara._vctTask.begin();
@@ -404,8 +414,11 @@ void ThreadPool::WorkProc(uint16_t tid) {
         }
       }
 
-      AddTask(*itSel);
+      AddTask(GetThreadId(), *itSel);
+      LOG_INFO << "2. AddTask " << (void *)(*itSel)
+               << "  GetThreadId: " << GetThreadId();
       tpara._vctTask.erase(itSel);
+      tpara._dtRemoveTask = _checkBusyTime;
     } else if (tpara._bStop) {
       if (tpara._vctTask.size()) {
         continue;

@@ -182,7 +182,8 @@ struct ThreadPara {
   atomic_bool _bRunning{false};
   bool _bStop{true};
   bool _bExclusiveTask{false}; // The running task is exclusive
-
+  // The last time to remove task from busy queue
+  DT_MicroSec _dtRemoveTask{0};
   uint32_t _arrTaskMask[MASK_SIZE]{};
 };
 
