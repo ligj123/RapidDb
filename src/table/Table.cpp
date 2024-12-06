@@ -337,9 +337,8 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   assert(idx >= 0 && idx < _vctIndex.size());
   IndexProp &prop = _vctIndex[idx];
   assert(prop._position == idx);
-  MString path = Configure::GetDbRootPath().c_str();
-  path += "/" + _db->GetDbPath() + "/" + _name + "/" + _vctIndex[idx]._name +
-          ".idx";
+  MString path =
+      _db->GetDbPath() + "/" + _name + "/" + _vctIndex[idx]._name + ".idx";
 
   VectorDataValue dvKey;
   dvKey.reserve(prop._vctCol.size());

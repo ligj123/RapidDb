@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_SUITE(TableTest)
 //   DatabaseManager::AddDb(db);
 //   PhysTable *table = CreateTestTable(db, TABLE_NAME, 1000);
 
-//   // ThreadPool::CreateMainPool()
+//   ThreadPool::CreateMainPool("test", 1, 8);
 // }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -143,7 +143,8 @@ inline bool operator==(const IDataValue &dv1, const IDataValue &dv2) {
   }
 
   if (dv1.IsStringType() && dv2.IsStringType()) {
-    return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) == 0);
+    return (BytesCompare(dv1.GetBuff(), dv1.GetDataLength(), dv2.GetBuff(),
+                         dv2.GetDataLength()) == 0);
   }
 
   abort();
@@ -166,7 +167,8 @@ inline bool operator>(const IDataValue &dv1, const IDataValue &dv2) {
   }
 
   if (dv1.IsArrayType() && dv2.IsArrayType()) {
-    return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) > 0);
+    return (BytesCompare(dv1.GetBuff(), dv1.GetDataLength(), dv2.GetBuff(),
+                         dv2.GetDataLength()) > 0);
   }
 
   abort();
@@ -189,7 +191,8 @@ inline bool operator>=(const IDataValue &dv1, const IDataValue &dv2) {
   }
 
   if (dv1.IsArrayType() && dv2.IsArrayType()) {
-    return (strcmp((char *)dv1.GetBuff(), (char *)dv2.GetBuff()) >= 0);
+    return (BytesCompare(dv1.GetBuff(), dv1.GetDataLength(), dv2.GetBuff(),
+                         dv2.GetDataLength()) >= 0);
   }
 
   abort();

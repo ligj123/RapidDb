@@ -3,7 +3,11 @@ cmake_minimum_required(VERSION 3.16)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_definitions(-DLINUX_OS)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-add_definitions(-DWINDOWS_OS)
+  add_definitions(-DWINDOWS_OS)
+endif()
+
+if(CACHE_TRACE STREQUAL "on")
+  add_definitions(-DCACHE_TRACE)
 endif()
 
 #add_definitions(-DCACHE_TRACE -DDEBUG_WITHOUT_BIN_LOG)

@@ -17,6 +17,6 @@ fi
 mkdir ./Debug
 cp ErrorMsg.txt ./Debug
 cd Debug
-cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc .. 
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCACHE_TRACE=on .. 
 cd ..
 

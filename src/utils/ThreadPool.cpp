@@ -316,8 +316,6 @@ void ThreadPool::WorkProc(uint16_t tid) {
       DT_MicroSec dtStart = _nowMicroSec;
       if (tpara._bExclusiveTask) {
         if (tpara._vctTask.size() > 1) {
-          assert((*tpara._vctTask.rbegin())->IsExclusiveTask());
-
           ThreadTask *task = nullptr;
           for (auto iter = tpara._vctTask.begin(); iter != tpara._vctTask.end();
                iter++) {
@@ -330,7 +328,7 @@ void ThreadPool::WorkProc(uint16_t tid) {
           }
 
           tpara._vctTask.clear();
-          assert(task != nullptr);
+          assert(task != nullptr && task->IsExclusiveTask());
           tpara._vctTask.push_back(task);
         }
 
