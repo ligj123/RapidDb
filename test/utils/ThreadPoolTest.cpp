@@ -132,7 +132,6 @@ BOOST_AUTO_TEST_CASE(ThreadPoolEx_test) {
   for (int i = 0; i < 30; i++) {
     arrNormalTask[i]._bStop = true;
   }
-  // LOG_INFO << "Set normal stop";
 
   this_thread::sleep_for(1000ms);
   BOOST_TEST(6 == tp.GetAliveThreadCount());
@@ -142,7 +141,6 @@ BOOST_AUTO_TEST_CASE(ThreadPoolEx_test) {
     arrExcTask[i].SetExclusiveTask(false);
     arrExcTask[i]._bStop = true;
   }
-  // LOG_INFO << "Set exec stop";
 
   this_thread::sleep_for(1000ms);
   BOOST_TEST(1 == tp.GetAliveThreadCount());

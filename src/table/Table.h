@@ -38,7 +38,27 @@ struct IndexProp {
       : _name(name), _position(pos), _type(type) {
     _vctCol.swap(vctCol);
   }
+  IndexProp(const IndexProp &src) = delete;
+  IndexProp(IndexProp &&src) {
+    _name = move(src._name);
+    _position = src._position;
+    _type = src._type;
+    _vctCol = move(src._vctCol);
+    _tree = src._tree;
+    src._tree = nullptr;
+  }
   ~IndexProp();
+
+  IndexProp &operator=(const IndexProp &src) = delete;
+  IndexProp &operator=(IndexProp &&src) {
+    _name = move(src._name);
+    _position = src._position;
+    _type = src._type;
+    _vctCol = move(src._vctCol);
+    _tree = src._tree;
+    src._tree = nullptr;
+    return *this;
+  }
 
   uint32_t Write(Byte *bys);
   uint32_t Read(Byte *bys, uint32_t pos,

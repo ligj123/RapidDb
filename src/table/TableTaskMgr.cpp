@@ -91,8 +91,8 @@ void TableTaskMgr::CollectTaskData(uint16_t idxPos) {
   idxTree->GetRangeMutex().unlock();
 }
 
-uint16_t TableTaskMgr::CalcAndSpliteTaskRanges(uint16_t indexPos,
-                                               uint16_t exptTaskNum) {
+uint16_t TableTaskMgr::ResplitTaskRanges(uint16_t indexPos,
+                                         uint16_t exptTaskNum) {
   assert(exptTaskNum > 0 && exptTaskNum <= Configure::GetMaxIndexTaskNum());
   IndexTree *idxTree = _table->GetVectorIndex().at(indexPos)._tree;
   MVector<IndexRange> &vctRange = idxTree->GetVctRange();
@@ -173,9 +173,7 @@ TaskStatus IndexAdjustTask::Run() {
 
   vctTask.clear();
   vctRange.clear();
-  _exptTaskNum =
-      _tableTaskMgr->CalcAndSpliteTaskRanges(_indexPos, _exptTaskNum);
-  _tableTaskMgr->CalcAndSpliteTaskRanges(_indexPos, _exptTaskNum);
+  _exptTaskNum = _tableTaskMgr->ResplitTaskRanges(_indexPos, _exptTaskNum);
 
   if (_indexPos == 0) {
     for (size_t i = 1; i < _tableTaskMgr->_vctIndexTaskQueue.size(); i++) {
@@ -206,4 +204,5 @@ TaskStatus IndexAdjustTask::Run() {
   _threadPool->AddTasks(vct);
   return TaskStatus::FINISHED;
 }
+
 } // namespace storage

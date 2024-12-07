@@ -1,10 +1,13 @@
 ﻿#include "Table.h"
 #include "../dataType/DataValueFactory.h"
 #include "../manager/DatabaseManager.h"
+
 #include <boost/crc.hpp>
 #include <filesystem>
 
 namespace storage {
+namespace fs = std::filesystem;
+
 IndexProp::~IndexProp() {
   if (_tree != nullptr) {
     _tree->Close();
@@ -141,7 +144,7 @@ bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
   if (indexType == IndexType::HIDE_PRIMARY) {
     MVector<IndexColumn> vctCol;
     IndexProp prop(PRIMARY_KEY, 0, indexType, vctCol);
-    _vctIndex.push_back(prop);
+    _vctIndex.push_back(move(prop));
     _mapIndexNamePos.insert({prop._name, prop._position});
     return true;
   }
@@ -172,7 +175,7 @@ bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
   }
 
   IndexProp prop(iname, (uint32_t)_vctIndex.size(), indexType, vctCol);
-  _vctIndex.push_back(prop);
+  _vctIndex.push_back(move(prop));
   _mapIndexNamePos.insert({prop._name, prop._position});
 
   if (indexType == IndexType::PRIMARY)
@@ -312,7 +315,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     uint32_t isz = prop.Read(buf, i, _mapColumnPos);
     buf += isz;
 
-    _vctIndex.push_back(prop);
+    _vctIndex.push_back(move(prop));
     _mapIndexNamePos.insert({prop._name, i});
 
     for (IndexColumn &ic : prop._vctCol) {
@@ -337,8 +340,6 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   assert(idx >= 0 && idx < _vctIndex.size());
   IndexProp &prop = _vctIndex[idx];
   assert(prop._position == idx);
-  MString path =
-      _db->GetDbPath() + "/" + _name + "/" + _vctIndex[idx]._name + ".idx";
 
   VectorDataValue dvKey;
   dvKey.reserve(prop._vctCol.size());
@@ -365,15 +366,32 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
     }
   }
 
-  assert(bCreate == filesystem::exists(path));
-
+  MString idxPath =
+      _db->GetDbPath() + "/" + _name + "/" + _vctIndex[idx]._name + ".idx";
   prop._tree = new IndexTree();
-  if (bCreate)
-    prop._tree->CreateIndexTree(_name, prop._name, path, dvKey, dvVal,
-                                _tid + (uint32_t)idx, prop._type);
-  else
-    prop._tree->LoadIndexTree(_name, prop._name, path, dvKey, dvVal,
-                              _tid + (uint32_t)idx);
+  if (bCreate) {
+    MString tblPath = _db->GetDbPath() + "/" + _name;
+    fs::path path(tblPath);
+    if (!fs::exists(path)) {
+      if (!fs::create_directories(path)) {
+        return false;
+      }
+    }
+
+    bool b =
+        prop._tree->CreateIndexTree(_name, prop._name, idxPath, dvKey, dvVal,
+                                    _tid + (uint32_t)idx, prop._type);
+    if (!b) {
+      return false;
+    }
+  } else {
+    assert(filesystem::exists(idxPath));
+    bool b = prop._tree->LoadIndexTree(_name, prop._name, idxPath, dvKey, dvVal,
+                                       _tid + (uint32_t)idx);
+    if (!b) {
+      return false;
+    }
+  }
   return true;
 }
 

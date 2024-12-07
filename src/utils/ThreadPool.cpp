@@ -148,7 +148,6 @@ void ThreadPool::ManageProc() {
       if (stopTryTime <= 0) {
         for (int32_t i = 0; i < _maxThreads; i++) {
           _vctThreadPara[i]._bStop = true;
-          // LOG_INFO << "1. Stop thread " << i;
         }
 
         _aliveThreads = 0;
@@ -162,9 +161,6 @@ void ThreadPool::ManageProc() {
 
     MDeque<ThreadTask *> queue;
     _rapidTaskQueue.Pop(queue);
-    if (queue.size() > 0) {
-      LOG_INFO << "queue size = " << queue.size();
-    }
 
     if (_queueTask.size() > 0) {
       unique_lock<SpinMutex> lock(_taskMutex);
@@ -201,7 +197,6 @@ void ThreadPool::ManageProc() {
 
         if (pos >= 0) {
           _vctThreadPara[pos]._bStop = true;
-          //  LOG_INFO << "2. Stop thread " << pos;
           _aliveThreads--;
         }
       }
@@ -217,7 +212,6 @@ void ThreadPool::ManageProc() {
       } else if (num == 0) {
         num = 1;
       }
-      LOG_INFO << "1. Start threads number " << num;
 
       for (int i = 0; i < num; i++) {
         CreateWorkThread();
@@ -232,7 +226,6 @@ void ThreadPool::ManageProc() {
         if (_aliveThreads < ThreadTask::GetExclusiveTaskCount()) {
           assert(ThreadTask::GetExclusiveTaskCount() < _maxThreads);
           int num = ThreadTask::GetExclusiveTaskCount() - _aliveThreads + 1;
-          LOG_INFO << "2. Start threads number " << num;
           for (int i = 0; i < num; i++) {
             CreateWorkThread();
           }
@@ -253,7 +246,6 @@ void ThreadPool::ManageProc() {
         _vctThreadPara[pos]._bExclusiveTask = true;
         _vctThreadPara[pos]._lineQueueTask.Push(task);
         _vctThreadPara[pos].ClearMask();
-        LOG_INFO << "queue.front " << (void *)task << "  tid: " << pos;
       } else {
         int32_t ring = 0;
 
@@ -281,7 +273,6 @@ void ThreadPool::ManageProc() {
               (ring > 1)) {
             _vctThreadPara[idx]._lineQueueTask.Push(task);
             _vctThreadPara[idx].SetMask(task->GetTaskMask());
-            LOG_INFO << "queue.front " << (void *)task << "  tid: " << idx;
             idx++;
             break;
           }
@@ -332,7 +323,6 @@ void ThreadPool::WorkProc(uint16_t tid) {
               task = *iter;
             } else {
               AddTask(GetThreadId(), *iter);
-              LOG_INFO << "1. AddTask " << (void *)(*iter);
             }
           }
 
@@ -415,8 +405,6 @@ void ThreadPool::WorkProc(uint16_t tid) {
       }
 
       AddTask(GetThreadId(), *itSel);
-      LOG_INFO << "2. AddTask " << (void *)(*itSel)
-               << "  GetThreadId: " << GetThreadId();
       tpara._vctTask.erase(itSel);
       tpara._dtRemoveTask = _checkBusyTime;
     } else if (tpara._bStop) {

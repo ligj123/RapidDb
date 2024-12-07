@@ -139,7 +139,7 @@ public:
     if (_bWriteQueue)
       return;
 
-    pageMap.emplace((GetPageLevel() << 24) + GetPageId(), this);
+    pageMap.emplace(((uint64_t)GetPageLevel() << 32) + GetPageId(), this);
     _bWriteQueue = true;
   }
   inline void ClearWriteQueue() { _bWriteQueue = false; }

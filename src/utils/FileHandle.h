@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../cache/Mallocator.h"
+#include "../utils/Log.h"
 #include "ErrorID.h"
 #include "ErrorMsg.h"
 
@@ -41,7 +42,7 @@ public:
   bool Close() {
 #ifdef LINUX_OS
     if (close(_fd) != 0) {
-      _threadErrorMsg.reset(new ErrorMsg(FILE_CLOSE_FAILED, {_indexPath}));
+      LOG_INFO << "Failed to close file " << _indexPath;
       return false;
     }
 
@@ -58,7 +59,7 @@ protected:
 #ifdef LINUX_OS
     _fd = open(_indexPath.c_str(), O_CREAT | O_RDWR | O_DIRECT, 0644);
     if (_fd < 0) {
-      _threadErrorMsg.reset(new ErrorMsg(FILE_OPEN_FAILED, {_indexPath}));
+      LOG_INFO << "Failed to open file " << _indexPath;
       _bValid = false;
     }
 #endif

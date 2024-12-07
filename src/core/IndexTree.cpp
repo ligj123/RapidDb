@@ -68,6 +68,10 @@ bool IndexTree::CreateIndexTree(const MString &tableName,
 
   _fileId = indexId;
   _fileHandle = FileHandle::OpenFile(_fileName);
+  if (_fileHandle == nullptr) {
+    return false;
+  }
+
   _headPage = new HeadPage(this);
   _headPage->InitHeadPage(iType, vctVal);
 
@@ -160,7 +164,7 @@ bool IndexTree::LoadIndexTree(const MString &tableName,
 
 void IndexTree ::Close() {
   if (_rootPage != nullptr) {
-    _rootPage->SetReferred(false);
+    ReleaseIndexPage(_rootPage);
     _rootPage = nullptr;
   }
 

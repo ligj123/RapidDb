@@ -162,7 +162,6 @@ public:
 
   void CollectTaskData(uint16_t idxPos);
 
-protected:
   /**
    * @brief Calc how to split the IndexTree and split the pages into different
    * ranges.
@@ -172,7 +171,49 @@ protected:
    * according to actual conditions.
    * @return The actual range number to split
    */
-  uint16_t CalcAndSpliteTaskRanges(uint16_t indexPos, uint16_t exptTaskNum);
+  uint16_t ResplitTaskRanges(uint16_t indexPos, uint16_t exptTaskNum);
+
+  /**
+   * @brief The session group generate IndexActions and add them into action
+   * queues of related index.
+   * @param indexPos The position of IndexTree in table
+   * @param sessionId session id
+   * @param action The IndexAction will be inserted
+   */
+  void AddSessionAction(uint16_t indexPos, uint16_t sessionId,
+                        IndexAction *action) {
+    assert(indexPos < _vctIndexTaskQueue.size());
+    _vctIndexTaskQueue[indexPos]->_queueSessionAction.Push(sessionId, action);
+  }
+  /**
+   *@brief The IndexActions that generate by primary index and will insert into
+   *the action queue of secondary index.
+   * @param indexPos The position of IndexTree in table that will accept the
+   *action
+   * @param rangeId Which range to generate this action from primary index.
+   * @param action The IndexAction will be inserted
+   */
+  void AddFromPrimaryAction(uint16_t indexPos, uint16_t rangeId,
+                            IndexAction *action) {
+    assert(indexPos > 0 && indexPos < _vctIndexTaskQueue.size());
+    SecondaryIndexTaskQueue *sitq =
+        (SecondaryIndexTaskQueue *)_vctIndexTaskQueue[indexPos];
+    sitq->_fromPrimaryQueue.Push(rangeId, action);
+  }
+  /**
+   *@brief The IndexActions that generate by secondary index and will insert
+   *into action queue of primary index.
+   * @param indexPos The position of IndexTree in table that generate the action
+   * @param rangeId Which range to generate this action from secondary index.
+   * @param action The IndexAction will be inserted
+   */
+  void AddToPrimaryAction(uint16_t indexPos, uint16_t rangeId,
+                          IndexAction *action) {
+    assert(indexPos > 0 && indexPos < _vctIndexTaskQueue.size());
+    SecondaryIndexTaskQueue *sitq =
+        (SecondaryIndexTaskQueue *)_vctIndexTaskQueue[indexPos];
+    sitq->_toPrimaryQueue.Push(rangeId, action);
+  }
 
 protected:
   ThreadPool *_threadPool;
