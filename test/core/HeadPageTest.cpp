@@ -93,6 +93,7 @@ BOOST_AUTO_TEST_CASE(HeadPage_test) {
   BOOST_TEST(103 == headPage->GetRecordStamp());
 
   delete headPage;
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 }

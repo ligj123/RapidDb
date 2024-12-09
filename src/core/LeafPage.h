@@ -111,17 +111,13 @@ public:
   int32_t SearchKey(const LeafRecord &rr, bool &bFind, int32_t start = 0,
                     int32_t end = INT32_MAX);
 
-  void ClearRecords();
+  void ClearRecords() override;
   /**
    * @brief Load records from buffer into vector and reset children
    */
-  void LoadRecords();
+  void LoadRecords() override;
   bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
                  Byte lockPageLevel = UINT8_MAX) override;
-
-protected:
-  int CompareTo(uint32_t recPos, const RawKey &key);
-  int CompareTo(uint32_t recPos, const LeafRecord &rr, bool key);
 
 protected:
   uint32_t _prevPageId{PAGE_NULL_POINTER};

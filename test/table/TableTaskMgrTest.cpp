@@ -130,7 +130,9 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   DatabaseManager::AddDb(db);
   PhysTable *table = CreateTestTable(db, TABLE_NAME, 1000);
 
-  // ThreadPool::CreateMainPool("test", 1, 8);
+  ThreadPool::CreateMainPool("test", 1, 8);
+  TableTaskMgr *tmgr = new TableTaskMgr(ThreadPool::GetMainPool(), table, 2);
+  table->SetTableTaskMgr(tmgr);
 
   table->CloseIndex(0);
   table->CloseIndex(1);

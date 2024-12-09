@@ -80,6 +80,9 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   delete rr;
 
   bp->SetReferred(false);
+  bp->SetDirty(false);
+  indexTree->GetRootPage()->SetDirty(false);
+
   indexTree->Close();
 
   dvKey->DecRef();
@@ -137,6 +140,9 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   }
 
   bp->SetReferred(false);
+  bp->SetDirty(false);
+  indexTree->GetRootPage()->SetDirty(false);
+
   indexTree->Close();
   dvKey->DecRef();
   dvVal->DecRef();
@@ -208,6 +214,9 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
   }
 
   bp->SetReferred(false);
+  bp->SetDirty(false);
+  indexTree->GetRootPage()->SetDirty(false);
+
   indexTree->Close();
   dvKey->DecRef();
   dvVal->DecRef();
@@ -258,6 +267,9 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
   }
 
   bp->SetReferred(false);
+  bp->SetDirty(false);
+  indexTree->GetRootPage()->SetDirty(false);
+
   indexTree->Close();
   dvKey->DecRef();
   dvVal->DecRef();
@@ -284,6 +296,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
                              IndexType::PRIMARY);
   HeadPage *hp = indexTree->GetHeadPage();
   indexTree->GetRootPage()->SetReferred(false);
+  indexTree->GetRootPage()->SetDirty(false);
 
   MVector<IndexPage *> vctPage =
       indexTree->ApplyIndexPages(nullptr, 0, ROW_COUNT, false);
@@ -412,6 +425,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
       BOOST_TEST(cpage->GetParentPage() == page);
       BOOST_TEST(cpage->GetParentPageId() == page->GetPageId());
       cpage->SetReferred(false);
+      cpage->SetDirty(false);
 
       pcbr = &cbr;
       count++;
@@ -421,13 +435,15 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
     BOOST_TEST(page->IsBeginPage() == (i == 0));
     BOOST_TEST(page->IsEndPage() == (i == root->GetRecordNumber() - 1));
     page->SetReferred(false);
+    page->SetDirty(false);
   }
 
   BOOST_TEST(count == 2 * ROW_COUNT);
   BOOST_TEST(root->IsBeginPage());
   BOOST_TEST(root->IsEndPage());
   root->SetReferred(false);
-
+  root->SetDirty(false);
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 

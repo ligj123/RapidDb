@@ -77,6 +77,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
   delete br;
   delete br2;
   bp->SetReferred(false);
+  bp->SetDirty(false);
+  indexTree->GetRootPage()->SetDirty(false);
 
   indexTree->Close();
   CachePagePool::ClearPool();
@@ -149,6 +151,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
   delete br;
   delete br2;
 
+  indexSec->GetRootPage()->SetDirty(false);
+  indexPri->GetRootPage()->SetDirty(false);
   indexSec->Close();
   indexPri->Close();
   CachePagePool::ClearPool();
@@ -223,6 +227,8 @@ BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   delete br;
   delete br2;
 
+  indexSec->GetRootPage()->SetDirty(false);
+  indexPri->GetRootPage()->SetDirty(false);
   indexSec->Close();
   indexPri->Close();
   CachePagePool::ClearPool();

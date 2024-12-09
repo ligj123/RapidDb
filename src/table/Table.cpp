@@ -74,6 +74,16 @@ uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
   return uint32_t(bys - tmp);
 }
 
+void PhysTable::Clear() {
+  assert(_tableTaskMgr == nullptr);
+
+  _vctColumn.clear();
+  _mapColumnPos.clear();
+  _vctIndex.clear();
+  _mapIndexNamePos.clear();
+  _vctIndexPos.clear();
+}
+
 bool PhysTable::AddColumn(const MString &columnName, DataType dataType,
                           bool nullable, uint32_t maxLen,
                           const MString &comment, Charsets charset,
@@ -175,8 +185,8 @@ bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
   }
 
   IndexProp prop(iname, (uint32_t)_vctIndex.size(), indexType, vctCol);
-  _vctIndex.push_back(move(prop));
   _mapIndexNamePos.insert({prop._name, prop._position});
+  _vctIndex.push_back(move(prop));
 
   if (indexType == IndexType::PRIMARY)
     return true;
@@ -315,8 +325,8 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     uint32_t isz = prop.Read(buf, i, _mapColumnPos);
     buf += isz;
 
-    _vctIndex.push_back(move(prop));
     _mapIndexNamePos.insert({prop._name, i});
+    _vctIndex.push_back(move(prop));
 
     for (IndexColumn &ic : prop._vctCol) {
       size_t i = 0;

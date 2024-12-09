@@ -119,11 +119,25 @@ public:
    */
   virtual bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
                          Byte lockPageLevel = UINT8_MAX) = 0;
+  virtual void LoadRecords() = 0;
+  virtual void ClearRecords() = 0;
 
   inline bool IsRangBeginPage() { return _bRangeBeginPage; }
   inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }
   inline bool IsRangEndPage() { return _bRangeEndPage; }
   inline void SetRangeEndPage(bool b) { _bRangeEndPage = b; }
+
+  inline uint32_t IsRefered() { return _bRefered; }
+  inline void SetReferred(bool b) {
+    if (b) {
+      if (GetPageStatus() == PageStatus::VALID && _vctRecord.size() == 0)
+        LoadRecords();
+    } else {
+      ClearRecords();
+    }
+
+    _bRefered = b;
+  }
 
 protected:
   // Parent page ID
@@ -142,5 +156,7 @@ protected:
 
   bool _bRangeEndPage{false};
   bool _bRangeBeginPage{false};
+
+  friend class IndexTree;
 };
 } // namespace storage

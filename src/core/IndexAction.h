@@ -9,6 +9,7 @@ class IndexTree;
 class IndexPage;
 class Statement;
 class LeafRecord;
+class IndexRange;
 
 class IndexAction {
 public:
@@ -35,10 +36,9 @@ public:
     return -1;
   }
   /**
-   * @brief If the index range need to adjust, to judge if this action can be
-   * run after adjusted
+   * @brief Set the range position that this action belong to
+   * @param pos The range position
    */
-  virtual bool RearrangeAble() { return true; }
   void SetRangePos(int pos) { _rangePos = pos; }
 
 protected:
@@ -59,7 +59,7 @@ public:
   }
   TaskStatus Exec() override;
 
-  bool RearrangeAble() override { return false; }
+  int JudgeRange() override;
 
 protected:
   PageID _pageId;               // The page need to update previous page

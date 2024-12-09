@@ -23,7 +23,8 @@ enum class TaskStatus : Byte {
   STARTED,    // The task has been added into ThreadPool, only for special task
   RUNNING,    // The task is running, it will be saved into thread local vector
   INTERVAL,   // The unfinished tasks has be moved from thread runnning queue to
-              // pool queue and waitting free threads to catch them..
+              // pool queue and waitting free threads to catch them.
+  FREE,       // There has not more tasks to run
   FINISHED    // The task has finished and will be free.
 };
 
@@ -95,7 +96,13 @@ public:
   ThreadTask &operator=(ThreadTask &&src) = delete;
 
   virtual TaskStatus Run() = 0;
-  inline TaskStatus GetStatus() { return _taskStatus; }
+  inline TaskStatus GetStatus(bool acquire) {
+    return _taskStatus.load(acquire ? memory_order_acquire
+                                    : memory_order_relaxed);
+  }
+  inline void SetStatus(TaskStatus s, bool release) {
+    _taskStatus.store(s, release ? memory_order_release : memory_order_relaxed);
+  }
   // inline void SetStatus(TaskStatus s) { _status = s; }
   inline BusyDegree GetBusyDegree() { return _busyDegree; }
   inline uint8_t GetRepeatTime() { return _repeatTime; }
@@ -121,7 +128,7 @@ protected:
   BusyDegree _busyDegree = BusyDegree::FREE;
   uint8_t _repeatTime{0};  // The same busy degree repeat time
   bool _bExclusive{false}; // To occupy a thread entirely or not
-  TaskStatus _taskStatus{TaskStatus::UNINIT};
+  atomic<TaskStatus> _taskStatus{TaskStatus::UNINIT};
   // If the tasks has same mask, they will try to avoid to hand out them into
   // one thread. If equal 0, means it does not to avoid it.
   uint32_t _taskMask{0};
@@ -203,9 +210,11 @@ public:
     assert(_instMain != nullptr);
     return _instMain;
   }
+
   static void CreateMainPool(const MString &threadPrefix = "main",
                              int minThreads = 1,
                              int maxThreads = DEFAULT_MAX_THREADS);
+  static void CloseMainPool();
 
 public:
   ThreadPool(const MString &threadPrefix, int minThreads = 1,

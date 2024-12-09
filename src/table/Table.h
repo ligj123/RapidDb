@@ -173,6 +173,7 @@ public:
    * 9) 2 + n bytes: Index number and contents, include primary key
    */
   uint32_t CalcSize();
+  void Clear();
 
   bool OpenIndex(size_t idx, bool bCreate = false);
   void CloseIndex(size_t idx) {
@@ -207,17 +208,12 @@ public:
 
   inline ResStatus GetTableStatus() { return _tableStatus; }
   inline void SetTableStatus(ResStatus sts) { _tableStatus = sts; }
+  inline void SetTableTaskMgr(TableTaskMgr *mgr) { _tableTaskMgr = mgr; }
+  inline TableTaskMgr *GetTableTaskMgr() { return _tableTaskMgr; }
 
 protected:
   inline bool IsExistedColumn(MString &name) {
     return _mapColumnPos.find(name) != _mapColumnPos.end();
-  }
-  inline void Clear() {
-    _vctColumn.clear();
-    _mapColumnPos.clear();
-    _vctIndex.clear();
-    _mapIndexNamePos.clear();
-    _vctIndexPos.clear();
   }
 
 protected:

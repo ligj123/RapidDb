@@ -91,6 +91,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
   delete lr;
   delete lr2;
 
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 
@@ -189,6 +190,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
 
   delete lr;
   delete lr2;
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 }
@@ -243,7 +245,9 @@ BOOST_AUTO_TEST_CASE(LeafRecord_SecIndex_test) {
 
   delete lrSec;
   delete lr;
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
+  secTree->GetRootPage()->SetDirty(false);
   secTree->Close();
   CachePagePool::ClearPool();
 }
@@ -402,6 +406,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   lr->ReleaseLock(indexTree, false);
   delete lr;
 
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 }

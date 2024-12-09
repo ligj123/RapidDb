@@ -87,6 +87,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
     }
 
     page->SetReferred(false);
+    page->SetDirty(false);
   }
 
   indexTree->Close();
@@ -122,12 +123,14 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
 
     PageID pid = lp->GetNextPageId();
     lp->SetReferred(false);
+    lp->SetDirty(false);
     if (pid == PAGE_NULL_POINTER)
       break;
 
     lp = (LeafPage *)indexTree->GetPage(pid, PageType::LEAF_PAGE);
   }
 
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 
@@ -210,6 +213,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
     }
 
     page->SetReferred(false);
+    page->SetDirty(false);
   }
 
   indexTree->Close();
@@ -248,12 +252,14 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
 
     PageID pid = lp->GetNextPageId();
     lp->SetReferred(false);
+    lp->SetDirty(false);
     if (pid == PAGE_NULL_POINTER)
       break;
 
     lp = (LeafPage *)indexTree->GetPage(pid, PageType::LEAF_PAGE);
   }
 
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 
@@ -299,6 +305,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToPrimaryKey_test) {
   BOOST_TEST(bFind);
   delete rr;
 
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 
@@ -352,6 +359,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedRecordToNonUniqueIndex_test) {
   BOOST_TEST(!bFind);
   lp->InsertRecord(rr3, pos);
 
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 
@@ -445,6 +453,8 @@ BOOST_AUTO_TEST_CASE(IndexTreeUniqueIndex_test) {
   delete rr;
 
   lp->SetReferred(false);
+  lp->SetDirty(false);
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 

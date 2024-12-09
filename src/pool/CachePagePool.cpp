@@ -9,7 +9,7 @@
 namespace storage {
 uint64_t CachePagePool::_maxCacheSize =
     Configure::GetTotalMemorySize() / Configure::GetIndexPageSize();
-unordered_map<uint64_t, CachePage *>
+unordered_map<uint64_t, IndexPage *>
     CachePagePool::_mapCache(CachePagePool::_maxCacheSize);
 SpinMutex CachePagePool::_spinMutex;
 atomic_bool CachePagePool::_urgentTask{false};
@@ -17,7 +17,7 @@ thread *CachePagePool::_thread{nullptr};
 bool CachePagePool::_bStoped{false};
 uint64_t CachePagePool::_countPool{0};
 
-void CachePagePool::AddPage(CachePage *page) {
+void CachePagePool::AddPage(IndexPage *page) {
   unique_lock<SpinMutex> lock(_spinMutex);
   _mapCache.emplace(page->HashCode(), page);
 }
@@ -29,7 +29,7 @@ void CachePagePool::AddPages(MVector<IndexPage *> &vctPage) {
   }
 }
 
-CachePage *CachePagePool::GetPage(IndexTree *idxTree, uint32_t pageId,
+IndexPage *CachePagePool::GetPage(IndexTree *idxTree, uint32_t pageId,
                                   PageType type) {
   unique_lock<SpinMutex> lock(_spinMutex);
   uint64_t hashId = CachePage::CalcHashCode(idxTree->GetFileId(), pageId);
@@ -75,7 +75,7 @@ void CachePagePool::StopPool() {
 void CachePagePool::ClearPool() {
   unique_lock<SpinMutex> lock(_spinMutex);
   for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
-    CachePage *page = iter->second;
+    IndexPage *page = iter->second;
     assert(!page->IsRefered());
     delete page;
   }

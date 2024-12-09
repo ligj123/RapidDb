@@ -40,12 +40,12 @@ void LeafPage::InitParameters() {
     _nextPageId = _nextPage->GetPageId();
     _bDirty = true;
   }
+
+  LoadRecords();
 }
 
 void LeafPage::LoadRecords() {
   assert(!_bDirty && _vctRecord.size() == 0);
-  assert(GetPageStatus() == PageStatus::VALID ||
-         GetPageStatus() == PageStatus::WRITING);
 
   uint16_t pos = DATA_BEGIN_OFFSET;
   for (uint16_t i = 0; i < _recordNum; i++) {
@@ -230,12 +230,8 @@ int32_t LeafPage::SearchRecord(const LeafRecord &rr, bool &bFind, int32_t start,
     }
 
     int middle = (start + end) / 2;
-    if (_vctRecord.size() > 0) {
-      hr = bUnique ? GetRecord(middle).CompareKey(rr)
-                   : GetRecord(middle).CompareTo(rr);
-    } else {
-      hr = CompareTo(middle, rr, bUnique);
-    }
+    hr = bUnique ? GetRecord(middle).CompareKey(rr)
+                 : GetRecord(middle).CompareTo(rr);
 
     if (hr < 0) {
       start = middle + 1;
@@ -263,11 +259,7 @@ int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, int32_t start,
 
     int32_t middle = (start + end) / 2;
     int hr = 0;
-    if (_vctRecord.size() > 0) {
-      hr = GetRecord(middle).CompareKey(key);
-    } else {
-      hr = CompareTo(middle, key);
-    }
+    hr = GetRecord(middle).CompareKey(key);
 
     if (hr < 0) {
       start = middle + 1;
@@ -277,9 +269,7 @@ int32_t LeafPage::SearchKey(const RawKey &key, bool &bFind, int32_t start,
       if (bUnique) {
         return middle;
       } else {
-        if (middle > start &&
-            (_vctRecord.size() > 0 ? GetRecord(middle - 1).CompareKey(key) == 0
-                                   : CompareTo(middle - 1, key) == 0)) {
+        if (middle > start && GetRecord(middle - 1).CompareKey(key) == 0) {
           end = middle - 1;
         } else {
           return middle;
@@ -305,11 +295,7 @@ int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, int32_t start,
 
     int32_t middle = (start + end) / 2;
     int hr = 0;
-    if (_vctRecord.size() > 0) {
-      hr = GetRecord(middle).CompareKey(rr);
-    } else {
-      hr = CompareTo(middle, rr, true);
-    }
+    hr = GetRecord(middle).CompareKey(rr);
 
     if (hr < 0) {
       start = middle + 1;
@@ -319,35 +305,13 @@ int32_t LeafPage::SearchKey(const LeafRecord &rr, bool &bFind, int32_t start,
       if (bUnique) {
         return middle;
       } else {
-        if (middle > start &&
-            (_vctRecord.size() > 0 ? GetRecord(middle - 1).CompareKey(rr) == 0
-                                   : CompareTo(middle - 1, rr, true) == 0)) {
+        if (middle > start && GetRecord(middle - 1).CompareKey(rr) == 0) {
           end = middle - 1;
         } else {
           return middle;
         }
       }
     }
-  }
-}
-
-int LeafPage::CompareTo(uint32_t recPos, const RawKey &key) {
-  uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
-  return BytesCompare(_bysPage + start + UI16_2_LEN,
-                      ReadShort(start + UI16_LEN), key.GetBysVal(),
-                      key.GetLength());
-}
-
-int LeafPage::CompareTo(uint32_t recPos, const LeafRecord &rr, bool key) {
-  uint16_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
-  if (key) {
-    return BytesCompare(_bysPage + start + UI16_2_LEN,
-                        ReadShort(start + UI16_LEN),
-                        rr.GetBysValue() + UI16_2_LEN, rr.GetKeyLength());
-  } else {
-    return BytesCompare(
-        _bysPage + start + UI16_2_LEN, ReadShort(start) - UI16_2_LEN,
-        rr.GetBysValue() + UI16_2_LEN, rr.GetTotalLength() - UI16_2_LEN);
   }
 }
 
@@ -542,7 +506,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
       size_t pos = _indexTree->CalcIndexRange(GetRecord(0)) + 1;
       PrevPageAction *act = new PrevPageAction(
           _indexTree, pos, lastId, (vctPage[vctPage.size() - 1])->GetPageId());
-      _indexTree->AddAction(pos, act);
+      _indexTree->AddActionFromPrev(pos, act);
     } else {
       if (lastPage == nullptr) {
         lastPage = (LeafPage *)_indexTree->GetPage(lastId, PageType::LEAF_PAGE);

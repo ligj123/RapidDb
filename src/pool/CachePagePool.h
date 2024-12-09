@@ -16,10 +16,10 @@ public:
   static uint64_t GetMaxCacheSize() { return _maxCacheSize; }
   static void SetMaxCacheSize(uint64_t sz) { _maxCacheSize = sz; }
 
-  static void AddPage(CachePage *page);
+  static void AddPage(IndexPage *page);
   static void AddPages(MVector<IndexPage *> &vctPage);
 
-  static CachePage *GetPage(IndexTree *idxTree, uint32_t pageId, PageType type);
+  static IndexPage *GetPage(IndexTree *idxTree, uint32_t pageId, PageType type);
 
   static uint64_t GetCacheSize() { return _mapCache.size(); }
   static void InitPool();
@@ -33,7 +33,7 @@ protected:
 protected:
   // The max cache pages in this pool
   static uint64_t _maxCacheSize;
-  static unordered_map<uint64_t, CachePage *> _mapCache;
+  static unordered_map<uint64_t, IndexPage *> _mapCache;
   static SpinMutex _spinMutex;
   // If here has urgent task that need to clear all pages in a index tree.
   static atomic_bool _urgentTask;

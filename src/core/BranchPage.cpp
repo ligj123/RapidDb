@@ -20,6 +20,8 @@ void BranchPage::InitParameters() {
     _parentPageId = _parentPage->GetPageId();
     _bDirty = true;
   }
+
+  LoadRecords();
 }
 
 void BranchPage::LoadRecords() {
@@ -90,8 +92,6 @@ BranchRecord *BranchPage::DeleteRecord(uint16_t index) {
   assert(_pageStatus.load(memory_order_relaxed) == PageStatus::VALID ||
          _pageStatus.load(memory_order_relaxed) == PageStatus::WRITING);
   assert(index >= 0 && index < _recordNum);
-  if (_vctRecord.size() == 0)
-    LoadRecords();
 
   BranchRecord *brDel = (BranchRecord *)_vctRecord[index];
   _committedDataLength -= brDel->GetTotalLength() + UI16_LEN;
@@ -106,9 +106,6 @@ void BranchPage::InsertRecord(BranchRecord *record, int32_t pos) {
   assert(_pageStatus.load(memory_order_relaxed) == PageStatus::VALID ||
          _pageStatus.load(memory_order_relaxed) == PageStatus::WRITING);
   assert(pos >= 0 && pos <= _recordNum);
-  if (_recordNum > 0 && _vctRecord.size() == 0) {
-    LoadRecords();
-  }
 
   _committedDataLength += record->GetTotalLength() + UI16_LEN;
   _vctRecord.insert(_vctRecord.begin() + pos, record);
@@ -147,8 +144,7 @@ int32_t BranchPage::SearchRecord(const RawRecord &rr) const {
     }
 
     int middle = (start + end) / 2;
-    int hr = (_vctRecord.size() > 0 ? GetVctRecord(middle)->CompareTo(rr)
-                                    : CompareTo(middle, rr));
+    int hr = GetVctRecord(middle)->CompareTo(rr);
     if (hr < 0) {
       start = middle + 1;
     } else if (hr > 0) {
@@ -175,17 +171,14 @@ int32_t BranchPage::SearchKey(const RawKey &key) const {
     }
 
     int32_t middle = (start + end) / 2;
-    int hr = (_vctRecord.size() > 0 ? GetVctRecord(middle)->CompareKey(key)
-                                    : CompareTo(middle, key));
+    int hr = GetVctRecord(middle)->CompareKey(key);
     if (hr < 0) {
       start = middle + 1;
     } else if (hr > 0) {
       end = middle - 1;
     } else {
       if (!bUnique && middle > start &&
-          (_vctRecord.size() > 0
-               ? GetVctRecord(middle - 1)->CompareKey(key) == 0
-               : CompareTo(middle - 1, key) == 0)) {
+          GetVctRecord(middle - 1)->CompareKey(key) == 0) {
         end = middle - 1;
       } else {
         return middle;
@@ -194,40 +187,11 @@ int32_t BranchPage::SearchKey(const RawKey &key) const {
   }
 }
 
-int BranchPage::CompareTo(uint32_t recPos, const RawRecord &rr) const {
-  assert(recPos < _recordNum);
-  uint32_t startPos = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
-  uint32_t lenKey = ReadShort(startPos + UI16_LEN);
-
-  if (rr.GetIndexType() != IndexType::NON_UNIQUE) {
-    return BytesCompare(_bysPage + startPos + UI16_2_LEN,
-                        ReadShort(startPos + UI16_LEN),
-                        rr.GetBysValue() + UI16_2_LEN, rr.GetKeyLength());
-  } else {
-    return BytesCompare(_bysPage + startPos + UI16_2_LEN,
-                        ReadShort(startPos) - UI16_2_LEN - PAGE_ID_LEN,
-                        rr.GetBysValue() + UI16_2_LEN, rr.GetDataLength());
-  }
-}
-
-int BranchPage::CompareTo(uint32_t recPos, const RawKey &key) const {
-  assert(recPos < _recordNum);
-  uint32_t start = ReadShort(DATA_BEGIN_OFFSET + recPos * UI16_LEN);
-
-  return BytesCompare(_bysPage + start + UI16_2_LEN,
-                      ReadShort(start + UI16_LEN), key.GetBysVal(),
-                      key.GetLength());
-}
-
 BranchRecord &BranchPage::GetRecord(int32_t pos, bool bAutoLast) {
   assert(_recordNum > 0 && pos >= 0);
   assert(bAutoLast || pos < _recordNum);
   if (bAutoLast && pos >= _recordNum) {
     pos = _recordNum - 1;
-  }
-
-  if (_vctRecord.size() == 0) {
-    LoadRecords();
   }
 
   return *GetVctRecord(pos);
@@ -392,20 +356,20 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     int pos = _indexTree->CalcIndexRange(*last);
     IndexRange &range = _indexTree->GetVctRange().at(pos);
     size_t i = 0;
-    for (; i < range._vctRangeRecord.size(); i++) {
-      if (range._vctRangeRecord[i]->GetChildPage() == this) {
+    for (; i < range._vctRangePage.size(); i++) {
+      if (range._vctRangePage[i] == this) {
         break;
       }
     }
 
-    assert(i < range._vctRangeRecord.size() &&
-           range._vctRangeRecord[i] == brParentOld);
-    auto iter = range._vctRangeRecord.begin() + i;
-    iter = range._vctRangeRecord.erase(iter);
+    assert(i < range._vctRangePage.size());
+    auto iter = range._vctRangePage.begin() + i + 1;
 
-    for (int ii = posInParent - 1; ii < posInParent + vctPage.size(); ii++)
-      iter = range._vctRangeRecord.insert(
-          iter, (BranchRecord *)_parentPage->_vctRecord[ii]);
+    for (int ii = 0; ii < vctPage.size(); ii++) {
+      iter = range._vctRangePage.insert(range._vctRangePage.begin() + ii +
+                                            posInParent,
+                                        (BranchPage *)vctPage[ii]);
+    }
   }
 
   SetRecordUpdated();

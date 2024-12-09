@@ -69,7 +69,7 @@ public:
   inline uint32_t GetScore() const { return _score; }
 
   inline bool IsDirty() const { return _bDirty; }
-  inline void SetDirty() { _bDirty = true; }
+  inline void SetDirty(bool b = true) { _bDirty = b; }
   inline PageID GetPageId() const { return _pageId; }
   inline uint64_t HashCode() const { return CalcHashCode(_fileId, _pageId); }
   inline uint64_t GetFileId() const { return _fileId; }
@@ -83,8 +83,6 @@ public:
   inline bool TryLock() { return _spinLock.try_lock(); }
   inline void Unlock() { _spinLock.unlock(); }
 
-  inline uint32_t IsRefered() { return _bRefered; }
-  inline void SetReferred(bool b) { _bRefered = b; }
   virtual bool Releaseable() {
     return !_bRefered &&
            _pageStatus.load(memory_order_relaxed) == PageStatus::VALID;

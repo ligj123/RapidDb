@@ -24,31 +24,47 @@ class BranchPage;
 class BranchRecord;
 
 struct IndexRange {
+  IndexRange() {}
+  IndexRange(IndexRange &&src) {}
   ~IndexRange();
 
   IndexPage *GetTopPage(IndexType type, RawRecord &rr);
   BranchRecord *GetLastRecord() {
-    return _vctRangeRecord[_vctRangeRecord.size() - 1];
+    assert(_borderRecord != nullptr);
+    return _borderRecord;
   }
 
-  // The top level BrangeRecords assigned to this range
-  MVector<BranchRecord *> _vctRangeRecord;
+  // The right border of record for this range
+  BranchRecord *_borderRecord{nullptr};
+  // The top level BrangePages assigned to this range
+  MVector<BranchPage *> _vctRangePage;
   // The Start leafPage of this range
   LeafPage *_startPage{nullptr};
   // The end LeafPage of this range
   LeafPage *_endPage{nullptr};
   // The queue to save running IndexActions
   MDeque<IndexAction *> _queueAction;
-  // The queue to temp save IndexActions that insert from other threads and will
-  // be moved into _queueAction before run.
-  MDeque<IndexAction *> _queueTempAction;
+  // The queue to temp save IndexActions that collected from session and other
+  // IndexTree.
+  LineQueue<IndexAction> _queueActionFromCollect;
+  // The queue to temp save IndexActions that send from previous range.
+  LineQueue<IndexAction> _queueActionFromPrev;
   // To save the increase-decrease of records in current range, it will be added
   // into the total record number in the HeadPage when write disk.
   int64_t _recordNumber{0};
   // To decrease atomic operation, every range will apply a batch of stamp one
-  // time.
+  // time. Only used when multi ranges.
   VersionStamp _recordStampStart{0};
   VersionStamp _recordStampEnd{0};
+  // To save the pages updated in this range and use it to write the pages into
+  // disk.
+  MTreeMap<uint64_t, CachePage *> _pageMap;
+  // The last time to write updated pages into disk.
+  DT_MicroSec _dtLastWriteDisk{1};
+  // The datetime that the task has received stop signal and all actions has
+  // been finished. After 100 milliseconds the task will stop if no more actions
+  // com.
+  DT_MicroSec _dtTaskStop{0};
 };
 
 class IndexTree {
@@ -206,25 +222,16 @@ public:
   MVector<IndexRange> &GetVctRange() { return _vctRange; }
   int CalcIndexRange(RawRecord &rr);
   int CalcIndexRange(RawKey &key);
+  int CalcIndexRange(IndexPage *page);
   bool IsMultiRange() { return _vctRange.size() > 1; }
 
   void UpdateRecordNumber(int iRange, int64_t recNum);
   VersionStamp ApplyStamp(int iRange);
 
-  void AddAction(int iRange, IndexAction *act) {
+  void AddActionFromPrev(int iRange, IndexAction *act) {
     assert(iRange >= 0 && iRange < _vctRange.size());
     IndexRange &range = _vctRange[iRange];
-    unique_lock<SpinMutex> lock(_rangMutex);
-    range._queueTempAction.push_back(act);
-  }
-
-  void AddActions(int iRange, MDeque<IndexAction *> &queue) {
-    assert(iRange >= 0 && iRange < _vctRange.size());
-    IndexRange &range = _vctRange[iRange];
-    unique_lock<SpinMutex> lock(_rangMutex);
-    range._queueTempAction.insert(range._queueTempAction.end(), queue.begin(),
-                                  queue.end());
-    queue.clear();
+    range._queueActionFromPrev.Push(act);
   }
 
   bool IsReranging() { return _bReranging; }

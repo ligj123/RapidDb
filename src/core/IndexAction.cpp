@@ -7,11 +7,16 @@
 #include "LeafRecord.h"
 
 namespace storage {
+int PrevPageAction::JudgeRange() { return -1; }
+
 TaskStatus PrevPageAction::Exec() {
   assert(_rangePos >= 0 && _rangePos < _indexTree->GetVctRange().size());
   if (_idxPage == nullptr) {
-    _idxPage =
-        _indexTree->GetVctRange()[_rangePos]._vctRangeRecord[0]->GetChildPage();
+    if (_indexTree->GetVctRange().size() == 1) {
+      _idxPage = _indexTree->GetRootPage();
+    } else {
+      _idxPage = _indexTree->GetVctRange()[_rangePos]._vctRangePage[0];
+    }
   }
 
   while (true) {

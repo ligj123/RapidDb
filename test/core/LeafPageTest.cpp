@@ -97,6 +97,8 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
   delete dvKey;
   delete dvVal;
   lp->SetReferred(false);
+  lp->SetDirty(false);
+  indexTree->GetRootPage()->SetDirty(false);
   indexTree->Close();
   CachePagePool::ClearPool();
 }
@@ -139,6 +141,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   LeafPage *root = (LeafPage *)indexTree->GetRootPage();
   root->SaveRecords(pageMap, false);
   FilePagePool::SyncWritePage(root);
+
   indexTree->Close();
   CachePagePool::ClearPool();
 
@@ -150,7 +153,6 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
   FilePagePool::SyncReadPage(lp);
   lp->SetPageStatus(PageStatus::VALID);
   lp->InitParameters();
-  lp->LoadRecords();
   vctKey.push_back(dvKey->Clone(true));
 
   for (int i = 0; i < ROW_COUNT; i++) {
@@ -318,12 +320,14 @@ BOOST_AUTO_TEST_CASE(LeafPageSplit_test) {
     BOOST_TEST(page->IsBeginPage() == (i == 0));
     BOOST_TEST(page->IsEndPage() == (i == root->GetRecordNumber() - 1));
     page->SetReferred(false);
+    page->SetDirty(false);
   }
 
   BOOST_TEST(count == 2 * ROW_COUNT);
   BOOST_TEST(root->IsBeginPage());
   BOOST_TEST(root->IsEndPage());
   root->SetReferred(false);
+  root->SetDirty(false);
 
   indexTree->Close();
   CachePagePool::ClearPool();

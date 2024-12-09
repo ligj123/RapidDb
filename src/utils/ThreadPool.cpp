@@ -22,6 +22,13 @@ void ThreadPool::CreateMainPool(const MString &threadPrefix, int minThreads,
   });
 }
 
+void ThreadPool::CloseMainPool() {
+  assert(_instMain != nullptr);
+  _instMain->SetStop();
+  delete _instMain;
+  _instMain = nullptr;
+}
+
 ThreadPool::ThreadPool(const MString &threadPrefix, int minThreads,
                        int maxThreads)
     : _threadPrefix(threadPrefix), _minThreads(minThreads),

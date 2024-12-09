@@ -65,6 +65,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolSync_test) {
       BytesEqual((const Byte *)pStrTest, sz, page2.GetBysPage() + 4, sz));
   BOOST_TEST(0x5A5A5A5A == page2.ReadInt(CachePage::INDEX_PAGE_SIZE - 4));
 
+  idxTree->GetRootPage()->SetDirty(false);
   idxTree->Close();
   CachePagePool::ClearPool();
 }
@@ -134,6 +135,7 @@ BOOST_AUTO_TEST_CASE(FilePagePoolAsync_test) {
   }
 
   vctPage.clear();
+  idxTree->GetRootPage()->SetDirty(false);
   idxTree->Close();
   CachePagePool::ClearPool();
   FilePagePool::Stop();

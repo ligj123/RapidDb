@@ -25,11 +25,11 @@ public:
   /**
    * @brief clear vector of records
    */
-  void ClearRecords();
+  void ClearRecords() override;
   /**
    * @brief Load records from buffer into vector and reset children
    */
-  void LoadRecords();
+  void LoadRecords() override;
   /**
    * @brief Save records from vector and variable into buffer
    * @return If conditions is ok and saved successfully, return true, or false
@@ -78,10 +78,6 @@ public:
 
   LeafPage *GetLeftLeafChild();
   LeafPage *GetRightLeafChild();
-
-protected:
-  int CompareTo(uint32_t recPos, const RawRecord &rr) const;
-  int CompareTo(uint32_t recPos, const RawKey &key) const;
 
 protected:
 };

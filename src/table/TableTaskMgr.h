@@ -33,13 +33,15 @@ public:
   virtual ~IndexTaskQueue() {}
 
   virtual bool IsQueueEmpty() {
-    return _queueTempAction.size() == 0 && _queueSessionAction.RoughSize() == 0;
+    return _queueRangeAction.size() == 0 &&
+           _queueSessionAction.RoughSize() == 0;
   }
 
   // To receive IndexAction from sessions. Its lines equal session groups number
   RapidQueue<IndexAction> _queueSessionAction;
-  // Temp to save IndexActions;
-  MDeque<IndexAction *> _queueTempAction;
+  // Temp to save IndexActions from obsolete IndexTasks when rerange the
+  // IndexTasks;
+  MDeque<IndexAction *> _queueRangeAction;
   // The time of this IndexTaskQueue created
   DT_MilliSec _createTime;
 };
@@ -60,7 +62,7 @@ public:
         _toPrimaryQueue(Configure::GetMaxIndexTaskNum(), secTaskNum) {}
 
   bool IsQueueEmpty() override {
-    return _queueTempAction.size() == 0 &&
+    return _queueRangeAction.size() == 0 &&
            _queueSessionAction.RoughSize() == 0 &&
            _fromPrimaryQueue.RoughSize() == 0 &&
            _toPrimaryQueue.RoughSize() == 0;
@@ -84,9 +86,9 @@ public:
    * @param mtNum The thread number of parmary index task
    */
   IndexTask(ThreadPool *pool, TableTaskMgr *taskMgr, uint16_t indexPos,
-            uint16_t taskSn)
+            uint16_t taskPos)
       : ThreadTask(pool), _taskMgr(taskMgr), _indexPos(indexPos),
-        _taskSn(taskSn) {}
+        _taskPos(taskPos) {}
 
   TaskStatus Run() override;
 
@@ -94,9 +96,16 @@ protected:
   TableTaskMgr *_taskMgr;
   uint16_t _indexPos;
   // It use to sign which number IndexTask for this IndexTree.
-  uint16_t _taskSn;
+  uint16_t _taskPos;
 
   friend class TableTaskMgr;
+};
+
+enum class MgrStatus {
+  INIT = 0, // Just create and not start TableTaskMgr tasks
+  RUNNING,  // The tasks of this TableTaskMgr are running.
+  SET_STOP, // The TableTaskMgr has been set to stop.
+  STOPED    // The TableTaskMgr has stoped
 };
 
 class TableTaskMgr {
@@ -107,6 +116,8 @@ public:
   static void operator delete(void *ptr, size_t size) {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
+  // The datatime the last time to set to write updated pages into disk
+  static DT_MicroSec _dtLastWriteDisk;
 
 public:
   /**
@@ -128,6 +139,10 @@ public:
             new SecondaryIndexTaskQueue(sessionGroupNum, 1, 1));
       }
 
+      MVector<IndexRange> &vctRange =
+          _table->GetVectorIndex()[i]._tree->GetVctRange();
+      vctRange.resize(1);
+
       MVector<IndexTask *> vct;
       IndexTask *task = new IndexTask(pool, this, 1, 0);
       vct.push_back(task);
@@ -141,7 +156,7 @@ public:
   ~TableTaskMgr() {
     for (auto &vtask : _vctIndexTasks) {
       for (auto task : vtask) {
-        assert(task->GetStatus() == TaskStatus::FINISHED);
+        assert(task->GetStatus(true) == TaskStatus::FINISHED);
         delete task;
       }
     }
@@ -161,17 +176,6 @@ public:
   }
 
   void CollectTaskData(uint16_t idxPos);
-
-  /**
-   * @brief Calc how to split the IndexTree and split the pages into different
-   * ranges.
-   * @param indexPos Which index to split, it is same with IndexProp::_position
-   * inPhysTable.
-   * @param exptTaskNum The expected ranges to split, it will adjust in
-   * according to actual conditions.
-   * @return The actual range number to split
-   */
-  uint16_t ResplitTaskRanges(uint16_t indexPos, uint16_t exptTaskNum);
 
   /**
    * @brief The session group generate IndexActions and add them into action
@@ -215,12 +219,31 @@ public:
     sitq->_toPrimaryQueue.Push(rangeId, action);
   }
 
+  MgrStatus GetMgrStatus() { return _mgrStatus; }
+  void SetMgrStatus(MgrStatus s) { _mgrStatus = s; }
+  // To check if all IndexTasks have finished
+  void CheckMgrStatus() {
+    assert(_mgrStatus == MgrStatus::SET_STOP);
+
+    for (auto &vct : _vctIndexTasks) {
+      for (auto task : vct) {
+        if (task->GetStatus(true) != TaskStatus::FINISHED) {
+          return;
+        }
+      }
+    }
+
+    _mgrStatus = MgrStatus::STOPED;
+  }
+
 protected:
   ThreadPool *_threadPool;
   PhysTable *_table;
   uint16_t _sessionGroupNum;
+  MgrStatus _mgrStatus{MgrStatus::INIT};
   MVector<IndexTaskQueue *> _vctIndexTaskQueue;
   MVector<MVector<IndexTask *>> _vctIndexTasks;
+
   friend class IndexTask;
   friend class IndexAdjustTask;
 };
