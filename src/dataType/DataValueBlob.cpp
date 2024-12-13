@@ -81,7 +81,10 @@ bool DataValueBlob::PutValue(std::any val) {
   return true;
 }
 
-bool DataValueBlob::Copy(const IDataValue &dv, bool bMove) {
+bool DataValueBlob::Copy(IDataValue &dv, bool bMove) {
+  if (dv.IsConstRef()) {
+    bMove = false
+  };
   if (dataType_ != dv.GetDataType()) {
     _threadErrorMsg.reset(
         new ErrorMsg(DT_UNSUPPORT_CONVERT, {StrOfDataType(dv.GetDataType()),

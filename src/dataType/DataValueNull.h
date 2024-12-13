@@ -18,13 +18,13 @@ public:
   DataValueNull(const DataValueNull &dv) : IDataValue(dv) {}
   DataValueNull() : IDataValue(DataType::VAL_NULL, ValueType::SOLE_VALUE) {}
 
-  bool Copy(const IDataValue &dv, bool bMove = false) override { return true; }
+  bool Copy(IDataValue &dv, bool bMove = false) override { return true; }
   DataValueNull *Clone(bool incVal = false) override {
     return new DataValueNull();
   }
   std::any GetValue() const override { return std::any(); }
   bool PutValue(std::any val) override { return true; };
-  void SetNull() override{};
+  void SetNull() override {};
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override { return 0; }
   uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
                     bool bSole = true) override {

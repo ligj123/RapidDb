@@ -87,7 +87,11 @@ bool DataValueVarChar::PutValue(std::any val) {
   return true;
 }
 
-bool DataValueVarChar::Copy(const IDataValue &dv, bool bMove) {
+bool DataValueVarChar::Copy(IDataValue &dv, bool bMove) {
+  if (dv.IsConstRef()) {
+    bMove = false
+  };
+
   if (dv.IsNull()) {
     if (valType_ == ValueType::SOLE_VALUE) {
       CachePool::Release(bysValue_, soleLength_);

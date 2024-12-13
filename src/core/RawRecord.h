@@ -57,6 +57,7 @@ public:
   virtual uint16_t GetDataLength() const = 0;
   IndexType GetIndexType() const { return _indexType; }
   bool IsDelete() { return _bDelete; }
+  bool IsValid() { return _bValid; }
 
 public:
   static void *operator new(size_t size) {

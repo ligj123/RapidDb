@@ -86,6 +86,7 @@ public:
   }
   inline uint16_t GetRef() { return refCount_; }
   inline void SetConstRef() { refCount_ = UINT16_MAX; }
+  inline void IsConstRef() { return refCount_ == UINT16_MAX; }
   inline void Free() {
     assert(refCount_ == UINT16_MAX);
     delete this;
@@ -94,7 +95,7 @@ public:
   // array type will move byte pointer to this and source dv will set to null.
   // They are maybe not same data type. All digital type will convert each other
   // and all types can be converted to string.
-  virtual bool Copy(const IDataValue &dv, bool bMove = false) = 0;
+  virtual bool Copy(IDataValue &dv, bool bMove = false) = 0;
   virtual IDataValue *Clone(bool incVal = false) = 0;
   virtual std::any GetValue() const = 0;
   // Put value to this DV, if ok, return true, else set error message into
@@ -174,23 +175,31 @@ class VectorDataValue : public MVector<IDataValue *> {
 public:
   using vector::vector;
 
-  VectorDataValue(VectorDataValue &&src) noexcept { swap(src); }
+  VectorDataValue(VectorDataValue &&src) noexcept {
+    swap(src);
+    _bDec = src._bDec;
+  }
 
   ~VectorDataValue() { clear(); }
 
   VectorDataValue &operator=(VectorDataValue &&other) noexcept {
     clear();
     swap(other);
+    _bDec = src._bDec;
     return *this;
   }
 
   void clear() {
-    for (auto iter = begin(); iter != end(); iter++) {
-      (*iter)->DecRef();
+    if (_bDec) {
+      for (auto iter = begin(); iter != end(); iter++) {
+        (*iter)->DecRef();
+      }
     }
 
     erase(begin(), end());
   }
+
+  bool _bDec{true}; // Decrease elements' refer count or not
 };
 
 class VectorRow : public MVector<VectorDataValue *> {

@@ -2,7 +2,7 @@
 #include "../header.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
-#include "TimerThread.h"
+#include "ThreadPool.h"
 #include <chrono>
 #include <iomanip>
 #include <regex>
@@ -22,38 +22,44 @@ static void IsValidName(const string &name) {
 }
 
 static inline DT_MilliSec MilliSecTime() {
-  DT_MilliSec dt = TimerThread::GetCurrTime() / 1000;
-  if (dt == 0) {
-    dt = chrono::duration_cast<chrono::milliseconds>(
-             chrono::system_clock::now().time_since_epoch())
-             .count();
+  ThreadPool *pool = ThreadPool::GetMainPool();
+  if (pool == nullptr) {
+    return pool->GetNow() / 1000;
+  } else {
+    return chrono::duration_cast<chrono::milliseconds>(
+               chrono::system_clock::now().time_since_epoch())
+        .count();
   }
-  return dt;
 }
 
 static inline DT_MicroSec MicroSecTime() {
-  DT_MilliSec dt = TimerThread::GetCurrTime();
-  if (dt == 0) {
-    dt = chrono::duration_cast<chrono::microseconds>(
-             chrono::system_clock::now().time_since_epoch())
-             .count();
+  ThreadPool *pool = ThreadPool::GetMainPool();
+  if (pool == nullptr) {
+    return pool->GetNow();
+  } else {
+    return chrono::duration_cast<chrono::microseconds>(
+               chrono::system_clock::now().time_since_epoch())
+        .count();
   }
-  return dt;
 }
 
 static inline DT_Second SecondTime() {
-  DT_MilliSec dt = TimerThread::GetCurrTime() / 1000000;
-  if (dt == 0) {
-    dt = chrono::duration_cast<chrono::seconds>(
-             chrono::system_clock::now().time_since_epoch())
-             .count();
+  ThreadPool *pool = ThreadPool::GetMainPool();
+  if (pool == nullptr) {
+    return pool->GetNow() / 1000000;
+  } else {
+    return chrono::duration_cast<chrono::seconds>(
+               chrono::system_clock::now().time_since_epoch())
+        .count();
   }
-  return dt;
 }
 
 static inline string StrMSTime() {
-  DT_MilliSec dt = TimerThread::GetCurrTime() / 1000;
-  if (dt == 0) {
+  DT_MilliSec dt;
+  ThreadPool *pool = ThreadPool::GetMainPool();
+  if (pool == nullptr) {
+    dt = pool->GetNow() / 1000;
+  } else {
     dt = chrono::duration_cast<chrono::milliseconds>(
              chrono::system_clock::now().time_since_epoch())
              .count();
@@ -62,8 +68,11 @@ static inline string StrMSTime() {
 }
 
 static inline MString MStrMSTime() {
-  DT_MilliSec dt = TimerThread::GetCurrTime() / 1000;
-  if (dt == 0) {
+  DT_MilliSec dt;
+  ThreadPool *pool = ThreadPool::GetMainPool();
+  if (pool == nullptr) {
+    dt = pool->GetNow() / 1000;
+  } else {
     dt = chrono::duration_cast<chrono::milliseconds>(
              chrono::system_clock::now().time_since_epoch())
              .count();
@@ -72,8 +81,11 @@ static inline MString MStrMSTime() {
 }
 
 static inline string StrSecTime() {
-  DT_Second dt = TimerThread::GetCurrTime() / 1000000;
-  if (dt == 0) {
+  DT_Second dt;
+  ThreadPool *pool = ThreadPool::GetMainPool();
+  if (pool == nullptr) {
+    dt = pool->GetNow() / 1000000;
+  } else {
     dt = chrono::duration_cast<chrono::seconds>(
              chrono::system_clock::now().time_since_epoch())
              .count();
@@ -82,12 +94,16 @@ static inline string StrSecTime() {
 }
 
 static inline string FormatTime() {
-  int64_t dt = TimerThread::GetCurrTime();
-  if (dt == 0) {
+  DT_Second dt;
+  ThreadPool *pool = ThreadPool::GetMainPool();
+  if (pool == nullptr) {
+    dt = pool->GetNow();
+  } else {
     dt = chrono::duration_cast<chrono::microseconds>(
              chrono::system_clock::now().time_since_epoch())
              .count();
   }
+
   time_t sec = dt / 1000000;
   stringstream ss;
   ss << put_time(gmtime(&sec), "%Y-%m-%d %H:%M:%S") << "."

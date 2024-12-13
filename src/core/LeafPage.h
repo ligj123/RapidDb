@@ -64,17 +64,22 @@ public:
    * @return True: succeed to insert the record; False: failed to insert and set
    * the failed reason into ErrorMsg::_threadErrorMsg
    */
-  bool InsertRecord(LeafRecord *lr) {
-    bool bFind;
-    int32_t pos = SearchRecord(*lr, bFind);
-    if (bFind) {
-      _threadErrorMsg.reset(new ErrorMsg(CORE_REPEATED_RECORD, {}));
-      return false;
-    }
+  // bool InsertRecord(LeafRecord *lr) {
+  //   bool bFind;
+  //   int32_t pos = SearchRecord(*lr, bFind);
+  //   if (bFind) {
+  //     _threadErrorMsg.reset(new ErrorMsg(CORE_REPEATED_RECORD, {}));
+  //     return false;
+  //   }
 
-    InsertRecord(lr, pos);
-    return true;
-  }
+  //   InsertRecord(lr, pos);
+  //   return true;
+  // }
+
+  /**
+   * @brief Insert or delete a LeafRecord
+   */
+  void UpdateAction(LeafRecord *lr);
   /**
    * @brief Delete a LeafRecord, only use new LeafRecord with delete status to
    * replace old record, old record will save into _undoRec and all of them will

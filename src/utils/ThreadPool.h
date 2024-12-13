@@ -256,6 +256,7 @@ public:
   uint32_t GetAliveThreadCount() const { return _aliveThreads; }
   uint32_t GetMinThreads() const { return _minThreads; }
   uint32_t GetMaxThreads() const { return _maxThreads; }
+  DT_MicroSec GetNow() const { return _nowMicroSec; }
 
 protected:
   void CreateWorkThread(int id = -1);

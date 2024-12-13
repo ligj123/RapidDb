@@ -1,5 +1,9 @@
 #include "../cache/Mallocator.h"
+
+#include "../core/IndexAction.h"
+#include "../utils/RapidQueue.h"
 #include "Session.h"
+
 #include <atomic>
 #include <thread>
 
@@ -50,6 +54,8 @@ struct SessionGroup {
   uint64_t _currTranId{0};
   // The tasks need to run
   vector<SessionTask *> _vctTask;
+
+  RapidQueue<LeafRecord> _recordQueue;
 };
 
 class SessionPool {
@@ -91,6 +97,15 @@ public:
     }
 
     return id;
+  }
+
+  static void AddAction(uint16_t poolId, uint16_t threadId, LeafRecord *lr) {
+    assert(tid < _threadNum);
+    _vctGroup[poolId]._recordQueue.Push(threadId, lr);
+  }
+
+  static RapidQueue<LeafRecord> &GetActionQueue(uint16_t poolId) {
+    return _vctGroup[poolId]._recordQueue;
   }
 
 protected:

@@ -120,7 +120,7 @@ public:
   }
   bool SetValue(const char *val, uint32_t len);
   bool PutValue(std::any val) override;
-  bool Copy(const IDataValue &dv, bool bMove = true) override;
+  bool Copy(IDataValue &dv, bool bMove = true) override;
 
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override;
   uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,

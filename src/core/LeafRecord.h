@@ -36,7 +36,12 @@ struct RecordLock {
     _lstTxid.push_back(txid);
   }
 
-  ~RecordLock() { assert(_errMsg == nullptr); }
+  ~RecordLock() {
+    if (_errMsg != nullptr) {
+      delete _errMsg;
+      _errMsg = nullptr;
+    }
+  }
   // Get transaction id, if more than 1, return the first txid
   uint64_t TxID() {
     assert(_lstTxid.size() > 0);
@@ -160,6 +165,9 @@ public:
              Statement *stmt = nullptr);
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
+             const VectorDataValue &vctVal, uint64_t recStamp,
+             Statement *stmt = nullptr, bool block = false);
+  LeafRecord(IndexTree *idxTree, const RawKey &priKey,
              const VectorDataValue &vctVal, uint64_t recStamp,
              Statement *stmt = nullptr, bool block = false);
   LeafRecord(LeafRecord &&src)
@@ -297,8 +305,6 @@ public:
     }
 
     if (lenKey > Configure::GetMaxKeyLength()) {
-      _threadErrorMsg.reset(
-          new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)}));
       return UINT16_MAX;
     }
 

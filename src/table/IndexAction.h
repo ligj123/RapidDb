@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../cache/Mallocator.h"
+#include "../core/RawKey.h"
 #include "../utils/ThreadPool.h"
-#include "RawKey.h"
 
 namespace storage {
 class IndexTree;
@@ -43,6 +43,7 @@ public:
 
 protected:
   IndexTree *_indexTree;
+  IndexPage *_idxPage{nullptr};
   int _rangePos{-1}; // The range position thia action belong to
 };
 
@@ -62,21 +63,19 @@ public:
   int JudgeRange() override;
 
 protected:
-  PageID _pageId;               // The page need to update previous page
-  PageID _prevPageId;           // The new previous page id
-  IndexPage *_idxPage{nullptr}; // Temp save
+  PageID _pageId;     // The page need to update previous page
+  PageID _prevPageId; // The new previous page id
 };
 
-class InsertAction : public IndexAction {
+class RecordAction : public IndexAction {
 public:
-  InsertAction(IndexTree *idxTree, LeafRecord *lr)
+  RecordAction(IndexTree *idxTree, LeafRecord *lr)
       : IndexAction(idxTree), _lr(lr) {}
   TaskStatus Exec() override;
   int JudgeRange() override;
 
 protected:
   LeafRecord *_lr;
-  IndexPage *_idxPage{nullptr}; // Temp save
 };
 
 class PriKeyAction : public IndexAction {
@@ -89,7 +88,6 @@ public:
 protected:
   RawKey _key;
   Statement *_stmt;
-  IndexPage *_idxPage{nullptr}; // Temp save
 };
 
 class StatementAction : public IndexAction {
@@ -102,6 +100,21 @@ public:
 
 protected:
   Statement *_stmt;
-  IndexPage *_idxPage{nullptr}; // Temp save
 };
+
+class PhysTable;
+class InsertAction : public IndexAction {
+public:
+  InsertAction(PhysTable *table, RawKey &&priKey, VectorDataValue &&recValue,
+               Statement *stmt);
+
+  TaskStatus Exec() override;
+  int JudgeRange() override;
+
+protected:
+  PhysTable *_table;
+  RawKey _priKey;
+  VectorDataValue _recValue;
+  Statement *_stmt;
+}
 } // namespace storage

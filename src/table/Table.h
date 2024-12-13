@@ -176,6 +176,12 @@ public:
   void Clear();
 
   bool OpenIndex(size_t idx, bool bCreate = false);
+  /**
+   * @brief To check if the values meet the columns' rule.
+   * @param vctDv The values of columns
+   */
+  bool CheckColumnValues(VectorDataValue &vctDv);
+
   void CloseIndex(size_t idx) {
     assert(idx >= 0 && idx < _vctIndex.size());
     IndexProp &prop = _vctIndex[idx];
@@ -188,9 +194,6 @@ public:
   DT_MilliSec GetCreateTime() { return _dtCreate; }
   DT_MilliSec GetLastUpdateTime() { return _dtLastUpdate; }
 
-  void GenSecondaryRecords(const LeafRecord *lrSrc, const LeafRecord *lrDst,
-                           const VectorDataValue &dstVd, ActionType type,
-                           Statement *stmt, VectorLeafRecord &vctRec);
   int32_t GetRefCount() { return _refCount.load(memory_order_relaxed); }
   int32_t IncRef(int32_t i = 1) {
     return _refCount.fetch_add(i, memory_order_relaxed);

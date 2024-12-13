@@ -121,6 +121,8 @@ public:
 public:
   MString *_name;      // column name
   int _pos;            // The column position in source table columns
+  DataType _dataType;  //
+  int _dataLength;     // The max length for data storage
   ExprElem *_exprElem; // The expression to get data value from source
   MString *_alias;     // column alias name
 };

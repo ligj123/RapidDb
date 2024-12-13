@@ -2,11 +2,12 @@
 
 namespace storage {
 bool SessionPool::_bStopped{false};
+uint16_t SessionPool::_threadNum{0};
+vector<SessionGroup> SessionPool::_vctGroup;
 atomic<uint64_t> SessionPool::_sessionId{0};
 atomic<uint64_t> SessionPool::_tranId;
 uint64_t SessionPool::_tranInitId;
-uint16_t SessionPool::_threadNum{0};
-vector<SessionGroup> SessionPool::_vctGroup;
+SpinMutex SessionPool::_spinMutex;
 
 void CreateSession::Exec() {
   //   SessionGroup &sg = GetSessionGroup(_sid);

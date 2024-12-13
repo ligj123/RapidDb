@@ -204,6 +204,80 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
   return true;
 }
 
+void LeafPage::UpdateAction(LeafRecord *lr) {
+  bool bFind;
+  int pos = SearchRecord(*_lr, bFind);
+
+  if (bFind) {
+    LeafRecord *old = lp->GetRecord(pos);
+    if (old.GetLock() != nullptr && old.ReleaseLockAble()) {
+      int32_t commLen1, commLen2, tempLen1, tempLen2;
+      old.GetLength(tempLen1, commLen1);
+      old.ReleaseLock(_indexTree, _indexTree->IsMultiRange());
+      old.GetLength(tempLen2, commLen2);
+
+      lp->_tempDataLength += tempLen2 - tempLen1;
+      lp->_committedDataLength += commLen2 - commLen1;
+    }
+
+    if (old.IsDelete()) {
+      _vctRecord.erase(lp->_vctRecord.begin() + pos);
+      _recordNum--;
+      bFind = false;
+    }
+  }
+
+  RecordLock *lock = lr->GetLock();
+  if (lr->GetAction() == ActionType::INSERT) {
+    if (bFind) {
+      lock->_errMsg = new ErrorMsg(
+          STMT_DUPLICATE_ENTRY, {lr->GetKeyString(), _indexTree->GetTableName(),
+                                 _indexTree->GetIndexName()});
+      _vctErrRecord.push_back(lr);
+      lock->_recResult.store(RecordResult::ERROR, memory_order_release);
+    } else {
+      _tempDataLength += lr->GetTotalLength() + UI16_LEN;
+      _vctRecord.insert(_vctRecord.begin() + pos, lr);
+      _recordNum++;
+      _bDirty = true;
+      _bRecordUpdated = true;
+      lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
+    }
+  } else if (lr->GetAction() == ActionType::DELETE) {
+    assert(bFind);
+    LeafRecord &old = GetRecord(pos);
+
+    if (old.IsConflict(lock->TxID(), lock->_actType)) {
+      lock->_errMsg = new ErrorMsg(STMT_LOCK_CONFLICT, {});
+      _vctErrRecord.push_back(lr);
+      lock->_recResult.store(RecordResult::ERROR, memory_order_release);
+    } else {
+      lock->_undoRec = old;
+      _tempDataLength -= old->GetTotalLength() + UI16_LEN;
+      _vctRecord[pos] = lr;
+      _bDirty = true;
+      _bRecordUpdated = true;
+      lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
+    }
+  } else {
+    assert(lr->GetAction() == ActionType::UPSERT);
+    if (bFind) {
+      LeafRecord &old = GetRecord(pos);
+      lock->_undoRec = old;
+      _tempDataLength += lr->GetTotalLength() - old->GetTotalLength();
+      _vctRecord[pos] = lr;
+    } else {
+      _tempDataLength += lr->GetTotalLength() + UI16_LEN;
+      _vctRecord.insert(_vctRecord.begin() + pos, lr);
+      _recordNum++;
+    }
+
+    _bDirty = true;
+    _bRecordUpdated = true;
+    lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
+  }
+}
+
 LeafRecord &LeafPage::GetRecord(int32_t pos) {
   assert(pos >= 0 && pos < (int32_t)_recordNum);
   if (_vctRecord.size() == 0) {

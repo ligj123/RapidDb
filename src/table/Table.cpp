@@ -405,69 +405,18 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   return true;
 }
 
-void PhysTable::GenSecondaryRecords(const LeafRecord *lrSrc,
-                                    const LeafRecord *lrDst,
-                                    const VectorDataValue &dstPr,
-                                    ActionType type, Statement *stmt,
-                                    VectorLeafRecord &vctRec) {
-  if (_vctIndex.size() == 1) {
-    return;
-  }
-  assert(lrSrc != nullptr || type == ActionType::INSERT);
-  VectorDataValue srcPr;
+bool PhysTable::CheckColumnValues(VectorDataValue &vctDv) {
+  assert(vctDv.size() == _vctColumn.size());
 
-  if (lrSrc != nullptr) {
-    // TO DO
-    // int rt = lrSrc->ReadListValue(_vctIndexPos, srcPr, nullptr);
-    // assert(rt >= 0);
-  }
-
-  for (size_t i = 1; i < _vctIndex.size(); i++) {
-    IndexProp &prop = _vctIndex[i];
-    VectorDataValue dstSk;
-
-    dstSk.reserve(prop._vctCol.size());
-
-    for (IndexColumn &ic : prop._vctCol) {
-      dstSk.push_back(dstPr.at(ic.colPos)->AddRef());
-    }
-    if (lrSrc == nullptr) {
-      LeafRecord *lr =
-          new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() + UI16_2_LEN,
-                         lrDst->GetKeyLength(), ActionType::INSERT,
-                         0 /*TO DO RecStamp*/, stmt);
-      vctRec.push_back(lr);
-      continue;
-    }
-
-    VectorDataValue srcSk;
-    srcSk.reserve(prop._vctCol.size());
-    for (IndexColumn &ic : prop._vctCol) {
-      srcSk.push_back(srcPr.at(ic.colPos)->AddRef());
-    }
-
-    assert(srcSk.size() == dstSk.size());
-    bool equal = true;
-    for (size_t i = 0; i < srcSk.size(); i++) {
-      if (*srcSk[i] == *dstSk[i]) {
-        equal = false;
-        break;
-      }
-    }
-
-    if (!equal) {
-      // TO DO
-      //  LeafRecord *lrSrc2 =
-      //      new LeafRecord(prop._tree, srcSk, lrDst->GetBysValue() +
-      //      UI16_2_LEN,
-      //                     lrDst->GetKeyLength(), ActionType::DELETE, stmt);
-      //  LeafRecord *lrDst2 =
-      //      new LeafRecord(prop._tree, dstSk, lrDst->GetBysValue() +
-      //      UI16_2_LEN,
-      //                     lrDst->GetKeyLength(), ActionType::INSERT, stmt);
-      //  vctRec.push_back(lrSrc2);
-      //  vctRec.push_back(lrDst2);
+  for (size_t i = 0; i < vctDv.size(); i++) {
+    PhysColumn &col = _vctColumn[i];
+    if (!col.IsNullable() && vctDv[i]->IsNull()) {
+      _threadErrorMsg = new ErrorMsg(DT_NULL_VALUE, {col.GetName(), _name});
+      return false;
     }
   }
+
+  return true;
 }
+
 } // namespace storage

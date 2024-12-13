@@ -73,6 +73,8 @@ public:
     _errMsg = string((char *)buf, len);
   }
 
+  MString &GetErrorMsg() { return _errMsg; }
+
 protected:
   static unordered_map<int, MString> _mapErrorMsg;
 

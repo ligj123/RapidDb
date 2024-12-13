@@ -176,6 +176,7 @@ void IndexTree ::Close() {
 void IndexTree::CloneKeys(VectorDataValue &vct) {
   assert(vct.size() == 0);
   vct.reserve(_vctKey.size());
+
   for (IDataValue *dv : _vctKey) {
     vct.push_back(dv->Clone(false));
   }
@@ -184,6 +185,7 @@ void IndexTree::CloneKeys(VectorDataValue &vct) {
 void IndexTree::CloneValues(VectorDataValue &vct) {
   assert(vct.size() == 0);
   vct.reserve(_vctValue.size());
+
   for (IDataValue *dv : _vctValue) {
     vct.push_back(dv->Clone(false));
   }

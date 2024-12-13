@@ -100,7 +100,10 @@ bool DataValueFixChar::PutValue(std::any val) {
   return true;
 }
 
-bool DataValueFixChar::Copy(const IDataValue &dv, bool bMove) {
+bool DataValueFixChar::Copy(IDataValue &dv, bool bMove) {
+  if (dv.IsConstRef()) {
+    bMove = false
+  };
   if (dv.IsNull()) {
     if (valType_ == ValueType::SOLE_VALUE) {
       CachePool::Release(bysValue_, maxLength_);

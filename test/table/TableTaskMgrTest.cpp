@@ -51,7 +51,7 @@ PhysTable *CreateTestTable(Database *db, const MString &tableName, int rowNum) {
   IndexTree *uniTree = ptable->GetVectorIndex()[1]._tree;
   IndexTree *nonTree = ptable->GetVectorIndex()[2]._tree;
 
-  for (int i = 0; i < rowNum; i++) {
+  for (int i = 0; i < rowNum; i += 2) {
     stringstream ss;
     ss << "_0x" << std::setfill('0') << std::setw(8) << std::hex << i;
     memcpy(dvFix1000.GetBuff() + 988, ss.str().c_str(), 11);
@@ -133,6 +133,9 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   ThreadPool::CreateMainPool("test", 1, 8);
   TableTaskMgr *tmgr = new TableTaskMgr(ThreadPool::GetMainPool(), table, 2);
   table->SetTableTaskMgr(tmgr);
+
+  for (int i = 1; i < 1000; i += 2) {
+  }
 
   table->CloseIndex(0);
   table->CloseIndex(1);

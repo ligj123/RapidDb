@@ -38,6 +38,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
                            "length={1}, actual length={2}."},
     {DT_UNKNOWN_TYPE, "Unknown data type, data type = {1}."},
     {DT_UNSUPPORT_OPER, "Unsupport operation {1} for data type {2}. "},
+    {DT_NULL_VALUE, "Column {1} does not support null value in table {2}"}
 
     // Cache manage
     {CM_EXCEED_LIMIT, "Exceed the cache size limit."},

@@ -77,16 +77,25 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
                        uint64_t recStamp, Statement *stmt)
     : RawRecord(nullptr, true, idxTree->GetHeadPage()->GetIndexType()) {
   uint16_t lenKey = CalcKeyLength(vctKey);
-  // The key is over length, failed to construct LeafRecord
-  if (lenKey == UINT16_MAX) {
-    _bValid = false;
-    return;
-  }
-
   if (stmt != nullptr) {
     _recLock = new RecordLock(actType, RecordStatus::INIT, false,
                               RecordResult::INIT, stmt->GetTxId(), stmt);
   }
+
+  // The key is over length, failed to construct LeafRecord
+  if (lenKey == UINT16_MAX) {
+    if (_recLock == nullptr) {
+      _threadErrorMsg.reset(
+          new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)}));
+    } else {
+      _recLock->_errMsg =
+          new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)});
+    }
+
+    _bValid = false;
+    return;
+  }
+
   int totalLen = lenKey + lenPri + UI16_2_LEN + UI64_LEN;
   _bysVal = CachePool::Apply(totalLen);
   Byte *bys = _bysVal;
@@ -108,16 +117,25 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
                        Statement *stmt, bool block)
     : RawRecord(nullptr, true, idxTree->GetHeadPage()->GetIndexType()) {
-  uint16_t lenKey = CalcKeyLength(vctKey);
-  if (lenKey == UINT16_MAX) {
-    _bValid = false;
-    return;
-  }
-
   if (stmt != nullptr) {
     _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,
                               RecordResult::INIT, stmt->GetTxId(), stmt);
   }
+
+  uint16_t lenKey = CalcKeyLength(vctKey);
+  if (lenKey > Configure::GetMaxKeyLength()) {
+    if (_recLock == nullptr) {
+      _threadErrorMsg.reset(
+          new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)}));
+    } else {
+      _recLock->_errMsg =
+          new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)});
+    }
+
+    _bValid = false;
+    return;
+  }
+
   uint32_t lenVal = CalcValueLength(idxTree, vctVal, ActionType::INSERT);
   uint16_t infoLen = 1 + UI64_LEN + UI32_LEN;
   uint32_t max_lenVal =
@@ -154,6 +172,64 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
   }
 }
 
+LeafRecord::LeafRecord(IndexTree *idxTree, const RawKey &priKey,
+                       const VectorDataValue &vctVal, uint64_t recStamp,
+                       Statement *stmt = nullptr, bool block = false)
+    : RawRecord(nullptr, true, idxTree->GetHeadPage()->GetIndexType()) {
+  if (stmt != nullptr) {
+    _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,
+                              RecordResult::INIT, stmt->GetTxId(), stmt);
+  }
+
+  uint16_t lenKey = priKey.GetLength();
+  if (lenKey >= Configure::GetMaxKeyLength()) {
+    if (_recLock == nullptr) {
+      _threadErrorMsg.reset(
+          new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)}));
+    } else {
+      _recLock->_errMsg =
+          new ErrorMsg(CORE_EXCEED_KEY_LENGTH, {ToMString(lenKey)});
+    }
+
+    _bValid = false;
+    return;
+  }
+
+  uint32_t lenVal = CalcValueLength(idxTree, vctVal, ActionType::INSERT);
+  uint16_t infoLen = 1 + UI64_LEN + UI32_LEN;
+  uint32_t max_lenVal =
+      (uint32_t)Configure::GetMaxRecordLength() - lenKey - UI16_2_LEN - infoLen;
+
+  if (lenVal > max_lenVal) {
+    uint16_t num =
+        (lenVal + CachePage::INDEX_PAGE_SIZE - 1) / CachePage::INDEX_PAGE_SIZE;
+    _overflowPage = idxTree->ApplyOvfPage(num, block);
+    infoLen += UI32_LEN + UI32_LEN + UI16_LEN;
+  }
+
+  uint16_t totalLen =
+      UI16_2_LEN + lenKey + infoLen +
+      (_overflowPage == nullptr ? lenVal : UI32_LEN * 2 + UI16_LEN);
+
+  _bysVal = CachePool::Apply(totalLen);
+  RecStruct recStru(_bysVal, lenKey, _overflowPage);
+  FillHeaderBuff(recStru, totalLen, lenKey, 1, recStamp, lenVal,
+                 ActionType::INSERT);
+  BytesCopy(recStru._bysKey, priKey.GetBysVal(), lenKey);
+
+  ValueStruct valStru;
+  ReadValueStruct(recStru, valStru, (uint32_t)vctVal.size(),
+                  idxTree->GetValVarLen());
+
+  FillValueBuff(valStru, vctVal);
+  if (_overflowPage != nullptr) {
+    (*recStru._pidStart) = _overflowPage->GetPageId();
+    (*recStru._pageNum) = _overflowPage->GetPageNum();
+    boost::crc_32_type crc32;
+    crc32.process_bytes(recStru._bysValStart, lenVal);
+    recStru._arrCrc32[0] = crc32.checksum();
+  }
+}
 /** @brief When update or delete this record, set new values into record and
  * save old value into _undoRec, only use for primary index
  * @param vctVal the vector of data value. If ActionType==Delete, it is empty

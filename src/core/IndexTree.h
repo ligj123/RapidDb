@@ -65,6 +65,10 @@ struct IndexRange {
   // been finished. After 100 milliseconds the task will stop if no more actions
   // com.
   DT_MicroSec _dtTaskStop{0};
+
+  // To temp save the failed insert LeafRecord, it will delete when the
+  // statement has been rollbacked
+  MVector<LeafRecord *> _vctErrRecord;
 };
 
 class IndexTree {

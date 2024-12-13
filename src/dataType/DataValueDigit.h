@@ -62,7 +62,7 @@ public:
     return true;
   }
 
-  bool Copy(const IDataValue &dv, bool bMove = false) override {
+  bool Copy(IDataValue &dv, bool bMove = false) override {
     if (dv.IsNull()) {
       valType_ = ValueType::NULL_VALUE;
       return true;

@@ -7,6 +7,15 @@ namespace storage {
 using namespace std;
 
 class IResultSet {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+public:
   /**
    * Move to the first row if possible
    * @return true if moved to the first row; false if failed to move or not able
@@ -203,13 +212,8 @@ class IResultSet {
   virtual void GetCurrDataValueRow(VectorDataValue &vct) = 0;
   virtual void close() {}
 
-public:
-  static void *operator new(size_t size) {
-    return CachePool::Apply((uint32_t)size);
-  }
-  static void operator delete(void *ptr, size_t size) {
-    CachePool::Release((Byte *)ptr, (uint32_t)size);
-  }
+protected:
+  MVectorPtr<ExprColumn *> *_vctCol;
 };
 
 } // namespace storage

@@ -167,6 +167,18 @@ public:
       _vctLine.emplace_back();
     }
   }
+
+  RapidQueue(RapidQueue &&src)
+      : _maxThreadNum(src._maxThreadNum),
+        _currAlivedThreads(src._currAlivedThreads),
+        _lastSetThreads(src._lastSetThreads), _popNum(src._popNum),
+        _vctLine(move(src._vctLine)) {}
+  RapidQueue(const RapidQueue &src) = delete;
+  ~RapidQueue() { assert(RoughSize() == 0); }
+
+  RapidQueue &operator=(RapidQueue &&src) = delete;
+  RapidQueue &operator=(const RapidQueue &src) = delete;
+
   /**
    * @brief To reset the live thread number, it must be not large than max
    * thread number
