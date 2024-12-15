@@ -7,7 +7,7 @@
 namespace storage {
 class Statement;
 
-struct Transaction {
+class Transaction {
 public:
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
@@ -17,29 +17,36 @@ public:
   }
 
 public:
-  void Reset(TranID tid, IsoLevel level) {
-    assert(_vctStatement.size() == 0);
-    _tid = tid;
-    _isoLevel = level;
-    _createTime = MicroSecTime();
-  }
+  Transaction(Session *session, uint16_t sessionGroupId)
+      : _session(session), _sessionGroupId(sessionGroupId) {}
 
-public:
+  StmtID GenStmtID() { return _currStmtID++; }
+
+  void StartTransaction(bool bAuto, IsoLevel isoLevel = IsoLevel::ReadCommited,
+                        CcProtocol ccProtocal = CcProtocol::OCC);
+  void AddStatement(Statement *stmt) { _vctStatement.push_back(stmt); }
+
+  MVector<Statement *> &GetVctStatement() { return _vctStatement; }
+
+  bool IsTranOvertime() {}
+
+protected:
   TranID _tid{TXID_NULL};
-  // Create time
-  DT_MicroSec _createTime{UINT64_MAX};
-  // The finished or abort time to execute for this statement
-  DT_MicroSec _endTime{UINT64_MAX};
+  // The start time of current transaction
+  DT_MicroSec _startTime{UINT64_MAX};
   // The statements executed in this transaction++
   MVector<Statement *> _vctStatement;
-  // spin lock
-  SpinMutex _spinMutex;
+
   // The session own this transaction
   Session *_session;
+  // Start from 0, every time to create a statement, it will increase 1.
+  StmtID _currStmtID{0};
+  uint16_t _sessionGroupId;
 
-  TranStatus _tranStatus;
-  TranType _tranType;
-  IsoLevel _isoLevel;
+  TranStatus _tranStatus{TranStatus::Unint};
+  TranType _tranType{TranType::AUTOMATE};
+  IsoLevel _isoLevel{IsoLevel::ReadCommited};
+  CcProtocol _ccProtocol{CcProtocol::OCC};
 };
 
 } // namespace storage

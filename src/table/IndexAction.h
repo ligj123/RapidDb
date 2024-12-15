@@ -11,22 +11,10 @@ class Statement;
 class LeafRecord;
 class IndexRange;
 
-class IndexAction {
-public:
-  static void *operator new(size_t size) {
-    return CachePool::Apply((uint32_t)size);
-  }
-  static void operator delete(void *ptr, size_t size) {
-    CachePool::Release((Byte *)ptr, (uint32_t)size);
-  }
-
+class IndexAction : public ThreadAction {
 public:
   IndexAction(IndexTree *idxTree) : _indexTree(idxTree) {}
-  virtual ~IndexAction() {}
-  /**
-   * @brief Run this action, and return the status to know if it has finished.
-   */
-  virtual TaskStatus Exec() = 0;
+
   /**
    * @brief After the index range has been adjusted, calc again its index range
    * @return If pass, return its new range, or abort

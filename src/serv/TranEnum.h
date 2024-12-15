@@ -16,19 +16,12 @@ enum class IsoLevel : uint8_t {
 };
 
 enum class TranStatus : uint8_t {
-  // Just create the transaction and has not following action
-  CREATED = 0,
-  // Already submit commit, the tasks are running.
-  COMMITTING,
-  // User stoped the transaction before it finished
-  ROLLBACK,
-  // Due to data or other error, the transaction failed.
-  FAILED,
-  // Exceed the deadline time before commit or not finish.
-  TIMEOUT,
-  // All tasks finished and the log write to disk, and all resource will be
-  // released.
-  CLOSED
+  Uninit = 0, // Just create the instance
+  IN_TRAN,    // Start a new transaction with BEGIN command, NOT auto commit
+              // transaction
+  FINISHED,   // The transaction has end with command COMMIT or ABORT
+  AUTO_TRAN   // Auto commit transaction, a statement start a transaction and
+              // commit at the statement end.
 };
 
 enum class TranType : uint8_t {
@@ -42,7 +35,7 @@ enum class TranType : uint8_t {
 };
 
 inline std::ostream &operator<<(std::ostream &os, const IsoLevel &level) {
-  os << "TranStatus::";
+  os << "IsoLevel::";
   switch (level) {
   case IsoLevel::ReadUncommited:
     os << "ReadUncommited(" << (int)IsoLevel::ReadUncommited << ")";
@@ -68,23 +61,17 @@ inline std::ostream &operator<<(std::ostream &os, const IsoLevel &level) {
 inline std::ostream &operator<<(std::ostream &os, const TranStatus &status) {
   os << "TranStatus::";
   switch (status) {
-  case TranStatus::CREATED:
-    os << "CREATED(" << (int)TranStatus::CREATED << ")";
+  case TranStatus::Uninit:
+    os << "Uninit(" << (int)TranStatus::Uninit << ")";
     break;
-  case TranStatus::COMMITTING:
-    os << "COMMITTING(" << (int)TranStatus::COMMITTING << ")";
+  case TranStatus::IN_TRAN:
+    os << "IN_TRAN(" << (int)TranStatus::IN_TRAN << ")";
     break;
-  case TranStatus::ROLLBACK:
-    os << "ROLLBACK(" << (int)TranStatus::ROLLBACK << ")";
+  case TranStatus::FINISHED:
+    os << "FINISHED(" << (int)TranStatus::FINISHED << ")";
     break;
-  case TranStatus::FAILED:
-    os << "FAILED(" << (int)TranStatus::FAILED << ")";
-    break;
-  case TranStatus::TIMEOUT:
-    os << "TIMEOUT(" << (int)TranStatus::TIMEOUT << ")";
-    break;
-  case TranStatus::CLOSED:
-    os << "CLOSED(" << (int)TranStatus::CLOSED << ")";
+  case TranStatus::AUTO_TRAN:
+    os << "AUTO_TRAN(" << (int)TranStatus::AUTO_TRAN << ")";
     break;
   default:
     assert(false);

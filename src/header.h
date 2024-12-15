@@ -3,6 +3,7 @@
 
 typedef unsigned char Byte;
 typedef uint32_t PageID;
+typedef uint32_t StmtID; // Statement ID
 typedef uint64_t VersionStamp;
 typedef uint64_t TranID;
 // Datatime: the elapsing microseconds since epoch

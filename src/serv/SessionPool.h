@@ -1,6 +1,10 @@
-#include "../cache/Mallocator.h"
+#pragma once
 
+#include "../header.h"
+
+#include "../cache/Mallocator.h"
 #include "../core/IndexAction.h"
+#include "../utils/ErrorMsg.h"
 #include "../utils/RapidQueue.h"
 #include "Session.h"
 
@@ -11,35 +15,7 @@
 
 namespace storage {
 using namespace std;
-
-enum class STaskType : uint8_t {
-  Create = 0, // Create a session
-  Close       // Close a session
-};
-
-struct SessionTask {
-  static void *operator new(size_t size) {
-    return CachePool::Apply((uint32_t)size);
-  }
-  static void operator delete(void *ptr, size_t size) {
-    CachePool::Release((Byte *)ptr, (uint32_t)size);
-  }
-
-  virtual STaskType TaskType() const = 0;
-  virtual void Exec() = 0;
-  uint32_t _sid; // session id
-};
-
-struct CreateSession : public SessionTask {
-  STaskType TaskType() const override { return STaskType::Create; }
-  void Exec() override;
-  Session *_session;
-};
-
-struct CloseSession : public SessionTask {
-  STaskType TaskType() const override { return STaskType::Close; }
-  void Exec() override;
-};
+class SessionTask;
 
 // In this pool, every thread has its data structor and it
 // can only visit its data to avoid lock.
@@ -48,23 +24,44 @@ struct SessionGroup {
   MHashMap<uint32_t, Session *> _mapSession;
   // The session that have closed, they will be
   MVector<Session *> _discardSession;
-  // The thread for current group
-  thread *_thread{nullptr};
-  // The current transaction id to assign
-  uint64_t _currTranId{0};
+
+  // To generate new TranID, every time it will add 1
+  // Transaction ID is 64 bit unsigned integer. The highest 12 bit is node id
+  // for distribute system, it can support max 4096 nodes. Following 4 bits is
+  // cycle count of system start times, used to avoid transaction repeat. The
+  // following 8 bits is used to save session group id. The last 40 bits is used
+  // as auto increaseing counter.
+  TranID _currTranId{0};
   // The tasks need to run
   vector<SessionTask *> _vctTask;
+  // To receive the Actions from thread pool
+  RapidQueue<ThreadAction> _threaPoolQueue;
+  // To receive The actions from outside threads.
+  RapidQueue<ThreadAction> _outsideQueue;
+  // The task to run this group
+  SessionTask *_task{nullptr};
+};
 
-  RapidQueue<LeafRecord> _recordQueue;
+class SessionTask : public ThreadTask {
+public:
+  SessionTask(MVector<SessionGroup *> &&vct) : _vctGroup(move(vct)) {}
+  TaskStatus Run() override;
+  void SetStop(bool b) { _bStop = true; }
+
+protected:
+  MVector<SessionGroup *> _vctGroup;
+  bool _bStop{false};
 };
 
 class SessionPool {
 public:
-  static bool InitPool(uint16_t threadNum);
+  static bool InitPool(uint16_t groupNum);
 
-  static void ClosePool() {
-    // delete[] _arMapSession;
-    // delete[] _arThread;
+  static void ClosePool();
+
+  static SessionGroup &GetSessionGroup(uint16_t gid) {
+    assert(gid < _vctGroup.size());
+    return _vctGroup[gid];
   }
 
   uint32_t CreateSession();
@@ -112,20 +109,9 @@ protected:
   static void Run(uint16_t thdId);
 
 protected:
-  static bool _bStopped;
-  // Create how much threads to run session.
-  static uint16_t _threadNum;
   // The vector of session groups
-  static vector<SessionGroup> _vctGroup;
-  // Every time to start db, it will start from 0, every group will get a range
-  // of session id every time to avoid visit this atomic variable too much time.
-  static atomic<uint64_t> _sessionId;
-  // The first 16 bits was reserved for distributed db. Next 8 bits use to show
-  // how many times to restart db, it will be saved in system variable table.
-  // The other 40 bits is the session id incremented 1 every time.
-  static atomic<uint64_t> _tranId;
-  // The init transaction this time
-  static uint64_t _tranInitId;
-  static SpinMutex _spinMutex;
+  static MVector<SessionGroup> _vctGroup;
+
+  static MVector<SessionTask *> _vctTask;
 };
 } // namespace storage

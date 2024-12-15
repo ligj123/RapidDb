@@ -70,6 +70,23 @@ static inline BusyDegree CalcBusyDegree(DT_MicroSec ts) {
   }
 }
 
+class ThreadAction {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+public:
+  virtual ~ThreadAction() {}
+  /**
+   * @brief Run this action, and return the status to know if it has finished.
+   */
+  virtual TaskStatus Exec() = 0;
+};
+
 // All tasks that run in thread pool must inherit this class.
 class ThreadTask {
 public:
