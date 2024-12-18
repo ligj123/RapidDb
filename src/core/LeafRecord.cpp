@@ -174,7 +174,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
 
 LeafRecord::LeafRecord(IndexTree *idxTree, const RawKey &priKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
-                       Statement *stmt = nullptr, bool block = false)
+                       Statement *stmt, bool block)
     : RawRecord(nullptr, true, idxTree->GetHeadPage()->GetIndexType()) {
   if (stmt != nullptr) {
     _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,

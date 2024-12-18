@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
+
 #include <utility>
 
 namespace storage {
@@ -213,7 +214,7 @@ public:
   virtual void close() {}
 
 protected:
-  MVectorPtr<ExprColumn *> *_vctCol;
+  // MVectorPtr<ExprColumn *> *_vctCol;
 };
 
 } // namespace storage

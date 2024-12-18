@@ -54,8 +54,8 @@ protected:
   // The cache pages that need to write
   RapidQueue<CachePage> _writeRapidQueue;
 
-  MDeque<CachePage *> _readMQueue;
-  MDeque<CachePage *> _writeMQueue;
+  MList<CachePage *> _readMQueue;
+  MList<CachePage *> _writeMQueue;
 
 #ifdef LINUX_OS
   void InitHandle();

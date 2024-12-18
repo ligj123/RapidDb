@@ -89,7 +89,7 @@ bool DataValueVarChar::PutValue(std::any val) {
 
 bool DataValueVarChar::Copy(IDataValue &dv, bool bMove) {
   if (dv.IsConstRef()) {
-    bMove = false
+    bMove = false;
   };
 
   if (dv.IsNull()) {

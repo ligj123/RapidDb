@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE(LineQueue_test) {
   LineqQueueEx lq;
   thread t([&lq, &CNT]() {
     size_t val = 0;
-    MDeque<uint64_t *> mq;
+    MList<uint64_t *> mq;
 
     while (val < CNT) {
       lq.Pop(mq);
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(RapidQueue_test) {
   }
 
   size_t count = 0;
-  MDeque<uint64_t *> mq;
+  MList<uint64_t *> mq;
   while (count < CNT * 10) {
     rq.Pop(mq);
 

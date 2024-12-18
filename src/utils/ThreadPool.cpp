@@ -166,7 +166,7 @@ void ThreadPool::ManageProc() {
                        chrono::system_clock::now().time_since_epoch())
                        .count();
 
-    MDeque<ThreadTask *> queue;
+    MList<ThreadTask *> queue;
     _rapidTaskQueue.Pop(queue);
 
     if (_queueTask.size() > 0) {
@@ -305,7 +305,7 @@ void ThreadPool::WorkProc(uint16_t tid) {
   assert(tpara._id == tid);
 
   while (true) {
-    MDeque<ThreadTask *> q;
+    MList<ThreadTask *> q;
     tpara._lineQueueTask.Pop(q);
     if (q.size() > 0) {
       tpara._vctTask.insert(tpara._vctTask.end(), q.begin(), q.end());

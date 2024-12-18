@@ -102,7 +102,7 @@ bool DataValueFixChar::PutValue(std::any val) {
 
 bool DataValueFixChar::Copy(IDataValue &dv, bool bMove) {
   if (dv.IsConstRef()) {
-    bMove = false
+    bMove = false;
   };
   if (dv.IsNull()) {
     if (valType_ == ValueType::SOLE_VALUE) {

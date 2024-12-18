@@ -3,7 +3,6 @@
 #include "../header.h"
 
 #include "../cache/Mallocator.h"
-#include "../core/IndexAction.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/RapidQueue.h"
 #include "Session.h"

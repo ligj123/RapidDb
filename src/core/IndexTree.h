@@ -43,7 +43,7 @@ struct IndexRange {
   // The end LeafPage of this range
   LeafPage *_endPage{nullptr};
   // The queue to save running IndexActions
-  MDeque<IndexAction *> _queueAction;
+  MList<IndexAction *> _queueAction;
   // The queue to temp save IndexActions that collected from session and other
   // IndexTree.
   LineQueue<IndexAction> _queueActionFromCollect;
@@ -68,7 +68,7 @@ struct IndexRange {
 
   // To temp save the failed insert LeafRecord, it will delete when the
   // statement has been rollbacked
-  MVector<LeafRecord *> _vctErrRecord;
+  MList<LeafRecord *> _vctErrRecord;
 };
 
 class IndexTree {

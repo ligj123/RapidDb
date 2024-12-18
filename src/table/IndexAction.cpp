@@ -73,6 +73,10 @@ TaskStatus RecordAction::Exec() {
 
   LeafPage *lp = (LeafPage *)_idxPage;
   lp->UpdateAction(_lr);
+  if (_lr->GetLock()->_recResult == RecordResult::ERROR) {
+    _indexTree->GetVctRange()[_rangePos]._vctErrRecord.push_back(_lr);
+  }
+
   _lr = nullptr;
   return TaskStatus::FINISHED;
 }

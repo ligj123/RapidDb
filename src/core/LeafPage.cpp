@@ -206,22 +206,23 @@ bool LeafPage::AddRecord(LeafRecord *lr) {
 
 void LeafPage::UpdateAction(LeafRecord *lr) {
   bool bFind;
-  int pos = SearchRecord(*_lr, bFind);
+  int pos = SearchRecord(*lr, bFind);
 
   if (bFind) {
-    LeafRecord *old = lp->GetRecord(pos);
-    if (old.GetLock() != nullptr && old.ReleaseLockAble()) {
+    LeafRecord *old = (LeafRecord *)_vctRecord[pos];
+    if (old->GetLock() != nullptr && old->ReleaseLockAble()) {
       int32_t commLen1, commLen2, tempLen1, tempLen2;
-      old.GetLength(tempLen1, commLen1);
-      old.ReleaseLock(_indexTree, _indexTree->IsMultiRange());
-      old.GetLength(tempLen2, commLen2);
+      old->GetLength(tempLen1, commLen1);
+      old->ReleaseLock(_indexTree, _indexTree->IsMultiRange());
+      old->GetLength(tempLen2, commLen2);
 
-      lp->_tempDataLength += tempLen2 - tempLen1;
-      lp->_committedDataLength += commLen2 - commLen1;
+      _tempDataLength += tempLen2 - tempLen1;
+      _committedDataLength += commLen2 - commLen1;
     }
 
-    if (old.IsDelete()) {
-      _vctRecord.erase(lp->_vctRecord.begin() + pos);
+    if (old->IsDelete()) {
+      delete old;
+      _vctRecord.erase(_vctRecord.begin() + pos);
       _recordNum--;
       bFind = false;
     }
@@ -233,7 +234,6 @@ void LeafPage::UpdateAction(LeafRecord *lr) {
       lock->_errMsg = new ErrorMsg(
           STMT_DUPLICATE_ENTRY, {lr->GetKeyString(), _indexTree->GetTableName(),
                                  _indexTree->GetIndexName()});
-      _vctErrRecord.push_back(lr);
       lock->_recResult.store(RecordResult::ERROR, memory_order_release);
     } else {
       _tempDataLength += lr->GetTotalLength() + UI16_LEN;
@@ -245,11 +245,10 @@ void LeafPage::UpdateAction(LeafRecord *lr) {
     }
   } else if (lr->GetAction() == ActionType::DELETE) {
     assert(bFind);
-    LeafRecord &old = GetRecord(pos);
+    LeafRecord *old = (LeafRecord *)_vctRecord[pos];
 
-    if (old.IsConflict(lock->TxID(), lock->_actType)) {
+    if (old->IsConflict(lock->TxID(), lock->_actType)) {
       lock->_errMsg = new ErrorMsg(STMT_LOCK_CONFLICT, {});
-      _vctErrRecord.push_back(lr);
       lock->_recResult.store(RecordResult::ERROR, memory_order_release);
     } else {
       lock->_undoRec = old;
@@ -262,10 +261,15 @@ void LeafPage::UpdateAction(LeafRecord *lr) {
   } else {
     assert(lr->GetAction() == ActionType::UPSERT);
     if (bFind) {
-      LeafRecord &old = GetRecord(pos);
-      lock->_undoRec = old;
-      _tempDataLength += lr->GetTotalLength() - old->GetTotalLength();
-      _vctRecord[pos] = lr;
+      LeafRecord *old = (LeafRecord *)_vctRecord[pos];
+      if (old->IsConflict(lock->TxID(), lock->_actType)) {
+        lock->_errMsg = new ErrorMsg(STMT_LOCK_CONFLICT, {});
+        lock->_recResult.store(RecordResult::ERROR, memory_order_release);
+      } else {
+        lock->_undoRec = old;
+        _tempDataLength += lr->GetTotalLength() - old->GetTotalLength();
+        _vctRecord[pos] = lr;
+      }
     } else {
       _tempDataLength += lr->GetTotalLength() + UI16_LEN;
       _vctRecord.insert(_vctRecord.begin() + pos, lr);

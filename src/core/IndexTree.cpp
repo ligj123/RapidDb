@@ -406,12 +406,12 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
     parentPage->ClearChild(idxPage);
   }
 
-  MDeque<IndexPage *> queue;
-  queue.push_back(idxPage);
+  MList<IndexPage *> lst;
+  lst.push_back(idxPage);
 
-  while (queue.size() > 0) {
-    IndexPage *page = queue.front();
-    queue.pop_front();
+  while (lst.size() > 0) {
+    IndexPage *page = lst.front();
+    lst.pop_front();
 
     while (page->GetPageStatus() != PageStatus::VALID) {
       this_thread::yield();
@@ -424,7 +424,7 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
       for (uint32_t i = 0; i < bp->GetRecordNumber(); i++) {
         BranchRecord *br = bp->GetVctRecord(i);
         if (br->GetChildPage() != nullptr) {
-          queue.push_back(br->GetChildPage());
+          lst.push_back(br->GetChildPage());
           br->SetChildPage(nullptr);
         }
       }
@@ -433,7 +433,7 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
       LeafPage *pnext = lp->GetNextPage();
       if (pnext != nullptr) {
         if (pnext->GetParentPage() == nullptr) {
-          queue.push_back(pnext);
+          lst.push_back(pnext);
         }
 
         lp->SetNextPage(nullptr);
@@ -442,7 +442,7 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
       LeafPage *pprev = lp->GetPrevPage();
       if (pprev != nullptr) {
         if (pprev->GetParentPage() != nullptr) {
-          queue.push_back(pprev);
+          lst.push_back(pprev);
         }
 
         lp->SetPrevPage(nullptr);

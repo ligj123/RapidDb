@@ -64,7 +64,7 @@ void TableTaskMgr::CollectTaskData(uint16_t idxPos) {
     return;
   }
 
-  MDeque<IndexAction *> qs;
+  MList<IndexAction *> qs;
   itq->_queueSessionAction.Pop(qs);
 
   if (idxPos == 0) {
@@ -110,7 +110,7 @@ TaskStatus IndexAdjustTask::Run() {
   MVector<IndexRange> &vctRange = idxTree->GetVctRange();
 
   MTreeMap<uint64_t, CachePage *> pageMap;
-  MDeque<IndexAction *> queueAction;
+  MList<IndexAction *> queueAction;
 
   if (vctRange.size() > 1) {
     for (IndexRange &range : vctRange) {

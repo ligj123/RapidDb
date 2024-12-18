@@ -74,8 +74,8 @@ public:
   static int16_t GetMaxIndexTaskNum() { return 16; }
 
   static int16_t GetSessionGroupNum() { return 4; }
-  static DT_MicroSec GetAutoTranOvertime() { return 60 * 1000 * 1000; }
-  static DT_MicroSec GetMultiTranOvertime() { 3600 * 1000 * 1000; }
+  static DT_MicroSec GetAutoTranOvertime() { return 60 * 1000 * 1000ULL; }
+  static DT_MicroSec GetMultiTranOvertime() { return 3600 * 1000 * 1000ULL; }
 
 protected:
   static Configure &GetInstance() {

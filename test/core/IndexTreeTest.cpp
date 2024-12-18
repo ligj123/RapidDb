@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
   assert(pageMap.size() == 0);
 
   IndexPage *root = indexTree->GetRootPage();
-  MDeque<IndexPage *> queue;
+  MList<IndexPage *> queue;
   queue.push_back(root);
 
   while (queue.size() > 0) {
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
   assert(pageMap.size() == 0);
 
   IndexPage *root = indexTree->GetRootPage();
-  MDeque<IndexPage *> queue;
+  MList<IndexPage *> queue;
   queue.push_back(root);
 
   while (queue.size() > 0) {

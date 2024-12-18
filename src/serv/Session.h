@@ -50,8 +50,9 @@ public:
   }
 
 public:
-  Session(uint32_t id, function<void()> hookFunc = nullptr)
-      : _id(id), _hookFunc(hookFunc) {}
+  Session(uint16_t sessionGroupId, uint32_t id,
+          function<void()> hookFunc = nullptr)
+      : _id(id), _transaction(this, sessionGroupId), _hookFunc(hookFunc) {}
 
 public:
   // session id, only valid in this server and to identify the sessions.It will

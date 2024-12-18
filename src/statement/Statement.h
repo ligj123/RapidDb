@@ -14,6 +14,7 @@
 
 namespace storage {
 class LeafRecord;
+class IndexTree;
 
 enum class StmtStatus : uint8_t {
   Created,   // Just create this statement and NOT start to execute

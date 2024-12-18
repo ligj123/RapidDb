@@ -1,5 +1,3 @@
 #include "Session.h"
 
-namespace storage {
-void Session::GenStatement() {}
-} // namespace storage
+namespace storage {} // namespace storage

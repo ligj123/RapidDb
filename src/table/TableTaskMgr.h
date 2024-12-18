@@ -1,10 +1,10 @@
 #include "../config/Configure.h"
-#include "../core/IndexAction.h"
 #include "../core/IndexTree.h"
 #include "../table/Table.h"
 #include "../utils/RapidQueue.h"
 #include "../utils/ThreadPool.h"
 #include "../utils/Utilitys.h"
+#include "IndexAction.h"
 
 #include <vector>
 
@@ -41,7 +41,7 @@ public:
   RapidQueue<IndexAction> _queueSessionAction;
   // Temp to save IndexActions from obsolete IndexTasks when rerange the
   // IndexTasks;
-  MDeque<IndexAction *> _queueRangeAction;
+  MList<IndexAction *> _queueRangeAction;
   // The time of this IndexTaskQueue created
   DT_MilliSec _createTime;
 };

@@ -35,7 +35,7 @@ public:
       if (MicroSecTime() - _startTime > Configure::GetAutoTranOvertime())
         return true;
     } else {
-       if (MicroSecTime() - _startTime > Configure::GetMultiTranOvertime(())
+      if (MicroSecTime() - _startTime > Configure::GetMultiTranOvertime())
         return true;
     }
 
@@ -55,7 +55,7 @@ protected:
   StmtID _currStmtID{0};
   uint16_t _sessionGroupId;
 
-  TranStatus _tranStatus{TranStatus::Unint};
+  TranStatus _tranStatus{TranStatus::Uninit};
   TranType _tranType{TranType::AUTOMATE};
   IsoLevel _isoLevel{IsoLevel::ReadCommited};
   CcProtocol _ccProtocol{CcProtocol::OCC};

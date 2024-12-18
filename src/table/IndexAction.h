@@ -104,5 +104,5 @@ protected:
   RawKey _priKey;
   VectorDataValue _recValue;
   Statement *_stmt;
-}
+};
 } // namespace storage

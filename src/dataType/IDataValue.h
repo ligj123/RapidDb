@@ -86,7 +86,7 @@ public:
   }
   inline uint16_t GetRef() { return refCount_; }
   inline void SetConstRef() { refCount_ = UINT16_MAX; }
-  inline void IsConstRef() { return refCount_ == UINT16_MAX; }
+  inline bool IsConstRef() { return refCount_ == UINT16_MAX; }
   inline void Free() {
     assert(refCount_ == UINT16_MAX);
     delete this;
@@ -182,9 +182,9 @@ public:
 
   ~VectorDataValue() { clear(); }
 
-  VectorDataValue &operator=(VectorDataValue &&other) noexcept {
+  VectorDataValue &operator=(VectorDataValue &&src) noexcept {
     clear();
-    swap(other);
+    swap(src);
     _bDec = src._bDec;
     return *this;
   }

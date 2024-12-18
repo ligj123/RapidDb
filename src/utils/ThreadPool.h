@@ -302,7 +302,7 @@ protected:
   SpinMutex _taskMutex;
   // To accept new tasks from NON pool threads, it will use mutex to ensure data
   // consistency
-  MDeque<ThreadTask *> _queueTask;
+  MList<ThreadTask *> _queueTask;
   // The last time to check the busy status of the thread pool.
   DT_MicroSec _checkBusyTime;
   // The busy status of this thread pool

@@ -2,8 +2,8 @@
 
 namespace storage {
 TaskStatus SessionRecordAction::Exec() {
-  assert(_lr->_recLock != nullptr);
-  _stmt->AddLeafRecord(_lr);
+  // assert(_lr->_recLock != nullptr);
+  // _stmt->AddLeafRecord(_lr);
   return TaskStatus::FINISHED;
 }
 
