@@ -102,17 +102,18 @@ public:
 
   void SeReadResult(bool b) { _readResult = b; }
   bool GetReadResult() { return _readResult; }
-  uint16_t GetSessionGroupID() { return _sessionGroupId; }
+
+  void AddLeafRecord(LeafRecord *lr);
 
 protected:
   // Id will auto increment 1 every time in self session.
   uint32_t _id;
-  // Which session group that this statement belong to.
-  uint16_t _sessionGroupId;
   // Statement status
   StmtStatus _status;
   // The end user has read the result or not
   bool _readResult;
+  // Meet error when executing
+  atomic_bool _stmtFailed{false};
   // The create time for this statement
   DT_MicroSec _createTime;
   // The finished or abort time to execute for this statement
@@ -123,6 +124,11 @@ protected:
   unique_ptr<ErrorMsg> _errorMsg = nullptr;
   // Warning messages
   vector<ErrorMsg> _vctWarnMsg;
+
+  // All LeafRecords that just created and are not added into LeafPages.
+  MList<LeafRecord *> _lstWaitRecord;
+  // The LeafRecords that has been added into LeafPages or have error.
+  MList<LeafRecord *> _lstFinshRecord;
 
   StmtResult _stmtResult;
 };

@@ -1,4 +1,5 @@
 #include "SessionPool.h"
+#include "bit"
 
 namespace storage {
 bool SessionPool::_bStopped{false};
@@ -9,70 +10,37 @@ atomic<uint64_t> SessionPool::_tranId;
 uint64_t SessionPool::_tranInitId;
 SpinMutex SessionPool::_spinMutex;
 
-void CreateSession::Exec() {
-  //   SessionGroup &sg = GetSessionGroup(_sid);
-  //   _session = new Session(_sid);
-  //   sg._vctTask.push_back(_session);
-}
+TaskStatus SessionTask::Run() { return TaskStatus::FINISHED; }
 
-void CloseSession::Exec() {
-  // SessionGroup &sg = GetSessionGroup(_sid);
-  // auto iter = sg._mapSession.find(_sid);
-  // assert(iter != sg._mapSession.end());
-  // Session *session = iter->second;
-  // session->_lastVisitTime = utils::MicroSecTime();
-  // sg._discardSession.push_back(session);
-}
-
-bool SessionPool::InitPool(uint16_t threadNum) {
+bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,
+                           uint16_t startNum) {
   // Make sure it is this method is only called one time
-  assert(_threadNum == 0);
-  assert(threadNum > 0);
-  _threadNum = threadNum;
-  _vctGroup.resize(_threadNum);
+  assert(_vctGroup.size() == 0);
+  assert(popcount(groupNum) == 1 && popcount(taskNum) == 1);
+  assert(taskNum <= groupNum);
+  _vctGroup.resize(groupNum);
+  startNum %= 16;
+  _vctTask.reserve(taskNum);
+  SessionTask *task = nullptr;
+  uint16_t num = groupNum / taskNum;
 
-  // Init _tranId. read value from system variable table, and add restart time
-  // then save it to system variable table.
-  _tranId.store(0, memory_order_relaxed);
-  _tranInitId = 0;
+  for (uint16_t i = 0; i < groupNum; i++) {
+    SessionGroup &group = _vctGroup[i];
+    group._currTranId = (startNum << 48) + (i << 40);
 
-  for (uint16_t i = 0; i < _threadNum; i++) {
-    _vctGroup[i]._thread = new thread([i]() { Run(i); });
+    if (i % num == 0) {
+      task = new SessionTask;
+      _vctTask.push_back(task);
+    }
+
+    task->AddSessionGroup(&group);
   }
 
   return true;
 }
 
-void SessionPool::Run(uint16_t thdId) {
-  SessionGroup &sg = _vctGroup[thdId];
-  // sg._currTranId = _tranId.fetch_add(_tranRangeId, memory_order_relaxed);
+uint32_t SessionPool::CreateSession(function<void()> hookFunc) {}
 
-  while (true) {
-    for (SessionTask *task : sg._vctTask) {
-      task->Exec();
-    }
+void SessionPool::CloseSession(uint32_t sid) {}
 
-    size_t freeSession = 0;
-    for (auto iter = sg._mapSession.begin(); iter != sg._mapSession.end();
-         iter++) {
-      Session *session = iter->second;
-      switch (session->_status) {
-      case SessionStatus::Added:
-        session->GenStatement();
-        break;
-      case SessionStatus::Executed:
-        break;
-      case SessionStatus::Logged:
-        break;
-      case SessionStatus::Finished:
-
-        break;
-      case SessionStatus::Free:
-        break;
-      default:
-        break;
-      }
-    }
-  }
-}
 } // namespace storage

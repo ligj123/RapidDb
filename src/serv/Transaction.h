@@ -28,7 +28,19 @@ public:
 
   MVector<Statement *> &GetVctStatement() { return _vctStatement; }
 
-  bool IsTranOvertime() {}
+  bool IsTranOvertime() {
+    assert(_tranStatus == TranStatus::AUTO_TRAN ||
+           _tranStatus == TranStatus::IN_TRAN);
+    if (_tranStatus == TranStatus::AUTO_TRAN) {
+      if (MicroSecTime() - _startTime > Configure::GetAutoTranOvertime())
+        return true;
+    } else {
+       if (MicroSecTime() - _startTime > Configure::GetMultiTranOvertime(())
+        return true;
+    }
+
+    return false;
+  }
 
 protected:
   TranID _tid{TXID_NULL};

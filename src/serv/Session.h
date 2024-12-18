@@ -53,30 +53,6 @@ public:
   Session(uint32_t id, function<void()> hookFunc = nullptr)
       : _id(id), _hookFunc(hookFunc) {}
 
-  /**
-   * @brief Add a statement into session.
-   * @param sql The sql string to executed. If the second time to run this sql
-   * and client has got the statement id, this value should be empty.
-   * @param sid The statement id, it was create the first time. The id only
-   * valid in this session.
-   * @param paras One or multi group of parameters that wait to fill statement.
-   * @return True: this session is free and added this statement into session;
-   * False, failed to add into session.
-   */
-  bool AddStatement(VectorRow &&paras, MString &&sql, uint32_t exprId) {
-    if (_status != SessionStatus::Free && _status != SessionStatus::Waiting) {
-      return false;
-    }
-
-    _sql = move(sql);
-    _exprId = exprId;
-    _paras = paras;
-    _status = SessionStatus::Added;
-    return true;
-  }
-
-  void GenStatement();
-
 public:
   // session id, only valid in this server and to identify the sessions.It will
   // start from 0, and add 1 every time. If exceed 2^32, it will restart from 0.

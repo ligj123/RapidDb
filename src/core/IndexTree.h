@@ -1,12 +1,12 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
 #include "../header.h"
+#include "../table/IndexAction.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/FileHandle.h"
 #include "../utils/SpinMutex.h"
 #include "GarbageOwner.h"
 #include "HeadPage.h"
-#include "IndexAction.h"
 #include "LeafRecord.h"
 #include "RawKey.h"
 

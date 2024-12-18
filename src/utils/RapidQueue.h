@@ -85,7 +85,7 @@ public:
     }
   }
 
-  void Pop(MDeque<T *> &dq) {
+  void Pop(MList<T *> &lst) {
     uint64_t head = _submited.load(memory_order_acquire);
     uint64_t tail = _tail.load(memory_order_relaxed);
     uint64_t h_block = head & ELE_SIZE_NOT;
@@ -98,7 +98,7 @@ public:
         assert(_endNode != nullptr);
       }
 
-      dq.push_back(_endNode->_block[tail % ELE_SIZE]);
+      lst.push_back(_endNode->_block[tail % ELE_SIZE]);
       tail++;
     }
 
@@ -110,7 +110,7 @@ public:
         assert(_endNode != nullptr);
       }
 
-      dq.push_back(_endNode->_block[tail % ELE_SIZE]);
+      lst.push_back(_endNode->_block[tail % ELE_SIZE]);
       tail++;
     }
 
@@ -225,9 +225,9 @@ public:
    * @param queue The queue to save the elements
    * @param lock If need to lock the spin mutex.
    */
-  void Pop(MDeque<T *> &queue) {
+  void Pop(MList<T *> &lst) {
     for (uint16_t i = 0; i < _currAlivedThreads; i++) {
-      _vctLine[i].Pop(queue);
+      _vctLine[i].Pop(lst);
     }
 
     if (_popNum > 0) {

@@ -29,10 +29,16 @@ public:
   uint32_t GetRowNum() { return _rowNum; }
 
 public:
+  // The od of session that result belong to
+  uint32_t _sessionId;
+  // The result id, start from 0, every time increase 1 in this session.
+  uint32_t _resId;
+  // The expression id of this statement
+  int32_t _exprId;
   // Total rows affected or returned
   uint32_t _rowNum{0};
   // The error information
-  MString _error;
+  MVector<MString> _vctError;
   // The vector of warnings
   MVector<MString> _vct_warning;
   // The result set for query,or nulpptr for other statement.

@@ -158,4 +158,5 @@ static bool StringEqualIgnoreCase(const string &lhs, const string &rhs) {
 
   return true;
 }
+
 } // namespace storage

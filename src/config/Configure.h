@@ -1,4 +1,7 @@
 ﻿#pragma once
+
+#include "../header.h"
+
 #include <mutex>
 #include <string>
 
@@ -69,6 +72,10 @@ public:
   static int16_t GetMaxSessionGroupNum() { return 8; }
   /** The number of max index task for an IndexTree */
   static int16_t GetMaxIndexTaskNum() { return 16; }
+
+  static int16_t GetSessionGroupNum() { return 4; }
+  static DT_MicroSec GetAutoTranOvertime() { return 60 * 1000 * 1000; }
+  static DT_MicroSec GetMultiTranOvertime() { 3600 * 1000 * 1000; }
 
 protected:
   static Configure &GetInstance() {
