@@ -8,6 +8,7 @@ namespace storage {
 class IndexTree;
 class IndexPage;
 class Statement;
+class InsertStatement;
 class LeafRecord;
 class IndexRange;
 
@@ -94,7 +95,7 @@ class PhysTable;
 class InsertAction : public IndexAction {
 public:
   InsertAction(PhysTable *table, RawKey &&priKey, VectorDataValue &&recValue,
-               Statement *stmt);
+               InsertStatement *stmt);
 
   TaskStatus Exec() override;
   int JudgeRange() override;
@@ -103,6 +104,7 @@ protected:
   PhysTable *_table;
   RawKey _priKey;
   VectorDataValue _recValue;
-  Statement *_stmt;
+  InsertStatement *_stmt;
+  LeafRecord *_priLr;
 };
 } // namespace storage

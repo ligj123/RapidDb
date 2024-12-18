@@ -4,17 +4,17 @@
 
 namespace storage {
 void Transaction::StartTransaction(bool bAuto, IsoLevel isoLevel,
-                                   CcProtocol ccProtocal) {
+                                   CcProtocol ccProtocol) {
   if (bAuto) {
     _tranStatus = TranStatus::AUTO_TRAN;
   } else {
-    _tranType = TranStatus::IN_TRAN
+    _tranStatus = TranStatus::IN_TRAN;
   }
 
   _isoLevel = isoLevel;
-  _ccProtocal = ccProtocal;
+  _ccProtocol = ccProtocol;
 
-  SessionGroup &group = SessionGroup::GetSessionGroup(_sessionGroupId);
+  SessionGroup &group = SessionPool::GetSessionGroup(_sessionGroupId);
   _tid = group._currTranId;
   if (group._currTranId & 0xFFFFFFFFFF == 0xFFFFFFFFFF) [[unlikely]] {
     group._currTranId &= 0xFFFFFF0000000000;

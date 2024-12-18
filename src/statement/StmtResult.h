@@ -16,14 +16,14 @@ public:
    * @param len The buffer's total length.
    * @return The bytes have used if passed, or UINT32_MAX if failed
    */
-  virtual uint32_t Serialize(Byte *bys, uint32_t len);
+  uint32_t Serialize(Byte *bys, uint32_t len) { return 0; }
   /**
    * @brief To deserialize the conetent to variables
    * @param bys The buffer saved the contents
    * @param len The total length of buffer.
    * @return The actual data length to parsed if passed, or UINT32_MAX if failed
    */
-  virtual uint32_t Deserialize(Byte *bys, uint32_t len);
+  uint32_t Deserialize(Byte *bys, uint32_t len) { return 0; }
 
   void SetRowNum(uint32_t num) { _rowNum = num; }
   uint32_t GetRowNum() { return _rowNum; }

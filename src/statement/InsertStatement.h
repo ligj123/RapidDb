@@ -9,9 +9,10 @@ namespace storage {
 // Normal insert, insert from select will implement in its brother class
 class InsertStatement : public Statement {
 public:
-  InsertStatement(uint32_t id, TranID *txid, ExprInsert *exprInsert,
-                  VectorRow &&vctPara)
-      : Statement(id, txid), _exprInsert(exprInsert), _vctPara(move(vctPara)) {}
+  InsertStatement(uint32_t id, TranID txid, ExprInsert *exprInsert,
+                  VectorRow &&vctParas)
+      : Statement(id, txid), _exprInsert(exprInsert),
+        _vctParas(move(vctParas)) {}
   ~InsertStatement() {}
   ExprType GetActionType() override { return ExprType::EXPR_INSERT; }
   bool IsReadonly() override { return false; }
@@ -19,7 +20,7 @@ public:
   bool InitData();
 
   StmtStatus CheckStatus() override;
-  void CollectRecords(MTreeSet<LeafRecord *> &setRec) override;
+  void CollectLogRecords(MTreeSet<LeafRecord *> &setRec) override;
 
   void Commit() override;
   void Rollback() override;

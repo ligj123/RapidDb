@@ -411,7 +411,8 @@ bool PhysTable::CheckColumnValues(VectorDataValue &vctDv) {
   for (size_t i = 0; i < vctDv.size(); i++) {
     PhysColumn &col = _vctColumn[i];
     if (!col.IsNullable() && vctDv[i]->IsNull()) {
-      _threadErrorMsg = new ErrorMsg(DT_NULL_VALUE, {col.GetName(), _name});
+      _threadErrorMsg.reset(
+          new ErrorMsg(DT_NULL_VALUE, {col.GetName(), _name}));
       return false;
     }
   }

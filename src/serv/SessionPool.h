@@ -20,6 +20,12 @@ class SessionTask;
 // In this pool, every thread has its data structor and it
 // can only visit its data to avoid lock.
 struct SessionGroup {
+  SessionGroup(uint16_t poolThreadNum, uint16_t outsideThreadNum)
+      : _threaPoolQueue(poolThreadNum), _outsideQueue(outsideThreadNum) {}
+  SessionGroup(SessionGroup &&src)
+      : _threaPoolQueue(move(src._threaPoolQueue)),
+        _outsideQueue(move(src._outsideQueue)) {}
+
   // The session map that the sessions are alive.
   MHashMap<uint32_t, Session *> _mapSession;
 
@@ -31,7 +37,7 @@ struct SessionGroup {
   // as auto increaseing counter.
   TranID _currTranId;
   // The tasks need to run
-  MVector<SessionAction *> _vctTask;
+  MList<SessionAction *> _lstTask;
   // To receive the Actions from thread pool
   RapidQueue<SessionAction> _threaPoolQueue;
   // To receive The actions from outside threads.
@@ -42,10 +48,11 @@ struct SessionGroup {
 
 class SessionTask : public ThreadTask {
 public:
-  SessionTask() {}
-  SessionTask(MVector<SessionGroup *> &&vct) : _vctGroup(move(vct)) {}
+  SessionTask(ThreadPool *threadPool) : ThreadTask(threadPool) {}
+  SessionTask(ThreadPool *threadPool, MVector<SessionGroup *> &&vct)
+      : ThreadTask(threadPool), _vctGroup(move(vct)) {}
   TaskStatus Run() override;
-  void SetStop(bool b) { _bStop = true; }
+  void SetStop() { _bStop = true; }
 
   void AddSessionGroup(SessionGroup *group) { _vctGroup.push_back(group); }
   bool IsNeedDelete() override { return true; }
@@ -57,11 +64,12 @@ protected:
 
 class SessionPool {
 public:
-  static bool InitPool(uint16_t groupNum, uint16_t taskNum, uint16_t startNum);
+  static bool InitPool(uint16_t groupNum, uint16_t taskNum, uint16_t restartNum,
+                       uint16_t outsiteThreadNum, ThreadPool *threadPool);
 
   static void ClosePool() {
-    for (SessionTask *task : _vctTask.size()) {
-      task->_bStop = true;
+    for (ThreadTask *task : _vctTask) {
+      ((SessionTask *)task)->SetStop();
     }
 
     _bStop.store(true, memory_order_release);
@@ -105,14 +113,13 @@ public:
    * @param action The action to add
    */
   static void AddAction(uint16_t threadId, TranID tranId,
-                        ThreadAction *action) {
+                        SessionAction *action) {
     uint64_t gid = ((tranId >> 40) & 0xFF);
     assert(gid < _vctGroup.size());
-    assert(threadId < ThreadPool::GetMaxThreads());
     _vctGroup[gid]._threaPoolQueue.Push(threadId, action);
   }
 
-  static RapidQueue<LeafRecord> &GetActionQueue(uint16_t gid) {
+  static RapidQueue<SessionAction> &GetActionQueue(uint16_t gid) {
     return _vctGroup[gid]._threaPoolQueue;
   }
 
@@ -120,8 +127,10 @@ protected:
   // The vector of session groups
   static MVector<SessionGroup> _vctGroup;
 
-  static MVector<SessionTask *> _vctTask;
+  static MVector<ThreadTask *> _vctTask;
 
-  atomic_bool _bStop{false};
+  static atomic_bool _bStop;
+
+  static ThreadPool *_threadPool;
 };
 } // namespace storage

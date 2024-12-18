@@ -1,45 +1,46 @@
 #include "SessionPool.h"
-#include "bit"
+
+#include <bit>
 
 namespace storage {
-bool SessionPool::_bStopped{false};
-uint16_t SessionPool::_threadNum{0};
-vector<SessionGroup> SessionPool::_vctGroup;
-atomic<uint64_t> SessionPool::_sessionId{0};
-atomic<uint64_t> SessionPool::_tranId;
-uint64_t SessionPool::_tranInitId;
-SpinMutex SessionPool::_spinMutex;
+MVector<SessionGroup> SessionPool::_vctGroup;
+MVector<ThreadTask *> SessionPool::_vctTask;
+atomic_bool SessionPool::_bStop{false};
+ThreadPool *SessionPool::_threadPool{nullptr};
 
 TaskStatus SessionTask::Run() { return TaskStatus::FINISHED; }
 
 bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,
-                           uint16_t startNum) {
+                           uint16_t restartNum, uint16_t outsiteThreadNum,
+                           ThreadPool *threadPool) {
   // Make sure it is this method is only called one time
   assert(_vctGroup.size() == 0);
   assert(popcount(groupNum) == 1 && popcount(taskNum) == 1);
   assert(taskNum <= groupNum);
-  _vctGroup.resize(groupNum);
-  startNum %= 16;
+  _vctGroup.reserve(groupNum);
+  restartNum %= 16;
   _vctTask.reserve(taskNum);
   SessionTask *task = nullptr;
   uint16_t num = groupNum / taskNum;
 
-  for (uint16_t i = 0; i < groupNum; i++) {
+  for (uint64_t i = 0; i < groupNum; i++) {
+    _vctGroup.emplace_back(threadPool->GetMaxThreads(), outsiteThreadNum);
     SessionGroup &group = _vctGroup[i];
-    group._currTranId = (startNum << 48) + (i << 40);
+    group._currTranId = ((uint64_t)restartNum << 48) + (i << 40);
 
     if (i % num == 0) {
-      task = new SessionTask;
+      task = new SessionTask(threadPool);
       _vctTask.push_back(task);
     }
 
     task->AddSessionGroup(&group);
   }
 
+  threadPool->AddTasks(_vctTask);
   return true;
 }
 
-uint32_t SessionPool::CreateSession(function<void()> hookFunc) {}
+uint32_t SessionPool::CreateSession(function<void()> hookFunc) { return 0; }
 
 void SessionPool::CloseSession(uint32_t sid) {}
 

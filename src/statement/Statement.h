@@ -52,7 +52,7 @@ public:
    * @brief To be called in session group, to check if current step has finished
    * and can go to next step.
    */
-  virtual StmtStatus CheckStatus() = 0;
+  virtual StmtStatus CheckStatus() { abort(); }
   /**
    * @brief Execute this statement
    * @return True: This statement has finished and can go to next step.

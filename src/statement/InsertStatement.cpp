@@ -6,9 +6,9 @@
 namespace storage {
 bool InsertStatement::InitData() {
   _status = StmtStatus::Created;
-  PhysTable *table = _exprInsert->GetSourTable();
+  PhysTable *table = _exprInsert->_physTable;
   TableTaskMgr *mgr = table->GetTableTaskMgr();
-  auto vctIndex = table->GetVectorIndex();
+  auto &vctIndex = table->GetVectorIndex();
 
   for (VectorDataValue *pvct : _vctParas) {
     VectorDataValue vctVal;
@@ -22,14 +22,14 @@ bool InsertStatement::InitData() {
       dv->DecRef();
 
       if (!b) {
-        _stmtResult._error = move(_threadErrorMsg->GetErrorMsg());
+        // _stmtResult._vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
         _status = StmtStatus::Finished;
         return false;
       }
     }
 
     if (!table->CheckColumnValues(vctVal)) {
-      _stmtResult._error = move(_threadErrorMsg->GetErrorMsg());
+      //_stmtResult._error = move(_threadErrorMsg->GetErrorMsg());
       return false;
     }
 
@@ -42,9 +42,11 @@ bool InsertStatement::InitData() {
       vctKey.push_back(dv);
     }
 
-    RawKey key(vctKey);
-    InsertAction *action = new InsertAction(table, vctKey, vctVal, this);
-    mgr->AddSessionAction(0, /*SessionID*/, action);
+    // RawKey key(vctKey);
+    // InsertAction *action = new InsertAction(table, vctKey,  vctVal, this);
+    // mgr->AddSessionAction(0, /*SessionID*/, action);
   }
+
+  return true;
 }
 } // namespace storage

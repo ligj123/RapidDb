@@ -1,10 +1,12 @@
 #include "IndexAction.h"
+
 #include "../core/BranchPage.h"
 #include "../core/BranchRecord.h"
 #include "../core/IndexTree.h"
 #include "../core/LeafPage.h"
 #include "../core/LeafRecord.h"
 #include "../serv/SessionPool.h"
+#include "../statement/InsertStatement.h"
 #include "../statement/Statement.h"
 #include "../utils/ThreadPool.h"
 #include "Table.h"
@@ -81,7 +83,7 @@ TaskStatus RecordAction::Exec() {
   return TaskStatus::FINISHED;
 }
 
-int InsertAction::JudgeRange() {
+int RecordAction::JudgeRange() {
   _rangePos = _indexTree->CalcIndexRange(*_lr);
   return _rangePos;
 }
@@ -98,29 +100,28 @@ TaskStatus StatementAction::Exec() { return TaskStatus::FINISHED; }
 int StatementAction::JudgeRange() { return _stmt->CalcIndexRange(_indexTree); }
 
 InsertAction::InsertAction(PhysTable *table, RawKey &&priKey,
-                           VectorDataValue &&recValue, Statement *stmt)
+                           VectorDataValue &&recValue, InsertStatement *stmt)
     : IndexAction(table->GetVectorIndex()[0]._tree), _table(table),
       _priKey(move(priKey)), _recValue(move(recValue)), _stmt(stmt) {}
 
 TaskStatus InsertAction::Exec() {
   if (_idxPage == nullptr) {
-    PhysTable *table = _exprInsert->GetSourTable();
-    auto vctIndex = table->GetVectorIndex();
-    VersionStamp stamp = vctIndex[0]._tree->ApplyStamp();
+    MVector<IndexProp> &vctIndex = _table->GetVectorIndex();
+    VersionStamp stamp = vctIndex[0]._tree->ApplyStamp(_rangePos);
 
-    LeafRecord *priLr = new LeafRecord(_indexTree, _priKey, _recValue, stamp,
-                                       _stmt, _indexTree->IsMultiRange());
-    if (!priLr->IsValid()) {
-      _indexTree->GetVctRange()[_rangePos]._vctErrRecord.push_back(priLr);
+    _priLr = new LeafRecord(_indexTree, _priKey, _recValue, stamp, _stmt,
+                            _indexTree->IsMultiRange());
+    if (!_priLr->IsValid()) {
+      _indexTree->GetVctRange()[_rangePos]._vctErrRecord.push_back(_priLr);
       return TaskStatus::FINISHED;
     }
 
-    SessionPool::AddAction(_stmt->GetSessionGroupID(),
-                           ThreadPool::GetThreadId(), lrPri);
+    // SessionPool::AddAction(_stmt->GetTxId(), ThreadPool::GetThreadId(),
+    // _priLr);
     TableTaskMgr *mgr = _table->GetTableTaskMgr();
 
-    for (size_t i = 1; i < table->GetVectorIndex().size(); i++) {
-      IndexProp &idxProp = table->GetVectorIndex()[i];
+    for (size_t i = 1; i < _table->GetVectorIndex().size(); i++) {
+      IndexProp &idxProp = _table->GetVectorIndex()[i];
       VectorDataValue vctKey;
       vctKey._bDec = false;
       vctKey.reserve(idxProp._vctCol.size());
@@ -130,41 +131,41 @@ TaskStatus InsertAction::Exec() {
       }
 
       LeafRecord *lrSec = new LeafRecord(
-          idxProp._tree, vctKey, priLr->GetBysValue() + UI16_2_LEN,
-          priLr->GetKeyLength(), ActionType::INSERT, stamp, _stmt);
+          idxProp._tree, vctKey, _priLr->GetBysValue() + UI16_2_LEN,
+          _priLr->GetKeyLength(), ActionType::INSERT, stamp, _stmt);
       if (!lrSec->IsValid()) {
-        _indexTree->GetVctRange()[_rangePos]._vctErrRecord.push_back(priLr);
+        _indexTree->GetVctRange()[_rangePos]._vctErrRecord.push_back(_priLr);
         return TaskStatus::FINISHED;
       }
 
       RecordAction *action = new RecordAction(idxProp._tree, lrSec);
       mgr->AddFromPrimaryAction((uint16_t)i, action->JudgeRange(), action);
-      SessionPool::AddAction(_stmt->GetSessionGroupID(),
-                             ThreadPool::GetThreadId(), lrSec);
+      // SessionPool::AddAction(ThreadPool::GetThreadId(), _stmt->GetTxId(),
+      //                        action);
     }
 
     _idxPage = _indexTree->GetRootPage();
   }
 
   if (_idxPage->GetPageType() != PageType::LEAF_PAGE) {
-    bool b = _indexTree->SearchPage(*_lr, _idxPage);
+    bool b = _indexTree->SearchPage(*_priLr, _idxPage);
     if (!b) {
       return TaskStatus::RUNNING;
     }
   }
 
-  RecordLock *lock = _lr->GetLock();
+  RecordLock *lock = _priLr->GetLock();
   if (lock->GetRecordStatus() != RecordStatus::INIT) {
     assert(lock->GetRecordResult() != RecordResult::IN_PAGE &&
            lock->GetRecordStatus() == RecordStatus::ROLLBACKED);
-    delete _lr;
-    _lr = nullptr;
+    delete _priLr;
+    _priLr = nullptr;
     return TaskStatus::FINISHED;
   }
 
   LeafPage *lp = (LeafPage *)_idxPage;
-  lp->UpdateAction(_lr);
-  _lr = nullptr;
+  lp->UpdateAction(_priLr);
+  _priLr = nullptr;
   return TaskStatus::FINISHED;
 }
 

@@ -201,7 +201,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSplit_test) {
     *((DataValueLong *)vctVal[0]) = i + ROW_COUNT + 100LL;
     LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal,
                                     hp->GetAndIncRecordStamp(), nullptr);
-    lp->InsertRecord(rr);
+    lp->InsertRecord(rr, i);
   }
 
   bool b = lp->SplitPage(pageMap, UINT8_MAX);
