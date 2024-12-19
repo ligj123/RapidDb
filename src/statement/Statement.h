@@ -15,6 +15,7 @@
 namespace storage {
 class LeafRecord;
 class IndexTree;
+class IndexAction;
 
 enum class StmtStatus : uint8_t {
   Created,   // Just create this statement and NOT start to execute
@@ -24,8 +25,7 @@ enum class StmtStatus : uint8_t {
   Logging,   // Collecting log and wait the logs to be write into files.
   Logged,    // Have finished to write log into files.
   Finished,  // Have executed and wrote log if needed, send commit ot abort
-             // singal to all LeafRecord. if the end user got the result, this
-             // statement can be freed.
+             // singal to all LeafRecord. This statement can be freed.
 };
 
 class Statement {
@@ -43,7 +43,8 @@ public:
    * @param id The id of this statement, auto increment 1 in every session.
    * @param tran The transaction own this statement.
    */
-  Statement(uint32_t id, TranID txid) : _id(id), _txid(txid) {
+  Statement(uint32_t id, TranID txid, StmtResult *stmtResult)
+      : _id(id), _txid(txid), _stmtResult(stmtResult) {
     _createTime = MicroSecTime();
   }
 
@@ -52,7 +53,10 @@ public:
    * @brief To be called in session group, to check if current step has finished
    * and can go to next step.
    */
-  virtual StmtStatus CheckStatus() { abort(); }
+  virtual StmtStatus CheckStatus() {
+    abort();
+    return StmtStatus::Finished;
+  }
   /**
    * @brief Execute this statement
    * @return True: This statement has finished and can go to next step.
@@ -92,17 +96,14 @@ public:
   uint32_t GetId() { return _id; }
 
   /**
-   * @brief To calc which index range for this statement.
+   * @brief Get the index ranges in the IndexTree.
    * @param idxTree The IndexTree
-   * @return Which range that this statement belong to.
+   * @return The ranges that this statement need to exec.
    */
-  virtual int CalcIndexRange(IndexTree *idxTree) {
+  virtual MVector<int> GetIndexRange(IndexTree *idxTree) {
     abort();
-    return -1;
+    return {};
   }
-
-  void SeReadResult(bool b) { _readResult = b; }
-  bool GetReadResult() { return _readResult; }
 
   void AddLeafRecord(LeafRecord *lr);
 
@@ -111,8 +112,6 @@ protected:
   uint32_t _id;
   // Statement status
   StmtStatus _status;
-  // The end user has read the result or not
-  bool _readResult;
   // Meet error when executing
   atomic_bool _stmtFailed{false};
   // The create time for this statement
@@ -121,16 +120,12 @@ protected:
   DT_MicroSec _stopTime = 0;
   // The transaction id to run this task, must be valid.
   TranID _txid;
-  // If current statement meet error, save the reason here
-  unique_ptr<ErrorMsg> _errorMsg = nullptr;
-  // Warning messages
-  vector<ErrorMsg> _vctWarnMsg;
 
   // All LeafRecords that just created and are not added into LeafPages.
   MList<LeafRecord *> _lstWaitRecord;
   // The LeafRecords that has been added into LeafPages or have error.
   MList<LeafRecord *> _lstFinshRecord;
-
-  StmtResult _stmtResult;
+  // Return the result to end user
+  StmtResult *_stmtResult;
 };
 } // namespace storage

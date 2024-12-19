@@ -50,9 +50,8 @@ public:
   }
 
 public:
-  Session(uint16_t sessionGroupId, uint32_t id,
-          function<void()> hookFunc = nullptr)
-      : _id(id), _transaction(this, sessionGroupId), _hookFunc(hookFunc) {}
+  Session(uint16_t sessionGroupId, uint32_t id)
+      : _id(id), _transaction(this, sessionGroupId) {}
 
 public:
   // session id, only valid in this server and to identify the sessions.It will
@@ -77,23 +76,12 @@ public:
   // The map of <exprstatement id, parsed ExprStatement> in this session,
   // duplicate of _mapSqlExprStatement.
   MHashMap<uint32_t, ExprStatement *> _mapIdExprStatement;
-  // The hook function that will be called when the statement finished.
-  function<void()> _hookFunc;
   // The create time for this session
   DT_MicroSec _createTime;
   // The last time to visit this session
   DT_MicroSec _lastVisitTime = 0;
   // The current statement id that will assign to new statement in this session.
   uint32_t _currStatementId;
-
-  // Below 3 variable are only used for client and server in one process.
-  //  The sql string to parse and execute.
-  MString _sql;
-  // The expr statement id that just added if it is parpre statement and second
-  // input.
-  uint32_t _exprId;
-  // Multi rows of the parameters
-  VectorRow _paras;
 };
 
 } // namespace storage

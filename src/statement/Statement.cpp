@@ -10,7 +10,9 @@ void Statement::AddLeafRecord(LeafRecord *lr) {
   } else {
     _lstFinshRecord.push_back(lr);
     if (lr->GetLock()->GetRecordResult() == RecordResult::ERROR) {
-      _stmtFailed = true;
+      _stmtResult->_vctError.push_back(
+          move(lr->GetLock()->_errMsg->GetErrorMsg()));
+      _stmtFailed.store(true, memory_order_relaxed);
     }
   }
 }

@@ -19,9 +19,9 @@ enum class TranStatus : uint8_t {
   Uninit = 0, // Just create the instance
   IN_TRAN,    // Start a new transaction with BEGIN command, NOT auto commit
               // transaction
-  FINISHED,   // The transaction has end with command COMMIT or ABORT
-  AUTO_TRAN   // Auto commit transaction, a statement start a transaction and
+  AUTO_TRAN,  // Auto commit transaction, a statement start a transaction and
               // commit at the statement end.
+  FINISHED,   // The transaction has end with command COMMIT or ABORT
 };
 
 enum class TranType : uint8_t {

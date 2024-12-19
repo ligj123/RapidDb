@@ -20,8 +20,6 @@ public:
   Transaction(Session *session, uint16_t sessionGroupId)
       : _session(session), _sessionGroupId(sessionGroupId) {}
 
-  StmtID GenStmtID() { return _currStmtID++; }
-
   void StartTransaction(bool bAuto, IsoLevel isoLevel = IsoLevel::ReadCommited,
                         CcProtocol ccProtocal = CcProtocol::OCC);
   void AddStatement(Statement *stmt) { _vctStatement.push_back(stmt); }
