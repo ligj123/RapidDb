@@ -35,7 +35,7 @@ public:
     _errorColumn = errorColumn;
   }
 
-  const MString &ErrorMsg() const { return _errorMsg; }
+  MString &ErrorMsg() { return _errorMsg; }
   int ErrorLine() const { return _errorLine; }
   int ErrorColumn() const { return _errorColumn; }
 
@@ -45,9 +45,7 @@ public:
 
     _vctStatement = vct_stmt;
   }
-  const MVectorPtr<ExprStatement *> *GetStatements() const {
-    return _vctStatement;
-  }
+  MVectorPtr<ExprStatement *> *GetStatements() { return _vctStatement; }
   void AddParameters(MVector<ExprParameter *> &vct_para) {
     size_t ii = _vctPara.size();
     for (ExprParameter *para : vct_para) {

@@ -40,6 +40,10 @@ public:
     return false;
   }
 
+  TranStatus GetTranStatus() { return _tranStatus; }
+  void SetTranStatus(TranStatus s) { _tranStatus = s; }
+  TranType GetTranType() { return _tranType; }
+
 protected:
   TranID _tid{TXID_NULL};
   // The start time of current transaction

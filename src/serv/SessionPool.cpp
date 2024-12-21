@@ -4,9 +4,10 @@
 
 namespace storage {
 MVector<SessionGroup> SessionPool::_vctGroup;
-MVector<ThreadTask *> SessionPool::_vctTask;
+MVector<SessionTask *> SessionPool::_vctTask;
 atomic_bool SessionPool::_bStop{false};
 ThreadPool *SessionPool::_threadPool{nullptr};
+atomic_uint32_t SessionPool::_currSessionId{0};
 
 TaskStatus SessionTask::Run() { return TaskStatus::FINISHED; }
 
@@ -22,6 +23,7 @@ bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,
   _vctTask.reserve(taskNum);
   SessionTask *task = nullptr;
   uint16_t num = groupNum / taskNum;
+  MVector<ThreadTask> vct;
 
   for (uint64_t i = 0; i < groupNum; i++) {
     _vctGroup.emplace_back(threadPool->GetMaxThreads(), outsiteThreadNum);
@@ -31,17 +33,45 @@ bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,
     if (i % num == 0) {
       task = new SessionTask(threadPool);
       _vctTask.push_back(task);
+      vct.push_back(task);
     }
 
     task->AddSessionGroup(&group);
   }
 
-  threadPool->AddTasks(_vctTask);
+  threadPool->AddTasks(vct);
   return true;
 }
 
-uint32_t SessionPool::CreateSession(function<void()> hookFunc) { return 0; }
+bool SessionPool::AdjustTaskNumber(uint16_t newTaskNum) {
+  for (SessionTask *task : _vctTask) {
+    task->SetStop();
+  }
 
-void SessionPool::CloseSession(uint32_t sid) {}
+  _vctTask.clear();
+
+  _vctTask.reserve(newTaskNum);
+  SessionTask *task = nullptr;
+  uint16_t num = _vctGroup.size() / newTaskNum;
+  MVector<ThreadTask> vct;
+
+  for (uint64_t i = 0; i < groupNum; i++) {
+    SessionGroup &group = _vctGroup[i];
+
+    if (i % num == 0) {
+      task = new SessionTask(threadPool);
+      _vctTask.push_back(task);
+      vct.push_back(task);
+    }
+
+    task->AddSessionGroup(&group);
+  }
+
+  threadPool->AddTasks(vct);
+}
+
+uint32_t SessionPool::CreateSession(StmtResult *result) { return 0; }
+
+void SessionPool::CloseSession(uint32_t sid, StmtResult *result) {}
 
 } // namespace storage

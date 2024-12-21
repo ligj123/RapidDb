@@ -16,12 +16,12 @@ enum class IsoLevel : uint8_t {
 };
 
 enum class TranStatus : uint8_t {
-  Uninit = 0, // Just create the instance
-  IN_TRAN,    // Start a new transaction with BEGIN command, NOT auto commit
-              // transaction
-  AUTO_TRAN,  // Auto commit transaction, a statement start a transaction and
-              // commit at the statement end.
-  FINISHED,   // The transaction has end with command COMMIT or ABORT
+  INIT = 0,  // Just create the instance
+  IN_TRAN,   // Start a new transaction with BEGIN command, NOT auto commit
+             // transaction
+  AUTO_TRAN, // Auto commit transaction, a statement start a transaction and
+             // commit at the statement end.
+  FINISHED,  // The transaction has end with command COMMIT or ABORT
 };
 
 enum class TranType : uint8_t {
@@ -61,8 +61,8 @@ inline std::ostream &operator<<(std::ostream &os, const IsoLevel &level) {
 inline std::ostream &operator<<(std::ostream &os, const TranStatus &status) {
   os << "TranStatus::";
   switch (status) {
-  case TranStatus::Uninit:
-    os << "Uninit(" << (int)TranStatus::Uninit << ")";
+  case TranStatus::INIT:
+    os << "INIT(" << (int)TranStatus::INIT << ")";
     break;
   case TranStatus::IN_TRAN:
     os << "IN_TRAN(" << (int)TranStatus::IN_TRAN << ")";

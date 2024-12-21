@@ -2,6 +2,13 @@
 #include "../result/IResultSet.h"
 
 namespace storage {
+enum class ResultStatus : uint8_t {
+  INIT = 0, // Just initiate, wait to fill result
+  FILLING, // For large query, it need to split the result into several parts to
+           // fill
+  FINISHED // Have filled all result into it.
+};
+
 struct StmtResult {
 public:
   StmtResult() {}
@@ -29,14 +36,13 @@ public:
   uint32_t GetRowNum() { return _rowNum; }
 
 public:
-  // The od of session that result belong to
+  atomic<ResultStatus> _status{ResultStatus::INIT};
+  // The id of session that result belong to
   uint32_t _sessionId;
   // The result id, start from 0, every time increase 1 in this session.
-  uint32_t _resId;
-  // The expression id of this statement
-  int32_t _exprId;
+  uint32_t _stmtId;
   // Total rows affected or returned
-  uint32_t _rowNum{0};
+  uint64_t _rowNum{0};
   // The error information
   MVector<MString> _vctError;
   // The vector of warnings

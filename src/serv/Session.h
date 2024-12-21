@@ -10,30 +10,7 @@
 
 namespace storage {
 using namespace std;
-enum class SessionStatus : uint8_t {
-  // No statement or transaction in this session
-  Free = 0,
-  // The sql has been added and waiting to execute.
-  Added,
-  // The statement is running
-  Executing,
-  // The statement has executed and waiting to write log.
-  Executed,
-  // Writting log. If autocommit, need commit, then finish and return
-  // result to client,
-  Logging,
-  // Finished log
-  Logged,
-  // Commit this transaction
-  Committing,
-  // The statement has finished and wait client to get result.
-  Finished,
-  // Waitting next statement or commit transaction
-  Waiting,
-  // The session has been closed and obsolete.
-  Obsolete
-};
-
+class SessionStatementAction;
 /**
  * The client create a connection and connect to server, the server will create
  * a session to response to this connection. All operations between client and
@@ -53,17 +30,16 @@ public:
   Session(uint16_t sessionGroupId, uint32_t id)
       : _id(id), _transaction(this, sessionGroupId) {}
 
+  ~Session() { assert(_transaction.) }
+
 public:
   // session id, only valid in this server and to identify the sessions.It will
   // start from 0, and add 1 every time. If exceed 2^32, it will restart from 0.
   uint32_t _id;
   // Auto commit the transaction or need client call commit.
   bool _bAutoCommit{true};
-  // After create this session, it will always true to sign this session is
-  // valid. If it will set false if the session is droped and the session will
-  // be move to obsolete vector.
-  SessionStatus _status{SessionStatus::Free};
-
+  // The session has been closed or not
+  bool _bObsolete{false};
   // The transaction information.
   Transaction _transaction;
 
@@ -80,8 +56,9 @@ public:
   DT_MicroSec _createTime;
   // The last time to visit this session
   DT_MicroSec _lastVisitTime = 0;
-  // The current statement id that will assign to new statement in this session.
-  uint32_t _currStatementId;
+  // The waitting statements,they will be execute one by one when previous
+  // statement finished.
+  MList<SessionStatementAction> _lstWaittingStmt;
 };
 
 } // namespace storage

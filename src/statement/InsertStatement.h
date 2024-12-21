@@ -10,8 +10,8 @@ namespace storage {
 class InsertStatement : public Statement {
 public:
   InsertStatement(uint32_t id, TranID txid, ExprInsert *exprInsert,
-                  VectorRow &&vctParas)
-      : Statement(id, txid), _exprInsert(exprInsert),
+                  VectorRow &&vctParas, StmtResult *result)
+      : Statement(id, txid, result), _exprInsert(exprInsert),
         _vctParas(move(vctParas)) {}
   ~InsertStatement() {}
   ExprType GetActionType() override { return ExprType::EXPR_INSERT; }

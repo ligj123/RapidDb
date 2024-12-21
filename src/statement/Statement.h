@@ -105,6 +105,8 @@ public:
     return {};
   }
 
+  void SetTxID(TranID txid) { _txid = txid; }
+
   void AddLeafRecord(LeafRecord *lr);
 
 protected:
