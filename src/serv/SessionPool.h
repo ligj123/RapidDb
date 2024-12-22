@@ -21,10 +21,10 @@ class SessionTask;
 // can only visit its data to avoid lock.
 struct SessionGroup {
   SessionGroup(uint16_t poolThreadNum, uint16_t outsideThreadNum)
-      : _threaPoolQueue(poolThreadNum), _outsideQueue(outsideThreadNum) {}
+      : _threaPoolQueue(poolThreadNum), _outerQueue(outsideThreadNum) {}
   SessionGroup(SessionGroup &&src)
       : _threaPoolQueue(move(src._threaPoolQueue)),
-        _outsideQueue(move(src._outsideQueue)) {}
+        _outerQueue(move(src._outerQueue)) {}
   ~SessionGroup() {
     assert(_lstAction.size() == 0);
     assert(_threaPoolQueue.RoughSize() == 0 && _outerQueue.RoughSize() == 0);
@@ -81,6 +81,9 @@ public:
   static void InitPool(uint16_t groupNum, uint16_t taskNum, uint16_t restartNum,
                        uint16_t outsiteThreadNum, ThreadPool *threadPool);
   static void AdjustTaskNumber(uint16_t newTaskNum);
+  static uint32_t CreateSession(uint16_t outerTid, StmtResult *result);
+  static void CloseSession(uint16_t outerTid, uint32_t sessionId,
+                           StmtResult *result);
   static void ClosePool() {
     for (SessionTask *task : _vctTask) {
       task->SetStop();
@@ -90,10 +93,6 @@ public:
   }
 
   static MVector<SessionGroup> &GetVctSessionGroup() { return _vctGroup; }
-
-  static uint32_t CreateSession(uint16_t outerTid, StmtResult *result);
-  static void CloseSession(uint16_t outerTid, uint32_t sessionId,
-                           StmtResult *result);
 
   static Session *GetSession(uint32_t sid) {
     uint32_t gid = sid % (uint32_t)_vctGroup.size();
@@ -141,7 +140,7 @@ protected:
   static ThreadPool *_threadPool;
   // The system has stoped or not
   static atomic_bool _bStop;
-
+  // To generate the session id, every time add 1
   static atomic_uint32_t _currSessionId;
 };
 } // namespace storage

@@ -109,6 +109,12 @@ public:
 
   void AddLeafRecord(LeafRecord *lr);
 
+  StmtResult *GetStmtResult() { return _stmtResult; }
+
+  void SetStmtFailed(bool b = true) {
+    _stmtFailed.store(b, memory_order_relaxed);
+  }
+
 protected:
   // Id will auto increment 1 every time in self session.
   uint32_t _id;

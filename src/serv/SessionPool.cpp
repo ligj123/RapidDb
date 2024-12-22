@@ -70,8 +70,24 @@ bool SessionPool::AdjustTaskNumber(uint16_t newTaskNum) {
   threadPool->AddTasks(vct);
 }
 
-uint32_t SessionPool::CreateSession(StmtResult *result) { return 0; }
+uint32_t SessionPool::CreateSession(uint16_t outerTid, StmtResult *result) {
+  uint32_t sid = _currSessionId.fetch_add(1, memory_order_relaxed);
+  SessionCreateAction *action = new SessionCreateAction(sid, result);
+  _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outerTid, action);
+  return sid;
+}
 
-void SessionPool::CloseSession(uint32_t sid, StmtResult *result) {}
+void SessionPool::CloseSession(uint16_t outerTid, uint32_t sid,
+                               StmtResult *result) {
+  SessionCloseAction *action = new SessionCloseAction(sid, result);
+  _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outerTid, action);
+}
 
+void SessionPool::AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
+                               uint32_t exprId, MString &&sql,
+                               VectorRow &&paras, StmtResult *result) {
+  SessionStatementAction *action = new SessionStatementAction(
+      sid, stmtId, exprId, move(sql), move(paras), result);
+  _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outerTid, action);
+}
 } // namespace storage

@@ -1,3 +1,5 @@
 #include "Session.h"
 
-namespace storage {} // namespace storage
+namespace storage {
+void Session::Exec() {}
+} // namespace storage

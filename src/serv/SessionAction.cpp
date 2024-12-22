@@ -18,7 +18,11 @@ TaskStatus SessionRecordAction::Exec() {
   return TaskStatus::FINISHED;
 }
 
-TaskStatus SessionErrMsgAction::Exec() { return TaskStatus::FINISHED; }
+TaskStatus SessionErrMsgAction::Exec() {
+  _stmt->GetStmtResult()->_vctError.push_back(move(_errMsg));
+  _stmt->SetStmtFailed(true);
+  return TaskStatus::FINISHED;
+}
 
 TaskStatus SessionCreateAction::Exec() {
   MVector<SessionGroup> vctGroup = SessionPool::GetSessionGroup();
@@ -27,7 +31,7 @@ TaskStatus SessionCreateAction::Exec() {
   Session *session = new Session(idx, _sessionId);
   group._mapSession.emplace(_sessionId, session);
   _result->_sessionId = _sessionId;
-  _result->_status.stor(ResultStatus::FINISHED, memory_order_release);
+  _result->_status.store(ResultStatus::FINISHED, memory_order_release);
 
   return TaskStatus::FINISHED;
 }
@@ -38,7 +42,7 @@ TaskStatus SessionCloseAction::Exec() {
   SessionGroup &group = vctGroup[idx];
   group._mapSession.erase(_sessionId);
   _result->_sessionId = _sessionId;
-  _result->_status.stor(ResultStatus::FINISHED, memory_order_release);
+  _result->_status.store(ResultStatus::FINISHED, memory_order_release);
 
   return TaskStatus::FINISHED;
 }
@@ -73,7 +77,7 @@ TaskStatus SessionStatementAction::Exec() {
 
     exprStmt = vctPtr[0];
     vctPtr->clear();
-    exprStmt->Preprocess(session);
+    // exprStmt->Preprocess(session);
 
     session->_mapSqlExprStatement.emplace(_sql, exprStmt);
     session->_mapIdExprStatement.emplace(_exprId, exprStmt);

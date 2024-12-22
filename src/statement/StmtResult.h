@@ -1,3 +1,4 @@
+#pragma once
 #include "../cache/Mallocator.h"
 #include "../result/IResultSet.h"
 
@@ -46,7 +47,7 @@ public:
   // The error information
   MVector<MString> _vctError;
   // The vector of warnings
-  MVector<MString> _vct_warning;
+  MVector<MString> _vctWarning;
   // The result set for query,or nulpptr for other statement.
   IResultSet *_resultSet{nullptr};
 };

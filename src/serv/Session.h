@@ -10,7 +10,7 @@
 
 namespace storage {
 using namespace std;
-class SessionStatementAction;
+
 /**
  * The client create a connection and connect to server, the server will create
  * a session to response to this connection. All operations between client and
@@ -30,7 +30,9 @@ public:
   Session(uint16_t sessionGroupId, uint32_t id)
       : _id(id), _transaction(this, sessionGroupId) {}
 
-  ~Session() { assert(_transaction.) }
+  ~Session() { assert(_transaction.GetTranStatus() == TranStatus::FINISHED); }
+
+  void Exec();
 
 public:
   // session id, only valid in this server and to identify the sessions.It will
@@ -58,7 +60,7 @@ public:
   DT_MicroSec _lastVisitTime = 0;
   // The waitting statements,they will be execute one by one when previous
   // statement finished.
-  MList<SessionStatementAction> _lstWaittingStmt;
+  MList<Statement *> _lstWaittingStmt;
 };
 
 } // namespace storage

@@ -57,7 +57,7 @@ protected:
   StmtID _currStmtID{0};
   uint16_t _sessionGroupId;
 
-  TranStatus _tranStatus{TranStatus::Uninit};
+  TranStatus _tranStatus{TranStatus::INIT};
   TranType _tranType{TranType::AUTOMATE};
   IsoLevel _isoLevel{IsoLevel::ReadCommited};
   CcProtocol _ccProtocol{CcProtocol::OCC};

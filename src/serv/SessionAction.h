@@ -66,8 +66,8 @@ public:
   SessionStatementAction(uint32_t sessionId, uint32_t stmtId, uint32_t exprId,
                          MString &&sql, VectorRow &&vctParas,
                          StmtResult *result)
-      : _sessionId(sessionId), _stmtId(stmtId), _exprId, _sql(move(sql)),
-        _vctParas(move(vctParas)), _stmtResult(result) {}
+      : _sessionId(sessionId), _stmtId(stmtId), _exprId(exprId),
+        _sql(move(sql)), _vctParas(move(vctParas)), _stmtResult(result) {}
 
   TaskStatus Exec() override;
 
@@ -78,5 +78,5 @@ protected:
   MString _sql;
   VectorRow _vctParas;
   StmtResult *_stmtResult;
-}
+};
 } // namespace storage
