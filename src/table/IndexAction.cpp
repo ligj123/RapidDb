@@ -97,7 +97,7 @@ int PriKeyAction::JudgeRange() {
 
 TaskStatus StatementAction::Exec() { return TaskStatus::FINISHED; }
 
-int StatementAction::JudgeRange() { return _stmt->CalcIndexRange(_indexTree); }
+int StatementAction::JudgeRange() { return _stmt->GetIndexRange(_indexTree); }
 
 InsertAction::InsertAction(PhysTable *table, RawKey &&priKey,
                            VectorDataValue &&recValue, InsertStatement *stmt)

@@ -13,7 +13,7 @@
 
 namespace storage {
 TaskStatus SessionRecordAction::Exec() {
-  assert(_lr->_recLock != nullptr);
+  assert(_lr->GetLock() != nullptr);
   _stmt->AddLeafRecord(_lr);
   return TaskStatus::FINISHED;
 }
@@ -25,7 +25,7 @@ TaskStatus SessionErrMsgAction::Exec() {
 }
 
 TaskStatus SessionCreateAction::Exec() {
-  MVector<SessionGroup> vctGroup = SessionPool::GetSessionGroup();
+  MVector<SessionGroup> &vctGroup = SessionPool::GetSessionGroup();
   uint64_t idx = _sessionId % vctGroup.size();
   SessionGroup &group = vctGroup[idx];
   Session *session = new Session(idx, _sessionId);
@@ -37,7 +37,7 @@ TaskStatus SessionCreateAction::Exec() {
 }
 
 TaskStatus SessionCloseAction::Exec() {
-  MVector<SessionGroup> vctGroup = SessionPool::GetSessionGroup();
+  MVector<SessionGroup> &vctGroup = SessionPool::GetSessionGroup();
   uint64_t idx = _sessionId % vctGroup.size();
   SessionGroup &group = vctGroup[idx];
   group._mapSession.erase(_sessionId);
@@ -48,7 +48,7 @@ TaskStatus SessionCloseAction::Exec() {
 }
 
 TaskStatus SessionStatementAction::Exec() {
-  MVector<SessionGroup> vctGroup = SessionPool::GetSessionGroup();
+  MVector<SessionGroup> &vctGroup = SessionPool::GetSessionGroup();
   uint64_t idx = _sessionId % vctGroup.size();
   SessionGroup &group = vctGroup[idx];
 
@@ -68,14 +68,14 @@ TaskStatus SessionStatementAction::Exec() {
     bool b = Parser::Parse(_sql, result);
     if (!b) {
       _stmtResult->_vctError.push_back(move(result.ErrorMsg()));
-      _stmtResult->_status.stor(ResultStatus::FINISHED, memory_order_release);
+      _stmtResult->_status.store(ResultStatus::FINISHED, memory_order_release);
       return TaskStatus::FINISHED;
     }
 
     MVectorPtr<ExprStatement *> *vctPtr = result.GetStatements();
     assert(vctPtr->size() == 1);
 
-    exprStmt = vctPtr[0];
+    exprStmt = vctPtr->at(0);
     vctPtr->clear();
     // exprStmt->Preprocess(session);
 
@@ -88,8 +88,8 @@ TaskStatus SessionStatementAction::Exec() {
   Statement *stmt = nullptr;
   switch (exprStmt->GetType()) {
   case ExprType::EXPR_INSERT:
-    stmt = new InsertStatement(_stmtId, TXID_NULL, exprStmt, _vctParas,
-                               _stmtResult);
+    stmt = new InsertStatement(_stmtId, TXID_NULL, (InsertStatement *)exprStmt,
+                               _vctParas, _stmtResult);
     break;
   case ExprType::EXPR_UPDATE:
     break;

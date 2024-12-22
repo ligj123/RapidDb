@@ -23,7 +23,7 @@ bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,
   _vctTask.reserve(taskNum);
   SessionTask *task = nullptr;
   uint16_t num = groupNum / taskNum;
-  MVector<ThreadTask> vct;
+  MVector<ThreadTask *> vct;
 
   for (uint64_t i = 0; i < groupNum; i++) {
     _vctGroup.emplace_back(threadPool->GetMaxThreads(), outsiteThreadNum);
@@ -43,7 +43,7 @@ bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,
   return true;
 }
 
-bool SessionPool::AdjustTaskNumber(uint16_t newTaskNum) {
+void SessionPool::AdjustTaskNumber(uint16_t newTaskNum) {
   for (SessionTask *task : _vctTask) {
     task->SetStop();
   }
@@ -53,13 +53,13 @@ bool SessionPool::AdjustTaskNumber(uint16_t newTaskNum) {
   _vctTask.reserve(newTaskNum);
   SessionTask *task = nullptr;
   uint16_t num = _vctGroup.size() / newTaskNum;
-  MVector<ThreadTask> vct;
+  MVector<ThreadTask *> vct;
 
-  for (uint64_t i = 0; i < groupNum; i++) {
+  for (size_t i = 0; i < _vctGroup.size(); i++) {
     SessionGroup &group = _vctGroup[i];
 
     if (i % num == 0) {
-      task = new SessionTask(threadPool);
+      task = new SessionTask(_threadPool);
       _vctTask.push_back(task);
       vct.push_back(task);
     }
@@ -67,7 +67,7 @@ bool SessionPool::AdjustTaskNumber(uint16_t newTaskNum) {
     task->AddSessionGroup(&group);
   }
 
-  threadPool->AddTasks(vct);
+  _threadPool->AddTasks(vct);
 }
 
 uint32_t SessionPool::CreateSession(uint16_t outerTid, StmtResult *result) {

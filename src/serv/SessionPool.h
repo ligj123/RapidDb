@@ -31,7 +31,7 @@ struct SessionGroup {
     for (auto iter = _mapSession.begin(); iter != _mapSession.end(); iter++) {
       assert(iter->second->_lstWaittingStmt.size() == 0 &&
              iter->second->_transaction.GetTranStatus() ==
-                 TaskStatus::FINISHED);
+                 TranStatus::FINISHED);
       delete iter->second;
     }
 
@@ -78,7 +78,7 @@ protected:
 
 class SessionPool {
 public:
-  static void InitPool(uint16_t groupNum, uint16_t taskNum, uint16_t restartNum,
+  static bool InitPool(uint16_t groupNum, uint16_t taskNum, uint16_t restartNum,
                        uint16_t outsiteThreadNum, ThreadPool *threadPool);
   static void AdjustTaskNumber(uint16_t newTaskNum);
   static uint32_t CreateSession(uint16_t outerTid, StmtResult *result);

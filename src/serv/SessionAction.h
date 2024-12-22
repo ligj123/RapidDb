@@ -51,6 +51,7 @@ protected:
 };
 
 class SessionCloseAction : public SessionAction {
+public:
   SessionCloseAction(uint32_t sid, StmtResult *result)
       : _sessionId(sid), _result(result) {}
 
