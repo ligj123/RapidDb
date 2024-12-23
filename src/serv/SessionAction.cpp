@@ -25,7 +25,7 @@ TaskStatus SessionErrMsgAction::Exec() {
 }
 
 TaskStatus SessionCreateAction::Exec() {
-  MVector<SessionGroup> &vctGroup = SessionPool::GetSessionGroup();
+  MVector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
   uint64_t idx = _sessionId % vctGroup.size();
   SessionGroup &group = vctGroup[idx];
   Session *session = new Session(idx, _sessionId);
@@ -37,7 +37,7 @@ TaskStatus SessionCreateAction::Exec() {
 }
 
 TaskStatus SessionCloseAction::Exec() {
-  MVector<SessionGroup> &vctGroup = SessionPool::GetSessionGroup();
+  MVector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
   uint64_t idx = _sessionId % vctGroup.size();
   SessionGroup &group = vctGroup[idx];
   group._mapSession.erase(_sessionId);
@@ -48,7 +48,7 @@ TaskStatus SessionCloseAction::Exec() {
 }
 
 TaskStatus SessionStatementAction::Exec() {
-  MVector<SessionGroup> &vctGroup = SessionPool::GetSessionGroup();
+  MVector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
   uint64_t idx = _sessionId % vctGroup.size();
   SessionGroup &group = vctGroup[idx];
 
@@ -88,8 +88,8 @@ TaskStatus SessionStatementAction::Exec() {
   Statement *stmt = nullptr;
   switch (exprStmt->GetType()) {
   case ExprType::EXPR_INSERT:
-    stmt = new InsertStatement(_stmtId, TXID_NULL, (InsertStatement *)exprStmt,
-                               _vctParas, _stmtResult);
+    stmt = new InsertStatement(_stmtId, TXID_NULL, (ExprInsert *)exprStmt,
+                               move(_vctParas), _stmtResult);
     break;
   case ExprType::EXPR_UPDATE:
     break;

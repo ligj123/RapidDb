@@ -43,7 +43,7 @@ public:
    * @param id The id of this statement, auto increment 1 in every session.
    * @param tran The transaction own this statement.
    */
-  Statement(uint32_t id, TranID txid, StmtResult *stmtResult)
+  Statement(uint32_t id, TranID txid, StmtResult *stmtResult = nullptr)
       : _id(id), _txid(txid), _stmtResult(stmtResult) {
     _createTime = MicroSecTime();
   }
@@ -100,7 +100,7 @@ public:
    * @param idxTree The IndexTree
    * @return The ranges that this statement need to exec.
    */
-  virtual MVector<int> GetIndexRange(IndexTree *idxTree) {
+  virtual int GetIndexRange(IndexTree *idxTree) {
     abort();
     return {};
   }

@@ -28,14 +28,14 @@ protected:
  */
 class SessionErrMsgAction : public SessionAction {
 public:
-  SessionErrMsgAction(Statement *stmt, ErrorMsg *errMsg)
-      : _stmt(stmt), _errMsg(errMsg) {}
-  ~SessionErrMsgAction() { delete _errMsg; }
+  SessionErrMsgAction(Statement *stmt, MString &&errMsg)
+      : _stmt(stmt), _errMsg(move(errMsg)) {}
+  ~SessionErrMsgAction() {}
   TaskStatus Exec() override;
 
 protected:
   Statement *_stmt;
-  ErrorMsg *_errMsg;
+  MString _errMsg;
 };
 
 class SessionCreateAction : public SessionAction {

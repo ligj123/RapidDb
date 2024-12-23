@@ -26,7 +26,7 @@ public:
   ExprType GetActionType() override { return ExprType::EXPR_INSERT; }
   bool Exec() override { return false; }
   bool IsReadonly() override { return true; }
-  int CalcIndexRange(IndexTree *idxTree) override { return -1; }
+  int GetIndexRange(IndexTree *idxTree) override { return -1; }
 };
 
 BOOST_AUTO_TEST_SUITE(CoreTest)
