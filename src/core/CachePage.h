@@ -121,10 +121,9 @@ public:
     return _pageStatus.load(memory_order_relaxed);
   }
   inline void SetPageStatus(PageStatus s, bool acquire = false) {
+    _pageStatus.store(s, memory_order_relaxed);
     if (acquire) {
-      _pageStatus.exchange(s, memory_order_acquire);
-    } else {
-      _pageStatus.store(s, memory_order_relaxed);
+      _pageStatus.load(memory_order_acquire);
     }
   }
   inline uint32_t AddWaiting(uint32_t num) {

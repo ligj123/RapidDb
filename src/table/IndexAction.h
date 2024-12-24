@@ -11,11 +11,24 @@ class Statement;
 class InsertStatement;
 class LeafRecord;
 class IndexRange;
+class LeafPage;
 
-class IndexAction : public ThreadAction {
+class IndexAction {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
 public:
   IndexAction(IndexTree *idxTree) : _indexTree(idxTree) {}
-
+  virtual ~IndexAction() {}
+  /**
+   * @brief Run this action, and return the status to know if it has finished.
+   */
+  virtual TaskStatus Exec() = 0;
   /**
    * @brief After the index range has been adjusted, calc again its index range
    * @return If pass, return its new range, or abort
@@ -52,31 +65,9 @@ public:
   int JudgeRange() override;
 
 protected:
-  PageID _pageId;     // The page need to update previous page
-  PageID _prevPageId; // The new previous page id
-};
-
-class RecordAction : public IndexAction {
-public:
-  RecordAction(IndexTree *idxTree, LeafRecord *lr)
-      : IndexAction(idxTree), _lr(lr) {}
-  TaskStatus Exec() override;
-  int JudgeRange() override;
-
-protected:
-  LeafRecord *_lr;
-};
-
-class PriKeyAction : public IndexAction {
-public:
-  PriKeyAction(IndexTree *idxTree, RawKey &&key, Statement *stmt)
-      : IndexAction(idxTree), _key(move(key)), _stmt(stmt) {}
-  TaskStatus Exec() override;
-  int JudgeRange() override;
-
-protected:
-  RawKey _key;
-  Statement *_stmt;
+  LeafPage *_page{nullptr}; // The page will update  previous page id.
+  PageID _pageId;           // The page need to update previous page id.
+  PageID _prevPageId;       // The new previous page id
 };
 
 class StatementAction : public IndexAction {
@@ -91,20 +82,4 @@ protected:
   Statement *_stmt;
 };
 
-class PhysTable;
-class InsertAction : public IndexAction {
-public:
-  InsertAction(PhysTable *table, RawKey &&priKey, VectorDataValue &&recValue,
-               InsertStatement *stmt);
-
-  TaskStatus Exec() override;
-  int JudgeRange() override;
-
-protected:
-  PhysTable *_table;
-  RawKey _priKey;
-  VectorDataValue _recValue;
-  InsertStatement *_stmt;
-  LeafRecord *_priLr;
-};
 } // namespace storage

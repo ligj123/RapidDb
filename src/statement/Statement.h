@@ -18,14 +18,16 @@ class IndexTree;
 class IndexAction;
 
 enum class StmtStatus : uint8_t {
-  Created,   // Just create this statement and NOT start to execute
-  Executing, // The statement has been added into task to wait to execute or
-             // executing.
-  Executed,  // The statement has been executed and can go to next step.
-  Logging,   // Collecting log and wait the logs to be write into files.
-  Logged,    // Have finished to write log into files.
-  Finished,  // Have executed and wrote log if needed, send commit ot abort
-             // singal to all LeafRecord. This statement can be freed.
+  Created,     // Just create this statement and NOT start to execute
+  Initialized, // Finished to execute in SessionTask and The related data has
+               // been send to IndexTask queue.
+  Executing,   // The statement is executing in IndexTask
+  Executed, // The statement has been executed in IndexTask and can go to next
+            // step.
+  Logging, // Collecting log and wait the logs write thread to send back result.
+  Logged,  // Have received the result from log write thread.
+  Finished, // All tasks have finished in this statement, include log write,
+            // commit (or rollback), The statement can be delete.
 };
 
 class Statement {
@@ -58,15 +60,38 @@ public:
     return StmtStatus::Finished;
   }
   /**
-   * @brief Execute this statement
+   * @brief Execute this statement in SessionTask
    * @return True: This statement has finished and can go to next step.
    False:
    * Need to exec again or failed if _errorMsg != nullptr.
    */
-  virtual bool Exec() {
+  virtual bool SessionExec() {
     abort();
     return false;
   }
+
+  /**
+   * @brief Execute this statement in primary key IndexTask
+   * @return True: This statement has finished and can go to next step.
+   False:
+   * Need to exec again or failed if _errorMsg != nullptr.
+   */
+  virtual bool PrimaryKeyExec() {
+    abort();
+    return false;
+  }
+
+  /**
+ * @brief Execute this statement in secondary key IndexTask
+ * @return True: This statement has finished and can go to next step.
+ False:
+ * Need to exec again or failed if _errorMsg != nullptr.
+ */
+  virtual bool SecondaryKeyExec() {
+    abort();
+    return false;
+  }
+
   /**
    * @brief Collect all LeafRecord for log write
    * @param setRec: The tree set to save the LeafRecords to write log

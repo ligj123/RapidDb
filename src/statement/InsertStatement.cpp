@@ -4,15 +4,14 @@
 #include "../utils/Log.h"
 
 namespace storage {
-bool InsertStatement::InitData() {
-  _status = StmtStatus::Created;
+bool InsertStatement::SessionExec() {
   PhysTable *table = _exprInsert->_physTable;
   TableTaskMgr *mgr = table->GetTableTaskMgr();
-  auto &vctIndex = table->GetVectorIndex();
+  auto &priIndex = table->GetVectorIndex()[0];
 
   for (VectorDataValue *pvct : _vctParas) {
     VectorDataValue vctVal;
-    vctIndex[0]._tree->CloneValues(vctVal);
+    priIndex._tree->CloneValues(vctVal);
 
     for (size_t i = 0; i < _exprInsert->_rowData->size(); i++) {
       ExprElem *elem = _exprInsert->_rowData->at(i);
@@ -22,31 +21,43 @@ bool InsertStatement::InitData() {
       dv->DecRef();
 
       if (!b) {
-        // _stmtResult._vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
-        _status = StmtStatus::Finished;
-        return false;
+        _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
+        SetStmtFailed(true);
+        _status = StmtStatus::Initialized;
+        return true;
       }
     }
 
     if (!table->CheckColumnValues(vctVal)) {
-      //_stmtResult._error = move(_threadErrorMsg->GetErrorMsg());
-      return false;
+      _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
+      SetStmtFailed(true);
+      _status = StmtStatus::Initialized;
+      return true;
     }
 
     VectorDataValue vctKey;
     vctKey._bDec = false;
-    vctKey.reserve(vctIndex[0]._vctCol.size());
+    vctKey.reserve(priIndex._vctCol.size());
 
-    for (IndexColumn &col : vctIndex[0]._vctCol) {
+    for (IndexColumn &col : priIndex._vctCol) {
       IDataValue *dv = vctVal[col.colPos];
       vctKey.push_back(dv);
     }
 
-    // RawKey key(vctKey);
-    // InsertAction *action = new InsertAction(table, vctKey,  vctVal, this);
-    // mgr->AddSessionAction(0, /*SessionID*/, action);
+    InsertRecord *insr = new InsertRecord();
+    insr->_priKey = RawKey(vctKey);
+    insr->_vctParas = move(vctVal);
+    int range = priIndex._tree->CalcIndexRange(insr->_priKey);
+    auto iter = _mapInsert.find(range);
+    if (iter == _mapInsert.end()) {
+      iter = _mapInsert.emplace(range, MVectorPtr<InsertRecord *>()).first;
+    }
+
+    iter->second.push_back(insr);
   }
 
   return true;
 }
+
+bool InsertStatement::PrimaryKeyExec() { return true; }
 } // namespace storage
