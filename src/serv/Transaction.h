@@ -6,6 +6,7 @@
 
 namespace storage {
 class Statement;
+struct SessionGroup;
 
 class Transaction {
 public:
@@ -17,10 +18,10 @@ public:
   }
 
 public:
-  Transaction(Session *session, uint16_t sessionGroupId)
-      : _session(session), _sessionGroupId(sessionGroupId) {}
+  Transaction(Session *session) : _session(session) {}
 
-  void StartTransaction(bool bAuto, IsoLevel isoLevel = IsoLevel::ReadCommited,
+  void StartTransaction(SessionGroup &sGroup, bool bAuto,
+                        IsoLevel isoLevel = IsoLevel::ReadCommited,
                         CcProtocol ccProtocal = CcProtocol::OCC);
   void AddStatement(Statement *stmt) { _vctStatement.push_back(stmt); }
 
@@ -53,9 +54,6 @@ protected:
 
   // The session own this transaction
   Session *_session;
-  // Start from 0, every time to create a statement, it will increase 1.
-  StmtID _currStmtID{0};
-  uint16_t _sessionGroupId;
 
   TranStatus _tranStatus{TranStatus::INIT};
   TranType _tranType{TranType::AUTOMATE};

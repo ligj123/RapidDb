@@ -27,12 +27,22 @@ public:
   }
 
 public:
-  Session(uint16_t sessionGroupId, uint32_t id)
-      : _id(id), _transaction(this, sessionGroupId) {}
+  Session(uint32_t id) : _id(id), _transaction(this) {}
 
-  ~Session() { assert(_transaction.GetTranStatus() == TranStatus::FINISHED); }
+  ~Session() {
+    assert(_transaction.GetTranStatus() == TranStatus::FINISHED);
+    assert(_lstWaittingStmt.size() == 0 && _currStatement == nullptr);
+    for (auto iter = _mapSqlExprStatement.begin();
+         iter != _mapSqlExprStatement.end(); iter++) {
+      delete iter->second;
+    }
+  }
 
   void Exec();
+
+  bool IsEmpty() {
+    return _currStatement == nullptr && _lstWaittingStmt.size() == 0;
+  }
 
 public:
   // session id, only valid in this server and to identify the sessions.It will

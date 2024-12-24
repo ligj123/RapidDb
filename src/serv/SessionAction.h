@@ -4,8 +4,22 @@
 
 namespace storage {
 class StmtResult;
+class SessionGroup;
 
-class SessionAction : public ThreadAction {};
+class SessionAction {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+  /**
+   * @brief Run this action, and return the status to know if it has finished.
+   */
+  virtual TaskStatus Exec(SessionGroup &sGroup) = 0;
+};
 
 /**
  * @brief When insert or update a record, it will generate LeafRecords and add
@@ -15,7 +29,7 @@ class SessionAction : public ThreadAction {};
 class SessionRecordAction : public SessionAction {
 public:
   SessionRecordAction(Statement *stmt, LeafRecord *lr) : _stmt(stmt), _lr(lr) {}
-  TaskStatus Exec() override;
+  TaskStatus Exec(SessionGroup &sGroup) override;
 
 protected:
   Statement *_stmt;
@@ -31,7 +45,7 @@ public:
   SessionErrMsgAction(Statement *stmt, MString &&errMsg)
       : _stmt(stmt), _errMsg(move(errMsg)) {}
   ~SessionErrMsgAction() {}
-  TaskStatus Exec() override;
+  TaskStatus Exec(SessionGroup &sGroup) override;
 
 protected:
   Statement *_stmt;
@@ -43,7 +57,7 @@ public:
   SessionCreateAction(uint32_t sid, StmtResult *result)
       : _sessionId(sid), _result(result) {}
 
-  TaskStatus Exec() override;
+  TaskStatus Exec(SessionGroup &sGroup) override;
 
 protected:
   uint32_t _sessionId;
@@ -55,7 +69,7 @@ public:
   SessionCloseAction(uint32_t sid, StmtResult *result)
       : _sessionId(sid), _result(result) {}
 
-  TaskStatus Exec() override;
+  TaskStatus Exec(SessionGroup &sGroup) override;
 
 protected:
   uint32_t _sessionId;
@@ -70,7 +84,7 @@ public:
       : _sessionId(sessionId), _stmtId(stmtId), _exprId(exprId),
         _sql(move(sql)), _vctParas(move(vctParas)), _stmtResult(result) {}
 
-  TaskStatus Exec() override;
+  TaskStatus Exec(SessionGroup &sGroup) override;
 
 protected:
   uint32_t _sessionId;

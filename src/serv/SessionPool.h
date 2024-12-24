@@ -20,8 +20,13 @@ class SessionTask;
 // In this pool, every thread has its data structor and it
 // can only visit its data to avoid lock.
 struct SessionGroup {
-  SessionGroup(uint16_t poolThreadNum, uint16_t outsideThreadNum)
-      : _threaPoolQueue(poolThreadNum), _outerQueue(outsideThreadNum) {}
+  SessionGroup(uint16_t groupSn, uint16_t nodeId, uint16_t restartNum,
+               uint16_t poolThreadNum, uint16_t outsideThreadNum)
+      : _threaPoolQueue(poolThreadNum), _outerQueue(outsideThreadNum) {
+    _currTranId = ((uint64_t)nodeId) << 52 + ((uint64_t)restartNum)
+                                     << 48 + ((uint64_t)groupSn) << 40;
+  }
+
   SessionGroup(SessionGroup &&src)
       : _threaPoolQueue(move(src._threaPoolQueue)),
         _outerQueue(move(src._outerQueue)) {}
@@ -43,6 +48,9 @@ struct SessionGroup {
   // To temp save the closed session, Until all its statement finished
   MVector<Session *> _obsoleteSession;
 
+  uint16_t _groupSn;    // The serial number of this group
+  uint16_t _nodeId;     // The id of this node, for distribute system
+  uint16_t _restartNum; // The restart number of this system
   // To generate new TranID, every time it will add 1
   // Transaction ID is 64 bit unsigned integer. The highest 12 bit is node id
   // for distribute system, it can support max 4096 nodes. Following 4 bits is
@@ -69,18 +77,34 @@ public:
   void SetStop() { _bStop = true; }
 
   void AddSessionGroup(SessionGroup *group) { _vctGroup.push_back(group); }
-  bool IsNeedDelete() override { return true; }
+
+  MVector<SessionGroup *> &GetVctSessionGroup() { return _vctGroup; }
 
 protected:
   MVector<SessionGroup *> _vctGroup;
   bool _bStop{false};
+  int _tryStopTime{5};
+};
+
+class SessionAdjustTask : public ThreadTask {
+public:
+  SessionAdjustTask(ThreadPool *threadPool, uint16_t newTaskNum,
+                    MVectorPtr<SessionTask *> &&vctOldTask)
+      : ThreadTask(threadPool), _newTaskNum(newTaskNum),
+        _vctOldTask(move(vctOldTask)) {}
+  TaskStatus Run() override;
+  bool IsNeedDelete() override { return true; }
+
+protected:
+  uint16_t _newTaskNum;
+  MVectorPtr<SessionTask *> _vctOldTask;
 };
 
 class SessionPool {
 public:
   static bool InitPool(uint16_t groupNum, uint16_t taskNum, uint16_t restartNum,
                        uint16_t outsiteThreadNum, ThreadPool *threadPool);
-  static void AdjustTaskNumber(uint16_t newTaskNum);
+
   static uint32_t CreateSession(uint16_t outerTid, StmtResult *result);
   static void CloseSession(uint16_t outerTid, uint32_t sessionId,
                            StmtResult *result);
@@ -131,11 +155,14 @@ public:
     _vctGroup[gid]._threaPoolQueue.Push(threadId, action);
   }
 
+  static bool IsPoolStop() { return _bStop.load(memory_order_relaxed); }
+  static MVectorPtr<SessionTask *> GetVctSessionTask() { return _vctTask; }
+
 protected:
   // The vector of session groups
   static MVector<SessionGroup> _vctGroup;
   // The vector of SessionTasks
-  static MVector<SessionTask *> _vctTask;
+  static MVectorPtr<SessionTask *> _vctTask;
   // The ThreadPool to run tasks.
   static ThreadPool *_threadPool;
   // The system has stoped or not

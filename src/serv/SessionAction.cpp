@@ -12,48 +12,55 @@
 #include "SessionPool.h"
 
 namespace storage {
-TaskStatus SessionRecordAction::Exec() {
+TaskStatus SessionRecordAction::Exec(SessionGroup &sGroup) {
   assert(_lr->GetLock() != nullptr);
   _stmt->AddLeafRecord(_lr);
   return TaskStatus::FINISHED;
 }
 
-TaskStatus SessionErrMsgAction::Exec() {
+TaskStatus SessionErrMsgAction::Exec(SessionGroup &sGroup) {
   _stmt->GetStmtResult()->_vctError.push_back(move(_errMsg));
   _stmt->SetStmtFailed(true);
   return TaskStatus::FINISHED;
 }
 
-TaskStatus SessionCreateAction::Exec() {
-  MVector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
-  uint64_t idx = _sessionId % vctGroup.size();
-  SessionGroup &group = vctGroup[idx];
-  Session *session = new Session(idx, _sessionId);
-  group._mapSession.emplace(_sessionId, session);
+TaskStatus SessionCreateAction::Exec(SessionGroup &sGroup) {
+  Session *session = new Session(_sessionId);
+  sGroup._mapSession.emplace(_sessionId, session);
   _result->_sessionId = _sessionId;
   _result->_status.store(ResultStatus::FINISHED, memory_order_release);
 
   return TaskStatus::FINISHED;
 }
 
-TaskStatus SessionCloseAction::Exec() {
-  MVector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
-  uint64_t idx = _sessionId % vctGroup.size();
-  SessionGroup &group = vctGroup[idx];
-  group._mapSession.erase(_sessionId);
+TaskStatus SessionCloseAction::Exec(SessionGroup &sGroup) {
+  auto iter = sGroup._mapSession.find(_sessionId);
+  if (iter != sGroup._mapSession.end()) {
+    Session *sess = iter->second;
+    sess->_bObsolete = true;
+    if (sess->_currStatement != nullptr) {
+      sess->_currStatement->SetStmtFailed(true);
+    }
+    for (Statement *stmt : sess->_lstWaittingStmt) {
+      stmt->SetStmtFailed(true);
+    }
+
+    sGroup._obsoleteSession.push_back(sess);
+    sGroup._mapSession.erase(iter);
+  } else {
+    _result->_vctError.push_back("Failed to find session " +
+                                 ToMString(_sessionId));
+  }
+
   _result->_sessionId = _sessionId;
   _result->_status.store(ResultStatus::FINISHED, memory_order_release);
 
   return TaskStatus::FINISHED;
 }
 
-TaskStatus SessionStatementAction::Exec() {
-  MVector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
-  uint64_t idx = _sessionId % vctGroup.size();
-  SessionGroup &group = vctGroup[idx];
-
-  auto iter = group._mapSession.find(_sessionId);
-  if (iter == group._mapSession.end()) {
+TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
+  auto iter = sGroup._mapSession.find(_sessionId);
+  if (iter == sGroup._mapSession.end()) {
     _stmtResult->_vctError.push_back("Failed to find session " +
                                      ToMString(_sessionId));
     return TaskStatus::FINISHED;
