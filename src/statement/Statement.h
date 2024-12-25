@@ -72,22 +72,24 @@ public:
 
   /**
    * @brief Execute this statement in primary key IndexTask
+   * @param rangePos The range position of IndexTask to call this method
    * @return True: This statement has finished and can go to next step.
    False:
    * Need to exec again or failed if _errorMsg != nullptr.
    */
-  virtual bool PrimaryKeyExec() {
+  virtual bool PrimaryKeyExec(int rangePos) {
     abort();
     return false;
   }
 
   /**
  * @brief Execute this statement in secondary key IndexTask
+ * @param rangePos The range position of IndexTask to call this method
  * @return True: This statement has finished and can go to next step.
  False:
  * Need to exec again or failed if _errorMsg != nullptr.
  */
-  virtual bool SecondaryKeyExec() {
+  virtual bool SecondaryKeyExec(int rangePos) {
     abort();
     return false;
   }

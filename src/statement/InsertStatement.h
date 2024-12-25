@@ -8,8 +8,13 @@
 namespace storage {
 // To save the the paras of inserted records after split.
 struct InsertRecord {
-  RawKey _priKey;
-  VectorDataValue _vctParas;
+  RawKey _priKey;            // Primary key of the record
+  VectorDataValue _vctParas; // The columns' values of this record
+};
+
+struct RangeRecord {
+  MVectorPtr<InsertRecord *> _vctRecord;
+  bool _bFinished{false};
 };
 
 // Normal insert, insert from select will implement in its brother class
@@ -24,7 +29,7 @@ public:
   bool IsReadonly() override { return false; }
 
   bool SessionExec() override;
-  bool PrimaryKeyExec() override;
+  bool PrimaryKeyExec(int rangePos) override;
 
   StmtStatus CheckStatus() override;
   void CollectLogRecords(MTreeSet<LeafRecord *> &setRec) override;
@@ -38,6 +43,6 @@ protected:
   // To save multi rows of parameters loaded from client byte array
   VectorRow _vctParas;
   // To save the paras after split， Map<RangPos, InsertRecord>
-  MHashMap<int, MVectorPtr<InsertRecord *>> _mapInsert;
+  MHashMap<int, RangeRecord> _mapInsert;
 };
 } // namespace storage

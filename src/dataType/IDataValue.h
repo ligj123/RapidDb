@@ -177,7 +177,7 @@ public:
 
   VectorDataValue(VectorDataValue &&src) noexcept {
     swap(src);
-    _bDec = src._bDec;
+    _bDecrease = src._bDecrease;
   }
 
   ~VectorDataValue() { clear(); }
@@ -185,12 +185,12 @@ public:
   VectorDataValue &operator=(VectorDataValue &&src) noexcept {
     clear();
     swap(src);
-    _bDec = src._bDec;
+    _bDecrease = src._bDecrease;
     return *this;
   }
 
   void clear() {
-    if (_bDec) {
+    if (_bDecrease) {
       for (auto iter = begin(); iter != end(); iter++) {
         (*iter)->DecRef();
       }
@@ -199,7 +199,7 @@ public:
     erase(begin(), end());
   }
 
-  bool _bDec{true}; // Decrease elements' refer count or not
+  bool _bDecrease{true}; // Decrease elements' refer count or not
 };
 
 class VectorRow : public MVector<VectorDataValue *> {

@@ -1,12 +1,12 @@
 ﻿#include "InsertStatement.h"
 #include "../config/Configure.h"
+#include "../serv/SessionPool.h"
 #include "../table/TableTaskMgr.h"
 #include "../utils/Log.h"
 
 namespace storage {
 bool InsertStatement::SessionExec() {
   PhysTable *table = _exprInsert->_physTable;
-  TableTaskMgr *mgr = table->GetTableTaskMgr();
   auto &priIndex = table->GetVectorIndex()[0];
 
   for (VectorDataValue *pvct : _vctParas) {
@@ -36,7 +36,7 @@ bool InsertStatement::SessionExec() {
     }
 
     VectorDataValue vctKey;
-    vctKey._bDec = false;
+    vctKey._bDecrease = false;
     vctKey.reserve(priIndex._vctCol.size());
 
     for (IndexColumn &col : priIndex._vctCol) {
@@ -50,14 +50,80 @@ bool InsertStatement::SessionExec() {
     int range = priIndex._tree->CalcIndexRange(insr->_priKey);
     auto iter = _mapInsert.find(range);
     if (iter == _mapInsert.end()) {
-      iter = _mapInsert.emplace(range, MVectorPtr<InsertRecord *>()).first;
+      iter = _mapInsert.emplace(range, RangeRecord()).first;
     }
 
-    iter->second.push_back(insr);
+    iter->second._vctRecord.push_back(insr);
+  }
+
+  _status = StmtStatus::Initialized;
+  return true;
+}
+
+bool InsertStatement::PrimaryKeyExec(int rangePos) {
+  auto iter = _mapInsert.find(rangePos);
+  assert(iter != _mapInsert.end());
+
+  PhysTable *table = _exprInsert->_physTable;
+  TableTaskMgr *mgr = table->GetTableTaskMgr();
+  MVector<storage::IndexProp> &vctProp = table->GetVectorIndex();
+
+  RangeRecord &rangeRecord = iter->second;
+  for (InsertRecord *iRec : rangeRecord._vctRecord) {
+    VersionStamp stamp = vctProp[0]._tree->ApplyStamp(rangePos);
+    LeafRecord *lrPri = new LeafRecord(vctProp[0]._tree, iRec->_priKey,
+                                       iRec->_vctParas, stamp, this);
+    if (!lrPri->IsValid()) {
+      SessionErrMsgAction *eAction =
+          new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
+      SetStmtFailed(true);
+      delete lrPri;
+      break;
+    }
+
+    SessionRecordAction *action = new SessionRecordAction(this, lrPri);
+    SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), action);
+    RecordAction *rAction = new RecordAction(vctProp[0]._tree, lrPri);
+    vctProp[0]._tree->AddActionFromLocal(rangePos, rAction);
+
+    for (size_t i = 1; i < vctProp.size(); i++) {
+      IndexTree *secTree = vctProp[i]._tree;
+      VectorDataValue vctKey;
+      vctKey._bDecrease = false;
+      vctKey.reserve(vctProp[i]._vctCol.size());
+
+      for (IndexColumn &col : vctProp[i]._vctCol) {
+        IDataValue *dv = iRec->_vctParas[col.colPos];
+        vctKey.push_back(dv);
+      }
+      LeafRecord *lrSec = new LeafRecord(
+          secTree, vctKey, lrPri->GetBysValue() + UI16_2_LEN,
+          lrPri->GetKeyLength(), ActionType::INSERT, stamp, this);
+
+      if (!lrSec->IsValid()) {
+        SessionErrMsgAction *eAction =
+            new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
+        SetStmtFailed(true);
+        delete lrSec;
+        break;
+      }
+
+      SessionRecordAction *sAction = new SessionRecordAction(this, lrSec);
+      SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), sAction);
+
+      RecordAction *rAction = new RecordAction(secTree, lrSec);
+      mgr->AddFromPrimaryAction(i, rAction->JudgeRange(), rAction);
+    }
   }
 
   return true;
 }
 
-bool InsertStatement::PrimaryKeyExec() { return true; }
+StmtStatus InsertStatement::CheckStatus() { return StmtStatus::Created; }
+
+void InsertStatement::CollectLogRecords(MTreeSet<LeafRecord *> &setRec) {}
+
+void InsertStatement::Commit() {}
+
+void InsertStatement::Rollback() {}
 } // namespace storage
