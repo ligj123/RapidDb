@@ -345,6 +345,9 @@ public:
       commitLen = 0;
     }
   }
+  size_t Hash() const {
+    return BytesHash(_bysVal + UI16_2_LEN, GetKeyLength());
+  }
 
 protected:
   // To calc a version's value length
@@ -383,4 +386,22 @@ protected:
 
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr);
 using VectorLeafRecord = MVector<LeafRecord *>;
+
+struct LeafRecordHash {
+  size_t operator()(const LeafRecord *pLr) const { return pLr->Hash(); }
+};
+
+struct LeafRecordEqual {
+  bool operator()(const LeafRecord *lLr, const LeafRecord *rLr) const {
+    return BytesEqual(lLr->GetBysValue() + UI16_2_LEN, lLr->GetKeyLength(),
+                      rLr->GetBysValue() + UI16_2_LEN, rLr->GetKeyLength());
+  }
+};
+
+struct LeafRecordCmp {
+  bool operator()(const LeafRecord *lLr, const LeafRecord *rLr) const {
+    return BytesCompare(lLr->GetBysValue() + UI16_2_LEN, lLr->GetKeyLength(),
+                        rLr->GetBysValue() + UI16_2_LEN, rLr->GetKeyLength());
+  }
+};
 } // namespace storage

@@ -64,8 +64,6 @@ struct SessionGroup {
   RapidQueue<SessionAction> _threaPoolQueue;
   // To receive The actions from outside threads.
   RapidQueue<SessionAction> _outerQueue;
-  // The task to run this group
-  SessionTask *_task{nullptr};
 };
 
 class SessionTask : public ThreadTask {

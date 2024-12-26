@@ -25,7 +25,7 @@ public:
   using Statement::Statement;
   ExprType GetActionType() override { return ExprType::EXPR_INSERT; }
   bool IsReadonly() override { return true; }
-  MVector<int> GetIndexRanges(IndexTree *idxTree) override { return {}; }
+  MVector<int> CalcIndexRanges(IndexTree *idxTree) override { return {}; }
 };
 
 BOOST_AUTO_TEST_SUITE(CoreTest)

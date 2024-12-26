@@ -101,6 +101,6 @@ TaskStatus StatementAction::Exec() {
 }
 
 const MVector<int> StatementAction::JudgeRange() {
-  return _stmt->GetIndexRanges(_indexTree);
+  return _stmt->CalcIndexRanges(_indexTree);
 }
 } // namespace storage

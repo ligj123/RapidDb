@@ -12,11 +12,6 @@ struct InsertRecord {
   VectorDataValue _vctParas; // The columns' values of this record
 };
 
-struct RangeRecord {
-  MVectorPtr<InsertRecord *> _vctRecord;
-  bool _bFinished{false};
-};
-
 // Normal insert, insert from select will implement in its brother class
 class InsertStatement : public Statement {
 public:
@@ -32,10 +27,12 @@ public:
   bool PrimaryKeyExec(int rangePos) override;
 
   StmtStatus CheckStatus() override;
-  void CollectLogRecords(MTreeSet<LeafRecord *> &setRec) override;
+  void
+  CollectLogRecords(MTreeSet<LeafRecord *, LeafRecordCmp> &setRec) override;
 
   void Commit() override;
   void Rollback() override;
+  MVector<int> CalcIndexRanges(IndexTree *idxTree) override;
 
 protected:
   // ExprInsert will be unified managed by a class, do not delete here
@@ -43,6 +40,6 @@ protected:
   // To save multi rows of parameters loaded from client byte array
   VectorRow _vctParas;
   // To save the paras after split， Map<RangPos, InsertRecord>
-  MHashMap<int, RangeRecord> _mapInsert;
+  MHashMap<int, MVectorPtr<InsertRecord *>> _mapInsert;
 };
 } // namespace storage

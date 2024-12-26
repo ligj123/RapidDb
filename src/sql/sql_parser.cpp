@@ -4367,7 +4367,7 @@ yyreturnlab:
     }
 #ifndef yyoverflow
   if (yyss != yyssa)
-    YYSTACK_FREE (yyss);
+    ;// YYSTACK_FREE (yyss);
 #endif
   if (yymsg != yymsgbuf)
     YYSTACK_FREE (yymsg);

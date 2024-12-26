@@ -7,7 +7,10 @@
 namespace storage {
 bool InsertStatement::SessionExec() {
   PhysTable *table = _exprInsert->_physTable;
+  TableTaskMgr *mgr = table->GetTableTaskMgr();
   auto &priIndex = table->GetVectorIndex()[0];
+  MVectorPtr<InsertRecord *> &vctRec =
+      _mapInsert.emplace(-1, MVectorPtr<InsertRecord *>()).first->second;
 
   for (VectorDataValue *pvct : _vctParas) {
     VectorDataValue vctVal;
@@ -47,16 +50,12 @@ bool InsertStatement::SessionExec() {
     InsertRecord *insr = new InsertRecord();
     insr->_priKey = RawKey(vctKey);
     insr->_vctParas = move(vctVal);
-    int range = priIndex._tree->CalcIndexRange(insr->_priKey);
-    auto iter = _mapInsert.find(range);
-    if (iter == _mapInsert.end()) {
-      iter = _mapInsert.emplace(range, RangeRecord()).first;
-    }
-
-    iter->second._vctRecord.push_back(insr);
+    vctRec.push_back(insr);
   }
 
-  _status = StmtStatus::Initialized;
+  StatementAction *action = new StatementAction(priIndex._tree, this);
+  mgr->AddSessionAction(0, GetSessionId(), action);
+  _status = StmtStatus::Executing;
   return true;
 }
 
@@ -68,8 +67,8 @@ bool InsertStatement::PrimaryKeyExec(int rangePos) {
   TableTaskMgr *mgr = table->GetTableTaskMgr();
   MVector<storage::IndexProp> &vctProp = table->GetVectorIndex();
 
-  RangeRecord &rangeRecord = iter->second;
-  for (InsertRecord *iRec : rangeRecord._vctRecord) {
+  MVectorPtr<InsertRecord *> &vctRec = iter->second;
+  for (InsertRecord *iRec : vctRec) {
     VersionStamp stamp = vctProp[0]._tree->ApplyStamp(rangePos);
     LeafRecord *lrPri = new LeafRecord(vctProp[0]._tree, iRec->_priKey,
                                        iRec->_vctParas, stamp, this);
@@ -119,11 +118,79 @@ bool InsertStatement::PrimaryKeyExec(int rangePos) {
   return true;
 }
 
-StmtStatus InsertStatement::CheckStatus() { return StmtStatus::Created; }
+StmtStatus InsertStatement::CheckStatus() {
+  if (_status == StmtStatus::Initialized) {
+    PhysTable *table = _exprInsert->_physTable;
+    if (_stmtFailed.load(memory_order_relaxed)) {
+      if (_lstFinshRecord.size() + _lstWaitRecord.size() ==
+          _vctParas.size() * table->GetVectorIndex().size()) {
+        _lstFinshRecord.insert(_lstFinshRecord.end(), _lstWaitRecord.begin(),
+                               _lstWaitRecord.end());
+        _lstWaitRecord.clear();
+        _status = StmtStatus::Executed;
+        return _status;
+      }
+    }
 
-void InsertStatement::CollectLogRecords(MTreeSet<LeafRecord *> &setRec) {}
+    for (auto iter = _lstWaitRecord.begin(); iter != _lstWaitRecord.end();) {
+      if ((*iter)->GetLock()->GetRecordResult() != RecordResult::INIT) {
+        _lstFinshRecord.push_back(*iter);
+        iter = _lstWaitRecord.erase(iter);
+      } else {
+        iter++;
+      }
+    }
 
-void InsertStatement::Commit() {}
+    if (_lstFinshRecord.size() ==
+        _vctParas.size() * table->GetVectorIndex().size()) {
+      _status = StmtStatus::Executed;
+    }
+  }
 
-void InsertStatement::Rollback() {}
+  return _status;
+}
+
+void InsertStatement::CollectLogRecords(
+    MTreeSet<LeafRecord *, LeafRecordCmp> &setRec) {
+  for (LeafRecord *lr : _lstFinshRecord) {
+    setRec.insert(lr);
+  }
+}
+
+void InsertStatement::Commit() {
+  for (LeafRecord *lr : _lstFinshRecord) {
+    lr->SubmitStatement(*this, RecordStatus::COMMITED);
+  }
+}
+
+void InsertStatement::Rollback() {
+  for (LeafRecord *lr : _lstFinshRecord) {
+    lr->SubmitStatement(*this, RecordStatus::ROLLBACKED);
+  }
+}
+
+MVector<int> InsertStatement::CalcIndexRanges(IndexTree *idxTree) {
+  MHashMap<int, MVectorPtr<InsertRecord *>> map;
+  map.swap(_mapInsert);
+  assert(map.size() == 1 && map.begin()->first == -1);
+  MVectorPtr<InsertRecord *> &vctRec = _mapInsert.begin()->second;
+  PhysTable *table = _exprInsert->_physTable;
+  TableTaskMgr *mgr = table->GetTableTaskMgr();
+  auto &priIndex = table->GetVectorIndex()[0];
+  MVector<int> vctPos;
+
+  for (InsertRecord *insrRec : vctRec) {
+    int pos = idxTree->CalcIndexRange(insrRec->_priKey);
+    auto iter = _mapInsert.find(pos);
+    if (iter == _mapInsert.end()) {
+      iter = _mapInsert.emplace(pos, MVectorPtr<InsertRecord *>()).first;
+      vctPos.push_back(pos);
+    }
+
+    iter->second.push_back(insrRec);
+  }
+
+  vctRec.clear();
+  return vctPos;
+}
 } // namespace storage

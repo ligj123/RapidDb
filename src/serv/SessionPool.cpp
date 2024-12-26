@@ -76,10 +76,6 @@ TaskStatus SessionTask::Run() {
       }
 
     } else {
-      for (SessionGroup *group : _vctGroup) {
-        group->_task = nullptr;
-      }
-
       return TaskStatus::FINISHED;
     }
 
@@ -90,6 +86,14 @@ TaskStatus SessionTask::Run() {
 
 TaskStatus SessionAdjustTask::Run() {
   bool empty = true;
+  if (_vctOldTask.size() == 0) {
+    MVectorPtr<SessionTask *> vctTask = SessionPool::GetVctSessionTask();
+    _vctOldTask.swap(vctTask);
+    vctTask.resize(_newTaskNum);
+    for (SessionTask *task : _vctOldTask) {
+      task->SetStop();
+    }
+  }
 
   MVectorPtr<SessionTask *> vctNewTask = SessionPool::GetVctSessionTask();
   for (auto iter = _vctOldTask.begin(); iter != _vctOldTask.end(); iter++) {

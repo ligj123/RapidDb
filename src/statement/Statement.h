@@ -16,18 +16,20 @@ namespace storage {
 class LeafRecord;
 class IndexTree;
 class IndexAction;
+struct LeafRecordCmp;
 
 enum class StmtStatus : uint8_t {
   Created,     // Just create this statement and NOT start to execute
-  Initialized, // Finished to execute in SessionTask and The related data has
-               // been send to IndexTask queue.
+  Initialized, // Finished to execute in SessionTask and The related data
+               // has been send to IndexTask queue.
   Executing,   // The statement is executing in IndexTask
-  Executed, // The statement has been executed in IndexTask and can go to next
-            // step.
-  Logging, // Collecting log and wait the logs write thread to send back result.
-  Logged,  // Have received the result from log write thread.
-  Finished, // All tasks have finished in this statement, include log write,
-            // commit (or rollback), The statement can be delete.
+  Executed,    // The statement has been executed in IndexTask and can go to
+               // next step.
+  Logging,     // Collecting log and wait the logs write thread to send back
+               // result.
+  Logged,      // Have received the result from log write thread.
+  Finished,    // All tasks have finished in this statement, include log write,
+               // commit (or rollback), The statement can be delete.
 };
 
 class Statement {
@@ -95,10 +97,13 @@ public:
   }
 
   /**
-   * @brief Collect all LeafRecord for log write
+   * @brief Collect all LeafRecord for log write. To ensure the last version can
+   * be added into set, it should the last statement to call this method first,
+   * the first statement should be the last one to call this method.
    * @param setRec: The tree set to save the LeafRecords to write log
    */
-  virtual void CollectLogRecords(MTreeSet<LeafRecord *> &setRec) {
+  virtual void
+  CollectLogRecords(MTreeSet<LeafRecord *, LeafRecordCmp> &setRec) {
     // For readonly statement, it has not records that need to write log.
     abort();
   }
@@ -127,7 +132,7 @@ public:
    * @param idxTree The IndexTree
    * @return The ranges that this statement need to exec.
    */
-  virtual MVector<int> GetIndexRanges(IndexTree *idxTree) {
+  virtual MVector<int> CalcIndexRanges(IndexTree *idxTree) {
     abort();
     return {};
   }
@@ -141,6 +146,8 @@ public:
   void SetStmtFailed(bool b = true) {
     _stmtFailed.store(b, memory_order_relaxed);
   }
+
+  uint16_t GetSessionId() { return (uint16_t)((_txid >> 40) && 0xFF); }
 
 protected:
   // Id will auto increment 1 every time in self session.
