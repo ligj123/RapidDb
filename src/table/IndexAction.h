@@ -31,13 +31,13 @@ public:
   virtual TaskStatus Exec() = 0;
   /**
    * @brief After the index range has been adjusted, calc again its index range
-   * @param recalc Recalculate the range id or not
    * @return If pass, return its new range, or abort
    */
-  virtual int JudgeRange(bool recalc) {
+  virtual const MVector<int> JudgeRange() {
     abort();
-    return -1;
+    return {};
   }
+
   /**
    * @brief Set the range position that this action belong to
    * @param pos The range position
@@ -63,7 +63,7 @@ public:
   }
   TaskStatus Exec() override;
 
-  int JudgeRange(bool recalc) override;
+  const MVector<int> JudgeRange() override;
 
 protected:
   LeafPage *_page{nullptr}; // The page will update  previous page id.
@@ -76,7 +76,7 @@ public:
   RecordAction(IndexTree *idxTree, LeafRecord *lr)
       : IndexAction(idxTree), _lr(lr) {}
   TaskStatus Exec() override;
-  int JudgeRange(bool recalc) override;
+  const MVector<int> JudgeRange() override;
 
 protected:
   LeafRecord *_lr;
@@ -84,11 +84,11 @@ protected:
 
 class StatementAction : public IndexAction {
 public:
-  StatementAction(IndexTree *idxTree, Statement *stmt, int rangePos)
-      : IndexAction(idxTree), _stmt(stmt), _rangePos(rangePos) {}
+  StatementAction(IndexTree *idxTree, Statement *stmt)
+      : IndexAction(idxTree), _stmt(stmt) {}
 
   TaskStatus Exec() override;
-  int JudgeRange(bool recalc) override;
+  const MVector<int> JudgeRange() override;
 
 protected:
   Statement *_stmt;

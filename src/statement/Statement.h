@@ -127,7 +127,7 @@ public:
    * @param idxTree The IndexTree
    * @return The ranges that this statement need to exec.
    */
-  virtual int GetIndexRange(IndexTree *idxTree) {
+  virtual MVector<int> GetIndexRanges(IndexTree *idxTree) {
     abort();
     return {};
   }

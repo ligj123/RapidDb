@@ -112,7 +112,7 @@ bool InsertStatement::PrimaryKeyExec(int rangePos) {
       SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), sAction);
 
       RecordAction *rAction = new RecordAction(secTree, lrSec);
-      mgr->AddFromPrimaryAction(i, rAction->JudgeRange(), rAction);
+      mgr->AddFromPrimaryAction(i, rangePos, rAction);
     }
   }
 

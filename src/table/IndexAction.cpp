@@ -13,11 +13,7 @@
 #include "TableTaskMgr.h"
 
 namespace storage {
-int PrevPageAction::JudgeRange(bool recalc) {
-  if (!recalc) {
-    return _rangePos;
-  }
-
+const MVector<int> PrevPageAction::JudgeRange() {
   if (_page == nullptr) {
     _page = (LeafPage *)_indexTree->GetPage(_pageId, PageType::LEAF_PAGE,
                                             nullptr, true);
@@ -37,7 +33,7 @@ int PrevPageAction::JudgeRange(bool recalc) {
     _rangePos = _indexTree->CalcIndexRange(br);
   }
 
-  return _rangePos;
+  return {_rangePos};
 }
 
 TaskStatus PrevPageAction::Exec() {
@@ -88,13 +84,9 @@ TaskStatus RecordAction::Exec() {
   return TaskStatus::FINISHED;
 }
 
-int RecordAction::JudgeRange(bool recalc) {
-  if (!recalc) {
-    return _rangePos;
-  }
-
+const MVector<int> RecordAction::JudgeRange() {
   _rangePos = _indexTree->CalcIndexRange(*_lr);
-  return _rangePos;
+  return {_rangePos};
 }
 
 TaskStatus StatementAction::Exec() {
@@ -108,12 +100,7 @@ TaskStatus StatementAction::Exec() {
   return b ? TaskStatus::FINISHED : TaskStatus::RUNNING;
 }
 
-int StatementAction::JudgeRange(bool recalc) {
-  if (!recalc) {
-    return _rangePos;
-  }
-
-  _rangePos = _stmt->GetIndexRange(_indexTree);
-  return _rangePos;
+const MVector<int> StatementAction::JudgeRange() {
+  return _stmt->GetIndexRanges(_indexTree);
 }
 } // namespace storage
