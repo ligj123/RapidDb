@@ -11,6 +11,7 @@ atomic_uint32_t SessionPool::_currSessionId{0};
 
 TaskStatus SessionTask::Run() {
   for (SessionGroup *group : _vctGroup) {
+    group->_runTimes++;
     MList<SessionAction *> &lst = group->_lstAction;
     group->_threaPoolQueue.Pop(lst);
     group->_outerQueue.Pop(lst);
@@ -74,11 +75,9 @@ TaskStatus SessionTask::Run() {
       } else {
         return TaskStatus::FINISHED;
       }
-
     } else {
       return TaskStatus::FINISHED;
     }
-
   } else {
     return TaskStatus::RUNNING;
   }

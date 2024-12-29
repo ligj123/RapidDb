@@ -3,6 +3,7 @@
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
 #include "../expr/BaseExpr.h"
+#include "../serv/Session.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "../utils/Utilitys.h"
@@ -17,19 +18,39 @@ class LeafRecord;
 class IndexTree;
 class IndexAction;
 struct LeafRecordCmp;
+class Statement;
 
 enum class StmtStatus : uint8_t {
-  Created,     // Just create this statement and NOT start to execute
-  Initialized, // Finished to execute in SessionTask and The related data
-               // has been send to IndexTask queue.
-  Executing,   // The statement is executing in IndexTask
-  Executed,    // The statement has been executed in IndexTask and can go to
-               // next step.
-  Logging,     // Collecting log and wait the logs write thread to send back
-               // result.
-  Logged,      // Have received the result from log write thread.
-  Finished,    // All tasks have finished in this statement, include log write,
-               // commit (or rollback), The statement can be delete.
+  Created,   // Just create this statement and NOT start to execute
+  Executing, // The statement is executing in IndexTask
+  Executed,  // The statement has been executed in IndexTask and can go to
+             // next step.
+  Logging,   // Collecting log and wait the logs write thread to send back
+             // result.
+  Logged,    // Have received the result from log write thread.
+  Finished,  // All tasks have finished in this statement, include log write,
+             // commit (or rollback), The statement can be delete.
+};
+
+enum class ActionStatus {
+  INIT,   // Just initialized
+  SUCEED, // Succeed to insert
+  FAILED, // Failed to insert due to error or rollback
+};
+
+// To save the handles paras in InsertStatement.
+struct StmtInsertRecord {
+  RawKey _priKey;            // Primary key of the record
+  VectorDataValue _vctParas; // The columns' values of this record
+  Statement *_stmt;
+  ActionStatus _status{ActionStatus::INIT};
+};
+
+// To save primary key selected from secondary index.
+struct StmtPriKey {
+  RawKey _priKey;
+  Statement _stmt;
+  ActionStatus _status{ActionStatus::INIT};
 };
 
 class Statement {
@@ -43,16 +64,19 @@ public:
 
 public:
   /**
-   * Constuctor for statement
+   * @brief Constuctor for statement
    * @param id The id of this statement, auto increment 1 in every session.
    * @param tran The transaction own this statement.
+   * @param stmtResult The pointer of statement result
    */
   Statement(uint32_t id, TranID txid, StmtResult *stmtResult = nullptr)
       : _id(id), _txid(txid), _stmtResult(stmtResult) {
     _createTime = MicroSecTime();
   }
-
-  virtual ExprType GetActionType() = 0;
+  /**
+   * @brief Return the expression type
+   */
+  virtual ExprType GetType() = 0;
   /**
    * @brief To be called in session group, to check if current step has finished
    * and can go to next step.
@@ -63,11 +87,11 @@ public:
   }
   /**
    * @brief Execute this statement in SessionTask
-   * @return True: This statement has finished and can go to next step.
-   False:
-   * Need to exec again or failed if _errorMsg != nullptr.
+   * @param sess The session that this statement belong to
+   * @return True: This method has finished all work and need not to run again.
+   * False: There still has no finished work, need to run this method again.
    */
-  virtual bool SessionExec() {
+  virtual StmtStatus SessionExec(Session *sess) {
     abort();
     return false;
   }
@@ -75,9 +99,8 @@ public:
   /**
    * @brief Execute this statement in primary key IndexTask
    * @param rangePos The range position of IndexTask to call this method
-   * @return True: This statement has finished and can go to next step.
-   False:
-   * Need to exec again or failed if _errorMsg != nullptr.
+   * @return True: This method has finished all work and need not to run again.
+   * False: There still has no finished work, need to run this method again.
    */
   virtual bool PrimaryKeyExec(int rangePos) {
     abort();
@@ -85,12 +108,11 @@ public:
   }
 
   /**
- * @brief Execute this statement in secondary key IndexTask
- * @param rangePos The range position of IndexTask to call this method
- * @return True: This statement has finished and can go to next step.
- False:
- * Need to exec again or failed if _errorMsg != nullptr.
- */
+   * @brief Execute this statement in secondary key IndexTask
+   * @param rangePos The range position of IndexTask to call this method
+   * @return True: This method has finished all work and need not to run again.
+   * False: There still has no finished work, need to run this method again.
+   */
   virtual bool SecondaryKeyExec(int rangePos) {
     abort();
     return false;
@@ -132,10 +154,12 @@ public:
    * @param idxTree The IndexTree
    * @return The ranges that this statement need to exec.
    */
-  virtual MVector<int> CalcIndexRanges(IndexTree *idxTree) {
+  virtual int CalcIndexRanges(IndexTree *idxTree) {
     abort();
-    return {};
+    return -1;
   }
+
+  virtual void SessionRangeAction(SessionRangeAction *action) { abort(); }
 
   void SetTxID(TranID txid) { _txid = txid; }
 
@@ -147,7 +171,12 @@ public:
     _stmtFailed.store(b, memory_order_relaxed);
   }
 
+  bool IsStmtFailed() { return _stmtFailed.load(memory_order_relaxed); }
+
   uint16_t GetSessionId() { return (uint16_t)((_txid >> 40) && 0xFF); }
+
+  void SetStmtStatus(StmtStatus s) { _status = s; }
+  StmtStatus GetStmtStatus() { return _status; }
 
 protected:
   // Id will auto increment 1 every time in self session.

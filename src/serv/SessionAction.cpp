@@ -24,6 +24,11 @@ TaskStatus SessionErrMsgAction::Exec(SessionGroup &sGroup) {
   return TaskStatus::FINISHED;
 }
 
+TaskStatus SessionRangeAction::Exec(SessionGroup &sGroup) {
+  _stmt->SessionRangeAction(this);
+  return TaskStatus::FINISHED;
+}
+
 TaskStatus SessionCreateAction::Exec(SessionGroup &sGroup) {
   Session *session = new Session(_sessionId);
   sGroup._mapSession.emplace(_sessionId, session);

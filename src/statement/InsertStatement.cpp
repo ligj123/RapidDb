@@ -5,192 +5,166 @@
 #include "../utils/Log.h"
 
 namespace storage {
-bool InsertStatement::SessionExec() {
-  PhysTable *table = _exprInsert->_physTable;
-  TableTaskMgr *mgr = table->GetTableTaskMgr();
-  auto &priIndex = table->GetVectorIndex()[0];
-  MVectorPtr<InsertRecord *> &vctRec =
-      _mapInsert.emplace(-1, MVectorPtr<InsertRecord *>()).first->second;
+StmtStatus InsertStatement::SessionExec(Session *sess) {
+  if (_status == StmtStatus::Created) {
+    if (InitRecord())
+      return StmtStatus::Executing;
+  } else if (_status == StmtStatus::Executing) {
+    if (_lstRecord.size() > 0) {
+      uint32_t idxSz =
+          (uint32_t)_exprInsert->_physTable->GetVectorIndex().size();
+      for (auto iter = _lstRecord.begin(); iter != _lstRecord.end();) {
+        if ((*iter)->_status == ActionStatus::INIT) {
+          iter++;
+          continue;
+        }
 
-  for (VectorDataValue *pvct : _vctParas) {
-    VectorDataValue vctVal;
-    priIndex._tree->CloneValues(vctVal);
+        if ((*iter)->_status == ActionStatus::SUCEED) {
+          _recordCount += idxSz;
+        }
 
-    for (size_t i = 0; i < _exprInsert->_rowData->size(); i++) {
-      ExprElem *elem = _exprInsert->_rowData->at(i);
-      ExprColumn *col = _exprInsert->_vctCol->at(i);
-      IDataValue *dv = ((ExprData *)elem)->Calc(*pvct, vctVal);
-      bool b = vctVal[col->_pos]->Copy(*dv, true);
-      dv->DecRef();
+        iter = _lstRecord.erase(iter);
+      }
 
-      if (!b) {
-        _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
-        SetStmtFailed(true);
-        _status = StmtStatus::Initialized;
-        return true;
+      if (_lstRecord.size() > 0) {
+        return StmtStatus::Executing;
       }
     }
 
-    if (!table->CheckColumnValues(vctVal)) {
-      _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
-      SetStmtFailed(true);
-      _status = StmtStatus::Initialized;
-      return true;
-    }
-
-    VectorDataValue vctKey;
-    vctKey._bDecrease = false;
-    vctKey.reserve(priIndex._vctCol.size());
-
-    for (IndexColumn &col : priIndex._vctCol) {
-      IDataValue *dv = vctVal[col.colPos];
-      vctKey.push_back(dv);
-    }
-
-    InsertRecord *insr = new InsertRecord();
-    insr->_priKey = RawKey(vctKey);
-    insr->_vctParas = move(vctVal);
-    vctRec.push_back(insr);
-  }
-
-  StatementAction *action = new StatementAction(priIndex._tree, this);
-  mgr->AddSessionAction(0, GetSessionId(), action);
-  _status = StmtStatus::Executing;
-  return true;
-}
-
-bool InsertStatement::PrimaryKeyExec(int rangePos) {
-  auto iter = _mapInsert.find(rangePos);
-  assert(iter != _mapInsert.end());
-
-  PhysTable *table = _exprInsert->_physTable;
-  TableTaskMgr *mgr = table->GetTableTaskMgr();
-  MVector<storage::IndexProp> &vctProp = table->GetVectorIndex();
-
-  MVectorPtr<InsertRecord *> &vctRec = iter->second;
-  for (InsertRecord *iRec : vctRec) {
-    VersionStamp stamp = vctProp[0]._tree->ApplyStamp(rangePos);
-    LeafRecord *lrPri = new LeafRecord(vctProp[0]._tree, iRec->_priKey,
-                                       iRec->_vctParas, stamp, this);
-    if (!lrPri->IsValid()) {
-      SessionErrMsgAction *eAction =
-          new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
-      SetStmtFailed(true);
-      delete lrPri;
-      break;
-    }
-
-    SessionRecordAction *action = new SessionRecordAction(this, lrPri);
-    SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), action);
-    RecordAction *rAction = new RecordAction(vctProp[0]._tree, lrPri);
-    vctProp[0]._tree->AddActionFromLocal(rangePos, rAction);
-
-    for (size_t i = 1; i < vctProp.size(); i++) {
-      IndexTree *secTree = vctProp[i]._tree;
-      VectorDataValue vctKey;
-      vctKey._bDecrease = false;
-      vctKey.reserve(vctProp[i]._vctCol.size());
-
-      for (IndexColumn &col : vctProp[i]._vctCol) {
-        IDataValue *dv = iRec->_vctParas[col.colPos];
-        vctKey.push_back(dv);
+    if (_lstWaitRecord.size() > 0) {
+      for (auto iter = _lstWaitRecord.begin(); iter != _lstWaitRecord.end();) {
+        if ((*iter)->GetLock()->GetRecordResult() != RecordResult::INIT) {
+          _lstFinshRecord.push_back(*iter);
+          iter = _lstWaitRecord.erase(iter);
+        } else {
+          iter++;
+        }
       }
-      LeafRecord *lrSec = new LeafRecord(
-          secTree, vctKey, lrPri->GetBysValue() + UI16_2_LEN,
-          lrPri->GetKeyLength(), ActionType::INSERT, stamp, this);
-
-      if (!lrSec->IsValid()) {
-        SessionErrMsgAction *eAction =
-            new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
-        SetStmtFailed(true);
-        delete lrSec;
-        break;
-      }
-
-      SessionRecordAction *sAction = new SessionRecordAction(this, lrSec);
-      SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), sAction);
-
-      RecordAction *rAction = new RecordAction(secTree, lrSec);
-      mgr->AddFromPrimaryAction(i, rangePos, rAction);
     }
-  }
 
-  return true;
-}
+    if (_lstFinshRecord.size() < (size_t)_recordCount) {
+      return StmtStatus::Executing;
+    }
 
-StmtStatus InsertStatement::CheckStatus() {
-  if (_status == StmtStatus::Initialized) {
-    PhysTable *table = _exprInsert->_physTable;
     if (_stmtFailed.load(memory_order_relaxed)) {
-      if (_lstFinshRecord.size() + _lstWaitRecord.size() ==
-          _vctParas.size() * table->GetVectorIndex().size()) {
-        _lstFinshRecord.insert(_lstFinshRecord.end(), _lstWaitRecord.begin(),
-                               _lstWaitRecord.end());
-        _lstWaitRecord.clear();
-        _status = StmtStatus::Executed;
-        return _status;
+      for (auto lr : _lstFinshRecord) {
+        lr->GetLock()->_recStatus.store(RecordStatus::ROLLBACKED,
+                                        memory_order_relaxed);
       }
-    }
 
-    for (auto iter = _lstWaitRecord.begin(); iter != _lstWaitRecord.end();) {
-      if ((*iter)->GetLock()->GetRecordResult() != RecordResult::INIT) {
-        _lstFinshRecord.push_back(*iter);
-        iter = _lstWaitRecord.erase(iter);
-      } else {
-        iter++;
-      }
-    }
+      _stmtResult->_rowNum = 0;
+      _status = StmtStatus::Finished;
+    } else if (sess->_transaction.IsAutoCommit()) { // Add log write queue
 
-    if (_lstFinshRecord.size() ==
-        _vctParas.size() * table->GetVectorIndex().size()) {
+      _status = StmtStatus::Logging;
+      // Add log write queue
+    } else {
       _status = StmtStatus::Executed;
     }
+  } else if (_status == StmtStatus::Logged) {
+    _status = StmtStatus::Finished;
   }
 
   return _status;
 }
 
+bool InsertStatement::InitRecord() {
+  PhysTable *table = _exprInsert->_physTable;
+  TableTaskMgr *mgr = table->GetTableTaskMgr();
+  IndexProp &priIndex = table->GetVectorIndex()[0];
+
+  if (_vctParas.size() == 0) {
+    _vctParas.push_back(new VectorDataValue());
+  }
+
+  MVectorPtr<MVectorPtr<ExprElem *> *> *vctRow = _exprInsert->_vctRowData;
+  for (VectorDataValue *pvct : _vctParas) {
+    for (MVectorPtr<ExprElem *> *rowData : vctRow) {
+      VectorDataValue vctVal;
+      priIndex._tree->CloneValues(vctVal);
+
+      for (size_t i = 0; i < rowData->size(); i++) {
+        ExprElem *elem = _exprInsert->_rowData->at(i);
+        ExprColumn *col = _exprInsert->_vctCol->at(i);
+        IDataValue *dv = ((ExprData *)elem)->Calc(*pvct, vctVal);
+        bool b = vctVal[col->_pos]->Copy(*dv, true);
+        dv->DecRef();
+
+        if (!b) {
+          _stmtResult->_vctError.push_back(
+              move(_threadErrorMsg->GetErrorMsg()));
+          SetStmtFailed(true);
+          _status = StmtStatus::Executed;
+          return true;
+        }
+      }
+
+      if (!table->CheckColumnValues(vctVal)) {
+        _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
+        SetStmtFailed(true);
+        _status = StmtStatus::Executed;
+        return true;
+      }
+
+      VectorDataValue vctKey;
+      vctKey._bDecrease = false;
+      vctKey.reserve(priIndex._vctCol.size());
+
+      for (IndexColumn &col : priIndex._vctCol) {
+        IDataValue *dv = vctVal[col.colPos];
+        vctKey.push_back(dv);
+      }
+
+      StmtInsertRecord *insr = new StmtInsertRecord();
+      insr->_priKey = RawKey(vctKey);
+      insr->_vctParas = move(vctVal);
+      insr->_stmt = this;
+      StmtInsertAction *action = new StmtInsertAction(priIndex._tree, insr);
+      mgr->AddSessionAction(0, GetSessionId(), action);
+      _lstRecord.push_back(insr);
+    }
+  }
+
+  _totalRecordNum = (uint32_t)_lstRecord.size();
+  _status = StmtStatus::Executing;
+  return false;
+}
+
+StmtStatus InsertStatement::CheckStatus() { return _status; }
+
 void InsertStatement::CollectLogRecords(
     MTreeSet<LeafRecord *, LeafRecordCmp> &setRec) {
+  if (_stmtFailed.load(memory_order_relaxed)) {
+    return;
+  }
+
   for (LeafRecord *lr : _lstFinshRecord) {
+    assert(lr->GetLock()->_recResult != RecordResult::INIT);
+    if (lr->GetLock()->_recStatus == RecordResult::ERROR) {
+      continue;
+    }
+
     setRec.insert(lr);
   }
 }
 
 void InsertStatement::Commit() {
+  if (_stmtFailed.load(memory_order_relaxed)) {
+    return;
+  }
+
   for (LeafRecord *lr : _lstFinshRecord) {
     lr->SubmitStatement(*this, RecordStatus::COMMITED);
   }
 }
 
 void InsertStatement::Rollback() {
+  if (_stmtFailed.load(memory_order_relaxed)) {
+    return;
+  }
+
   for (LeafRecord *lr : _lstFinshRecord) {
     lr->SubmitStatement(*this, RecordStatus::ROLLBACKED);
   }
-}
-
-MVector<int> InsertStatement::CalcIndexRanges(IndexTree *idxTree) {
-  MHashMap<int, MVectorPtr<InsertRecord *>> map;
-  map.swap(_mapInsert);
-  assert(map.size() == 1 && map.begin()->first == -1);
-  MVectorPtr<InsertRecord *> &vctRec = _mapInsert.begin()->second;
-  PhysTable *table = _exprInsert->_physTable;
-  TableTaskMgr *mgr = table->GetTableTaskMgr();
-  auto &priIndex = table->GetVectorIndex()[0];
-  MVector<int> vctPos;
-
-  for (InsertRecord *insrRec : vctRec) {
-    int pos = idxTree->CalcIndexRange(insrRec->_priKey);
-    auto iter = _mapInsert.find(pos);
-    if (iter == _mapInsert.end()) {
-      iter = _mapInsert.emplace(pos, MVectorPtr<InsertRecord *>()).first;
-      vctPos.push_back(pos);
-    }
-
-    iter->second.push_back(insrRec);
-  }
-
-  vctRec.clear();
-  return vctPos;
 }
 } // namespace storage

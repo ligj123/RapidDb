@@ -13,7 +13,7 @@
 #include "TableTaskMgr.h"
 
 namespace storage {
-const MVector<int> PrevPageAction::JudgeRange() {
+int PrevPageAction::JudgeRange() {
   if (_page == nullptr) {
     _page = (LeafPage *)_indexTree->GetPage(_pageId, PageType::LEAF_PAGE,
                                             nullptr, true);
@@ -33,7 +33,7 @@ const MVector<int> PrevPageAction::JudgeRange() {
     _rangePos = _indexTree->CalcIndexRange(br);
   }
 
-  return {_rangePos};
+  return _rangePos;
 }
 
 TaskStatus PrevPageAction::Exec() {
@@ -84,7 +84,7 @@ TaskStatus RecordAction::Exec() {
   return TaskStatus::FINISHED;
 }
 
-const MVector<int> RecordAction::JudgeRange() {
+int RecordAction::JudgeRange() {
   _rangePos = _indexTree->CalcIndexRange(*_lr);
   return {_rangePos};
 }
@@ -100,7 +100,94 @@ TaskStatus StatementAction::Exec() {
   return b ? TaskStatus::FINISHED : TaskStatus::RUNNING;
 }
 
-const MVector<int> StatementAction::JudgeRange() {
-  return _stmt->CalcIndexRanges(_indexTree);
-}
+int StatementAction::JudgeRange() { return _stmt->CalcIndexRanges(_indexTree); }
+
+TaskStatus StmtInsertAction::Exec() {
+  if (_stmtRecord->_stmt->)
+    PhysTable *table = _exprInsert->_physTable;
+  TableTaskMgr *mgr = table->GetTableTaskMgr();
+  MVector<storage::IndexProp> &vctProp = table->GetVectorIndex();
+  MVector<LeafRecord *> vctLr;
+
+  VersionStamp stamp = vctProp[0]._tree->ApplyStamp(rangePos);
+  LeafRecord *lrPri = new LeafRecord(vctProp[0]._tree, _stmtRecord->_priKey,
+                                     iRec->_vctParas, stamp, this);
+
+  if (!lrPri->IsValid()) {
+    _stmtRecord->_status = ActionStatus::FAILED;
+    SessionErrMsgAction *eAction =
+        new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
+    SessionPool::AddAction(ThreadPool::GetThreadId(),
+                           _stmtRecord->_stmt->GetTxId(), eAction);
+    _stmtRecord->_stmt->SetStmtFailed(true);
+    delete lrPri;
+    break;
+  }
+
+  vctLr.push_back(lrPri);
+  bool failed = false;
+
+  for (size_t i = 1; i < vctProp.size(); i++) {
+    IndexTree *secTree = vctProp[i]._tree;
+    VectorDataValue vctKey;
+    vctKey._bDecrease = false;
+    vctKey.reserve(vctProp[i]._vctCol.size());
+
+    for (IndexColumn &col : vctProp[i]._vctCol) {
+      IDataValue *dv = iRec->_vctParas[col.colPos];
+      vctKey.push_back(dv);
+    }
+
+    LeafRecord *lrSec =
+        new LeafRecord(secTree, vctKey, lrPri->GetBysValue() + UI16_2_LEN,
+                       lrPri->GetKeyLength(), ActionType::INSERT, stamp, this);
+    vctLr.push_back(lrSec);
+
+    if (!lrSec->IsValid()) {
+      _stmtRecord->_status = ActionStatus::FAILED;
+      SessionErrMsgAction *eAction =
+          new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
+      SessionPool::AddAction(ThreadPool::GetThreadId(),
+                             _stmtRecord->_stmt->GetTxId(), eAction);
+      _stmtRecord->_stmt->SetStmtFailed(true);
+      failed = true;
+      break;
+    }
+  }
+
+  if (failed) {
+    for (LeafRecord *lr : vctLr) {
+      delete lr;
+    }
+
+    vctLr.clear();
+  } else {
+    RecordAction *rAction = new RecordAction(vctProp[0]._tree, vctLr[0]);
+    vctProp[0]._tree->AddActionFromLocal(_rangePos, rAction);
+
+    for (size_t i = 1; i < vctProp.size(); i++) {
+      IndexTree *secTree = vctProp[i]._tree;
+      RecordAction *rAction = new RecordAction(secTree, vctLr[i]);
+      mgr->AddFromPrimaryAction(i, _rangePos, rAction);
+    }
+  }
+
+  SessionRecordAction *action =
+      new SessionRecordAction(_stmtRecord->_stmt, vctLr);
+  SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), action);
+  return TaskStatus::FINISHED;
+};
+
+int StmtInsertAction::JudgeRange() {
+  _rangePos = _indexTree->CalcIndexRange(_stmtRecord->_priKey);
+  return _rangePos;
+};
+
+TaskStatus StmtPriKeyAction::Exec() { return TaskStatus::UNINIT; };
+
+int StmtPriKeyAction::JudgeRange() {
+  _rangePos = _indexTree->CalcIndexRange(_stmtPriKey->_priKey);
+  return _rangePos;
+};
+
 } // namespace storage

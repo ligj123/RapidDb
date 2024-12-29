@@ -28,12 +28,28 @@ public:
  */
 class SessionRecordAction : public SessionAction {
 public:
-  SessionRecordAction(Statement *stmt, LeafRecord *lr) : _stmt(stmt), _lr(lr) {}
+  SessionRecordAction(Statement *stmt, MVector<LeafRecord *> &&vctLr)
+      : _stmt(stmt), _vctLr(move(vctLr)) {}
   TaskStatus Exec(SessionGroup &sGroup) override;
 
 protected:
   Statement *_stmt;
-  LeafRecord *_lr;
+  MVector<LeafRecord *> _vctLr;
+};
+
+/**
+ * @brief After finished an IndexRange, send this action to SessionPool if need
+ */
+class SessionRangeEndAction : public SessionAction {
+public:
+  SessionRangeEndAction(Statement *stmt, int32_t rangePos, int32_t recNum)
+      : _stmt(stmt), _rangePos(rangePos), _recNum(recNum) {}
+  TaskStatus Exec(SessionGroup &sGroup) override;
+
+protected:
+  Statement *_stmt;
+  int32_t _rangePos;
+  int32_t _recNum;
 };
 
 /**

@@ -12,6 +12,8 @@ class InsertStatement;
 class LeafRecord;
 class IndexRange;
 class LeafPage;
+class StmtInsertRecord;
+class StmtPriKey;
 
 class IndexAction {
 public:
@@ -33,9 +35,9 @@ public:
    * @brief After the index range has been adjusted, calc again its index range
    * @return If pass, return its new range, or abort
    */
-  virtual const MVector<int> JudgeRange() {
+  virtual const int JudgeRange() {
     abort();
-    return {};
+    return -1;
   }
 
   /**
@@ -63,7 +65,7 @@ public:
   }
   TaskStatus Exec() override;
 
-  const MVector<int> JudgeRange() override;
+  int JudgeRange() override;
 
 protected:
   LeafPage *_page{nullptr}; // The page will update  previous page id.
@@ -76,7 +78,7 @@ public:
   RecordAction(IndexTree *idxTree, LeafRecord *lr)
       : IndexAction(idxTree), _lr(lr) {}
   TaskStatus Exec() override;
-  const MVector<int> JudgeRange() override;
+  int JudgeRange() override;
 
 protected:
   LeafRecord *_lr;
@@ -88,10 +90,32 @@ public:
       : IndexAction(idxTree), _stmt(stmt) {}
 
   TaskStatus Exec() override;
-  const MVector<int> JudgeRange() override;
+  int JudgeRange() override;
 
 protected:
   Statement *_stmt;
+};
+
+class StmtInsertAction : public IndexAction {
+public:
+  StmtInsertAction(IndexTree *idxTree, StmtInsertRecord *stmtRecord)
+      : IndexAction(idxTree), _stmtRecord(stmtRecord) {}
+  TaskStatus Exec() override;
+  int JudgeRange() override;
+
+protected:
+  StmtInsertRecord *_stmtRecord;
+};
+
+class StmtPriKeyAction : public IndexAction {
+public:
+  StmtPriKeyAction(IndexTree *idxTree, StmtPriKey *stmtPriKey)
+      : IndexAction(idxTree), _stmtPriKey(stmtPriKey) {}
+  TaskStatus Exec() override;
+  int JudgeRange() override;
+
+protected:
+  StmtPriKey *_stmtPriKey;
 };
 
 } // namespace storage

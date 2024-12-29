@@ -64,6 +64,9 @@ struct SessionGroup {
   RapidQueue<SessionAction> _threaPoolQueue;
   // To receive The actions from outside threads.
   RapidQueue<SessionAction> _outerQueue;
+  // How many times this group has run. It only used for some actions do not run
+  // too frequencly.
+  uint64_t _runTimes{0};
 };
 
 class SessionTask : public ThreadTask {

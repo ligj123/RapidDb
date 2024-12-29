@@ -43,22 +43,33 @@ public:
 
   TranStatus GetTranStatus() { return _tranStatus; }
   void SetTranStatus(TranStatus s) { _tranStatus = s; }
-  TranType GetTranType() { return _tranType; }
+  bool IsAutoCommit() { return _bAutoCommit; }
+  void SetLogged(bool b = true) {
+    _bLogged = b;
+    for (Statement *stmt : _lstStatement) {
+      stmt->SetStmtStatus(StmtStatus::Logged);
+    }
+  }
+  bool IsLogged() { return _bLogged; }
+  void SetTranStatus(TranStatus s) { _tranStatus = s; }
+  TranStatus GetTranStatus() { return _tranStatus; }
 
 protected:
   TranID _tid{TXID_NULL};
   // The start time of current transaction
   DT_MicroSec _startTime{UINT64_MAX};
   // The statements executed in this transaction++
-  MVector<Statement *> _vctStatement;
+  MList<Statement *> _lstStatement;
 
   // The session own this transaction
   Session *_session;
 
   TranStatus _tranStatus{TranStatus::INIT};
-  TranType _tranType{TranType::AUTOMATE};
+  bool _bAutoCommit{true};
   IsoLevel _isoLevel{IsoLevel::ReadCommited};
   CcProtocol _ccProtocol{CcProtocol::OCC};
+  // The log has been wrote into log files or not
+  bool _bLogged{false};
 };
 
 } // namespace storage

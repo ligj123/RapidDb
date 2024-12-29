@@ -6,12 +6,6 @@
 #include "Statement.h"
 
 namespace storage {
-// To save the the paras of inserted records after split.
-struct InsertRecord {
-  RawKey _priKey;            // Primary key of the record
-  VectorDataValue _vctParas; // The columns' values of this record
-};
-
 // Normal insert, insert from select will implement in its brother class
 class InsertStatement : public Statement {
 public:
@@ -23,8 +17,7 @@ public:
   ExprType GetActionType() override { return ExprType::EXPR_INSERT; }
   bool IsReadonly() override { return false; }
 
-  bool SessionExec() override;
-  bool PrimaryKeyExec(int rangePos) override;
+  StmtStatus SessionExec(Session *sess) override;
 
   StmtStatus CheckStatus() override;
   void
@@ -32,14 +25,18 @@ public:
 
   void Commit() override;
   void Rollback() override;
-  MVector<int> CalcIndexRanges(IndexTree *idxTree) override;
+
+protected:
+  bool InitRecord();
 
 protected:
   // ExprInsert will be unified managed by a class, do not delete here
   ExprInsert *_exprInsert;
   // To save multi rows of parameters loaded from client byte array
   VectorRow _vctParas;
-  // To save the paras after split， Map<RangPos, InsertRecord>
-  MHashMap<int, MVectorPtr<InsertRecord *>> _mapInsert;
+  // To save the paras after handle
+  MList<StmtInsertRecord *> _lstRecord;
+  // The total number of inserted records
+  uint32_t _recordCount{0};
 };
 } // namespace storage

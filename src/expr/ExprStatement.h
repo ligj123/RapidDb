@@ -151,7 +151,6 @@ public:
   ~ExprInsert() {
     delete _exprTable;
     delete _vctCol;
-    delete _rowData;
     delete _vctRowData;
     delete _exprSelect;
 
@@ -168,8 +167,6 @@ public:
   // The columns that assign values; if empty, it will be filled with all
   // table's columns
   MVectorPtr<ExprColumn *> *_vctCol{nullptr};
-  // One row data to insert
-  MVectorPtr<ExprElem *> *_rowData{nullptr};
   // The multi row data that will be inserted.
   MVectorPtr<MVectorPtr<ExprElem *> *> *_vctRowData{nullptr};
   // The source data that selected from other table and will be inserted into
