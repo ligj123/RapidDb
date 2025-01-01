@@ -103,25 +103,29 @@ TaskStatus StatementAction::Exec() {
 int StatementAction::JudgeRange() { return _stmt->CalcIndexRanges(_indexTree); }
 
 TaskStatus StmtInsertAction::Exec() {
-  if (_stmtRecord->_stmt->)
-    PhysTable *table = _exprInsert->_physTable;
-  TableTaskMgr *mgr = table->GetTableTaskMgr();
-  MVector<storage::IndexProp> &vctProp = table->GetVectorIndex();
+  if (_stmtRecord->_stmt->IsStmtFailed()) {
+    _stmtRecord->_status = ActionStatus::FAILED;
+    return TaskStatus::FINISHED;
+  }
+
+  TableTaskMgr *mgr = _stmtRecord->_table->GetTableTaskMgr();
+  MVector<storage::IndexProp> &vctProp = _stmtRecord->_table->GetVectorIndex();
   MVector<LeafRecord *> vctLr;
 
-  VersionStamp stamp = vctProp[0]._tree->ApplyStamp(rangePos);
-  LeafRecord *lrPri = new LeafRecord(vctProp[0]._tree, _stmtRecord->_priKey,
-                                     iRec->_vctParas, stamp, this);
+  VersionStamp stamp = vctProp[0]._tree->ApplyStamp(_rangePos);
+  LeafRecord *lrPri =
+      new LeafRecord(vctProp[0]._tree, _stmtRecord->_priKey,
+                     _stmtRecord->_vctParas, stamp, _stmtRecord->_stmt);
 
   if (!lrPri->IsValid()) {
     _stmtRecord->_status = ActionStatus::FAILED;
-    SessionErrMsgAction *eAction =
-        new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
+    SessionErrMsgAction *eAction = new SessionErrMsgAction(
+        _stmtRecord->_stmt, move(_threadErrorMsg->GetErrorMsg()));
     SessionPool::AddAction(ThreadPool::GetThreadId(),
                            _stmtRecord->_stmt->GetTxId(), eAction);
     _stmtRecord->_stmt->SetStmtFailed(true);
     delete lrPri;
-    break;
+    return TaskStatus::FINISHED;
   }
 
   vctLr.push_back(lrPri);
@@ -134,19 +138,19 @@ TaskStatus StmtInsertAction::Exec() {
     vctKey.reserve(vctProp[i]._vctCol.size());
 
     for (IndexColumn &col : vctProp[i]._vctCol) {
-      IDataValue *dv = iRec->_vctParas[col.colPos];
+      IDataValue *dv = _stmtRecord->_vctParas[col.colPos];
       vctKey.push_back(dv);
     }
 
-    LeafRecord *lrSec =
-        new LeafRecord(secTree, vctKey, lrPri->GetBysValue() + UI16_2_LEN,
-                       lrPri->GetKeyLength(), ActionType::INSERT, stamp, this);
+    LeafRecord *lrSec = new LeafRecord(
+        secTree, vctKey, lrPri->GetBysValue() + UI16_2_LEN,
+        lrPri->GetKeyLength(), ActionType::INSERT, stamp, _stmtRecord->_stmt);
     vctLr.push_back(lrSec);
 
     if (!lrSec->IsValid()) {
       _stmtRecord->_status = ActionStatus::FAILED;
-      SessionErrMsgAction *eAction =
-          new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
+      SessionErrMsgAction *eAction = new SessionErrMsgAction(
+          _stmtRecord->_stmt, move(_threadErrorMsg->GetErrorMsg()));
       SessionPool::AddAction(ThreadPool::GetThreadId(),
                              _stmtRecord->_stmt->GetTxId(), eAction);
       _stmtRecord->_stmt->SetStmtFailed(true);
@@ -173,8 +177,9 @@ TaskStatus StmtInsertAction::Exec() {
   }
 
   SessionRecordAction *action =
-      new SessionRecordAction(_stmtRecord->_stmt, vctLr);
-  SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), action);
+      new SessionRecordAction(_stmtRecord->_stmt, move(vctLr));
+  SessionPool::AddAction(ThreadPool::GetThreadId(),
+                         _stmtRecord->_stmt->GetTxId(), action);
   return TaskStatus::FINISHED;
 };
 

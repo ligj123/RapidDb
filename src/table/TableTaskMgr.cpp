@@ -80,10 +80,8 @@ void TableTaskMgr::CollectTaskData(uint16_t idxPos) {
 
   MVector<IndexRange> &vctRange = idxTree->GetVctRange();
   for (auto iter = qs.begin(); iter != qs.end(); iter++) {
-    MVector<int> vctPos = (*iter)->JudgeRange();
-    for (int pos : vctPos) {
-      vctRange[pos]._queueActionFromCollect.Push(*iter, false);
-    }
+    int pos = (*iter)->JudgeRange();
+    vctRange[pos]._queueActionFromCollect.Push(*iter, false);
   }
 
   for (size_t i = 0; i <= vctRange.size(); i++) {
@@ -204,10 +202,8 @@ TaskStatus IndexAdjustTask::Run() {
     }
 
     for (auto iter = queueAction.begin(); iter != queueAction.end(); iter++) {
-      MVector<int> vctPos = (*iter)->JudgeRange();
-      for (int rpos : vctPos) {
-        vctRange[rpos]._queueAction.push_back(*iter);
-      }
+      int pos = (*iter)->JudgeRange();
+      vctRange[pos]._queueAction.push_back(*iter);
     }
   } else {
     idxTree->SetSplitPageLevel(UINT8_MAX);

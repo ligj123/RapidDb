@@ -4,18 +4,19 @@
 #include "../dataType/DataValueFixChar.h"
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
-#include "../table/Table.h"
 #include "../utils/ErrorID.h"
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
 #include "ExprAggr.h"
 #include "ExprData.h"
 #include "ExprLogic.h"
+
 #include <unordered_set>
 
 using namespace std;
 namespace storage {
 class Session;
+class PhysTable;
 
 template <ExprType ET> class ExprCondition : public BaseExpr {
 public:
@@ -148,16 +149,7 @@ public:
 
 class ExprInsert : public ExprStatement {
 public:
-  ~ExprInsert() {
-    delete _exprTable;
-    delete _vctCol;
-    delete _vctRowData;
-    delete _exprSelect;
-
-    if (_physTable != nullptr)
-      _physTable->DecRef();
-  }
-
+  ~ExprInsert();
   ExprType GetType() override { return ExprType::EXPR_INSERT; }
   bool Preprocess(Session *session = nullptr) override;
 
@@ -182,17 +174,7 @@ class ExprUpdate : public ExprStatement {
 public:
   ExprUpdate() {}
 
-  ~ExprUpdate() {
-    delete _exprTable;
-    delete _vctCol;
-    delete _exprWhere;
-    delete _exprOrderBy;
-    delete _exprLimit;
-
-    if (_physTable != nullptr)
-      _physTable->DecRef();
-  }
-
+  ~ExprUpdate();
   ExprType GetType() override { return ExprType::EXPR_UPDATE; }
   bool Preprocess(Session *session = nullptr) override;
 
@@ -211,15 +193,7 @@ public:
 
 class ExprDelete : public ExprStatement {
 public:
-  ~ExprDelete() {
-    delete _exprTable;
-    delete _exprWhere;
-    delete _exprOrderBy;
-    delete _exprLimit;
-
-    if (_physTable != nullptr)
-      _physTable->DecRef();
-  }
+  ~ExprDelete();
 
   ExprType GetType() override { return ExprType::EXPR_DELETE; }
   bool Preprocess(Session *session = nullptr) override;

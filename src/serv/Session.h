@@ -1,6 +1,5 @@
 #pragma once
 #include "../expr/ExprStatement.h"
-#include "../statement/Statement.h"
 #include "../table/Database.h"
 #include "../utils/ResStatus.h"
 #include "Transaction.h"
@@ -10,6 +9,8 @@
 
 namespace storage {
 using namespace std;
+class Transaction;
+class Statement;
 
 /**
  * The client create a connection and connect to server, the server will create
@@ -27,16 +28,8 @@ public:
   }
 
 public:
-  Session(uint32_t id) : _id(id), _transaction(this) {}
-
-  ~Session() {
-    assert(_transaction.GetTranStatus() == TranStatus::FINISHED);
-    assert(_lstWaittingStmt.size() == 0 && _currStatement == nullptr);
-    for (auto iter = _mapSqlExprStatement.begin();
-         iter != _mapSqlExprStatement.end(); iter++) {
-      delete iter->second;
-    }
-  }
+  Session(uint32_t id);
+  ~Session();
 
   void Exec();
 

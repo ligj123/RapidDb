@@ -1,5 +1,7 @@
 #include "Transaction.h"
 
+#include "../binlog/LogTask.h"
+#include "../statement/Statement.h"
 #include "SessionPool.h"
 
 namespace storage {
@@ -22,6 +24,58 @@ void Transaction::StartTransaction(SessionGroup &sGroup, bool bAuto,
   }
 
   _startTime = MicroSecTime();
+}
+
+void Transaction::SetLogged(bool b) {
+  _bLogged = b;
+  for (Statement *stmt : _lstStatement) {
+    stmt->SetStmtStatus(StmtStatus::Logged);
+  }
+}
+
+void Transaction::WriteLog(LogTask *logTask) {
+  // Now does not consider DDL statement
+  bool bStart = true;
+
+  Byte *sBuff = logTask->GetBuff();
+  Byte *cBuff = sBuff;
+  *((uint64_t *)cBuff) = _tid;
+  cBuff += UI64_LEN;
+
+  MTreeSet<LeafRecord *, LeafRecordCmp> setRec;
+  for (auto iter = _lstStatement.rbegin(); iter != _lstStatement.rend();
+       iter++) {
+    (*iter)->CollectLogRecords(setRec);
+  }
+
+  *((uint32_t *)cBuff) = (uint32_t)setRec.size();
+  cBuff += UI32_LEN;
+
+  for (LeafRecord *lr : setRec) {
+    uint16_t len = lr->GetActualLength();
+    if (cBuff - sBuff > BUFF_SIZE - len) {
+      logTask->WriteBuff(cBuff - sBuff, bStart);
+      bStart = false;
+      cBuff = sBuff;
+    }
+
+    BytesCopy(cBuff, lr->GetBysValue(), len);
+    cBuff += len;
+
+    if (lr->HasOverflowPage()) {
+      OverflowPage *ovPage = lr->GetOverflowPage();
+      if (cBuff - sBuff > BUFF_SIZE - ovPage->PageSize()) {
+        logTask->WriteBuff(cBuff - sBuff, bStart);
+        bStart = false;
+        cBuff = sBuff;
+      }
+
+      BytesCopy(cBuff, ovPage->GetBysPage(), ovPage->PageSize());
+      cBuff += ovPage->PageSize();
+    }
+  }
+
+  logTask->WriteBuff(cBuff - sBuff, bStart);
 }
 
 } // namespace storage

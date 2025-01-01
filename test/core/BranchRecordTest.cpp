@@ -16,9 +16,9 @@ namespace storage {
 class StatementEx : public Statement {
 public:
   using Statement::Statement;
-  ExprType GetActionType() override { return ExprType::EXPR_INSERT; }
+  ExprType GetType() override { return ExprType::EXPR_INSERT; }
   bool IsReadonly() override { return true; }
-  MVector<int> CalcIndexRanges(IndexTree *idxTree) override { return {}; }
+  int CalcIndexRanges(IndexTree *idxTree) override { return -1; }
 };
 
 BOOST_AUTO_TEST_SUITE(CoreTest)

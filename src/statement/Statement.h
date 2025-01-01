@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
+#include "../core/RawKey.h"
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
 #include "../expr/BaseExpr.h"
@@ -40,16 +41,22 @@ enum class ActionStatus {
 
 // To save the handles paras in InsertStatement.
 struct StmtInsertRecord {
+  StmtInsertRecord(RawKey &&priKey, VectorDataValue &&vctParas, Statement *stmt,
+                   PhysTable *table)
+      : _priKey(move(priKey)), _vctParas(move(vctParas)), _stmt(stmt),
+        _table(table) {}
+
   RawKey _priKey;            // Primary key of the record
   VectorDataValue _vctParas; // The columns' values of this record
   Statement *_stmt;
+  PhysTable *_table;
   ActionStatus _status{ActionStatus::INIT};
 };
 
 // To save primary key selected from secondary index.
 struct StmtPriKey {
   RawKey _priKey;
-  Statement _stmt;
+  Statement *_stmt;
   ActionStatus _status{ActionStatus::INIT};
 };
 
@@ -93,7 +100,7 @@ public:
    */
   virtual StmtStatus SessionExec(Session *sess) {
     abort();
-    return false;
+    return StmtStatus::Finished;
   }
 
   /**
@@ -158,8 +165,6 @@ public:
     abort();
     return -1;
   }
-
-  virtual void SessionRangeAction(SessionRangeAction *action) { abort(); }
 
   void SetTxID(TranID txid) { _txid = txid; }
 

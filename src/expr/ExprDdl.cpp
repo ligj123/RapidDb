@@ -1,7 +1,7 @@
 
+#include "ExprDdl.h"
 #include "../serv/Session.h"
 #include "../utils/ErrorMsg.h"
-#include "ExprDdl.h"
 #include "ExprStatement.h"
 
 namespace storage {
@@ -66,23 +66,4 @@ bool ExprTransaction::Preprocess(Session *session) {
   return false;
 }
 
-bool ExprSelect::Preprocess(Session *session) {
-  // TO DO
-  return false;
-}
-
-bool ExprInsert::Preprocess(Session *session) {
-  // TO DO
-  return false;
-}
-
-bool ExprUpdate::Preprocess(Session *session) {
-  // TO DO
-  return false;
-}
-
-bool ExprDelete::Preprocess(Session *session) {
-  // TO DO
-  return false;
-}
 } // namespace storage

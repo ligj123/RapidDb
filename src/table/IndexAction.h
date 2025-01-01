@@ -35,7 +35,7 @@ public:
    * @brief After the index range has been adjusted, calc again its index range
    * @return If pass, return its new range, or abort
    */
-  virtual const int JudgeRange() {
+  virtual int JudgeRange() {
     abort();
     return -1;
   }

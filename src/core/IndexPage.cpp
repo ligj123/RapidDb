@@ -1,6 +1,4 @@
 ﻿#include "IndexPage.h"
-#include "../binlog/LogRecord.h"
-#include "../binlog/LogServer.h"
 #include "BranchPage.h"
 #include "BranchRecord.h"
 #include "IndexTree.h"

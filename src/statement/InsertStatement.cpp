@@ -79,12 +79,12 @@ bool InsertStatement::InitRecord() {
 
   MVectorPtr<MVectorPtr<ExprElem *> *> *vctRow = _exprInsert->_vctRowData;
   for (VectorDataValue *pvct : _vctParas) {
-    for (MVectorPtr<ExprElem *> *rowData : vctRow) {
+    for (MVectorPtr<ExprElem *> *rowData : (*vctRow)) {
       VectorDataValue vctVal;
       priIndex._tree->CloneValues(vctVal);
 
       for (size_t i = 0; i < rowData->size(); i++) {
-        ExprElem *elem = _exprInsert->_rowData->at(i);
+        ExprElem *elem = rowData->at(i);
         ExprColumn *col = _exprInsert->_vctCol->at(i);
         IDataValue *dv = ((ExprData *)elem)->Calc(*pvct, vctVal);
         bool b = vctVal[col->_pos]->Copy(*dv, true);
@@ -115,17 +115,14 @@ bool InsertStatement::InitRecord() {
         vctKey.push_back(dv);
       }
 
-      StmtInsertRecord *insr = new StmtInsertRecord();
-      insr->_priKey = RawKey(vctKey);
-      insr->_vctParas = move(vctVal);
-      insr->_stmt = this;
+      StmtInsertRecord *insr =
+          new StmtInsertRecord(RawKey(vctKey), move(vctVal), this, table);
       StmtInsertAction *action = new StmtInsertAction(priIndex._tree, insr);
       mgr->AddSessionAction(0, GetSessionId(), action);
       _lstRecord.push_back(insr);
     }
   }
 
-  _totalRecordNum = (uint32_t)_lstRecord.size();
   _status = StmtStatus::Executing;
   return false;
 }
@@ -140,7 +137,7 @@ void InsertStatement::CollectLogRecords(
 
   for (LeafRecord *lr : _lstFinshRecord) {
     assert(lr->GetLock()->_recResult != RecordResult::INIT);
-    if (lr->GetLock()->_recStatus == RecordResult::ERROR) {
+    if (lr->GetLock()->_recResult == RecordResult::ERROR) {
       continue;
     }
 

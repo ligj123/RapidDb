@@ -1,12 +1,15 @@
 #pragma once
 #include "../cache/Mallocator.h"
-#include "../statement/Statement.h"
 #include "../utils/Utilitys.h"
 #include "TranEnum.h"
 
+#include <fstream>
+
 namespace storage {
-class Statement;
 struct SessionGroup;
+class Statement;
+class Session;
+class LogTask;
 
 class Transaction {
 public:
@@ -23,9 +26,9 @@ public:
   void StartTransaction(SessionGroup &sGroup, bool bAuto,
                         IsoLevel isoLevel = IsoLevel::ReadCommited,
                         CcProtocol ccProtocal = CcProtocol::OCC);
-  void AddStatement(Statement *stmt) { _vctStatement.push_back(stmt); }
+  void AddStatement(Statement *stmt) { _lstStatement.push_back(stmt); }
 
-  MVector<Statement *> &GetVctStatement() { return _vctStatement; }
+  MList<Statement *> &GetListStatement() { return _lstStatement; }
 
   bool IsTranOvertime() {
     assert(_tranStatus == TranStatus::AUTO_TRAN ||
@@ -44,15 +47,9 @@ public:
   TranStatus GetTranStatus() { return _tranStatus; }
   void SetTranStatus(TranStatus s) { _tranStatus = s; }
   bool IsAutoCommit() { return _bAutoCommit; }
-  void SetLogged(bool b = true) {
-    _bLogged = b;
-    for (Statement *stmt : _lstStatement) {
-      stmt->SetStmtStatus(StmtStatus::Logged);
-    }
-  }
+  void SetLogged(bool b = true);
   bool IsLogged() { return _bLogged; }
-  void SetTranStatus(TranStatus s) { _tranStatus = s; }
-  TranStatus GetTranStatus() { return _tranStatus; }
+  void WriteLog(LogTask *logTask);
 
 protected:
   TranID _tid{TXID_NULL};
@@ -70,6 +67,7 @@ protected:
   CcProtocol _ccProtocol{CcProtocol::OCC};
   // The log has been wrote into log files or not
   bool _bLogged{false};
+  bool _bDdlStmt{false};
 };
 
 } // namespace storage

@@ -1,8 +1,10 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
 #include "../config/FileVersion.h"
+#include "../dataType/IDataValue.h"
 #include "CachePage.h"
 #include "CoreEnum.h"
+
 #include <map>
 
 namespace storage {

@@ -9,23 +9,21 @@
 #include "../../src/sql/Parser.h"
 #include "../statement/InsertStatement.h"
 #include "../statement/StmtResult.h"
+#include "../utils/Log.h"
 #include "SessionPool.h"
 
 namespace storage {
 TaskStatus SessionRecordAction::Exec(SessionGroup &sGroup) {
-  assert(_lr->GetLock() != nullptr);
-  _stmt->AddLeafRecord(_lr);
+  for (LeafRecord *lr : _vctLr) {
+    assert(lr->GetLock() != nullptr);
+    _stmt->AddLeafRecord(lr);
+  }
   return TaskStatus::FINISHED;
 }
 
 TaskStatus SessionErrMsgAction::Exec(SessionGroup &sGroup) {
   _stmt->GetStmtResult()->_vctError.push_back(move(_errMsg));
   _stmt->SetStmtFailed(true);
-  return TaskStatus::FINISHED;
-}
-
-TaskStatus SessionRangeAction::Exec(SessionGroup &sGroup) {
-  _stmt->SessionRangeAction(this);
   return TaskStatus::FINISHED;
 }
 

@@ -265,6 +265,8 @@ public:
     }
   }
 
+  uint16_t GetActualLength() { return *((uint16_t *)_bysVal); }
+
   inline uint16_t SaveData(Byte *bysPage) {
     assert(_recLock == nullptr);
     uint16_t len = GetTotalLength();

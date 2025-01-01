@@ -14,7 +14,7 @@ public:
       : Statement(id, txid, result), _exprInsert(exprInsert),
         _vctParas(move(vctParas)) {}
   ~InsertStatement() {}
-  ExprType GetActionType() override { return ExprType::EXPR_INSERT; }
+  ExprType GetType() override { return ExprType::EXPR_INSERT; }
   bool IsReadonly() override { return false; }
 
   StmtStatus SessionExec(Session *sess) override;
@@ -25,6 +25,7 @@ public:
 
   void Commit() override;
   void Rollback() override;
+  ExprInsert *GetExprInsert() { return _exprInsert; }
 
 protected:
   bool InitRecord();
