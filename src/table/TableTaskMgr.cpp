@@ -2,6 +2,7 @@
 #include "../core/BranchPage.h"
 #include "../core/BranchRecord.h"
 #include "../core/LeafPage.h"
+#include "../pool/FilePagePool.h"
 #include "../utils/ThreadPool.h"
 
 namespace storage {
@@ -18,7 +19,7 @@ TaskStatus IndexTask::Run() {
     return TaskStatus::FINISHED;
   }
 
-  if (range._queueActionFromCollect.RoughSize() == 0) {
+  if (_taskPos == 0) {
     _taskMgr->CollectTaskData(_indexPos);
   }
 
@@ -52,17 +53,14 @@ TaskStatus IndexTask::Run() {
     }
   }
 
-  return TaskStatus::RUNNING;
+  SetStatus(TaskStatus::INTERVAL, true);
+  return TaskStatus::INTERVAL;
 }
 
 void TableTaskMgr::CollectTaskData(uint16_t idxPos) {
   assert(idxPos < _vctIndexTaskQueue.size());
   IndexTree *idxTree = _table->GetVectorIndex().at(idxPos)._tree;
   IndexTaskQueue *itq = _vctIndexTaskQueue[idxPos];
-
-  if (!idxTree->GetRangeMutex().try_lock()) {
-    return;
-  }
 
   MList<IndexAction *> qs;
   itq->_queueSessionAction.Pop(qs);
@@ -87,15 +85,13 @@ void TableTaskMgr::CollectTaskData(uint16_t idxPos) {
   for (size_t i = 0; i <= vctRange.size(); i++) {
     vctRange[i]._queueActionFromCollect.Submit();
   }
-
-  idxTree->GetRangeMutex().unlock();
 }
 
 TaskStatus IndexAdjustTask::Run() {
   MVector<IndexTask *> &vctTask = _tableTaskMgr->_vctIndexTasks[_indexPos];
   for (auto iter = vctTask.begin(); iter != vctTask.end(); iter++) {
     if (*iter != nullptr) {
-      if ((*iter)->GetStatus(false) != TaskStatus::FINISHED) {
+      if ((*iter)->GetStatus(false) == TaskStatus::RUNNING) {
         return TaskStatus::RUNNING;
       } else {
         delete *iter;
@@ -104,6 +100,7 @@ TaskStatus IndexAdjustTask::Run() {
     }
   }
 
+  GetStatus(true);
   IndexTree *idxTree =
       _tableTaskMgr->_table->GetVectorIndex().at(_indexPos)._tree;
   unique_lock<SpinMutex> lock(idxTree->GetRangeMutex());
@@ -122,7 +119,7 @@ TaskStatus IndexAdjustTask::Run() {
 
       queueAction.insert(queueAction.end(), range._queueAction.begin(),
                          range._queueAction.end());
-      range._queueActionFromPrev.Pop(queueAction);
+      range._queueActionFromCollect.Pop(queueAction);
       range._queueActionFromPrev.Pop(queueAction);
 
       range._startPage->SetRangeBeginPage(false);
@@ -140,7 +137,7 @@ TaskStatus IndexAdjustTask::Run() {
     range._pageMap.clear();
     queueAction.insert(queueAction.end(), range._queueAction.begin(),
                        range._queueAction.end());
-    range._queueActionFromPrev.Pop(queueAction);
+    range._queueActionFromCollect.Pop(queueAction);
     range._queueActionFromPrev.Pop(queueAction);
   }
 
@@ -166,13 +163,16 @@ TaskStatus IndexAdjustTask::Run() {
 
     for (uint16_t i = 0; i < _exptTaskNum; i++) {
       IndexRange &range = vctRange[i];
-      int end = pos + a + (b < i ? 1 : 0);
+      int n = a + (b >= _exptTaskNum - i ? 1 : 0);
+      int end = pos + n;
+      range._vctRangePage.reserve(n);
+
       for (; pos < end; pos++) {
         BranchRecord &br = bpRoot->GetRecord(pos, false);
         BranchPage *child = (BranchPage *)br.GetChildPage();
         if (child == nullptr) {
-          child = (BranchPage *)idxTree->GetPage(br.GetChildPageId(),
-                                                 PageType::BRANCH_PAGE, bpRoot);
+          child = (BranchPage *)idxTree->GetPage(
+              br.GetChildPageId(), PageType::BRANCH_PAGE, bpRoot, true);
           br.SetChildPage(child);
         }
 
@@ -192,14 +192,22 @@ TaskStatus IndexAdjustTask::Run() {
       range._borderRecord = &((BranchPage *)child)->GetRecord(INT32_MAX, true);
     }
 
+    assert(pos == num);
     idxTree->SetSplitPageLevel(rootPage->GetPageLevel() - 1);
 
     for (auto iter = pageMap.begin(); iter != pageMap.end(); iter++) {
-      assert(iter->second->GetPageType() == PageType::BRANCH_PAGE ||
-             iter->second->GetPageType() == PageType::LEAF_PAGE);
-      int rpos = idxTree->CalcIndexRange((IndexPage *)iter->second);
-      vctRange[rpos]._pageMap.insert(*iter);
+      if (iter->second->GetPageType() == PageType::OVERFLOW_PAGE) {
+        FilePagePool::AddWritePage(ThreadPool::GetThreadId(), iter->second,
+                                   false);
+      } else {
+        assert(iter->second->GetPageType() == PageType::BRANCH_PAGE ||
+               iter->second->GetPageType() == PageType::LEAF_PAGE);
+        int rpos = idxTree->CalcIndexRange((IndexPage *)iter->second);
+        vctRange[rpos]._pageMap.insert(*iter);
+      }
     }
+
+    FilePagePool::SubmitWritePage(ThreadPool::GetThreadId());
 
     for (auto iter = queueAction.begin(); iter != queueAction.end(); iter++) {
       int pos = (*iter)->JudgeRange();
@@ -225,18 +233,17 @@ TaskStatus IndexAdjustTask::Run() {
   }
 
   vctTask.reserve(_exptTaskNum);
+  MVector<ThreadTask *> vct;
+  vct.reserve(vctTask.size());
+
   for (int64_t i = 0; i < _exptTaskNum; i++) {
-    vctTask.push_back(
-        new IndexTask(_threadPool, _tableTaskMgr, _exptTaskNum, i));
+    IndexTask *task =
+        new IndexTask(_threadPool, _tableTaskMgr, _exptTaskNum, i);
+    vctTask.push_back(task);
+    vct.push_back(task);
   }
 
   idxTree->SetReRanging(false);
-
-  MVector<ThreadTask *> vct;
-  vct.reserve(vctTask.size());
-  for (auto t : vctTask) {
-    vct.push_back(t);
-  }
 
   _threadPool->AddTasks(vct);
   return TaskStatus::FINISHED;

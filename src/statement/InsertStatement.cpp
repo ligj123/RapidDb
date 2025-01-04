@@ -1,4 +1,5 @@
 ﻿#include "InsertStatement.h"
+#include "../binlog/LogTask.h"
 #include "../config/Configure.h"
 #include "../serv/SessionPool.h"
 #include "../table/TableTaskMgr.h"
@@ -11,19 +12,18 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
       return StmtStatus::Executing;
   } else if (_status == StmtStatus::Executing) {
     if (_lstRecord.size() > 0) {
-      uint32_t idxSz =
-          (uint32_t)_exprInsert->_physTable->GetVectorIndex().size();
       for (auto iter = _lstRecord.begin(); iter != _lstRecord.end();) {
-        if ((*iter)->_status == ActionStatus::INIT) {
+        ActionStatus s = (*iter)->_status.load(memory_order_acquire);
+        if (s == ActionStatus::INIT) {
           iter++;
           continue;
-        }
+        } else {
+          if (s == ActionStatus::SUCEED) {
+            _cntLeafRec += (*iter)->_numLeafRecord;
+          }
 
-        if ((*iter)->_status == ActionStatus::SUCEED) {
-          _recordCount += idxSz;
+          iter = _lstRecord.erase(iter);
         }
-
-        iter = _lstRecord.erase(iter);
       }
 
       if (_lstRecord.size() > 0) {
@@ -42,7 +42,7 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
       }
     }
 
-    if (_lstFinshRecord.size() < (size_t)_recordCount) {
+    if (_lstFinshRecord.size() < (size_t)_cntLeafRec) {
       return StmtStatus::Executing;
     }
 
@@ -53,16 +53,22 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
       }
 
       _stmtResult->_rowNum = 0;
+      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Finished;
     } else if (sess->_transaction.IsAutoCommit()) { // Add log write queue
-
       _status = StmtStatus::Logging;
-      // Add log write queue
+      LogTask::AddTransaction(ThreadPool::GetThreadId(), &(sess->_transaction));
     } else {
+      _stmtResult->_rowNum = _recorcNum;
+      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Executed;
     }
-  } else if (_status == StmtStatus::Logged) {
-    _status = StmtStatus::Finished;
+  } else if (_status == StmtStatus::Logging) {
+    if (sess->_transaction.IsLogged()) {
+      _stmtResult->_rowNum = _recorcNum;
+      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+      _status = StmtStatus::Finished;
+    }
   }
 
   return _status;
@@ -77,8 +83,13 @@ bool InsertStatement::InitRecord() {
     _vctParas.push_back(new VectorDataValue());
   }
 
+  size_t para_sz = _exprInsert->_vctPara.size();
   MVectorPtr<MVectorPtr<ExprElem *> *> *vctRow = _exprInsert->_vctRowData;
   for (VectorDataValue *pvct : _vctParas) {
+    if (pvct->size() != para_sz) {
+      _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
+    }
+
     for (MVectorPtr<ExprElem *> *rowData : (*vctRow)) {
       VectorDataValue vctVal;
       priIndex._tree->CloneValues(vctVal);
@@ -123,6 +134,7 @@ bool InsertStatement::InitRecord() {
     }
   }
 
+  _recorcNum = (uint32_t)_lstRecord.size();
   _status = StmtStatus::Executing;
   return false;
 }

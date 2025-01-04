@@ -23,8 +23,7 @@ public:
 public:
   Transaction(Session *session) : _session(session) {}
 
-  void StartTransaction(SessionGroup &sGroup, bool bAuto,
-                        IsoLevel isoLevel = IsoLevel::ReadCommited,
+  void StartTransaction(bool bAuto, IsoLevel isoLevel = IsoLevel::ReadCommited,
                         CcProtocol ccProtocal = CcProtocol::OCC);
   void AddStatement(Statement *stmt) { _lstStatement.push_back(stmt); }
 

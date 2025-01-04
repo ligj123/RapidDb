@@ -37,7 +37,9 @@ protected:
   VectorRow _vctParas;
   // To save the paras after handle
   MList<StmtInsertRecord *> _lstRecord;
-  // The total number of inserted records
-  uint32_t _recordCount{0};
+  // The total number of inserted LeafRecords
+  uint32_t _cntLeafRec{0};
+  // The number of inserted records
+  uint32_t _recorcNum;
 };
 } // namespace storage

@@ -36,6 +36,12 @@ public:
   void SetRowNum(uint32_t num) { _rowNum = num; }
   uint32_t GetRowNum() { return _rowNum; }
 
+  void SetResultStatus(ResultStatus s) {
+    _status.store(s, memory_order_acquire);
+  }
+
+  ResultStatus GetResultStatus() { return _status.load(memory_order_release); }
+
 public:
   atomic<ResultStatus> _status{ResultStatus::INIT};
   // The id of session that result belong to

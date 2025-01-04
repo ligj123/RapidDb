@@ -60,6 +60,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
                           "expected datatype {2}."},
     {EXPR_EXCEED_MAX_LENGTH,
      "The length of parameter is {1}, exceed the max length {2}."},
+    {EXPR_MISMATCH_COLUMN_VALUE, "Column count doesn't match value count"},
 
     // Transaction
     {TRAN_ADD_TASK_FAILED,
@@ -80,7 +81,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
     {SQL_PARSER_FAILED, "SQLParser: Error when parser sql! {1}"},
 
     // Session
-    {SESSION_NO_CURR_DB, "Error: No database selected."},
+    {SESSION_NO_CURR_DB, "Error: No database selected in current session."},
     {DB_NOT_FOUNF, "Failed to found the database {1}."}};
 
 } // namespace storage

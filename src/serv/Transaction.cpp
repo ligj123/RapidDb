@@ -5,8 +5,8 @@
 #include "SessionPool.h"
 
 namespace storage {
-void Transaction::StartTransaction(SessionGroup &sGroup, bool bAuto,
-                                   IsoLevel isoLevel, CcProtocol ccProtocol) {
+void Transaction::StartTransaction(bool bAuto, IsoLevel isoLevel,
+                                   CcProtocol ccProtocol) {
   if (bAuto) {
     _tranStatus = TranStatus::AUTO_TRAN;
   } else {
@@ -16,6 +16,8 @@ void Transaction::StartTransaction(SessionGroup &sGroup, bool bAuto,
   _isoLevel = isoLevel;
   _ccProtocol = ccProtocol;
 
+  MVector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
+  SessionGroup &sGroup = vctGroup[_session->_id % vctGroup.size()];
   _tid = sGroup._currTranId;
   if (sGroup._currTranId & 0xFFFFFFFFFF == 0xFFFFFFFFFF) [[unlikely]] {
     sGroup._currTranId &= 0xFFFFFF0000000000;

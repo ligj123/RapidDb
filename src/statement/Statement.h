@@ -41,6 +41,14 @@ enum class ActionStatus {
 
 // To save the handles paras in InsertStatement.
 struct StmtInsertRecord {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
   StmtInsertRecord(RawKey &&priKey, VectorDataValue &&vctParas, Statement *stmt,
                    PhysTable *table)
       : _priKey(move(priKey)), _vctParas(move(vctParas)), _stmt(stmt),
@@ -50,11 +58,21 @@ struct StmtInsertRecord {
   VectorDataValue _vctParas; // The columns' values of this record
   Statement *_stmt;
   PhysTable *_table;
-  ActionStatus _status{ActionStatus::INIT};
+  uint32_t _numLeafRecord; // The number of LeafRecords that generated for this
+                           // record
+  atomic<ActionStatus> _status{ActionStatus::INIT};
 };
 
 // To save primary key selected from secondary index.
 struct StmtPriKey {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
   RawKey _priKey;
   Statement *_stmt;
   ActionStatus _status{ActionStatus::INIT};

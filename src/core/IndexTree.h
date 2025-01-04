@@ -56,10 +56,9 @@ struct IndexRange {
   // time. Only used when multi ranges.
   VersionStamp _recordStampStart{0};
   VersionStamp _recordStampEnd{0};
-  // To save the pages updated in this range and use it to write the pages into
-  // disk.
+  // The updated CachePages in this range that need to write into disk
   MTreeMap<uint64_t, CachePage *> _pageMap;
-  // The last time to write updated pages into disk.
+  // The last time to write updated CachePages into disk.
   DT_MicroSec _dtLastWriteDisk{1};
   // The datetime that the task has received stop signal and all actions has
   // been finished. After 100 milliseconds the task will stop if no more actions

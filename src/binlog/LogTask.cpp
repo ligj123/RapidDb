@@ -3,9 +3,10 @@
 #include "../serv/Transaction.h"
 
 namespace storage {
+RapidQueue<Transaction> *LogTask::_queueTran{nullptr};
+
 LogTask::LogTask(ThreadPool *threadPool, const MString &logPath)
-    : ThreadTask(threadPool), _queueTran(threadPool->GetMaxThreads()),
-      _logPath(logPath) {
+    : ThreadTask(threadPool), _logPath(logPath) {
   _logFileName = _logPath + PREFIX_LOG_NAME + ToMString(SecondTime()) + ".log";
   _logStream = fstream(_logFileName.c_str(),
                        ios_base::binary | ios_base::out | ios_base::app);
@@ -13,11 +14,17 @@ LogTask::LogTask(ThreadPool *threadPool, const MString &logPath)
   if (!_logStream.is_open()) {
     abort();
   }
+
+  if (_queueTran != nullptr) {
+    delete _queueTran;
+  }
+
+  _queueTran = new RapidQueue<Transaction>(threadPool->GetMaxThreads());
 }
 
 TaskStatus LogTask::Run() {
   MList<Transaction *> lstTran;
-  _queueTran.Pop(lstTran);
+  _queueTran->Pop(lstTran);
   for (Transaction *tran : lstTran) {
     tran->WriteLog(this);
   }

@@ -16,6 +16,19 @@ namespace storage {
 class Transaction;
 class LogTask : public ThreadTask {
 public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+  static void AddTransaction(uint16_t tid, Transaction *tran) {
+    assert(_queueTran != nullptr);
+    _queueTran->Push(tid, tran);
+  }
+
+public:
   LogTask(ThreadPool *threadPool, const MString &logPath);
 
   TaskStatus Run() override;
@@ -24,7 +37,7 @@ public:
   Byte *GetBuff() { return _buff; }
 
 protected:
-  RapidQueue<Transaction> _queueTran;
+  static RapidQueue<Transaction> *_queueTran;
   MString _logPath;
   MString _logFileName;
   fstream _logStream;
@@ -34,4 +47,5 @@ protected:
   boost::crc_32_type _crc32;
   int32_t _tryStopTime{5};
 };
+
 } // namespace storage

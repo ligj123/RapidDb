@@ -410,10 +410,15 @@ bool PhysTable::CheckColumnValues(VectorDataValue &vctDv) {
 
   for (size_t i = 0; i < vctDv.size(); i++) {
     PhysColumn &col = _vctColumn[i];
-    if (!col.IsNullable() && vctDv[i]->IsNull()) {
-      _threadErrorMsg.reset(
-          new ErrorMsg(DT_NULL_VALUE, {col.GetName(), _name}));
-      return false;
+    if (vctDv[i]->IsNull()) {
+      if (col.GetDefaultVal() != nullptr) {
+        IDataValue *dv = const_cast<IDataValue *>(col.GetDefaultVal());
+        vctDv[i]->Copy(*dv);
+      } else if (!col.IsNullable()) {
+        _threadErrorMsg.reset(
+            new ErrorMsg(DT_NULL_VALUE, {col.GetName(), _name}));
+        return false;
+      }
     }
   }
 

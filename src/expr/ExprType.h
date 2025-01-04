@@ -1,8 +1,8 @@
 #include "../header.h"
 
 namespace storage {
-enum class ExprType {
-  EXPR_BASE,
+enum class ExprType : uint16_t {
+  EXPR_BASE = 0,
   EXPR_STAR,
 
   // const type
@@ -57,7 +57,7 @@ enum class ExprType {
   EXPR_JOIN_TABLE,
 
   // DDL
-  EXPR_CREATE_DATABASE,
+  EXPR_CREATE_DATABASE = 0x100,
   EXPR_DROP_DATABASE,
   EXPR_SHOW_DATABASES,
   EXPR_USE_DATABASE,
@@ -71,7 +71,7 @@ enum class ExprType {
   EXPR_TRANSACTION,
 
   // Statement
-  EXPR_SELECT,
+  EXPR_SELECT = 0x200,
   EXPR_TABLE_SELECT,
   EXPR_INSERT,
   EXPR_UPDATE,

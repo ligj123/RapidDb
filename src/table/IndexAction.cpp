@@ -104,7 +104,7 @@ int StatementAction::JudgeRange() { return _stmt->CalcIndexRanges(_indexTree); }
 
 TaskStatus StmtInsertAction::Exec() {
   if (_stmtRecord->_stmt->IsStmtFailed()) {
-    _stmtRecord->_status = ActionStatus::FAILED;
+    _stmtRecord->_status.store(ActionStatus::FAILED, memory_order_release);
     return TaskStatus::FINISHED;
   }
 
@@ -118,7 +118,7 @@ TaskStatus StmtInsertAction::Exec() {
                      _stmtRecord->_vctParas, stamp, _stmtRecord->_stmt);
 
   if (!lrPri->IsValid()) {
-    _stmtRecord->_status = ActionStatus::FAILED;
+    _stmtRecord->_status.store(ActionStatus::FAILED, memory_order_release);
     SessionErrMsgAction *eAction = new SessionErrMsgAction(
         _stmtRecord->_stmt, move(_threadErrorMsg->GetErrorMsg()));
     SessionPool::AddAction(ThreadPool::GetThreadId(),
@@ -148,7 +148,7 @@ TaskStatus StmtInsertAction::Exec() {
     vctLr.push_back(lrSec);
 
     if (!lrSec->IsValid()) {
-      _stmtRecord->_status = ActionStatus::FAILED;
+      _stmtRecord->_status.store(ActionStatus::FAILED, memory_order_release);
       SessionErrMsgAction *eAction = new SessionErrMsgAction(
           _stmtRecord->_stmt, move(_threadErrorMsg->GetErrorMsg()));
       SessionPool::AddAction(ThreadPool::GetThreadId(),
@@ -176,10 +176,14 @@ TaskStatus StmtInsertAction::Exec() {
     }
   }
 
+  _stmtRecord->_numLeafRecord += vctLr.size();
+  _stmtRecord->_status.store(ActionStatus::SUCEED, memory_order_release);
+
   SessionRecordAction *action =
       new SessionRecordAction(_stmtRecord->_stmt, move(vctLr));
   SessionPool::AddAction(ThreadPool::GetThreadId(),
                          _stmtRecord->_stmt->GetTxId(), action);
+
   return TaskStatus::FINISHED;
 };
 

@@ -27,8 +27,7 @@ public:
    * @param idxTree The primary index tree
    */
   IndexTaskQueue(uint16_t sessionGroupNum)
-      : _queueSessionAction(Configure::GetMaxSessionGroupNum(),
-                            sessionGroupNum),
+      : _queueSessionAction(sessionGroupNum, sessionGroupNum),
         _createTime(MilliSecTime()) {}
   virtual ~IndexTaskQueue() {}
 
@@ -80,10 +79,10 @@ class TableTaskMgr;
 class IndexTask : public ThreadTask {
 public:
   /**
-   * @param table The table that this task belong to
-   * @param indexPos Which index of the table
-   * @param stNum The thread number of session pool
-   * @param mtNum The thread number of parmary index task
+   * @param pool The ThreadPool to run this ThreadTask
+   * @param taskMgr The TableTaskMgr that belong this task
+   * @param indexPos The position of index in the table
+   * @param taskPos The task position in task array of the index
    */
   IndexTask(ThreadPool *pool, TableTaskMgr *taskMgr, uint16_t indexPos,
             uint16_t taskPos)
@@ -116,7 +115,7 @@ public:
   static void operator delete(void *ptr, size_t size) {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
-  // The datatime the last time to set to write updated pages into disk
+  // The datatime that the last time write updated CachePages into disk
   static DT_MicroSec _dtLastWriteDisk;
 
 public:
@@ -166,14 +165,6 @@ public:
       delete queue;
     }
   }
-  void ResetSessionGroupNum(uint16_t sessionGroupNum) {
-    _sessionGroupNum = sessionGroupNum;
-
-    for (size_t i = 0; i < _vctIndexTaskQueue.size(); i++) {
-      IndexTaskQueue *tq = _vctIndexTaskQueue[i];
-      tq->_queueSessionAction.ResetLiveThreadNumber(sessionGroupNum);
-    }
-  }
 
   void CollectTaskData(uint16_t idxPos);
 
@@ -195,7 +186,7 @@ public:
    * @param indexPos The position of IndexTree in table that will accept the
    *action
    * @param rangeId Which range to generate this action from primary index.
-   * @param action The IndexAction will be inserted
+   * @param action The IndexAction that will be inserted
    */
   void AddFromPrimaryAction(uint16_t indexPos, uint16_t rangeId,
                             IndexAction *action) {
@@ -206,7 +197,7 @@ public:
   }
   /**
    *@brief The IndexActions that generate by secondary index and will insert
-   *into action queue of primary index.
+   * into action queue of primary index.
    * @param indexPos The position of IndexTree in table that generate the action
    * @param rangeId Which range to generate this action from secondary index.
    * @param action The IndexAction will be inserted
@@ -221,6 +212,7 @@ public:
 
   MgrStatus GetMgrStatus() { return _mgrStatus; }
   void SetMgrStatus(MgrStatus s) { _mgrStatus = s; }
+
   // To check if all IndexTasks have finished
   void CheckMgrStatus() {
     assert(_mgrStatus == MgrStatus::SET_STOP);
@@ -251,16 +243,19 @@ protected:
 class IndexAdjustTask : public ThreadTask {
 public:
   IndexAdjustTask(ThreadPool *pool, TableTaskMgr *tableTaskMgr,
-                  uint16_t indexPos, int16_t exptTaskNum)
+                  uint16_t indexPos, uint16_t exptTaskNum)
       : ThreadTask(pool), _tableTaskMgr(tableTaskMgr), _indexPos(indexPos),
-        _exptTaskNum(exptTaskNum) {}
+        _exptTaskNum(exptTaskNum) {
+    assert(_exptTaskNum > 0);
+  }
+
   TaskStatus Run() override;
   bool IsNeedDelete() { return true; }
 
 protected:
   TableTaskMgr *_tableTaskMgr;
   uint16_t _indexPos;
-  int16_t _exptTaskNum;
+  uint16_t _exptTaskNum;
 };
 
 } // namespace storage
