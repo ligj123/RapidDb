@@ -10,6 +10,7 @@ std::once_flag mainInstFlag;
 atomic_uint32_t ThreadTask::_exclusiveTasksCount{0};
 atomic_bool ThreadPool::_stopThreads{false};
 ThreadPool *ThreadPool::_instMain{nullptr};
+DT_MicroSec ThreadPool::_nowMicroSec{0};
 
 // The default thread id is -1 expected threads from pool.
 thread_local MString ThreadPool::_threadName = "main";
@@ -27,6 +28,7 @@ void ThreadPool::CloseMainPool() {
   _instMain->SetStop();
   delete _instMain;
   _instMain = nullptr;
+  _nowMicroSec = 0;
 }
 
 ThreadPool::ThreadPool(const MString &threadPrefix, int minThreads,

@@ -219,15 +219,14 @@ public:
     _threadID = id;
     return tmp;
   }
-  static ThreadPool *GetMainPool() {
-    assert(_instMain != nullptr);
-    return _instMain;
-  }
+  static ThreadPool *GetMainPool() { return _instMain; }
 
   static void CreateMainPool(const MString &threadPrefix = "main",
                              int minThreads = 1,
                              int maxThreads = DEFAULT_MAX_THREADS);
   static void CloseMainPool();
+
+  static DT_MicroSec GetNow() { return _nowMicroSec; }
 
 public:
   ThreadPool(const MString &threadPrefix, int minThreads = 1,
@@ -269,7 +268,6 @@ public:
   uint32_t GetAliveThreadCount() const { return _aliveThreads; }
   uint32_t GetMinThreads() const { return _minThreads; }
   uint32_t GetMaxThreads() const { return _maxThreads; }
-  DT_MicroSec GetNow() const { return _nowMicroSec; }
 
 protected:
   void CreateWorkThread(int id = -1);
@@ -303,14 +301,14 @@ protected:
   DT_MicroSec _checkBusyTime;
   // The busy status of this thread pool
   BusyDegree _poolBusyDegree{BusyDegree::RELAXED};
-  // The current datetime in micro second
-  DT_MicroSec _nowMicroSec;
 
 protected:
   static ThreadPool *_instMain;
   static atomic_bool _stopThreads;
   static thread_local int _threadID;
   static thread_local MString _threadName;
+  // The current datetime in micro second
+  static DT_MicroSec _nowMicroSec;
 };
 
 } // namespace storage

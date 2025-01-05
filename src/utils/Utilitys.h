@@ -22,9 +22,9 @@ static void IsValidName(const string &name) {
 }
 
 static inline DT_MilliSec MilliSecTime() {
-  ThreadPool *pool = ThreadPool::GetMainPool();
-  if (pool == nullptr) {
-    return pool->GetNow() / 1000;
+  DT_MicroSec dtMicro = ThreadPool::GetNow();
+  if (dtMicro != 0) {
+    return dtMicro / 1000;
   } else {
     return chrono::duration_cast<chrono::milliseconds>(
                chrono::system_clock::now().time_since_epoch())
@@ -33,9 +33,9 @@ static inline DT_MilliSec MilliSecTime() {
 }
 
 static inline DT_MicroSec MicroSecTime() {
-  ThreadPool *pool = ThreadPool::GetMainPool();
-  if (pool == nullptr) {
-    return pool->GetNow();
+  DT_MicroSec dtMicro = ThreadPool::GetNow();
+  if (dtMicro != 0) {
+    return dtMicro;
   } else {
     return chrono::duration_cast<chrono::microseconds>(
                chrono::system_clock::now().time_since_epoch())
@@ -44,9 +44,9 @@ static inline DT_MicroSec MicroSecTime() {
 }
 
 static inline DT_Second SecondTime() {
-  ThreadPool *pool = ThreadPool::GetMainPool();
-  if (pool == nullptr) {
-    return pool->GetNow() / 1000000;
+  DT_MicroSec dtMicro = ThreadPool::GetNow();
+  if (dtMicro != 0) {
+    return dtMicro / 1000000;
   } else {
     return chrono::duration_cast<chrono::seconds>(
                chrono::system_clock::now().time_since_epoch())
@@ -56,9 +56,9 @@ static inline DT_Second SecondTime() {
 
 static inline string StrMSTime() {
   DT_MilliSec dt;
-  ThreadPool *pool = ThreadPool::GetMainPool();
-  if (pool == nullptr) {
-    dt = pool->GetNow() / 1000;
+  DT_MicroSec dtMicro = ThreadPool::GetNow();
+  if (dtMicro != 0) {
+    dt = dtMicro / 1000;
   } else {
     dt = chrono::duration_cast<chrono::milliseconds>(
              chrono::system_clock::now().time_since_epoch())
@@ -69,9 +69,9 @@ static inline string StrMSTime() {
 
 static inline MString MStrMSTime() {
   DT_MilliSec dt;
-  ThreadPool *pool = ThreadPool::GetMainPool();
-  if (pool == nullptr) {
-    dt = pool->GetNow() / 1000;
+  DT_MicroSec dtMicro = ThreadPool::GetNow();
+  if (dtMicro != 0) {
+    dt = dtMicro / 1000;
   } else {
     dt = chrono::duration_cast<chrono::milliseconds>(
              chrono::system_clock::now().time_since_epoch())
@@ -82,9 +82,9 @@ static inline MString MStrMSTime() {
 
 static inline string StrSecTime() {
   DT_Second dt;
-  ThreadPool *pool = ThreadPool::GetMainPool();
-  if (pool == nullptr) {
-    dt = pool->GetNow() / 1000000;
+  DT_MicroSec dtMicro = ThreadPool::GetNow();
+  if (dtMicro != 0) {
+    dt = dtMicro / 1000000;
   } else {
     dt = chrono::duration_cast<chrono::seconds>(
              chrono::system_clock::now().time_since_epoch())
@@ -94,20 +94,18 @@ static inline string StrSecTime() {
 }
 
 static inline string FormatTime() {
-  DT_Second dt;
-  ThreadPool *pool = ThreadPool::GetMainPool();
-  if (pool == nullptr) {
-    dt = pool->GetNow();
-  } else {
-    dt = chrono::duration_cast<chrono::microseconds>(
-             chrono::system_clock::now().time_since_epoch())
-             .count();
+
+  DT_MicroSec dtMicro = ThreadPool::GetNow();
+  if (dtMicro == 0) {
+    dtMicro = chrono::duration_cast<chrono::microseconds>(
+                  chrono::system_clock::now().time_since_epoch())
+                  .count();
   }
 
-  time_t sec = dt / 1000000;
+  time_t sec = dtMicro / 1000000;
   stringstream ss;
   ss << put_time(gmtime(&sec), "%Y-%m-%d %H:%M:%S") << "."
-     << to_string(dt % 1000000);
+     << to_string(dtMicro % 1000000);
   return ss.str();
 }
 

@@ -185,66 +185,130 @@ inline std::ostream &operator<<(std::ostream &os, const LockType &type) {
   return os;
 }
 
-static const char ExprStr[][32] = {"EXPR_BASE",
-                                   "EXPR_STAR",
-                                   "EXPR_ARRAY",
-                                   "EXPR_CONST",
-                                   "EXPR_PARAMETER",
-                                   "EXPR_FIELD",
-                                   "EXPR_ADD",
-                                   "EXPR_SUB",
-                                   "EXPR_MUL",
-                                   "EXPR_DIV",
-                                   "EXPR_MINUS",
-                                   "EXPR_DATA_END",
-                                   "EXPR_COUNT",
-                                   "EXPR_SUM",
-                                   "EXPR_MAX",
-                                   "EXPR_MIN",
-                                   "EXPR_AVG",
-                                   "EXPR_AGGR_END",
-                                   "EXPR_COMP",
-                                   "EXPR_IN_OR_NOT",
-                                   "EXPR_IS_NULL_NOT",
-                                   "EXPR_BETWEEN",
-                                   "EXPR_LIKE",
-                                   "EXPR_EXIST",
-                                   "EXPR_NOT_EXIST",
-                                   "EXPR_AND",
-                                   "EXPR_OR",
-                                   "EXPR_NOT",
-                                   "EXPR_LOGIC_END",
-                                   "EXPR_WHERE",
-                                   "EXPR_ON",
-                                   "EXPR_HAVING",
-                                   "EXPR_JOIN",
-                                   "EXPR_GROUP_BY",
-                                   "EXPR_LIMIT",
-                                   "EXPR_ORDER_ITEM",
-                                   "EXPR_ORDER_BY",
-                                   "EXPR_COLUMN",
-                                   "EXPR_RESULT_COLUMN",
-                                   "EXPR_TABLE",
-                                   "EXPR_JOIN_TABLE",
-                                   "EXPR_CREATE_DATABASE",
-                                   "EXPR_DROP_DATABASE",
-                                   "EXPR_SHOW_DATABASES",
-                                   "EXPR_USE_DATABASE",
-                                   "EXPR_CREATE_TABLE",
-                                   "EXPR_DROP_TABLE",
-                                   "EXPR_SHOW_TABLES",
-                                   "EXPR_TRUN_TABLE",
-                                   "EXPR_DATA_TYPE",
-                                   "EXPR_COLUMN_INFO",
-                                   "EXPR_CONSTRAINT",
-                                   "EXPR_TRANSACTION",
-                                   "EXPR_SELECT",
-                                   "EXPR_TABLE_SELECT",
-                                   "EXPR_INSERT",
-                                   "EXPR_UPDATE",
-                                   "EXPR_DELETE",
-                                   "EXPR_FUNCTION",
-                                   "EXPR_LAST"};
+static const char *ExprTypeToStr(ExprType type) {
+  switch (type) {
+  case ExprType::EXPR_BASE:
+    return "EXPR_BASE";
+  case ExprType::EXPR_STAR:
+    return "EXPR_STAR";
+  case ExprType::EXPR_ARRAY:
+    return "EXPR_ARRAY";
+  case ExprType::EXPR_CONST:
+    return "EXPR_CONST";
+  case ExprType::EXPR_PARAMETER:
+    return "EXPR_PARAMETER";
+  case ExprType::EXPR_FIELD:
+    return "EXPR_FIELD";
+  case ExprType::EXPR_ADD:
+    return "EXPR_ADD";
+  case ExprType::EXPR_SUB:
+    return "EXPR_SUB";
+  case ExprType::EXPR_MUL:
+    return "EXPR_MUL";
+  case ExprType::EXPR_DIV:
+    return "EXPR_DIV";
+  case ExprType::EXPR_MINUS:
+    return "EXPR_MINUS";
+  case ExprType::EXPR_DATA_END:
+    return "EXPR_DATA_END";
+  case ExprType::EXPR_COUNT:
+    return "EXPR_COUNT";
+  case ExprType::EXPR_SUM:
+    return "EXPR_SUM";
+  case ExprType::EXPR_MAX:
+    return "EXPR_MAX";
+  case ExprType::EXPR_MIN:
+    return "EXPR_MIN";
+  case ExprType::EXPR_AVG:
+    return "EXPR_AVG";
+  case ExprType::EXPR_AGGR_END:
+    return "EXPR_AGGR_END";
+  case ExprType::EXPR_COMP:
+    return "EXPR_COMP";
+  case ExprType::EXPR_IN_OR_NOT:
+    return "EXPR_IN_OR_NOT";
+  case ExprType::EXPR_IS_NULL_NOT:
+    return "EXPR_IS_NULL_NOT";
+  case ExprType::EXPR_BETWEEN:
+    return "EXPR_BETWEEN";
+  case ExprType::EXPR_LIKE:
+    return "EXPR_LIKE";
+  case ExprType::EXPR_EXIST:
+    return "EXPR_EXIST";
+  case ExprType::EXPR_NOT_EXIST:
+    return "EXPR_NOT_EXIST";
+  case ExprType::EXPR_AND:
+    return "EXPR_AND";
+  case ExprType::EXPR_OR:
+    return "EXPR_OR";
+  case ExprType::EXPR_NOT:
+    return "EXPR_NOT";
+  case ExprType::EXPR_LOGIC_END:
+    return "EXPR_LOGIC_END";
+  case ExprType::EXPR_WHERE:
+    return "EXPR_WHERE";
+  case ExprType::EXPR_ON:
+    return "EXPR_ON";
+  case ExprType::EXPR_HAVING:
+    return "EXPR_HAVING";
+  case ExprType::EXPR_JOIN:
+    return "EXPR_JOIN";
+  case ExprType::EXPR_GROUP_BY:
+    return "EXPR_GROUP_BY";
+  case ExprType::EXPR_LIMIT:
+    return "EXPR_LIMIT";
+  case ExprType::EXPR_ORDER_ITEM:
+    return "EXPR_ORDER_ITEM";
+  case ExprType::EXPR_ORDER_BY:
+    return "EXPR_ORDER_BY";
+  case ExprType::EXPR_COLUMN:
+    return "EXPR_COLUMN";
+  case ExprType::EXPR_RESULT_COLUMN:
+    return "EXPR_RESULT_COLUMN";
+  case ExprType::EXPR_TABLE:
+    return "EXPR_TABLE";
+  case ExprType::EXPR_JOIN_TABLE:
+    return "EXPR_JOIN_TABLE";
+  case ExprType::EXPR_CREATE_DATABASE:
+    return "EXPR_CREATE_DATABASE";
+  case ExprType::EXPR_DROP_DATABASE:
+    return "EXPR_DROP_DATABASE";
+  case ExprType::EXPR_SHOW_DATABASES:
+    return "EXPR_SHOW_DATABASES";
+  case ExprType::EXPR_USE_DATABASE:
+    return "EXPR_USE_DATABASE";
+  case ExprType::EXPR_CREATE_TABLE:
+    return "EXPR_CREATE_TABLE";
+  case ExprType::EXPR_DROP_TABLE:
+    return "EXPR_DROP_TABLE";
+  case ExprType::EXPR_SHOW_TABLES:
+    return "EXPR_SHOW_TABLES";
+  case ExprType::EXPR_TRUN_TABLE:
+    return "EXPR_TRUN_TABLE";
+  case ExprType::EXPR_DATA_TYPE:
+    return "EXPR_DATA_TYPE";
+  case ExprType::EXPR_COLUMN_INFO:
+    return "EXPR_COLUMN_INFO";
+  case ExprType::EXPR_CONSTRAINT:
+    return "EXPR_CONSTRAINT";
+  case ExprType::EXPR_TRANSACTION:
+    return "EXPR_TRANSACTION";
+  case ExprType::EXPR_SELECT:
+    return "EXPR_SELECT";
+  case ExprType::EXPR_TABLE_SELECT:
+    return "EXPR_TABLE_SELECT";
+  case ExprType::EXPR_INSERT:
+    return "EXPR_INSERT";
+  case ExprType::EXPR_UPDATE:
+    return "EXPR_UPDATE";
+  case ExprType::EXPR_DELETE:
+    return "EXPR_DELETE";
+  case ExprType::EXPR_FUNCTION:
+    return "EXPR_FUNCTION";
+  case ExprType::EXPR_LAST:
+    return "EXPR_LAST";
+  }
+}
 
 inline std::ostream &operator<<(std::ostream &os, const ExprType &type) {
 
