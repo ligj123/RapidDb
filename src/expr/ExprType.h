@@ -307,19 +307,14 @@ static const char *ExprTypeToStr(ExprType type) {
     return "EXPR_FUNCTION";
   case ExprType::EXPR_LAST:
     return "EXPR_LAST";
+  default:
+    abort();
+    return "UNKNOWN TYPE";
   }
 }
 
 inline std::ostream &operator<<(std::ostream &os, const ExprType &type) {
-
-  os << "ExprType::";
-  int tp = (int)type;
-  if (tp >= 0 && tp < (int)ExprType::EXPR_LAST) {
-    os << ExprStr[tp] << "(" << tp << ")";
-  } else {
-    os << "UNKNOWN(" << tp << ")";
-  }
-
+  os << "ExprType::" << ExprTypeToStr(type) << "(" << (int)type << ")";
   return os;
 }
 

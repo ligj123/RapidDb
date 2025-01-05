@@ -17,15 +17,15 @@ BOOST_AUTO_TEST_SUITE(SqlParserBasicTest)
 BOOST_AUTO_TEST_CASE(ExprType_test) {
   LOG_INFO << "Run testcase: "
            << boost::unit_test::framework::current_test_case().p_name;
-  BOOST_TEST("EXPR_BASE" == ExprStr[(int)ExprType::EXPR_BASE]);
-  BOOST_TEST("EXPR_COUNT" == ExprStr[(int)ExprType::EXPR_COUNT]);
-  BOOST_TEST("EXPR_COMP" == ExprStr[(int)ExprType::EXPR_COMP]);
-  BOOST_TEST("EXPR_WHERE" == ExprStr[(int)ExprType::EXPR_WHERE]);
-  BOOST_TEST("EXPR_COLUMN" == ExprStr[(int)ExprType::EXPR_COLUMN]);
+  BOOST_TEST("EXPR_BASE" == ExprTypeToStr(ExprType::EXPR_BASE));
+  BOOST_TEST("EXPR_COUNT" == ExprTypeToStr(ExprType::EXPR_COUNT));
+  BOOST_TEST("EXPR_COMP" == ExprTypeToStr(ExprType::EXPR_COMP));
+  BOOST_TEST("EXPR_WHERE" == ExprTypeToStr(ExprType::EXPR_WHERE));
+  BOOST_TEST("EXPR_COLUMN" == ExprTypeToStr(ExprType::EXPR_COLUMN));
   BOOST_TEST("EXPR_CREATE_DATABASE" ==
-             ExprStr[(int)ExprType::EXPR_CREATE_DATABASE]);
-  BOOST_TEST("EXPR_SELECT" == ExprStr[(int)ExprType::EXPR_SELECT]);
-  BOOST_TEST("EXPR_LAST" == ExprStr[(int)ExprType::EXPR_LAST]);
+             ExprTypeToStr(ExprType::EXPR_CREATE_DATABASE));
+  BOOST_TEST("EXPR_SELECT" == ExprTypeToStr(ExprType::EXPR_SELECT));
+  BOOST_TEST("EXPR_LAST" == ExprTypeToStr(ExprType::EXPR_LAST));
 }
 
 BOOST_AUTO_TEST_CASE(ParserDatabase_test) {

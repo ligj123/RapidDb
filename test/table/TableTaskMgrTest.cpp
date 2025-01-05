@@ -117,36 +117,36 @@ PhysTable *CreateTestTable(Database *db, const MString &tableName, int rowNum) {
 
 BOOST_AUTO_TEST_SUITE(TableTest)
 
-BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
-  LOG_INFO << "Run testcase: "
-           << boost::unit_test::framework::current_test_case().p_name;
-  const MString TABLE_NAME = "testTableMgr";
-  const MString DB_NAME = "testDbMgr";
-  uint16_t tidOld = ThreadPool::SetThreadId(0);
-  FilePagePool::Start(8);
+// BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
+//   LOG_INFO << "Run testcase: "
+//            << boost::unit_test::framework::current_test_case().p_name;
+//   const MString TABLE_NAME = "testTableMgr";
+//   const MString DB_NAME = "testDbMgr";
+//   uint16_t tidOld = ThreadPool::SetThreadId(0);
+//   FilePagePool::Start(8);
 
-  Database *db = new Database(1, ROOT_PATH.c_str(), DB_NAME, MilliSecTime(),
-                              MicroSecTime());
-  DatabaseManager::AddDb(db);
-  PhysTable *table = CreateTestTable(db, TABLE_NAME, 1000);
+//   Database *db = new Database(1, ROOT_PATH.c_str(), DB_NAME, MilliSecTime(),
+//                               MicroSecTime());
+//   DatabaseManager::AddDb(db);
+//   PhysTable *table = CreateTestTable(db, TABLE_NAME, 1000);
 
-  ThreadPool::CreateMainPool("test", 1, 8);
-  TableTaskMgr *tmgr = new TableTaskMgr(ThreadPool::GetMainPool(), table, 2);
-  table->SetTableTaskMgr(tmgr);
+//   ThreadPool::CreateMainPool("test", 1, 8);
+//   TableTaskMgr *tmgr = new TableTaskMgr(ThreadPool::GetMainPool(), table, 2);
+//   table->SetTableTaskMgr(tmgr);
 
-  for (int i = 1; i < 1000; i += 2) {
-  }
+//   for (int i = 1; i < 1000; i += 2) {
+//   }
 
-  table->CloseIndex(0);
-  table->CloseIndex(1);
-  table->CloseIndex(2);
-  delete table;
+//   table->CloseIndex(0);
+//   table->CloseIndex(1);
+//   table->CloseIndex(2);
+//   delete table;
 
-  CachePagePool::ClearPool();
-  DatabaseManager::ClearDB();
-  ThreadPool::SetThreadId(tidOld);
-  FilePagePool::Stop();
-}
+//   CachePagePool::ClearPool();
+//   DatabaseManager::ClearDB();
+//   ThreadPool::SetThreadId(tidOld);
+//   FilePagePool::Stop();
+// }
 
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

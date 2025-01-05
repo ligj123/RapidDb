@@ -23,11 +23,11 @@ struct GlobalFixTure {
 
     Logger::init("./", INFO, INFO);
 
-    LOG_INFO << "Start global fixture." << std::endl;
+    LOG_INFO << "Start global fixture.";
   };
 
   ~GlobalFixTure() {
-    LOG_INFO << "Stop global fixture." << std::endl;
+    LOG_INFO << "Stop global fixture.";
     _threadErrorMsg.reset();
     ErrorMsg::ClearErrorMsg();
 
@@ -38,7 +38,7 @@ struct GlobalFixTure {
       }
     }
 #ifdef CACHE_TRACE
-    LOG_INFO << "Memory leaked: " << CachePool::GetMemoryUsed() << std::endl;
+    LOG_INFO << "Memory leaked: " << CachePool::GetMemoryUsed();
     unordered_map<Byte *, string> &map = CachePool::_mapApply;
     for (auto iter = map.begin(); iter != map.end(); iter++) {
       LOG_INFO << (void *)iter->first << "    " << iter->second;

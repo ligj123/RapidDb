@@ -37,10 +37,10 @@ public:
   uint32_t GetRowNum() { return _rowNum; }
 
   void SetResultStatus(ResultStatus s) {
-    _status.store(s, memory_order_acquire);
+    _status.store(s, memory_order_release);
   }
 
-  ResultStatus GetResultStatus() { return _status.load(memory_order_release); }
+  ResultStatus GetResultStatus() { return _status.load(memory_order_relaxed); }
 
 public:
   atomic<ResultStatus> _status{ResultStatus::INIT};

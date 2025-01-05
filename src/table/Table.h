@@ -260,7 +260,7 @@ protected:
   // The mutex for table lock
   SpinMutex _spinMutex;
 
-  TableTaskMgr *_tableTaskMgr;
+  TableTaskMgr *_tableTaskMgr{nullptr};
 };
 
 } // namespace storage

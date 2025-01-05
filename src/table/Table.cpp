@@ -1,6 +1,7 @@
 ﻿#include "Table.h"
 #include "../dataType/DataValueFactory.h"
 #include "../manager/DatabaseManager.h"
+#include "./TableTaskMgr.h"
 
 #include <boost/crc.hpp>
 #include <filesystem>
@@ -75,7 +76,9 @@ uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
 }
 
 void PhysTable::Clear() {
-  assert(_tableTaskMgr == nullptr);
+  if (_tableTaskMgr != nullptr) {
+    delete _tableTaskMgr;
+  }
 
   _vctColumn.clear();
   _mapColumnPos.clear();
