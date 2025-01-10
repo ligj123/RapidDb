@@ -358,24 +358,21 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   dvKey.reserve(prop._vctCol.size());
   for (IndexColumn &ic : prop._vctCol) {
     PhysColumn &pc = _vctColumn[ic.colPos];
-    dvKey.push_back(
-        DataValueFactory(pc.GetDataType(), true, pc.GetMaxLength()));
+    dvKey.push_back(DataValueFactory(pc.GetDataType(), pc.GetMaxLength()));
   }
 
   VectorDataValue dvVal;
   if (idx == 0) {
     dvVal.reserve(_vctColumn.size());
     for (PhysColumn &pc : _vctColumn) {
-      dvVal.push_back(
-          DataValueFactory(pc.GetDataType(), false, pc.GetMaxLength()));
+      dvVal.push_back(DataValueFactory(pc.GetDataType(), pc.GetMaxLength()));
     }
   } else {
     IndexProp &pPri = _vctIndex[0];
     dvVal.reserve(pPri._vctCol.size());
     for (IndexColumn &ic : pPri._vctCol) {
       PhysColumn &pc = _vctColumn[ic.colPos];
-      dvKey.push_back(
-          DataValueFactory(pc.GetDataType(), true, pc.GetMaxLength()));
+      dvKey.push_back(DataValueFactory(pc.GetDataType(), pc.GetMaxLength()));
     }
   }
 

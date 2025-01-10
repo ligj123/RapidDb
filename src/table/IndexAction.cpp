@@ -78,6 +78,12 @@ TaskStatus RecordAction::Exec() {
   lp->UpdateAction(_lr);
   if (_lr->GetLock()->_recResult == RecordResult::ERROR) {
     _indexTree->GetVctRange()[_rangePos]._vctErrRecord.push_back(_lr);
+  } else {
+    lp->AddWriteQueue(_indexTree->GetVctRange()[_rangePos]._pageMap);
+    if (lp->NeedForceSplit()) {
+      lp->SplitPage(_indexTree->GetVctRange()[_rangePos]._pageMap,
+                    _indexTree->GetSplitPageLevel());
+    }
   }
 
   _lr = nullptr;
@@ -148,12 +154,6 @@ TaskStatus StmtInsertAction::Exec() {
     vctLr.push_back(lrSec);
 
     if (!lrSec->IsValid()) {
-      _stmtRecord->_status.store(ActionStatus::FAILED, memory_order_release);
-      SessionErrMsgAction *eAction = new SessionErrMsgAction(
-          _stmtRecord->_stmt, move(_threadErrorMsg->GetErrorMsg()));
-      SessionPool::AddAction(ThreadPool::GetThreadId(),
-                             _stmtRecord->_stmt->GetTxId(), eAction);
-      _stmtRecord->_stmt->SetStmtFailed(true);
       failed = true;
       break;
     }
@@ -165,6 +165,12 @@ TaskStatus StmtInsertAction::Exec() {
     }
 
     vctLr.clear();
+    SessionErrMsgAction *eAction = new SessionErrMsgAction(
+        _stmtRecord->_stmt, move(_threadErrorMsg->GetErrorMsg()));
+    SessionPool::AddAction(ThreadPool::GetThreadId(),
+                           _stmtRecord->_stmt->GetTxId(), eAction);
+    _stmtRecord->_stmt->SetStmtFailed(true);
+    _stmtRecord->_status.store(ActionStatus::FAILED, memory_order_relaxed);
   } else {
     RecordAction *rAction = new RecordAction(vctProp[0]._tree, vctLr[0]);
     vctProp[0]._tree->AddActionFromLocal(_rangePos, rAction);
@@ -174,15 +180,14 @@ TaskStatus StmtInsertAction::Exec() {
       RecordAction *rAction = new RecordAction(secTree, vctLr[i]);
       mgr->AddFromPrimaryAction(i, _rangePos, rAction);
     }
+
+    _stmtRecord->_numLeafRecord = vctLr.size();
+    SessionRecordAction *action =
+        new SessionRecordAction(_stmtRecord->_stmt, move(vctLr));
+    SessionPool::AddAction(ThreadPool::GetThreadId(),
+                           _stmtRecord->_stmt->GetTxId(), action);
+    _stmtRecord->_status.store(ActionStatus::SUCEED, memory_order_relaxed);
   }
-
-  _stmtRecord->_numLeafRecord += vctLr.size();
-  _stmtRecord->_status.store(ActionStatus::SUCEED, memory_order_release);
-
-  SessionRecordAction *action =
-      new SessionRecordAction(_stmtRecord->_stmt, move(vctLr));
-  SessionPool::AddAction(ThreadPool::GetThreadId(),
-                         _stmtRecord->_stmt->GetTxId(), action);
 
   return TaskStatus::FINISHED;
 };

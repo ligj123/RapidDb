@@ -131,6 +131,8 @@ bool BranchPage::AddRecord(BranchRecord *rr) {
 }
 
 int32_t BranchPage::SearchRecord(const RawRecord &rr) const {
+  bool bUnique =
+      (_indexTree->GetHeadPage()->GetIndexType() != IndexType::NON_UNIQUE);
   int32_t start = 0;
   int32_t end = _recordNum - 1;
 
@@ -144,7 +146,8 @@ int32_t BranchPage::SearchRecord(const RawRecord &rr) const {
     }
 
     int middle = (start + end) / 2;
-    int hr = GetVctRecord(middle)->CompareTo(rr);
+    int hr = bUnique ? GetVctRecord(middle)->CompareKey(rr)
+                     : GetVctRecord(middle)->CompareTo(rr);
     if (hr < 0) {
       start = middle + 1;
     } else if (hr > 0) {
@@ -198,14 +201,14 @@ BranchRecord &BranchPage::GetRecord(int32_t pos, bool bAutoLast) {
 }
 
 void BranchPage::SetChild(int32_t pos, IndexPage *child) {
-  assert(pos > 0 && pos < _recordNum);
+  assert(pos >= 0 && pos < _recordNum);
   assert(_vctRecord.size() == _recordNum);
   BranchRecord *br = (BranchRecord *)_vctRecord[pos];
   br->SetChildPage(child);
 }
 
 IndexPage *BranchPage::GetChild(int32_t pos) {
-  assert(pos > 0 && pos < _recordNum);
+  assert(pos >= 0 && pos < _recordNum);
   assert(_vctRecord.size() == _recordNum);
   BranchRecord *br = (BranchRecord *)_vctRecord[pos];
   return br->GetChildPage();
@@ -219,7 +222,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
 
   bool block = (lockPageLevel != UINT8_MAX);
   if (lockPageLevel < GetPageLevel()) {
-    if (_spinLock.try_lock()) {
+    if (!_spinLock.try_lock()) {
       return false;
     }
   }
@@ -355,20 +358,18 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
 
     int pos = _indexTree->CalcIndexRange(*last);
     IndexRange &range = _indexTree->GetVctRange().at(pos);
-    size_t i = 0;
-    for (; i < range._vctRangePage.size(); i++) {
-      if (range._vctRangePage[i] == this) {
+    size_t rpos = 0;
+    for (; rpos < range._vctRangePage.size(); rpos++) {
+      if (range._vctRangePage[rpos] == this) {
         break;
       }
     }
 
-    assert(i < range._vctRangePage.size());
-    auto iter = range._vctRangePage.begin() + i + 1;
-
+    assert(rpos < range._vctRangePage.size());
+    rpos++;
     for (int ii = 0; ii < vctPage.size(); ii++) {
-      iter = range._vctRangePage.insert(range._vctRangePage.begin() + ii +
-                                            posInParent,
-                                        (BranchPage *)vctPage[ii]);
+      range._vctRangePage.insert(range._vctRangePage.begin() + rpos + ii,
+                                 (BranchPage *)vctPage[ii]);
     }
   }
 
@@ -434,8 +435,9 @@ LeafPage *BranchPage::GetLeftLeafChild() {
 
     if (child->GetPageType() == PageType::LEAF_PAGE) {
       return (LeafPage *)child;
+    } else {
+      bp = (BranchPage *)child;
     }
-    bp = (BranchPage *)child;
   }
 }
 
@@ -453,8 +455,9 @@ LeafPage *BranchPage::GetRightLeafChild() {
 
     if (child->GetPageType() == PageType::LEAF_PAGE) {
       return (LeafPage *)child;
+    } else {
+      bp = (BranchPage *)child;
     }
-    bp = (BranchPage *)child;
   }
 }
 } // namespace storage

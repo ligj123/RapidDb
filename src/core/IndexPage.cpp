@@ -32,4 +32,5 @@ void IndexPage::AfterRead() {
     _pageStatus.store(PageStatus::READED, memory_order_release);
   }
 }
+
 } // namespace storage

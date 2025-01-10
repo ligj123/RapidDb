@@ -23,6 +23,17 @@ public:
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
+  static bool InitLogTask(ThreadPool *threadPool, const MString &logPath);
+
+  static void CloseTask() {
+    assert(_logTask->GetStatus(false) == TaskStatus::FINISHED);
+
+    delete _queueTran;
+    delete _logTask;
+    _logTask = nullptr;
+    _queueTran = nullptr;
+  }
+
   static void AddTransaction(uint16_t tid, Transaction *tran) {
     assert(_queueTran != nullptr);
     _queueTran->Push(tid, tran);
@@ -37,6 +48,7 @@ public:
   Byte *GetBuff() { return _buff; }
 
 protected:
+  static LogTask *_logTask;
   static RapidQueue<Transaction> *_queueTran;
   MString _logPath;
   MString _logFileName;

@@ -552,7 +552,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
     assert(_recLock->_undoRec == nullptr);
     delete _recLock;
     _recLock = nullptr;
-    return ReleaseResult::FISHED;
+    return ReleaseResult::FINISHED;
   }
 
   assert(_recLock->_actType == ActionType::INSERT ||
@@ -579,7 +579,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
       *this = move(*lr);
       delete lr;
       if (_recLock == nullptr) {
-        return ReleaseResult::FISHED;
+        return ReleaseResult::FINISHED;
       } else if (!ReleaseLockAble()) {
         return ReleaseResult::UNFINISH;
       } else {
@@ -626,7 +626,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
     }
   }
   _bDelete = bDel;
-  return bDel ? ReleaseResult::DELETED : ReleaseResult::FISHED;
+  return bDel ? ReleaseResult::DELETED : ReleaseResult::FINISHED;
 }
 
 bool LeafRecord::ReleaseLockAble() const {

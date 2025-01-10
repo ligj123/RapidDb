@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
+#include "../utils/Log.h"
 #include "CachePage.h"
 #include "CoreEnum.h"
 #include "RawRecord.h"

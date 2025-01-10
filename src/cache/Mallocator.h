@@ -39,6 +39,13 @@ inline bool operator!=(const Mallocator<T> &, const Mallocator<U> &) {
 template <class V> using MVector = std::vector<V, Mallocator<V>>;
 template <class V> class MVectorPtr : public MVector<V> {
 public:
+  using MVector<V>::MVector;
+
+  MVectorPtr(MVectorPtr &&src) noexcept : MVector<V>(move(src)) {}
+  MVectorPtr &operator=(MVectorPtr &&src) {
+    MVector<V>::operator=(move(src));
+    return *this;
+  }
   ~MVectorPtr() {
     for (auto iter = this->begin(); iter != this->end(); iter++) {
       delete *iter;

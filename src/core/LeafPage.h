@@ -41,7 +41,8 @@ public:
   inline void SetNextPage(LeafPage *page) { _nextPage = page; }
 
   bool IsOverlength() override {
-    return _committedDataLength >= MAX_DATA_LENGTH_LEAF;
+    return _committedDataLength >= MAX_DATA_LENGTH_LEAF ||
+           _tempDataLength >= MAX_DATA_LENGTH_LEAF;
   }
   bool Releaseable() override {
     return !_bRefered &&
@@ -100,7 +101,8 @@ public:
    * @param pageSet If there has OverflowPages that need to write disk, add into
    * this set
    * @param block If there have multi thread tasks for this index set it to true
-   * @return Success to save or not
+   * @return True: The page is clean and all data has been saved into buffer;
+   * False: The page has dirty data and can not save all of data into buffer.
    */
   bool SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap, bool block);
   /**`

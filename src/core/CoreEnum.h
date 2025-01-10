@@ -87,8 +87,8 @@ enum class ReadResult : int8_t {
 
 // The status to release a lock from the record
 enum class ReleaseResult {
-  FISHED = 0, // The record has been commited or rollbacked, it still has data.
-  DELETED,    // The record has been deleted and need to remove from page.
+  FINISHED = 0, // The record has been commited or rollbacked, still has data.
+  DELETED,      // The record has been deleted and need to remove from page.
   UNFINISH // Only the last version is rollbacked and there still has uncommited
            // statement.
 };
@@ -264,8 +264,8 @@ inline std::ostream &operator<<(std::ostream &os, const ReadResult &result) {
 
 inline std::ostream &operator<<(std::ostream &os, const ReleaseResult &res) {
   switch (res) {
-  case ReleaseResult::FISHED:
-    os << "FISHED(" << (int)ReleaseResult::FISHED << ")";
+  case ReleaseResult::FINISHED:
+    os << "FINISHED(" << (int)ReleaseResult::FINISHED << ")";
     break;
   case ReleaseResult::DELETED:
     os << "DELETED(" << (int)ReleaseResult::DELETED << ")";

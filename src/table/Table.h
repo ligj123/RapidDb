@@ -182,12 +182,21 @@ public:
    */
   bool CheckColumnValues(VectorDataValue &vctDv);
 
-  void CloseIndex(size_t idx) {
-    assert(idx >= 0 && idx < _vctIndex.size());
-    IndexProp &prop = _vctIndex[idx];
-    if (prop._tree != nullptr) {
-      prop._tree->Close();
-      prop._tree = nullptr;
+  void CloseIndex(uint16_t idx = UINT16_MAX) {
+    if (idx == UINT16_MAX) {
+      for (IndexProp &prop : _vctIndex) {
+        if (prop._tree != nullptr) {
+          prop._tree->Close();
+          prop._tree = nullptr;
+        }
+      }
+    } else {
+      assert(idx >= 0 && idx < _vctIndex.size());
+      IndexProp &prop = _vctIndex[idx];
+      if (prop._tree != nullptr) {
+        prop._tree->Close();
+        prop._tree = nullptr;
+      }
     }
   }
 

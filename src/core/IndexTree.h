@@ -237,7 +237,7 @@ public:
     range._queueActionFromPrev.Push(act);
   }
 
-  // Add IndexAction that generate from this range. The producer and consumer
+  // Add IndexAction that generate from current range. The producer and consumer
   // are in same thread.
   void AddActionFromLocal(int iRange, IndexAction *act) {
     _vctRange[iRange]._queueAction.push_back(act);

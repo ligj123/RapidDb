@@ -14,6 +14,7 @@ public:
   static void operator delete(void *ptr, size_t size) {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
+  virtual ~SessionAction() {}
 
   /**
    * @brief Run this action, and return the status to know if it has finished.

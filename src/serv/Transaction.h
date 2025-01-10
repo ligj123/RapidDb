@@ -29,7 +29,7 @@ public:
 
   MList<Statement *> &GetListStatement() { return _lstStatement; }
 
-  bool IsTranOvertime() {
+  bool IsOvertime() {
     assert(_tranStatus == TranStatus::AUTO_TRAN ||
            _tranStatus == TranStatus::IN_TRAN);
     if (_tranStatus == TranStatus::AUTO_TRAN) {
@@ -46,9 +46,10 @@ public:
   TranStatus GetTranStatus() { return _tranStatus; }
   void SetTranStatus(TranStatus s) { _tranStatus = s; }
   bool IsAutoCommit() { return _bAutoCommit; }
-  void SetLogged(bool b = true);
-  bool IsLogged() { return _bLogged; }
+  void SetLogged() { _bLogged.store(true, memory_order_relaxed); }
+  bool IsLogged() { return _bLogged.load(memory_order_relaxed); }
   void WriteLog(LogTask *logTask);
+  TranID GetTranID() { return _tid; }
 
 protected:
   TranID _tid{TXID_NULL};
@@ -65,7 +66,7 @@ protected:
   IsoLevel _isoLevel{IsoLevel::ReadCommited};
   CcProtocol _ccProtocol{CcProtocol::OCC};
   // The log has been wrote into log files or not
-  bool _bLogged{false};
+  atomic_bool _bLogged{false};
   bool _bDdlStmt{false};
 };
 

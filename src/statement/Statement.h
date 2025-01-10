@@ -58,8 +58,8 @@ public:
   VectorDataValue _vctParas; // The columns' values of this record
   Statement *_stmt;
   PhysTable *_table;
-  uint32_t _numLeafRecord; // The number of LeafRecords that generated for this
-                           // record
+  uint32_t _numLeafRecord; // The number of LeafRecords that generated for
+                           // this record
   atomic<ActionStatus> _status{ActionStatus::INIT};
 };
 
@@ -103,8 +103,8 @@ public:
    */
   virtual ExprType GetType() = 0;
   /**
-   * @brief To be called in session group, to check if current step has finished
-   * and can go to next step.
+   * @brief To be called in session group, to check if current step has
+   * finished and can go to next step.
    */
   virtual StmtStatus CheckStatus() {
     abort();
@@ -113,8 +113,9 @@ public:
   /**
    * @brief Execute this statement in SessionTask
    * @param sess The session that this statement belong to
-   * @return True: This method has finished all work and need not to run again.
-   * False: There still has no finished work, need to run this method again.
+   * @return True: This method has finished all work and need not to run
+   * again. False: There still has no finished work, need to run this method
+   * again.
    */
   virtual StmtStatus SessionExec(Session *sess) {
     abort();
@@ -124,8 +125,9 @@ public:
   /**
    * @brief Execute this statement in primary key IndexTask
    * @param rangePos The range position of IndexTask to call this method
-   * @return True: This method has finished all work and need not to run again.
-   * False: There still has no finished work, need to run this method again.
+   * @return True: This method has finished all work and need not to run
+   * again. False: There still has no finished work, need to run this method
+   * again.
    */
   virtual bool PrimaryKeyExec(int rangePos) {
     abort();
@@ -135,8 +137,9 @@ public:
   /**
    * @brief Execute this statement in secondary key IndexTask
    * @param rangePos The range position of IndexTask to call this method
-   * @return True: This method has finished all work and need not to run again.
-   * False: There still has no finished work, need to run this method again.
+   * @return True: This method has finished all work and need not to run
+   * again. False: There still has no finished work, need to run this method
+   * again.
    */
   virtual bool SecondaryKeyExec(int rangePos) {
     abort();
@@ -144,9 +147,9 @@ public:
   }
 
   /**
-   * @brief Collect all LeafRecord for log write. To ensure the last version can
-   * be added into set, it should the last statement to call this method first,
-   * the first statement should be the last one to call this method.
+   * @brief Collect all LeafRecord for log write. To ensure the last version
+   * can be added into set, it should the last statement to call this method
+   * first, the first statement should be the last one to call this method.
    * @param setRec: The tree set to save the LeafRecords to write log
    */
   virtual void
@@ -196,7 +199,7 @@ public:
 
   bool IsStmtFailed() { return _stmtFailed.load(memory_order_relaxed); }
 
-  uint16_t GetSessionId() { return (uint16_t)((_txid >> 40) && 0xFF); }
+  uint16_t GetSessionGroupId() { return (uint16_t)((_txid >> 40) && 0xFF); }
 
   void SetStmtStatus(StmtStatus s) { _status = s; }
   StmtStatus GetStmtStatus() { return _status; }
@@ -218,8 +221,10 @@ protected:
   // All LeafRecords that just created and are not added into LeafPages.
   MList<LeafRecord *> _lstWaitRecord;
   // The LeafRecords that has been added into LeafPages or have error.
-  MList<LeafRecord *> _lstFinshRecord;
+  MList<LeafRecord *> _lstFinishRecord;
   // Return the result to end user
   StmtResult *_stmtResult;
 };
+
+std::ostream &operator<<(std::ostream &os, const StmtStatus &s);
 } // namespace storage

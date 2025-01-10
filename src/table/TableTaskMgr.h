@@ -31,16 +31,10 @@ public:
         _createTime(MilliSecTime()) {}
   virtual ~IndexTaskQueue() {}
 
-  virtual bool IsQueueEmpty() {
-    return _queueRangeAction.size() == 0 &&
-           _queueSessionAction.RoughSize() == 0;
-  }
+  virtual bool IsQueueEmpty() { return _queueSessionAction.RoughSize() == 0; }
 
   // To receive IndexAction from sessions. Its lines equal session groups number
   RapidQueue<IndexAction> _queueSessionAction;
-  // Temp to save IndexActions from obsolete IndexTasks when rerange the
-  // IndexTasks;
-  MList<IndexAction *> _queueRangeAction;
   // The time of this IndexTaskQueue created
   DT_MilliSec _createTime;
 };
@@ -61,8 +55,7 @@ public:
         _toPrimaryQueue(Configure::GetMaxIndexTaskNum(), secTaskNum) {}
 
   bool IsQueueEmpty() override {
-    return _queueRangeAction.size() == 0 &&
-           _queueSessionAction.RoughSize() == 0 &&
+    return _queueSessionAction.RoughSize() == 0 &&
            _fromPrimaryQueue.RoughSize() == 0 &&
            _toPrimaryQueue.RoughSize() == 0;
   }
@@ -143,7 +136,7 @@ public:
       vctRange.resize(1);
 
       MVector<IndexTask *> vct;
-      IndexTask *task = new IndexTask(pool, this, 1, 0);
+      IndexTask *task = new IndexTask(pool, this, i, 0);
       vct.push_back(task);
       vctTask.push_back(task);
       _vctIndexTasks.push_back(move(vct));
@@ -172,13 +165,14 @@ public:
    * @brief The session group generate IndexActions and add them into action
    * queues of related index.
    * @param indexPos The position of IndexTree in table
-   * @param sessionId session id
+   * @param sessionId session group id
    * @param action The IndexAction will be inserted
    */
-  void AddSessionAction(uint16_t indexPos, uint16_t sessionId,
+  void AddSessionAction(uint16_t indexPos, uint16_t sessionGroupId,
                         IndexAction *action) {
     assert(indexPos < _vctIndexTaskQueue.size());
-    _vctIndexTaskQueue[indexPos]->_queueSessionAction.Push(sessionId, action);
+    _vctIndexTaskQueue[indexPos]->_queueSessionAction.Push(sessionGroupId,
+                                                           action);
   }
   /**
    *@brief The IndexActions that generate by primary index and will insert into
@@ -228,6 +222,10 @@ public:
     _mgrStatus = MgrStatus::STOPED;
   }
 
+  // Only used for testcase
+  MVector<IndexTaskQueue *> &GetIndexTaskQueue() { return _vctIndexTaskQueue; }
+  MVector<MVector<IndexTask *>> &GetVctIndexTasks() { return _vctIndexTasks; }
+
 protected:
   ThreadPool *_threadPool;
   PhysTable *_table;
@@ -247,6 +245,9 @@ public:
       : ThreadTask(pool), _tableTaskMgr(tableTaskMgr), _indexPos(indexPos),
         _exptTaskNum(exptTaskNum) {
     assert(_exptTaskNum > 0);
+    IndexTree *idxTree =
+        _tableTaskMgr->_table->GetVectorIndex().at(_indexPos)._tree;
+    idxTree->SetReRanging(true);
   }
 
   TaskStatus Run() override;

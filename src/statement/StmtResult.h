@@ -57,4 +57,23 @@ public:
   // The result set for query,or nulpptr for other statement.
   IResultSet *_resultSet{nullptr};
 };
+
+inline std::ostream &operator<<(std::ostream &os, const ResultStatus &s) {
+  switch (s) {
+  case ResultStatus::INIT:
+    os << "INIT(" << (int)ResultStatus::INIT << ")";
+    break;
+  case ResultStatus::FILLING:
+    os << "FILLING(" << (int)ResultStatus::FILLING << ")";
+    break;
+  case ResultStatus::FINISHED:
+    os << "FINISHED(" << (int)ResultStatus::FINISHED << ")";
+    break;
+  default:
+    os << "ERROR ResultStatus(" << (int)s << ")";
+    break;
+  }
+
+  return os;
+}
 } // namespace storage

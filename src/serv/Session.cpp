@@ -16,23 +16,14 @@ Session::~Session() {
 }
 
 void Session::Exec() {
-  if (_currStatement != nullptr) {
-    StmtStatus s = _currStatement->SessionExec(this);
-    if (s == StmtStatus::Finished) {
-      delete _currStatement;
-      _currStatement = nullptr;
-    } else if (s == StmtStatus::Executed) {
-      assert(!_transaction.IsAutoCommit());
-      _transaction.AddStatement(_currStatement);
-      _currStatement = nullptr;
-    } else {
+  if (_currStatement == nullptr) {
+    if (_lstWaittingStmt.size() == 0) {
       return;
     }
-  }
 
-  if (_lstWaittingStmt.size() > 0) {
     _currStatement = _lstWaittingStmt.front();
     _lstWaittingStmt.pop_front();
+
     if (_currStatement->GetType() == ExprType::EXPR_TRANSACTION) {
       StmtStatus s = _currStatement->SessionExec(this);
       if (s == StmtStatus::Finished) {
@@ -48,7 +39,17 @@ void Session::Exec() {
       _transaction.StartTransaction(_bAutoCommit);
     }
 
-    _currStatement->SessionExec(this);
+    _currStatement->SetTxID(_transaction.GetTranID());
+  }
+
+  StmtStatus s = _currStatement->SessionExec(this);
+  if (s == StmtStatus::Finished) {
+    delete _currStatement;
+    _currStatement = nullptr;
+  } else if (s == StmtStatus::Executed) {
+    assert(!_transaction.IsAutoCommit());
+    _transaction.AddStatement(_currStatement);
+    _currStatement = nullptr;
   }
 }
 } // namespace storage

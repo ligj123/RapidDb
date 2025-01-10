@@ -18,11 +18,11 @@ atomic_int32_t g_atmFileId{1};
 struct GlobalFixTure {
   GlobalFixTure() {
     fs::path path(ROOT_PATH);
-    if (!fs::exists(path))
+    if (!fs::exists(path)) {
       fs::create_directories(path);
+    }
 
     Logger::init("./", INFO, INFO);
-
     LOG_INFO << "Start global fixture.";
   };
 
@@ -31,10 +31,9 @@ struct GlobalFixTure {
     _threadErrorMsg.reset();
     ErrorMsg::ClearErrorMsg();
 
-    for (auto const &dir_entry :
-         std::filesystem::directory_iterator{ROOT_PATH}) {
+    for (auto const &dir_entry : fs::directory_iterator{ROOT_PATH}) {
       if (dir_entry.is_regular_file()) {
-        std::filesystem::remove(dir_entry);
+        fs::remove(dir_entry);
       }
     }
 #ifdef CACHE_TRACE

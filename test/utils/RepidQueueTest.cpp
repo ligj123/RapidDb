@@ -23,7 +23,11 @@ BOOST_AUTO_TEST_CASE(LineQueue_test) {
     using LineQueue<uint64_t>::_tail;
   };
 
-  const uint64_t CNT = 1000000;
+#ifdef CACHE_TRACE
+  const uint64_t CNT = 100000;
+#else
+  const uint64_t CNT = 10000000;
+#endif
   uint64_t *arr = new uint64_t[CNT];
   for (size_t i = 0; i < CNT; i++) {
     arr[i] = i;
@@ -82,7 +86,11 @@ BOOST_AUTO_TEST_CASE(LineQueue_test) {
 BOOST_AUTO_TEST_CASE(RapidQueue_test) {
   LOG_INFO << "Run testcase: "
            << boost::unit_test::framework::current_test_case().p_name;
-  const uint64_t CNT = 100000;
+#ifdef CACHE_TRACE
+  const uint64_t CNT = 10000;
+#else
+  const uint64_t CNT = 1000000;
+#endif
   uint64_t *arr = new uint64_t[CNT];
   for (size_t i = 0; i < CNT; i++) {
     arr[i] = 0;

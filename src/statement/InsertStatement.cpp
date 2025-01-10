@@ -34,7 +34,7 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
     if (_lstWaitRecord.size() > 0) {
       for (auto iter = _lstWaitRecord.begin(); iter != _lstWaitRecord.end();) {
         if ((*iter)->GetLock()->GetRecordResult() != RecordResult::INIT) {
-          _lstFinshRecord.push_back(*iter);
+          _lstFinishRecord.push_back(*iter);
           iter = _lstWaitRecord.erase(iter);
         } else {
           iter++;
@@ -42,12 +42,12 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
       }
     }
 
-    if (_lstFinshRecord.size() < (size_t)_cntLeafRec) {
+    if (_lstFinishRecord.size() < (size_t)_cntLeafRec) {
       return StmtStatus::Executing;
     }
 
     if (_stmtFailed.load(memory_order_relaxed)) {
-      for (auto lr : _lstFinshRecord) {
+      for (auto lr : _lstFinishRecord) {
         lr->GetLock()->_recStatus.store(RecordStatus::ROLLBACKED,
                                         memory_order_relaxed);
       }
@@ -65,6 +65,12 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
     }
   } else if (_status == StmtStatus::Logging) {
     if (sess->_transaction.IsLogged()) {
+      for (auto lr : _lstFinishRecord) {
+        lr->GetLock()->_recStatus.store(RecordStatus::COMMITED,
+                                        memory_order_relaxed);
+      }
+
+      sess->_transaction.SetTranStatus(TranStatus::FINISHED);
       _stmtResult->_rowNum = _recorcNum;
       _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Finished;
@@ -129,7 +135,7 @@ bool InsertStatement::InitRecord() {
       StmtInsertRecord *insr =
           new StmtInsertRecord(RawKey(vctKey), move(vctVal), this, table);
       StmtInsertAction *action = new StmtInsertAction(priIndex._tree, insr);
-      mgr->AddSessionAction(0, GetSessionId(), action);
+      mgr->AddSessionAction(0, GetSessionGroupId(), action);
       _lstRecord.push_back(insr);
     }
   }
@@ -147,7 +153,7 @@ void InsertStatement::CollectLogRecords(
     return;
   }
 
-  for (LeafRecord *lr : _lstFinshRecord) {
+  for (LeafRecord *lr : _lstFinishRecord) {
     assert(lr->GetLock()->_recResult != RecordResult::INIT);
     if (lr->GetLock()->_recResult == RecordResult::ERROR) {
       continue;
@@ -162,7 +168,7 @@ void InsertStatement::Commit() {
     return;
   }
 
-  for (LeafRecord *lr : _lstFinshRecord) {
+  for (LeafRecord *lr : _lstFinishRecord) {
     lr->SubmitStatement(*this, RecordStatus::COMMITED);
   }
 }
@@ -172,7 +178,7 @@ void InsertStatement::Rollback() {
     return;
   }
 
-  for (LeafRecord *lr : _lstFinshRecord) {
+  for (LeafRecord *lr : _lstFinishRecord) {
     lr->SubmitStatement(*this, RecordStatus::ROLLBACKED);
   }
 }

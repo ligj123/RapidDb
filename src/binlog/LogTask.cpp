@@ -1,17 +1,38 @@
 #include "LogTask.h"
 
 #include "../serv/Transaction.h"
+#include "../utils/Log.h"
+
+#include <filesystem>
 
 namespace storage {
+namespace fs = std::filesystem;
+
 RapidQueue<Transaction> *LogTask::_queueTran{nullptr};
+LogTask *LogTask::_logTask{nullptr};
+
+bool LogTask::InitLogTask(ThreadPool *threadPool, const MString &logPath) {
+  assert(_queueTran == nullptr && _logTask == nullptr);
+  _queueTran = new RapidQueue<Transaction>(threadPool->GetMaxThreads(),
+                                           threadPool->GetAliveThreadCount());
+  _logTask = new LogTask(threadPool, logPath);
+  threadPool->AddTask(_logTask);
+  return true;
+}
 
 LogTask::LogTask(ThreadPool *threadPool, const MString &logPath)
     : ThreadTask(threadPool), _logPath(logPath) {
+  fs::path path(logPath.c_str());
+  if (!fs::exists(path)) {
+    fs::create_directories(path);
+  }
+
   _logFileName = _logPath + PREFIX_LOG_NAME + ToMString(SecondTime()) + ".log";
   _logStream = fstream(_logFileName.c_str(),
                        ios_base::binary | ios_base::out | ios_base::app);
   _buff = new Byte[BUFF_SIZE];
   if (!_logStream.is_open()) {
+    LOG_FATAL << "Failed to open log file " << _logFileName;
     abort();
   }
 
@@ -32,7 +53,7 @@ TaskStatus LogTask::Run() {
   _logStream.flush();
 
   for (Transaction *tran : lstTran) {
-    tran->SetLogged(true);
+    tran->SetLogged();
   }
 
   if (_threadPool->IsStoped() && lstTran.size() == 0) {

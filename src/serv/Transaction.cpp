@@ -19,20 +19,13 @@ void Transaction::StartTransaction(bool bAuto, IsoLevel isoLevel,
   MVector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
   SessionGroup &sGroup = vctGroup[_session->_id % vctGroup.size()];
   _tid = sGroup._currTranId;
-  if (sGroup._currTranId & 0xFFFFFFFFFF == 0xFFFFFFFFFF) [[unlikely]] {
+  if ((sGroup._currTranId & 0xFFFFFFFFFF) == 0xFFFFFFFFFF) [[unlikely]] {
     sGroup._currTranId &= 0xFFFFFF0000000000;
   } else {
     sGroup._currTranId++;
   }
 
   _startTime = MicroSecTime();
-}
-
-void Transaction::SetLogged(bool b) {
-  _bLogged = b;
-  for (Statement *stmt : _lstStatement) {
-    stmt->SetStmtStatus(StmtStatus::Logged);
-  }
 }
 
 void Transaction::WriteLog(LogTask *logTask) {

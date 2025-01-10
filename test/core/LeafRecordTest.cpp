@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_test) {
 
   lr->SubmitStatement(stmt, RecordStatus::COMMITED);
   BOOST_TEST(lr->IsStable());
-  BOOST_TEST(lr->ReleaseLock(indexTree, false) == ReleaseResult::FISHED);
+  BOOST_TEST(lr->ReleaseLock(indexTree, false) == ReleaseResult::FINISHED);
   BOOST_TEST(lr->IsStable());
   BOOST_TEST(lr->GetAction() == ActionType::NO_ACTION);
 
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   BOOST_TEST(!lr->IsGapLock());
 
   lr->SubmitStatement(stmt, RecordStatus::COMMITED);
-  BOOST_TEST(lr->ReleaseLock(indexTree, false) == ReleaseResult::FISHED);
+  BOOST_TEST(lr->ReleaseLock(indexTree, false) == ReleaseResult::FINISHED);
 
   Byte byArr[512];
   lr->SaveData(byArr);
@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   BOOST_TEST(lr2->ReleaseLockAble());
 
   ReleaseResult rres = lr2->ReleaseLock(indexTree, false);
-  BOOST_TEST(rres == ReleaseResult::FISHED);
+  BOOST_TEST(rres == ReleaseResult::FINISHED);
 
   vctDv.clear();
   res = lr2->ReadListValue({}, vctDv, indexTree);

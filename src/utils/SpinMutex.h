@@ -5,6 +5,8 @@
 #include <thread>
 
 namespace storage {
+using namespace std;
+
 static inline uint32_t get_thread_id() {
   std::stringstream ss;
   ss << std::this_thread::get_id();
@@ -16,6 +18,7 @@ class SpinMutex {
 public:
   SpinMutex() = default;
   SpinMutex(const SpinMutex &) = delete;
+  ~SpinMutex() { assert(!_flag.load(memory_order_relaxed)); }
   SpinMutex &operator=(const SpinMutex &) = delete;
   inline void lock() noexcept {
     while (_flag.exchange(true, std::memory_order_acquire)) {

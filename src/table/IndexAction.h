@@ -49,7 +49,7 @@ public:
 protected:
   IndexTree *_indexTree;
   IndexPage *_idxPage{nullptr};
-  int _rangePos{-1}; // The range position thia action belong to
+  int _rangePos{0}; // The range position thia action belong to
 };
 
 /**

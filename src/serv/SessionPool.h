@@ -117,6 +117,18 @@ public:
     _bStop.store(true, memory_order_release);
   }
 
+  static void ClearPool() {
+    for (SessionTask *task : _vctTask) {
+      assert(task->GetStatus(true) == TaskStatus::FINISHED);
+      delete task;
+    }
+
+    _vctTask.clear();
+    _vctGroup.clear();
+    _threadPool = nullptr;
+    _currSessionId.store(0, memory_order_relaxed);
+  }
+
   static MVector<SessionGroup> &GetVctSessionGroup() { return _vctGroup; }
 
   static Session *GetSession(uint32_t sid) {
@@ -157,7 +169,11 @@ public:
   }
 
   static bool IsPoolStop() { return _bStop.load(memory_order_relaxed); }
-  static MVectorPtr<SessionTask *> GetVctSessionTask() { return _vctTask; }
+  static MVectorPtr<SessionTask *> &GetVctSessionTask() { return _vctTask; }
+  // Generate a session id, only for testcase
+  static uint32_t GenSessionId() {
+    return _currSessionId.fetch_add(1, memory_order_relaxed);
+  }
 
 protected:
   // The vector of session groups

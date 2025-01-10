@@ -391,6 +391,7 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
 
     FilePagePool::AddWritePage(ThreadPool::GetThreadId(), iter->second, false);
     if (move) {
+      iter->second->ClearWriteQueue();
       iter = pageMap.erase(iter);
     } else {
       iter++;

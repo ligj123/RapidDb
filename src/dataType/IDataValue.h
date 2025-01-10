@@ -173,12 +173,10 @@ protected:
 
 class VectorDataValue : public MVector<IDataValue *> {
 public:
-  using vector::vector;
+  using MVector<IDataValue *>::MVector;
 
-  VectorDataValue(VectorDataValue &&src) noexcept {
-    swap(src);
-    _bDecrease = src._bDecrease;
-  }
+  VectorDataValue(VectorDataValue &&src) noexcept
+      : MVector<IDataValue *>(move(src)), _bDecrease(src._bDecrease) {}
 
   ~VectorDataValue() { clear(); }
 
@@ -204,8 +202,15 @@ public:
 
 class VectorRow : public MVector<VectorDataValue *> {
 public:
-  using vector::vector;
+  using MVector<VectorDataValue *>::MVector;
+
+  VectorRow(VectorRow &&src) noexcept : MVector<VectorDataValue *>(move(src)) {}
   ~VectorRow() { clear(); }
+
+  VectorRow &operator=(VectorRow &&src) {
+    MVector<VectorDataValue *>::operator=(move(src));
+    return *this;
+  }
 
   void clear() {
     for (auto iter = begin(); iter != end(); iter++) {
