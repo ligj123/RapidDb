@@ -22,6 +22,7 @@ BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId,
 }
 
 BranchRecord::~BranchRecord() {}
+
 void BranchRecord::Copy(const BranchRecord &src) {
   assert(_bysVal == nullptr);
   uint16_t tlen = src.GetTotalLength();

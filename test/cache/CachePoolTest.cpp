@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(Buffer_test) {
   BOOST_TEST(vct[0] == vct[1] + 40);
   BOOST_TEST(maxEle - 225 == buff.GetFreeSize());
   buff.Release(vct, false);
-  BOOST_TEST(74 == vct.size());
+  BOOST_TEST(75 == vct.size());
   buff.Release(vct, true);
   BOOST_TEST(0 == vct.size());
   BOOST_TEST(maxEle == buff.GetFreeSize());

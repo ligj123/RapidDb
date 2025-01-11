@@ -578,23 +578,25 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     assert(IsEndPage());
     SetEndPage(false);
     ((LeafPage *)vctPage[vctPage.size() - 1])->SetEndPage(true);
-  } else {
-    if (IsRangEndPage()) {
-      ((LeafPage *)vctPage[vctPage.size() - 1])->SetRangeEndPage(true);
-      SetRangeEndPage(false);
+  } else if (!IsRangEndPage()) {
+    if (lastPage == nullptr) {
+      lastPage = (LeafPage *)_indexTree->GetPage(lastId, PageType::LEAF_PAGE);
+    }
+
+    ((LeafPage *)vctPage[vctPage.size() - 1])->SetNextPage(lastPage);
+    lastPage->SetPrevPage(((LeafPage *)vctPage[vctPage.size() - 1]));
+    lastPage->SetPrevPageId((vctPage[vctPage.size() - 1])->GetPageId());
+    lastPage->AddWriteQueue(pageMap);
+  }
+
+  if (IsRangEndPage()) {
+    ((LeafPage *)vctPage[vctPage.size() - 1])->SetRangeEndPage(true);
+    SetRangeEndPage(false);
+    if (lastId != PAGE_NULL_POINTER) {
       size_t pos = _indexTree->CalcIndexRange(GetRecord(0)) + 1;
       PrevPageAction *act = new PrevPageAction(
           _indexTree, pos, lastId, (vctPage[vctPage.size() - 1])->GetPageId());
       _indexTree->AddActionFromPrev(pos, act);
-    } else {
-      if (lastPage == nullptr) {
-        lastPage = (LeafPage *)_indexTree->GetPage(lastId, PageType::LEAF_PAGE);
-      }
-
-      ((LeafPage *)vctPage[vctPage.size() - 1])->SetNextPage(lastPage);
-      lastPage->SetPrevPage(((LeafPage *)vctPage[vctPage.size() - 1]));
-      lastPage->SetPrevPageId((vctPage[vctPage.size() - 1])->GetPageId());
-      lastPage->AddWriteQueue(pageMap);
     }
   }
 

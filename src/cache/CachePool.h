@@ -63,6 +63,7 @@ public:
   static vector<unordered_map<uint16_t, vector<Byte *>> *> _vctMap;
   static SpinMutex _spinLocal;
   static unordered_map<Byte *, string> _mapApply;
+  static bool _bWriteLog;
 #else
   /**Apply a memory block for result set*/
   static Byte *ApplyBlock() {

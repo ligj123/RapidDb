@@ -94,6 +94,8 @@ public:
     return BytesCompare(_bysVal, _length, key._bysVal, key._length);
   }
 
+  void PrintKey(bool bchar);
+
 protected:
   Byte *_bysVal;
   uint32_t _length;

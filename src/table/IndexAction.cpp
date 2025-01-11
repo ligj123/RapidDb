@@ -51,6 +51,7 @@ TaskStatus PrevPageAction::Exec() {
   }
 
   _page->SetPrevPageId(_prevPageId);
+  _page->AddWriteQueue(_indexTree->GetVctRange()[_rangePos]._pageMap);
   return TaskStatus::FINISHED;
 }
 

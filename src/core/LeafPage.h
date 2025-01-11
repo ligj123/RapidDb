@@ -126,11 +126,19 @@ public:
   bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
                  Byte lockPageLevel = UINT8_MAX) override;
 
+  inline bool IsRangBeginPage() { return _bRangeBeginPage; }
+  inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }
+  inline bool IsRangEndPage() { return _bRangeEndPage; }
+  inline void SetRangeEndPage(bool b) { _bRangeEndPage = b; }
+
 protected:
   uint32_t _prevPageId{PAGE_NULL_POINTER};
   uint32_t _nextPageId{PAGE_NULL_POINTER};
   LeafPage *_prevPage{nullptr};
   LeafPage *_nextPage{nullptr};
+
+  bool _bRangeEndPage{false};
+  bool _bRangeBeginPage{false};
 
   friend class InsertAction;
 };

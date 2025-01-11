@@ -1,6 +1,10 @@
 ﻿#include "CachePool.h"
 #include "../config/Configure.h"
 #include "StackTrace.h"
+
+#include <filesystem>
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 
 #ifdef _MSVC_LANG
@@ -19,6 +23,31 @@ thread_local LocalMap CachePool::_localMap;
 vector<unordered_map<uint16_t, vector<Byte *>> *> CachePool::_vctMap;
 SpinMutex CachePool::_spinLocal;
 unordered_map<Byte *, string> CachePool::_mapApply;
+bool CachePool::_bWriteLog{false};
+
+fstream CreateStream() {
+  if (!CachePool::_bWriteLog) {
+    return fstream();
+  }
+
+  time_t sec = chrono::duration_cast<chrono::seconds>(
+                   chrono::system_clock::now().time_since_epoch())
+                   .count();
+  stringstream ss;
+  ss << put_time(gmtime(&sec), "%Y-%m-%d_%H_%M_%S.log");
+
+  filesystem::path path("./st");
+  if (!filesystem::exists(path)) {
+    filesystem::create_directories(path);
+  }
+
+  path += "/" + ss.str();
+  fstream fs(path.string(), ios_base::binary | ios_base::out | ios_base::app);
+  bool b = fs.is_open();
+  return fs;
+}
+
+fstream fs_stack(CreateStream());
 #endif
 
 LocalMap::LocalMap() {
@@ -174,6 +203,9 @@ Byte *CachePool::ApplyBlock() {
   string str = StackTrace();
   unique_lock<SpinMutex> lock2(CachePool::_spinLocal);
   _mapApply.emplace(bys, "ApplyBlock\n" + str);
+  if (_bWriteLog) {
+    fs_stack << (void *)bys << "\tApplyBlock\n" << str;
+  }
   return bys;
 }
 
@@ -190,6 +222,9 @@ void CachePool::ReleaseBlock(Byte *bys) {
   unique_lock<SpinMutex> lock2(CachePool::_spinLocal);
   size_t rt = _mapApply.erase(bys);
   assert(rt == 1);
+  if (_bWriteLog) {
+    fs_stack << (void *)bys << "\tReleaseBlock\n" << StackTrace();
+  }
 }
 /**Apply a menory block for an index page*/
 Byte *CachePool::ApplyPage() {
@@ -199,6 +234,9 @@ Byte *CachePool::ApplyPage() {
   string str = StackTrace();
   unique_lock<SpinMutex> lock(CachePool::_spinLocal);
   _mapApply.emplace(bys, "ApplyPage\n" + str);
+  if (_bWriteLog) {
+    fs_stack << (void *)bys << "\tApplyBlock\n" << str;
+  }
   return bys;
 }
 
@@ -210,6 +248,9 @@ void CachePool::ReleasePage(Byte *page) {
   unique_lock<SpinMutex> lock(CachePool::_spinLocal);
   size_t rt = _mapApply.erase(page);
   assert(rt == 1);
+  if (_bWriteLog) {
+    fs_stack << (void *)page << "\tRelease Page\n" << StackTrace();
+  }
 }
 
 /**Apply a memory block from cache*/
@@ -226,6 +267,11 @@ Byte *CachePool::Apply(uint32_t bufSize) {
     unique_lock<SpinMutex> lock(CachePool::_spinLocal);
     _mapApply.emplace(bys, "Apply1 size: " + to_string(bufSize) +
                                "  actual size: " + to_string(sz) + "\n" + str);
+    if (_bWriteLog) {
+      fs_stack << (void *)bys << "\tApply1 size: " << to_string(bufSize)
+               << "  actual size: " << to_string(sz) << "\n"
+               << str;
+    }
     return bys;
   }
 }
@@ -245,6 +291,11 @@ Byte *CachePool::Apply(uint32_t bufSize, uint32_t &realSize) {
     _mapApply.emplace(bys, "Apply2:  size: " + to_string(bufSize) +
                                "  actual size: " + to_string(realSize) + "\n" +
                                str);
+    if (_bWriteLog) {
+      fs_stack << (void *)bys << "\tApply2 size: " << to_string(bufSize)
+               << "  actual size: " << to_string(realSize) << "\n"
+               << str;
+    }
     return bys;
   }
 }
@@ -260,6 +311,9 @@ void CachePool::Release(Byte *pBuf, uint32_t bufSize) {
     unique_lock<SpinMutex> lock(CachePool::_spinLocal);
     size_t rt = _mapApply.erase(pBuf);
     assert(rt == 1);
+    if (_bWriteLog) {
+      fs_stack << (void *)pBuf << "\tRelease Buffer\n" << StackTrace();
+    }
   }
 }
 #endif // CACHE_TRACE

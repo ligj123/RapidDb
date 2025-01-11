@@ -140,9 +140,6 @@ TaskStatus IndexAdjustTask::Run() {
 
       range._startPage->SetRangeBeginPage(false);
       range._endPage->SetRangeEndPage(false);
-      range._vctRangePage[0]->SetRangeBeginPage(false);
-      range._vctRangePage[range._vctRangePage.size() - 1]->SetRangeEndPage(
-          false);
     }
   } else {
     IndexRange &range = vctRange[0];
@@ -197,16 +194,16 @@ TaskStatus IndexAdjustTask::Run() {
       }
 
       BranchPage *child = range._vctRangePage[0];
-      child->SetRangeBeginPage(true);
       range._startPage = ((BranchPage *)child)->GetLeftLeafChild();
       range._startPage->SetRangeBeginPage(true);
 
       child = range._vctRangePage[range._vctRangePage.size() - 1];
-      child->SetRangeEndPage(true);
       range._endPage = ((BranchPage *)child)->GetRightLeafChild();
       range._endPage->SetRangeEndPage(true);
 
-      range._borderRecord = &((BranchPage *)child)->GetRecord(INT32_MAX, true);
+      range._borderRecord = new BranchRecord();
+      range._borderRecord->Copy(
+          ((BranchPage *)child)->GetRecord(INT32_MAX, true));
       range._dtLastWriteDisk = TableTaskMgr::_dtLastWriteDisk;
     }
 

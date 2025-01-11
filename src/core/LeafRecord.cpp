@@ -686,6 +686,23 @@ MString LeafRecord::GetKeyString() {
   return ss;
 }
 
+void RawRecord::PrintKey(bool bchar) {
+  if (bchar) {
+    LOG_INFO << (char *)(_bysVal + UI16_2_LEN);
+  } else {
+    MString str;
+    str.reserve(GetKeyLength() * 2 + 2);
+    str.append("0x");
+    Byte *bys = _bysVal + UI16_2_LEN;
+    for (uint32_t i = 0; i < GetKeyLength(); i++) {
+      str.append(HexStr[*bys]);
+      bys++;
+    }
+
+    LOG_INFO << str;
+  }
+}
+
 std::ostream &operator<<(std::ostream &os, const LeafRecord &lr) {
   os << "TotalLen=" << lr.GetTotalLength() << "  Keys=";
 

@@ -319,6 +319,11 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   table->CloseIndex();
   delete table;
 
+  MVectorPtr<SessionTask *> &vctSessTask = SessionPool::GetVctSessionTask();
+  for (SessionTask *task : vctSessTask) {
+    task->SetStatus(TaskStatus::FINISHED, false);
+  }
+
   CachePagePool::ClearPool();
   DatabaseManager::ClearDB();
   ThreadPool::SetThreadId(tidOld);

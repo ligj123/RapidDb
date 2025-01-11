@@ -351,11 +351,6 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   }
 
   if (GetPageLevel() == lockPageLevel) {
-    if (IsRangEndPage()) {
-      SetRangeEndPage(false);
-      vctPage[vctPage.size() - 1]->SetRangeEndPage(true);
-    }
-
     int pos = _indexTree->CalcIndexRange(*last);
     IndexRange &range = _indexTree->GetVctRange().at(pos);
     size_t rpos = 0;

@@ -44,9 +44,8 @@ Buffer::~Buffer() {
 
 Byte *Buffer::Apply() {
   assert(!IsEmpty());
-  auto iter = _vctFree.end() - 1;
-  uint16_t index = *iter;
-  _vctFree.erase(iter);
+  uint16_t index = _vctFree.back();
+  _vctFree.pop_back();
   return &_pBuf[_eleSize * index];
 }
 
@@ -57,17 +56,17 @@ void Buffer::Release(Byte *bys) {
 
 void Buffer::Apply(vector<Byte *> &vct) {
   assert(!IsEmpty());
-  size_t cap = (vct.capacity() >> 2) + (vct.capacity() >> 1);
+  size_t cap = vct.capacity() - (vct.capacity() >> 2);
+
   while (vct.size() < cap && !IsEmpty()) {
-    auto iter = _vctFree.end() - 1;
-    uint16_t index = *iter;
-    _vctFree.erase(iter);
+    uint16_t index = _vctFree.back();
+    _vctFree.pop_back();
     vct.push_back(&_pBuf[_eleSize * index]);
   }
 }
 
 void Buffer::Release(vector<Byte *> &vct, bool bAll) {
-  size_t cap = (vct.capacity() >> 2);
+  size_t cap = bAll ? 0 : (vct.capacity() >> 2);
   for (int i = (int)vct.size() - 1; i >= 0; i--) {
     Byte *bys = vct[i];
     if ((((uint64_t)bys) ^ ((uint64_t)_pBuf)) > Configure::GetCacheBlockSize())
@@ -75,9 +74,9 @@ void Buffer::Release(vector<Byte *> &vct, bool bAll) {
 
     uint16_t index = (uint16_t)(((uint64_t)bys & BUFFER_MASK) / _eleSize);
     _vctFree.push_back(index);
-
     vct.erase(vct.begin() + i);
-    if (!bAll && vct.size() < cap)
+
+    if (vct.size() == cap)
       break;
   }
 }
@@ -92,13 +91,13 @@ BufferPool::~BufferPool() {
 
 void BufferPool::Apply(vector<Byte *> &vct) {
   std::unique_lock<SpinMutex> lock(_spinMutex);
-  size_t cap = (vct.capacity() >> 2) + (vct.capacity() >> 1);
+  size_t cap = vct.capacity() - (vct.capacity() >> 2);
   while (vct.size() < cap) {
     unordered_map<Byte *, storage::Buffer *>::iterator iter;
     if (_mapFreeBuffer.size() == 0) {
       Buffer *buff = CachePool::AllocateBuffer(_eleSize);
-      _mapBuffer.insert({buff->GetBuf(), buff});
-      iter = _mapFreeBuffer.insert({buff->GetBuf(), buff}).first;
+      _mapBuffer.emplace(buff->GetBuf(), buff);
+      iter = _mapFreeBuffer.emplace(buff->GetBuf(), buff).first;
     } else {
       iter = _mapFreeBuffer.begin();
     }

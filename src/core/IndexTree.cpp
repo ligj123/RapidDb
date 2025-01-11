@@ -13,6 +13,7 @@ IndexRange::~IndexRange() {
   assert(_queueAction.size() == 0);
   assert(_queueActionFromCollect.RoughSize() == 0);
   assert(_queueActionFromPrev.RoughSize() == 0);
+  delete _borderRecord;
 }
 
 IndexPage *IndexRange::GetTopPage(IndexType type, RawRecord &rr) {

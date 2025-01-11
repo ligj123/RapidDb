@@ -98,6 +98,7 @@ public:
       : _id(id), _txid(txid), _stmtResult(stmtResult) {
     _createTime = MicroSecTime();
   }
+  virtual ~Statement() {}
   /**
    * @brief Return the expression type
    */

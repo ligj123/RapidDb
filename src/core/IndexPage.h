@@ -123,11 +123,6 @@ public:
   virtual void LoadRecords() = 0;
   virtual void ClearRecords() = 0;
 
-  inline bool IsRangBeginPage() { return _bRangeBeginPage; }
-  inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }
-  inline bool IsRangEndPage() { return _bRangeEndPage; }
-  inline void SetRangeEndPage(bool b) { _bRangeEndPage = b; }
-
   inline uint32_t IsRefered() { return _bRefered; }
   inline void SetReferred(bool b) {
     if (b) {
@@ -154,9 +149,6 @@ protected:
   BranchPage *_parentPage{nullptr};
   // The vector to save records in this page
   MVector<RawRecord *> _vctRecord;
-
-  bool _bRangeEndPage{false};
-  bool _bRangeBeginPage{false};
 
   friend class IndexTree;
 };

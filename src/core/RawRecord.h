@@ -59,6 +59,8 @@ public:
   bool IsDelete() { return _bDelete; }
   bool IsValid() { return _bValid; }
 
+  void PrintKey(bool bchar);
+
 public:
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
