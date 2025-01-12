@@ -32,6 +32,8 @@ public:
 
       if (!val->IsNull())
         dv.Add(1L);
+
+      val->DecRef();
       return true;
     }
   }
@@ -77,6 +79,7 @@ public:
     if (*val > dv) {
       dv.Copy(*val);
     }
+
     val->DecRef();
     return true;
   }
@@ -122,6 +125,8 @@ public:
 
     if (!val->IsNull())
       dv.Add(val->GetDouble());
+
+    val->DecRef();
     return true;
   }
 

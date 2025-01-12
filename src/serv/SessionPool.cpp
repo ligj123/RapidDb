@@ -3,8 +3,8 @@
 #include <bit>
 
 namespace storage {
-MVector<SessionGroup> SessionPool::_vctGroup;
-MVectorPtr<SessionTask *> SessionPool::_vctTask;
+vector<SessionGroup> SessionPool::_vctGroup;
+vector<SessionTask *> SessionPool::_vctTask;
 atomic_bool SessionPool::_bStop{false};
 ThreadPool *SessionPool::_threadPool{nullptr};
 atomic_uint32_t SessionPool::_currSessionId{0};
@@ -86,7 +86,7 @@ TaskStatus SessionTask::Run() {
 TaskStatus SessionAdjustTask::Run() {
   bool empty = true;
   if (_vctOldTask.size() == 0) {
-    MVectorPtr<SessionTask *> &vctTask = SessionPool::GetVctSessionTask();
+    vector<SessionTask *> &vctTask = SessionPool::GetVctSessionTask();
     _vctOldTask.swap(vctTask);
     vctTask.resize(_newTaskNum);
     for (SessionTask *task : _vctOldTask) {
@@ -94,7 +94,7 @@ TaskStatus SessionAdjustTask::Run() {
     }
   }
 
-  MVectorPtr<SessionTask *> &vctNewTask = SessionPool::GetVctSessionTask();
+  vector<SessionTask *> &vctNewTask = SessionPool::GetVctSessionTask();
   for (auto iter = _vctOldTask.begin(); iter != _vctOldTask.end(); iter++) {
     SessionTask *task = *iter;
     if (task == nullptr) {
@@ -110,7 +110,16 @@ TaskStatus SessionAdjustTask::Run() {
     }
   }
 
-  return (empty ? TaskStatus::FINISHED : TaskStatus::RUNNING);
+  if (empty) {
+    for (SessionTask *task : _vctOldTask) {
+      delete task;
+    }
+
+    _vctOldTask.clear();
+    return TaskStatus::FINISHED;
+  } else {
+    return TaskStatus::RUNNING;
+  }
 }
 
 bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,

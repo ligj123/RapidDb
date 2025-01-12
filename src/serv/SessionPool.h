@@ -89,16 +89,14 @@ protected:
 
 class SessionAdjustTask : public ThreadTask {
 public:
-  SessionAdjustTask(ThreadPool *threadPool, uint16_t newTaskNum,
-                    MVectorPtr<SessionTask *> &&vctOldTask)
-      : ThreadTask(threadPool), _newTaskNum(newTaskNum),
-        _vctOldTask(move(vctOldTask)) {}
+  SessionAdjustTask(ThreadPool *threadPool, uint16_t newTaskNum)
+      : ThreadTask(threadPool), _newTaskNum(newTaskNum) {}
   TaskStatus Run() override;
   bool IsNeedDelete() override { return true; }
 
 protected:
   uint16_t _newTaskNum;
-  MVectorPtr<SessionTask *> _vctOldTask;
+  vector<SessionTask *> _vctOldTask;
 };
 
 class SessionPool {
@@ -129,7 +127,7 @@ public:
     _currSessionId.store(0, memory_order_relaxed);
   }
 
-  static MVector<SessionGroup> &GetVctSessionGroup() { return _vctGroup; }
+  static vector<SessionGroup> &GetVctSessionGroup() { return _vctGroup; }
 
   static Session *GetSession(uint32_t sid) {
     uint32_t gid = sid % (uint32_t)_vctGroup.size();
@@ -169,7 +167,7 @@ public:
   }
 
   static bool IsPoolStop() { return _bStop.load(memory_order_relaxed); }
-  static MVectorPtr<SessionTask *> &GetVctSessionTask() { return _vctTask; }
+  static vector<SessionTask *> &GetVctSessionTask() { return _vctTask; }
   // Generate a session id, only for testcase
   static uint32_t GenSessionId() {
     return _currSessionId.fetch_add(1, memory_order_relaxed);
@@ -177,9 +175,9 @@ public:
 
 protected:
   // The vector of session groups
-  static MVector<SessionGroup> _vctGroup;
+  static vector<SessionGroup> _vctGroup;
   // The vector of SessionTasks
-  static MVectorPtr<SessionTask *> _vctTask;
+  static vector<SessionTask *> _vctTask;
   // The ThreadPool to run tasks.
   static ThreadPool *_threadPool;
   // The system has stoped or not

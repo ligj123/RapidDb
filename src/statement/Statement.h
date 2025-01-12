@@ -209,13 +209,13 @@ protected:
   // Id will auto increment 1 every time in self session.
   uint32_t _id;
   // Statement status
-  StmtStatus _status;
+  StmtStatus _status{StmtStatus::Created};
   // Meet error when executing
   atomic_bool _stmtFailed{false};
   // The create time for this statement
   DT_MicroSec _createTime;
   // The finished or abort time to execute for this statement
-  DT_MicroSec _stopTime = 0;
+  DT_MicroSec _stopTime{0};
   // The transaction id to run this task, must be valid.
   TranID _txid;
 

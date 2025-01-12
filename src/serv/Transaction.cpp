@@ -16,7 +16,7 @@ void Transaction::StartTransaction(bool bAuto, IsoLevel isoLevel,
   _isoLevel = isoLevel;
   _ccProtocol = ccProtocol;
 
-  MVector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
+  vector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
   SessionGroup &sGroup = vctGroup[_session->_id % vctGroup.size()];
   _tid = sGroup._currTranId;
   if ((sGroup._currTranId & 0xFFFFFFFFFF) == 0xFFFFFFFFFF) [[unlikely]] {

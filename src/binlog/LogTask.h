@@ -39,9 +39,12 @@ public:
     _queueTran->Push(tid, tran);
   }
 
+  // Only for test purpose
+  static void Clear();
+
 public:
   LogTask(ThreadPool *threadPool, const MString &logPath);
-
+  ~LogTask() {}
   TaskStatus Run() override;
 
   void WriteBuff(int64_t dataLen, bool bTranStart);

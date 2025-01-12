@@ -1,12 +1,15 @@
 ﻿#pragma once
 #include "../utils/BytesFuncs.h"
 #include "CachePool.h"
+
 #include <cstdlib>
+#include <deque>
 #include <forward_list>
 #include <limits>
 #include <list>
 #include <map>
 #include <new>
+#include <set>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

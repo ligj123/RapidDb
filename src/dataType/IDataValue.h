@@ -78,10 +78,12 @@ public:
   }
   inline void DecRef() {
     if (refCount_ != UINT16_MAX) {
-      if (refCount_ == 1)
+      assert(refCount_ >= 1);
+      if (refCount_ == 1) {
         delete this;
-      else
+      } else {
         --refCount_;
+      }
     }
   }
   inline uint16_t GetRef() { return refCount_; }

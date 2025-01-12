@@ -221,10 +221,10 @@ public:
   }
   static ThreadPool *GetMainPool() { return _instMain; }
 
-  static void CreateMainPool(const MString &threadPrefix = "main",
-                             int minThreads = 1,
-                             int maxThreads = DEFAULT_MAX_THREADS);
-  static void CloseMainPool();
+  static ThreadPool *CreateMainPool(const MString &threadPrefix = "main",
+                                    int minThreads = 1,
+                                    int maxThreads = DEFAULT_MAX_THREADS);
+  static void CloseMainPool(bool ignoreTasks = false);
 
   static DT_MicroSec GetNow() { return _nowMicroSec; }
 

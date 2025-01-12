@@ -41,11 +41,13 @@ public:
   ~ExprConst() { _val->Free(); }
   ExprType GetType() override { return ExprType::EXPR_CONST; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
+    assert(_val->IsConstRef());
     return _val;
   }
 
   bool IsNull() {
-    return _val == nullptr || _val->GetDataType() == DataType::VAL_NULL;
+    assert(_val != nullptr && _val->GetDataType() != DataType::VAL_NULL);
+    return false;
   }
 
 public:
@@ -66,7 +68,7 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_FIELD; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    return vdRow[_rowPos];
+    return vdRow[_rowPos]->AddRef();
   }
 
 public:
@@ -82,7 +84,7 @@ class ExprParameter : public ExprData {
 public:
   ExprType GetType() override { return ExprType::EXPR_PARAMETER; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
-    return vdParas[_paraPos];
+    return vdParas[_paraPos]->AddRef();
   }
 
 public:

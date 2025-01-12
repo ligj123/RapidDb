@@ -6,7 +6,6 @@
 #include <stdexcept>
 
 namespace storage {
-std::once_flag mainInstFlag;
 atomic_uint32_t ThreadTask::_exclusiveTasksCount{0};
 atomic_bool ThreadPool::_stopThreads{false};
 ThreadPool *ThreadPool::_instMain{nullptr};
@@ -16,15 +15,19 @@ DT_MicroSec ThreadPool::_nowMicroSec{0};
 thread_local MString ThreadPool::_threadName = "main";
 thread_local int ThreadPool::_threadID = -1;
 
-void ThreadPool::CreateMainPool(const MString &threadPrefix, int minThreads,
-                                int maxThreads) {
-  call_once(mainInstFlag, [threadPrefix, minThreads, maxThreads]() {
-    _instMain = new ThreadPool(threadPrefix, minThreads, maxThreads);
-  });
+ThreadPool *ThreadPool::CreateMainPool(const MString &threadPrefix,
+                                       int minThreads, int maxThreads) {
+  assert(_instMain == nullptr);
+  _instMain = new ThreadPool(threadPrefix, minThreads, maxThreads);
+  return _instMain;
 }
 
-void ThreadPool::CloseMainPool() {
+void ThreadPool::CloseMainPool(bool ignoreTasks) {
   assert(_instMain != nullptr);
+  if (ignoreTasks) {
+    _instMain->_rapidTaskQueue.Pop(_instMain->_queueTask);
+    _instMain->_queueTask.clear();
+  }
   _instMain->SetStop();
   delete _instMain;
   _instMain = nullptr;

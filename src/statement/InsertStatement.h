@@ -40,6 +40,6 @@ protected:
   // The total number of inserted LeafRecords
   uint32_t _cntLeafRec{0};
   // The number of inserted records
-  uint32_t _recorcNum;
+  uint32_t _recordNum{0};
 };
 } // namespace storage

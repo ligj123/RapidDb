@@ -46,6 +46,8 @@ public:
    */
   void SetRangePos(int pos) { _rangePos = pos; }
 
+  virtual const char *GetActionName() = 0;
+
 protected:
   IndexTree *_indexTree;
   IndexPage *_idxPage{nullptr};
@@ -67,6 +69,8 @@ public:
 
   int JudgeRange() override;
 
+  const char *GetActionName() override { return "PrevPageAction"; }
+
 protected:
   LeafPage *_page{nullptr}; // The page will update  previous page id.
   PageID _pageId;           // The page need to update previous page id.
@@ -80,6 +84,8 @@ public:
   TaskStatus Exec() override;
   int JudgeRange() override;
 
+  const char *GetActionName() override { return "RecordAction"; }
+
 protected:
   LeafRecord *_lr;
 };
@@ -92,6 +98,8 @@ public:
   TaskStatus Exec() override;
   int JudgeRange() override;
 
+  const char *GetActionName() override { return "StatementAction"; }
+
 protected:
   Statement *_stmt;
 };
@@ -100,8 +108,10 @@ class StmtInsertAction : public IndexAction {
 public:
   StmtInsertAction(IndexTree *idxTree, StmtInsertRecord *stmtRecord)
       : IndexAction(idxTree), _stmtRecord(stmtRecord) {}
+  ~StmtInsertAction();
   TaskStatus Exec() override;
   int JudgeRange() override;
+  const char *GetActionName() override { return "StmtInsertAction"; }
 
 protected:
   StmtInsertRecord *_stmtRecord;
@@ -111,8 +121,10 @@ class StmtPriKeyAction : public IndexAction {
 public:
   StmtPriKeyAction(IndexTree *idxTree, StmtPriKey *stmtPriKey)
       : IndexAction(idxTree), _stmtPriKey(stmtPriKey) {}
+  ~StmtPriKeyAction();
   TaskStatus Exec() override;
   int JudgeRange() override;
+  const char *GetActionName() override { return "StmtPriKeyAction"; }
 
 protected:
   StmtPriKey *_stmtPriKey;

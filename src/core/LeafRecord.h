@@ -239,7 +239,6 @@ public:
   }
 
   inline int CompareTo(const LeafRecord &lr) const {
-    assert(_indexType == IndexType::NON_UNIQUE);
     return BytesCompare(
         _bysVal + UI16_2_LEN, GetTotalLength() - UI16_2_LEN - UI64_LEN,
         lr._bysVal + UI16_2_LEN, lr.GetTotalLength() - UI16_2_LEN - UI64_LEN);

@@ -151,7 +151,7 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap,
   boost::crc_32_type crc32;
   crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
   WriteInt(CRC32_INDEX_OFFSET, crc32.checksum());
-  _bDirty = false;
+  _bDirty = bClean ? false : true;
   return bClean;
 }
 

@@ -1,15 +1,17 @@
 ﻿#pragma once
 #include "../config/Configure.h"
 #include "BufferPool.h"
-#include <iostream>
-#include <mutex>
-#include <queue>
-#include <set>
-#include <stack>
+
+#include <array>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
+#define PAGE_POS 27
 
 namespace storage {
 using namespace std;
+extern uint16_t _arrSzMap[];
 
 // Memory status
 enum class MemoryStatus : int8_t {
@@ -28,19 +30,25 @@ class LocalMap {
 public:
   LocalMap();
   ~LocalMap();
-  void Push(Byte *pBuf, uint16_t eleSize);
-  Byte *Pop(uint16_t eleSize);
+  void Push(Byte *pBuf, uint16_t pos);
+  Byte *Pop(uint16_t pos);
+  int64_t GetMemStat() { return _memStat; }
 
 protected:
-  unordered_map<uint16_t, vector<Byte *>> _map;
+  // The array to save the applied memory and not allocated to end user. Every
+  // size type occupied a vector.
+  array<vector<Byte *>, 28> _arrVctByte;
+  // To save this thread allocated and recycled how many memory
+  int64_t _memStat{0};
+  // The thread is running or not.
   bool bStoped = false;
 };
 
 class CachePool {
 public:
   static MemoryStatus GetMemoryStatus() {
-    uint64_t total_mem = Configure::GetTotalMemorySize() / 100;
-    uint64_t used_mem = GetMemCacheUsed();
+    int64_t total_mem = Configure::GetTotalMemorySize() / 100;
+    int64_t used_mem = GetMemoryUsed();
     if (total_mem * 70 > used_mem)
       return MemoryStatus::AMPLE;
     else if (total_mem * 90 > used_mem)
@@ -50,6 +58,10 @@ public:
     else
       return MemoryStatus::FATAL;
   }
+
+  static int64_t GetMemoryUsed();
+  static int64_t GetMemoryAllocated();
+
 #ifdef CACHE_TRACE
   static Byte *ApplyBlock();
   static void ReleaseBlock(Byte *bys);
@@ -59,20 +71,18 @@ public:
   static Byte *Apply(uint32_t bufSize, uint32_t &realSize);
   static void Release(Byte *pBuf, uint32_t bufSize);
 
-  static size_t GetMemoryUsed();
-  static vector<unordered_map<uint16_t, vector<Byte *>> *> _vctMap;
-  static SpinMutex _spinLocal;
-  static unordered_map<Byte *, string> _mapApply;
+  static SpinMutex _spinTrace;
+  static unordered_map<uint64_t, string> _mapApply;
   static bool _bWriteLog;
 #else
   /**Apply a memory block for result set*/
   static Byte *ApplyBlock() {
     CachePool *pool = GetInstance();
-    unique_lock<SpinMutex> lock(pool->_blockMutex);
+    unique_lock<SpinMutex> lock(pool->_spinMutex);
     Byte *bys = nullptr;
-    if (pool->_queueFreeBlock.size() > 0) {
-      bys = pool->_queueFreeBlock.front();
-      pool->_queueFreeBlock.pop();
+    if (pool->_vctFreeBlock.size() > 0) {
+      bys = pool->_vctFreeBlock.back();
+      pool->_vctFreeBlock.pop_back();
     } else {
       bys = new Byte[Configure::GetResultPageSize()];
       pool->_totalBlockNum++;
@@ -83,56 +93,48 @@ public:
   /**Release a memory block for result set*/
   static void ReleaseBlock(Byte *bys) {
     CachePool *pool = GetInstance();
-    unique_lock<SpinMutex> lock(pool->_blockMutex);
-    if (pool->_queueFreeBlock.size() > Configure::GetMaxFreeResultBlock()) {
+    unique_lock<SpinMutex> lock(pool->_spinMutex);
+    if (pool->_vctFreeBlock.size() > Configure::GetMaxFreeResultBlock()) {
       pool->_totalBlockNum--;
       delete bys;
     } else {
-      pool->_queueFreeBlock.push(bys);
+      pool->_vctFreeBlock.push_back(bys);
     }
   }
 
   /**Apply a menory block for an index page*/
-  static Byte *ApplyPage() {
-    CachePool *pool = GetInstance();
-    return pool->_localMap.Pop((uint16_t)Configure::GetIndexPageSize());
-  }
+  static Byte *ApplyPage() { return _localMap.Pop(PAGE_POS); }
 
   /**Release a memory block for an index page*/
-  static void ReleasePage(Byte *page) {
-    CachePool *pool = GetInstance();
-    pool->_localMap.Push(page, (uint16_t)Configure::GetIndexPageSize());
-  }
+  static void ReleasePage(Byte *page) { _localMap.Push(page, PAGE_POS); }
 
   /**Apply a memory block from cache*/
   static inline Byte *Apply(uint32_t bufSize) {
-    uint32_t sz = CalcBufSize(bufSize);
-    if (sz == UINT32_MAX) {
+    uint32_t pos = CalcBufSize(bufSize);
+    if (pos == UINT32_MAX) {
       return MallocLargeBlock(bufSize);
     } else {
-      CachePool *pool = GetInstance();
-      return pool->_localMap.Pop(sz);
+      return _localMap.Pop(pos);
     }
   }
   /**Apply a memory block from cache and set the actual allocated size*/
   static inline Byte *Apply(uint32_t bufSize, uint32_t &realSize) {
-    realSize = CalcBufSize(bufSize);
-    if (realSize == UINT32_MAX) {
+    uint32_t pos = CalcBufSize(bufSize);
+    if (pos == UINT32_MAX) {
       realSize = bufSize;
       return MallocLargeBlock(bufSize);
     } else {
-      CachePool *pool = GetInstance();
-      return pool->_localMap.Pop((uint16_t)realSize);
+      realSize = _arrSzMap[pos];
+      return _localMap.Pop(pos);
     }
   }
   /**Release a memory block with unfixed size*/
   static inline void Release(Byte *pBuf, uint32_t bufSize) {
-    uint32_t sz = CalcBufSize(bufSize);
-    if (sz == UINT32_MAX) {
+    uint32_t pos = CalcBufSize(bufSize);
+    if (pos == UINT32_MAX) {
       FreeLargeBlock(pBuf, bufSize);
     } else {
-      CachePool *pool = GetInstance();
-      pool->_localMap.Push(pBuf, (uint16_t)sz);
+      _localMap.Push(pBuf, pos);
     }
   }
 #endif // CACHE_TRACE
@@ -141,26 +143,24 @@ public:
   CachePool();
   ~CachePool();
 
-protected:
   static CachePool *GetInstance() { return _gCachePool; }
   static Buffer *AllocateBuffer(uint32_t eleLen);
   static void RecycleBuffer(Buffer *buf);
-  static uint64_t GetMemCacheUsed() { return _gCachePool->_szMemUsed; }
-  static void BatchApply(uint32_t bufSize, vector<Byte *> &vct);
-  static void BatchRelease(uint32_t bufSize, vector<Byte *> &vct,
+  static void BatchApply(uint32_t pos, vector<Byte *> &vct);
+  static void BatchRelease(uint32_t pos, vector<Byte *> &vct,
                            bool bAll = false);
 
   static inline uint32_t CalcBufSize(uint32_t sz) {
     if (sz <= 64)
-      return ((sz + 15) & 0xFFF0);
+      return (sz - 1) >> 4;
     else if (sz <= 256)
-      return ((sz + 63) & 0xFFC0);
+      return ((sz - 1) >> 5) + 2;
     else if (sz <= 1024)
-      return ((sz + 255) & 0xFF00);
+      return ((sz - 1) >> 7) + 8;
     else if (sz <= 4096)
-      return ((sz + 1023) & 0xFC00);
+      return ((sz - 1) >> 9) + 14;
     else if (sz <= 16384)
-      return ((sz + 4095) & 0xF000);
+      return ((sz - 1) >> 11) + 20;
     else
       return UINT32_MAX;
   }
@@ -171,24 +171,25 @@ protected:
 
 protected:
   static thread_local LocalMap _localMap;
+  // All LocalMaps that the threads are running
+  static unordered_set<LocalMap *> _setLocalMap;
   static CachePool *_gCachePool;
 
   /**The totla memory size that has been allocated.*/
-  uint64_t _szMemUsed;
+  int64_t _szMemAllocated{0};
+  // The actual used bu end user
+  int64_t _szMemused{0};
   /**To manage the buffer pools for different size*/
-  unordered_map<uint32_t, BufferPool *> _mapPool;
+  array<BufferPool *, 28> _arrayPool;
   /**Save the free block memory. It will reused next time.*/
-  queue<Buffer *> _queueFreeBuf;
+  vector<Buffer *> _vctFreeBuf;
+  /**memory cache block used in IResultSet*/
+  vector<Byte *> _vctFreeBlock;
+  /**Total number allocated result blocks, include free blocks in queue*/
+  uint64_t _totalBlockNum;
   /**Mutex for block memory,used to create IDataValue etc. One block can create
    * multi objects.*/
   SpinMutex _spinMutex;
-
-  /**memory cache block used in IResultSet*/
-  queue<Byte *> _queueFreeBlock;
-  /**Total number allocated result blocks, include free blocks in queue*/
-  uint64_t _totalBlockNum;
-  /**Mutex for block*/
-  SpinMutex _blockMutex;
 
   friend class BufferPool;
   friend class LocalMap;

@@ -1,6 +1,7 @@
 #include "../../src/table/TableTaskMgr.h"
 #include "../../src/binlog/LogTask.h"
 #include "../../src/core/BranchPage.h"
+#include "../../src/core/BranchRecord.h"
 #include "../../src/core/LeafPage.h"
 #include "../../src/dataType/DataValueFactory.h"
 #include "../../src/expr/ExprStatement.h"
@@ -138,14 +139,16 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   ExprInsert *exprInsert = CreateInsertExpression(db, TABLE_NAME, 1500);
   PhysTable *table = exprInsert->_physTable;
 
-  ThreadPool::CreateMainPool("test", 1, 8);
-  ThreadPool *tpool = ThreadPool::GetMainPool();
+  ThreadPool *tpool = ThreadPool::CreateMainPool("test", 1, 8);
   tpool->SetStop();
+  while (tpool->GetAliveThreadCount() != 0) {
+    this_thread::yield();
+  }
   LogTask::InitLogTask(tpool, "./binlog/");
 
   SessionPool::ClearPool();
-  SessionPool::InitPool(1, 1, 0, 1, ThreadPool::GetMainPool());
-  TableTaskMgr *tmgr = new TableTaskMgr(ThreadPool::GetMainPool(), table, 1);
+  SessionPool::InitPool(1, 1, 0, 1, tpool);
+  TableTaskMgr *tmgr = new TableTaskMgr(tpool, table, 1);
   table->SetTableTaskMgr(tmgr);
   MVector<IndexProp> &vctProp = table->GetVectorIndex();
 
@@ -158,8 +161,8 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   Session *session = new Session(sid);
   sGroup._mapSession.emplace(sid, session);
   StmtResult stmtResult;
-  Statement *stmt = new InsertStatement(stmtId++, TXID_NULL, exprInsert,
-                                        move(vctRow), &stmtResult);
+  InsertStatement *stmt = new InsertStatement(stmtId++, TXID_NULL, exprInsert,
+                                              move(vctRow), &stmtResult);
   session->_lstWaittingStmt.push_back(stmt);
   session->Exec();
 
@@ -289,11 +292,16 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   for (size_t i = 0; i < vctTasks[0].size(); i++) {
     IndexTask *task = vctTasks[0][i];
     s = task->Run();
+    // assert(task->GetTaskPos() == i);
     BOOST_TEST(s == TaskStatus::INTERVAL);
 
     IndexRange &range = tree->GetVctRange()[i];
+
     BOOST_TEST(range._queueAction.size() == 0);
     BOOST_TEST(range._pageMap.size() == 0);
+    // if (range._queueAction.size() > 0) {
+    //   LOG_INFO << (*range._queueAction.begin())->GetActionName();
+    // }
   }
 
   for (int i = 1; i < 3; i++) {
@@ -311,24 +319,67 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
              ResultStatus::FINISHED);
 
+  for (int i = 0; i < 3; i++) {
+    Byte level = 255;
+    RawRecord *rrPrev = nullptr;
+
+    MList<IndexPage *> lst;
+    lst.push_back(vctProp[i]._tree->GetRootPage());
+
+    while (lst.size() > 0) {
+      IndexPage *idxPage = lst.front();
+      lst.pop_front();
+
+      if (idxPage->GetPageLevel() != level) {
+        level = idxPage->GetPageLevel();
+        rrPrev = nullptr;
+      }
+
+      for (RawRecord *rr : idxPage->GetRecords()) {
+        if (rrPrev == nullptr) {
+          rrPrev = rr;
+        }
+
+        if (idxPage->GetPageType() == PageType::BRANCH_PAGE) {
+          BranchRecord *br = (BranchRecord *)rr;
+          lst.push_back(br->GetChildPage());
+          if (br->CompareTo(*rrPrev) < 0) {
+            BOOST_TEST(br->CompareTo(*rrPrev) >= 0);
+          }
+        } else {
+          LeafRecord *lr = (LeafRecord *)rr;
+          if (lr->CompareTo(*(LeafRecord *)rrPrev) < 0) {
+            BOOST_TEST(lr->CompareTo(*(LeafRecord *)rrPrev) >= 0);
+          }
+        }
+
+        rrPrev = rr;
+      }
+    }
+  }
+
   for (MVector<IndexTask *> &vctTask : vctTasks) {
     for (IndexTask *task : vctTask) {
       task->SetStatus(TaskStatus::FINISHED, false);
     }
   }
-  table->CloseIndex();
-  delete table;
 
-  MVectorPtr<SessionTask *> &vctSessTask = SessionPool::GetVctSessionTask();
+  vector<SessionTask *> &vctSessTask = SessionPool::GetVctSessionTask();
   for (SessionTask *task : vctSessTask) {
     task->SetStatus(TaskStatus::FINISHED, false);
   }
 
+  table->CloseIndex();
+  delete table;
+  delete exprInsert;
+
   CachePagePool::ClearPool();
   DatabaseManager::ClearDB();
   ThreadPool::SetThreadId(tidOld);
+  ThreadPool::CloseMainPool(true);
   FilePagePool::Stop();
   SessionPool::ClearPool();
+  LogTask::Clear();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

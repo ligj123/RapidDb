@@ -83,4 +83,11 @@ void LogTask::WriteBuff(int64_t dataLen, bool bTranStart) {
   _logStream.write((char *)_buff, dataLen);
   _fileLength += dataLen;
 }
+
+void LogTask::Clear() {
+  MList<Transaction *> lst;
+  _queueTran->Pop(lst);
+  _logTask->SetStatus(TaskStatus::FINISHED, true);
+  CloseTask();
+}
 } // namespace storage

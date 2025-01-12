@@ -19,6 +19,28 @@
 #include <sstream>
 #include <string>
 
+#ifdef CACHE_TRACE
+#define LOG_DEBUG                                                              \
+  BOOST_LOG_SEV(Logger::slg_, DEBUG)                                           \
+      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
+      << __LINE__ << "] "
+#define LOG_INFO                                                               \
+  BOOST_LOG_SEV(Logger::slg_, INFO)                                            \
+      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
+      << __LINE__ << "] "
+#define LOG_WARN                                                               \
+  BOOST_LOG_SEV(Logger::slg_, WARN)                                            \
+      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
+      << __LINE__ << "] "
+#define LOG_ERROR                                                              \
+  BOOST_LOG_SEV(Logger::slg_, ERROR)                                           \
+      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
+      << __LINE__ << "] "
+#define LOG_FATAL                                                              \
+  BOOST_LOG_SEV(Logger::slg_, FATAL)                                           \
+      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
+      << __LINE__ << "] "
+#else
 #define LOG_DEBUG                                                              \
   BOOST_LOG_SEV(Logger::slg_, DEBUG)                                           \
       << "<" << ThreadPool::GetThreadName() << ">  "
@@ -34,6 +56,7 @@
 #define LOG_FATAL                                                              \
   BOOST_LOG_SEV(Logger::slg_, FATAL)                                           \
       << "<" << ThreadPool::GetThreadName() << ">  "
+#endif
 
 namespace storage {
 namespace logging = boost::log;

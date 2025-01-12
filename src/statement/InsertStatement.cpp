@@ -59,7 +59,7 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
       _status = StmtStatus::Logging;
       LogTask::AddTransaction(ThreadPool::GetThreadId(), &(sess->_transaction));
     } else {
-      _stmtResult->_rowNum = _recorcNum;
+      _stmtResult->_rowNum = _recordNum;
       _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Executed;
     }
@@ -71,7 +71,7 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
       }
 
       sess->_transaction.SetTranStatus(TranStatus::FINISHED);
-      _stmtResult->_rowNum = _recorcNum;
+      _stmtResult->_rowNum = _recordNum;
       _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Finished;
     }
@@ -140,7 +140,7 @@ bool InsertStatement::InitRecord() {
     }
   }
 
-  _recorcNum = (uint32_t)_lstRecord.size();
+  _recordNum = (uint32_t)_lstRecord.size();
   _status = StmtStatus::Executing;
   return false;
 }

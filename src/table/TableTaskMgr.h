@@ -84,6 +84,8 @@ public:
 
   TaskStatus Run() override;
 
+  uint16_t GetTaskPos() { return _taskPos; }
+
 protected:
   TableTaskMgr *_taskMgr;
   uint16_t _indexPos;

@@ -50,6 +50,7 @@ TaskStatus PrevPageAction::Exec() {
     return TaskStatus::RUNNING;
   }
 
+  assert(_pageId == _page->GetPageId());
   _page->SetPrevPageId(_prevPageId);
   _page->AddWriteQueue(_indexTree->GetVctRange()[_rangePos]._pageMap);
   return TaskStatus::FINISHED;
@@ -108,6 +109,8 @@ TaskStatus StatementAction::Exec() {
 }
 
 int StatementAction::JudgeRange() { return _stmt->CalcIndexRanges(_indexTree); }
+
+StmtInsertAction::~StmtInsertAction() { delete _stmtRecord; }
 
 TaskStatus StmtInsertAction::Exec() {
   if (_stmtRecord->_stmt->IsStmtFailed()) {
@@ -197,6 +200,8 @@ int StmtInsertAction::JudgeRange() {
   _rangePos = _indexTree->CalcIndexRange(_stmtRecord->_priKey);
   return _rangePos;
 };
+
+StmtPriKeyAction::~StmtPriKeyAction() { delete _stmtPriKey; }
 
 TaskStatus StmtPriKeyAction::Exec() { return TaskStatus::UNINIT; };
 

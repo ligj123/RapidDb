@@ -135,6 +135,8 @@ public:
     _bRefered = b;
   }
 
+  MVector<RawRecord *> &GetRecords() { return _vctRecord; }
+
 protected:
   // Parent page ID
   PageID _parentPageId{0};

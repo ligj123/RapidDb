@@ -16,13 +16,18 @@
 #endif // _MSVC_LANG
 
 namespace storage {
-CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
+uint16_t _arrSzMap[] = {16,   32,   48,   64,    96,    128,   160,
+                        192,  224,  256,  384,   512,   640,   768,
+                        896,  1024, 1536, 2048,  2560,  3072,  3584,
+                        4096, 6144, 8192, 10240, 12288, 14336, 16384};
+
+unordered_set<LocalMap *> CachePool::_setLocalMap;
 thread_local LocalMap CachePool::_localMap;
+CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
 
 #ifdef CACHE_TRACE
-vector<unordered_map<uint16_t, vector<Byte *>> *> CachePool::_vctMap;
-SpinMutex CachePool::_spinLocal;
-unordered_map<Byte *, string> CachePool::_mapApply;
+SpinMutex CachePool::_spinTrace;
+unordered_map<uint64_t, string> CachePool::_mapApply;
 bool CachePool::_bWriteLog{false};
 
 fstream CreateStream() {
@@ -51,158 +56,150 @@ fstream fs_stack(CreateStream());
 #endif
 
 LocalMap::LocalMap() {
-#ifdef CACHE_TRACE
-  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
-  CachePool::_vctMap.push_back(&_map);
-#endif
+  for (int i = 0; i < 28; i++) {
+    _arrVctByte[i].reserve(_arrSzMap[i] >= 512 ? 32 : 16384 / _arrSzMap[i]);
+  }
+
+  unique_lock<SpinMutex> lock(CachePool::GetInstance()->_spinMutex);
+  CachePool::_setLocalMap.insert(this);
 }
 
 LocalMap::~LocalMap() {
-  for (auto iter = _map.begin(); iter != _map.end(); iter++) {
-    CachePool::BatchRelease(iter->first, iter->second, true);
+  for (int i = 0; i < 28; i++) {
+    CachePool::BatchRelease(i, _arrVctByte[i], true);
   }
 
-#ifdef CACHE_TRACE
-  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
-  for (auto iter = CachePool::_vctMap.begin(); iter != CachePool::_vctMap.end();
-       iter++) {
-    if (*iter == &_map) {
-      CachePool::_vctMap.erase(iter);
-      return;
-    }
-  }
-#endif
+  unique_lock<SpinMutex> lock(CachePool::GetInstance()->_spinMutex);
+  size_t rt = CachePool::_setLocalMap.erase(this);
+  assert(rt == 1);
 
+  CachePool::GetInstance()->_szMemused += _memStat;
   bStoped = true;
 }
 
-void LocalMap::Push(Byte *pBuf, uint16_t eleSize) {
-  assert(eleSize % 16 == 0);
-  if (bStoped)
-    return;
+void LocalMap::Push(Byte *pBuf, uint16_t pos) {
+  assert(pos >= 0 && pos < 28);
+  // assert(!bStoped);
 
-  auto iter = _map.find(eleSize);
-  if (iter == _map.end()) {
-    iter = _map.insert({eleSize, vector<Byte *>()}).first;
-    int num = (eleSize >= 512 ? 32 : 16384 / eleSize);
-    iter->second.reserve(num);
+  vector<Byte *> &vctByte = _arrVctByte[pos];
+  if (vctByte.size() >= vctByte.capacity()) {
+    CachePool::BatchRelease(pos, vctByte, false);
   }
 
-  if (iter->second.size() >= iter->second.capacity()) {
-    CachePool::BatchRelease(iter->first, iter->second, false);
-  }
-
-  iter->second.push_back(pBuf);
+  vctByte.push_back(pBuf);
+  _memStat -= _arrSzMap[pos];
 }
 
-Byte *LocalMap::Pop(uint16_t eleSize) {
-  assert(eleSize % 16 == 0);
+Byte *LocalMap::Pop(uint16_t pos) {
+  assert(pos >= 0 && pos < 28);
 
-  auto iter = _map.find(eleSize);
-  if (iter == _map.end()) {
-    iter = _map.insert({eleSize, vector<Byte *>()}).first;
-    int num = (eleSize >= 512 ? 32 : 16384 / eleSize);
-    iter->second.reserve(num);
+  vector<Byte *> &vctByte = _arrVctByte[pos];
+  if (vctByte.size() == 0) {
+    CachePool::BatchApply(pos, vctByte);
   }
 
-  if (iter->second.size() == 0) {
-    CachePool::BatchApply(eleSize, iter->second);
-  }
-
-  Byte *buf = iter->second[iter->second.size() - 1];
-  iter->second.erase(iter->second.end() - 1);
+  Byte *buf = vctByte.back();
+  vctByte.pop_back();
+  _memStat += _arrSzMap[pos];
   return buf;
 }
 
-void CachePool::BatchApply(uint32_t bufSize, vector<Byte *> &vct) {
-  CachePool *pool = GetInstance();
-  auto iter = pool->_mapPool.find(bufSize);
-  if (iter == pool->_mapPool.end()) {
-    std::unique_lock<SpinMutex> lock(pool->_spinMutex);
-    iter = pool->_mapPool.find(bufSize);
-    if (iter == pool->_mapPool.end()) {
-      iter = pool->_mapPool.insert({bufSize, new BufferPool(bufSize)}).first;
-    }
+CachePool::CachePool() {
+  for (int i = 0; i < 28; i++) {
+    _arrayPool[i] = new BufferPool(_arrSzMap[i]);
   }
 
-  iter->second->Apply(vct);
+  _vctFreeBuf.reserve(Configure::GetMaxFreeBufferCount());
+  _vctFreeBlock.reserve(Configure::GetMaxFreeResultBlock());
 }
 
-void CachePool::BatchRelease(uint32_t bufSize, vector<Byte *> &vct, bool bAll) {
-  CachePool *pool = GetInstance();
-  auto iter = pool->_mapPool.find(bufSize);
-  assert(iter != pool->_mapPool.end());
+CachePool::~CachePool() {
+  for (int i = 0; i < 28; i++) {
+    delete _arrayPool[i];
+  }
 
-  iter->second->Release(vct, bAll);
+  for (Buffer *buff : _vctFreeBuf) {
+    delete buff;
+  }
+
+  for (Byte *bys : _vctFreeBlock) {
+    delete[] bys;
+  }
+}
+
+int64_t CachePool::GetMemoryAllocated() {
+  CachePool *pool = GetInstance();
+  unique_lock<SpinMutex> lock(pool->_spinMutex);
+  return pool->_szMemAllocated +
+         pool->_totalBlockNum * Configure::GetResultPageSize();
+}
+
+int64_t CachePool::GetMemoryUsed() {
+  CachePool *pool = GetInstance();
+  unique_lock<SpinMutex> lock(pool->_spinMutex);
+  int64_t total =
+      pool->_szMemused + pool->_totalBlockNum * Configure::GetResultPageSize();
+
+  for (LocalMap *localMap : _setLocalMap) {
+    total += localMap->GetMemStat();
+  }
+
+  return total;
+}
+void CachePool::BatchApply(uint32_t pos, vector<Byte *> &vct) {
+  CachePool *pool = GetInstance();
+  pool->_arrayPool[pos]->Apply(vct);
+}
+
+void CachePool::BatchRelease(uint32_t pos, vector<Byte *> &vct, bool bAll) {
+  CachePool *pool = GetInstance();
+  pool->_arrayPool[pos]->Release(vct, bAll);
 }
 
 Buffer *CachePool::AllocateBuffer(uint32_t eleLen) {
   CachePool *pool = GetInstance();
   std::unique_lock<SpinMutex> lock(pool->_spinMutex);
 
-  if (pool->_queueFreeBuf.size() > 0) {
-    Buffer *buf = GetInstance()->_queueFreeBuf.front();
+  if (pool->_vctFreeBuf.size() > 0) {
+    Buffer *buf = pool->_vctFreeBuf.back();
+    pool->_vctFreeBuf.pop_back();
     buf->Init(eleLen);
-    GetInstance()->_queueFreeBuf.pop();
     return buf;
+  } else {
+    pool->_szMemAllocated += Configure::GetCacheBlockSize();
+    return new Buffer(eleLen);
   }
-
-  pool->_szMemUsed += Configure::GetCacheBlockSize();
-  return new Buffer(eleLen);
 }
 
 void CachePool::RecycleBuffer(Buffer *buf) {
   CachePool *pool = GetInstance();
   std::unique_lock<SpinMutex> lock(pool->_spinMutex);
-  if (pool->_queueFreeBuf.size() > Configure::GetMaxFreeBufferCount()) {
+  if (pool->_vctFreeBuf.size() > Configure::GetMaxFreeBufferCount()) {
     delete buf;
-    pool->_szMemUsed -= Configure::GetCacheBlockSize();
+    pool->_szMemAllocated -= Configure::GetCacheBlockSize();
   } else {
-    pool->_queueFreeBuf.push(buf);
-  }
-}
-
-CachePool::CachePool() : _szMemUsed(0), _mapPool(500) {}
-
-CachePool::~CachePool() {
-  while (_queueFreeBuf.size() > 0) {
-    free(_queueFreeBuf.front());
-    _queueFreeBuf.pop();
+    pool->_vctFreeBuf.push_back(buf);
   }
 }
 
 #ifdef CACHE_TRACE
-size_t CachePool::GetMemoryUsed() {
-  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
-  for (auto mm : _vctMap) {
-    for (auto iter = mm->begin(); iter != mm->end(); iter++) {
-      BatchRelease(iter->first, iter->second, true);
-    }
-  }
-
-  auto map = _gCachePool->_mapPool;
-  size_t sz = 0;
-  for (auto iter = map.begin(); iter != map.end(); iter++) {
-    sz += iter->second->UsedMem();
-  }
-  return sz;
-}
-
 Byte *CachePool::ApplyBlock() {
   CachePool *pool = GetInstance();
-  unique_lock<SpinMutex> lock(pool->_blockMutex);
+  unique_lock<SpinMutex> lock(pool->_spinMutex);
   Byte *bys = nullptr;
-  if (pool->_queueFreeBlock.size() > 0) {
-    bys = pool->_queueFreeBlock.front();
-    pool->_queueFreeBlock.pop();
+  if (pool->_vctFreeBlock.size() > 0) {
+    bys = pool->_vctFreeBlock.back();
+    pool->_vctFreeBlock.pop_back();
   } else {
     bys = new Byte[Configure::GetResultPageSize()];
     pool->_totalBlockNum++;
   }
 
+  lock.unlock();
+
   string str = StackTrace();
-  unique_lock<SpinMutex> lock2(CachePool::_spinLocal);
-  _mapApply.emplace(bys, "ApplyBlock\n" + str);
+  unique_lock<SpinMutex> lock2(_spinTrace);
+  _mapApply.emplace((uint64_t)bys, "ApplyBlock\n" + str);
   if (_bWriteLog) {
     fs_stack << (void *)bys << "\tApplyBlock\n" << str;
   }
@@ -211,42 +208,42 @@ Byte *CachePool::ApplyBlock() {
 
 void CachePool::ReleaseBlock(Byte *bys) {
   CachePool *pool = GetInstance();
-  unique_lock<SpinMutex> lock(pool->_blockMutex);
-  if (pool->_queueFreeBlock.size() > Configure::GetMaxFreeResultBlock()) {
+  unique_lock<SpinMutex> lock(pool->_spinMutex);
+  if (pool->_vctFreeBlock.size() > Configure::GetMaxFreeResultBlock()) {
     pool->_totalBlockNum--;
     delete bys;
   } else {
-    pool->_queueFreeBlock.push(bys);
+    pool->_vctFreeBlock.push_back(bys);
   }
 
-  unique_lock<SpinMutex> lock2(CachePool::_spinLocal);
-  size_t rt = _mapApply.erase(bys);
+  lock.unlock();
+  unique_lock<SpinMutex> lock2(_spinTrace);
+  size_t rt = _mapApply.erase((uint64_t)bys);
   assert(rt == 1);
   if (_bWriteLog) {
     fs_stack << (void *)bys << "\tReleaseBlock\n" << StackTrace();
   }
 }
-/**Apply a menory block for an index page*/
+
+/**Apply a memory block for an index page*/
 Byte *CachePool::ApplyPage() {
-  CachePool *pool = GetInstance();
-  Byte *bys = pool->_localMap.Pop((uint16_t)Configure::GetIndexPageSize());
+  Byte *bys = _localMap.Pop(PAGE_POS);
 
   string str = StackTrace();
-  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
-  _mapApply.emplace(bys, "ApplyPage\n" + str);
+  unique_lock<SpinMutex> lock(_spinTrace);
+  _mapApply.emplace((uint64_t)bys, "ApplyPage\n" + str);
   if (_bWriteLog) {
-    fs_stack << (void *)bys << "\tApplyBlock\n" << str;
+    fs_stack << (void *)bys << "\tApplyPage\n" << str;
   }
   return bys;
 }
 
 /**Release a memory block for an index page*/
 void CachePool::ReleasePage(Byte *page) {
-  CachePool *pool = GetInstance();
-  pool->_localMap.Push(page, (uint16_t)Configure::GetIndexPageSize());
+  _localMap.Push(page, PAGE_POS);
 
-  unique_lock<SpinMutex> lock(CachePool::_spinLocal);
-  size_t rt = _mapApply.erase(page);
+  unique_lock<SpinMutex> lock(_spinTrace);
+  size_t rt = _mapApply.erase((uint64_t)page);
   assert(rt == 1);
   if (_bWriteLog) {
     fs_stack << (void *)page << "\tRelease Page\n" << StackTrace();
@@ -256,41 +253,42 @@ void CachePool::ReleasePage(Byte *page) {
 /**Apply a memory block from cache*/
 Byte *CachePool::Apply(uint32_t bufSize) {
   assert(bufSize > 0);
-  uint32_t sz = CalcBufSize(bufSize);
-  if (sz == UINT32_MAX) {
+  uint32_t pos = CalcBufSize(bufSize);
+  if (pos == UINT32_MAX) {
     return MallocLargeBlock(bufSize);
   } else {
-    CachePool *pool = GetInstance();
-    Byte *bys = pool->_localMap.Pop(sz);
+    Byte *bys = _localMap.Pop(pos);
 
     string str = StackTrace();
-    unique_lock<SpinMutex> lock(CachePool::_spinLocal);
-    _mapApply.emplace(bys, "Apply1 size: " + to_string(bufSize) +
-                               "  actual size: " + to_string(sz) + "\n" + str);
+    unique_lock<SpinMutex> lock(_spinTrace);
+    _mapApply.emplace((uint64_t)bys,
+                      "Apply1 size: " + to_string(bufSize) + "  actual size: " +
+                          to_string(_arrSzMap[pos]) + "\n" + str);
     if (_bWriteLog) {
       fs_stack << (void *)bys << "\tApply1 size: " << to_string(bufSize)
-               << "  actual size: " << to_string(sz) << "\n"
+               << "  actual size: " << to_string(_arrSzMap[pos]) << "\n"
                << str;
     }
+
     return bys;
   }
 }
 /**Apply a memory block from cache and set the actual allocated size*/
 Byte *CachePool::Apply(uint32_t bufSize, uint32_t &realSize) {
   assert(bufSize > 0);
-  realSize = CalcBufSize(bufSize);
-  if (realSize == UINT32_MAX) {
+  uint32_t pos = CalcBufSize(bufSize);
+  if (pos == UINT32_MAX) {
     realSize = bufSize;
     return MallocLargeBlock(bufSize);
   } else {
-    CachePool *pool = GetInstance();
-    Byte *bys = pool->_localMap.Pop((uint16_t)realSize);
+    Byte *bys = _localMap.Pop(pos);
+    realSize = _arrSzMap[pos];
 
     string str = StackTrace();
-    unique_lock<SpinMutex> lock(CachePool::_spinLocal);
-    _mapApply.emplace(bys, "Apply2:  size: " + to_string(bufSize) +
-                               "  actual size: " + to_string(realSize) + "\n" +
-                               str);
+    unique_lock<SpinMutex> lock(_spinTrace);
+    _mapApply.emplace((uint64_t)bys,
+                      "Apply2:  size: " + to_string(bufSize) +
+                          "  actual size: " + to_string(realSize) + "\n" + str);
     if (_bWriteLog) {
       fs_stack << (void *)bys << "\tApply2 size: " << to_string(bufSize)
                << "  actual size: " << to_string(realSize) << "\n"
@@ -301,18 +299,19 @@ Byte *CachePool::Apply(uint32_t bufSize, uint32_t &realSize) {
 }
 /**Release a memory block with unfixed size*/
 void CachePool::Release(Byte *pBuf, uint32_t bufSize) {
-  uint32_t sz = CalcBufSize(bufSize);
-  if (sz == UINT32_MAX) {
+  uint32_t pos = CalcBufSize(bufSize);
+  if (pos == UINT32_MAX) {
     FreeLargeBlock(pBuf, bufSize);
   } else {
-    CachePool *pool = GetInstance();
-    pool->_localMap.Push(pBuf, (uint16_t)sz);
+    _localMap.Push(pBuf, pos);
 
-    unique_lock<SpinMutex> lock(CachePool::_spinLocal);
-    size_t rt = _mapApply.erase(pBuf);
+    unique_lock<SpinMutex> lock(_spinTrace);
+    size_t rt = _mapApply.erase((uint64_t)pBuf);
     assert(rt == 1);
     if (_bWriteLog) {
-      fs_stack << (void *)pBuf << "\tRelease Buffer\n" << StackTrace();
+      fs_stack << (void *)pBuf << "\tRelease size: " << to_string(bufSize)
+               << "\n"
+               << StackTrace();
     }
   }
 }
