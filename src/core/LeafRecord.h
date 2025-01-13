@@ -166,10 +166,10 @@ public:
   // Constructor for primary index LeafRecord, only for insert
   LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
              const VectorDataValue &vctVal, uint64_t recStamp,
-             Statement *stmt = nullptr, bool block = false);
+             Statement *stmt = nullptr);
   LeafRecord(IndexTree *idxTree, const RawKey &priKey,
              const VectorDataValue &vctVal, uint64_t recStamp,
-             Statement *stmt = nullptr, bool block = false);
+             Statement *stmt = nullptr);
   LeafRecord(LeafRecord &&src)
       : RawRecord(move(src)), _recLock(src._recLock),
         _overflowPage(src._overflowPage) {
@@ -200,7 +200,7 @@ public:
 
   LeafRecord *UpdateRecord(IndexTree *idxTree, const VectorDataValue &newVal,
                            uint64_t recStamp, Statement *stmt, ActionType type,
-                           bool gapLock, bool block);
+                           bool gapLock);
 
   ReadResult ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
                            VectorDataValue &vct, IndexTree *idxTree,
@@ -208,7 +208,7 @@ public:
                            ActionType atype = ActionType::NO_ACTION,
                            bool bGapLock = false);
   bool LoadOverflowPage(IndexTree *idxTree, bool bsync = false);
-  ReleaseResult ReleaseLock(IndexTree *idxTree, bool block);
+  ReleaseResult ReleaseLock(IndexTree *idxTree);
   uint16_t GetValueLength() const override;
   uint16_t GetDataLength() const override {
     assert(_indexType == IndexType::NON_UNIQUE);

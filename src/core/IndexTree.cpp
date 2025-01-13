@@ -42,10 +42,11 @@ IndexTree::~IndexTree() {
   delete _garbageOwner;
   _garbageOwner = nullptr;
 
-  if (_headPage->SaveToBuffer()) {
-    FilePagePool::SyncWritePage(_headPage);
+  while (!_headPage->SaveToBuffer()) {
+    this_thread::yield();
   }
 
+  FilePagePool::SyncWritePage(_headPage);
   delete _headPage;
   _headPage = nullptr;
 
@@ -79,7 +80,7 @@ bool IndexTree::CreateIndexTree(const MString &tableName,
   _headPage->InitHeadPage(iType, vctVal);
 
   _garbageOwner = new GarbageOwner(this);
-  _rootPage = ApplyIndexPages(nullptr, 0, 1, false).at(0);
+  _rootPage = ApplyIndexPages(nullptr, 0, 1).at(0);
   _rootPage->SetBeginPage(true);
   _rootPage->SetEndPage(true);
   _rootPage->SetDirty();
@@ -193,8 +194,8 @@ void IndexTree::CloneValues(VectorDataValue &vct) {
 }
 
 MVector<IndexPage *> IndexTree::ApplyIndexPages(BranchPage *parentPage,
-                                                Byte pageLevel, uint32_t pnum,
-                                                bool block) {
+                                                Byte pageLevel, uint32_t pnum) {
+  bool block = (GetSplitPageLevel() != UINT8_MAX);
   MVector<PageID> vctId = _garbageOwner->ApplyIndexPages(pnum, block);
 
   if (vctId.size() < (size_t)pnum) {
@@ -231,7 +232,8 @@ MVector<IndexPage *> IndexTree::ApplyIndexPages(BranchPage *parentPage,
   return vctPage;
 }
 
-OverflowPage *IndexTree::ApplyOvfPage(uint16_t num, bool block) {
+OverflowPage *IndexTree::ApplyOvfPage(uint16_t num) {
+  bool block = (GetSplitPageLevel() != UINT8_MAX);
   PageID pid = _garbageOwner->ApplyOvfPage(num, block);
   if (pid == PAGE_NULL_POINTER) {
     pid = _headPage->GetAndIncTotalPageCount(num, block);
@@ -345,8 +347,7 @@ bool IndexTree::SearchPage(const LeafRecord &lr, IndexPage *&page) {
   }
 }
 
-void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
-                                   Byte lockPageLevel) {
+void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap) {
   for (auto iter = pageMap.begin(); iter != pageMap.end(); iter++) {
     if (iter->second->GetPageType() == PageType::LEAF_PAGE ||
         iter->second->GetPageType() == PageType::BRANCH_PAGE) {
@@ -358,11 +359,17 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
   }
 
   for (auto iter = pageMap.begin(); iter != pageMap.end();) {
+    bool block = false;
     bool move = true;
     switch (iter->second->GetPageType()) {
     case PageType::BRANCH_PAGE: {
       BranchPage *page = (BranchPage *)iter->second;
       assert(!page->IsOverlength());
+      if (GetSplitPageLevel() < page->GetPageLevel()) {
+        block = true;
+        page->Lock();
+      }
+
       if (page->IsDirty()) {
         bool b = page->SaveRecords();
         assert(b);
@@ -384,6 +391,7 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
     case PageType::HEAD_PAGE: {
       HeadPage *page = (HeadPage *)iter->second;
       page->SaveToBuffer();
+      move = false;
       break;
     }
     default:
@@ -391,6 +399,10 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
     }
 
     FilePagePool::AddWritePage(ThreadPool::GetThreadId(), iter->second, false);
+    if (block) {
+      iter->second->Unlock();
+    }
+
     if (move) {
       iter->second->ClearWriteQueue();
       iter = pageMap.erase(iter);

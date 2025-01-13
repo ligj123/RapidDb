@@ -136,6 +136,8 @@ public:
       MVector<IndexRange> &vctRange =
           _table->GetVectorIndex()[i]._tree->GetVctRange();
       vctRange.resize(1);
+      vctRange[0]._pageMap.emplace(UINT64_MAX,
+                                   vctIndex[i]._tree->GetHeadPage());
 
       MVector<IndexTask *> vct;
       IndexTask *task = new IndexTask(pool, this, i, 0);

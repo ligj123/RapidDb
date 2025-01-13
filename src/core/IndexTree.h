@@ -83,12 +83,8 @@ public:
    * @brief To split the overlength page and save the contents into page buffer,
    * then push the pages into write queue
    * @param pageMap The map of waitting pages
-   * @param lockPageLevel The page level that the BranchRecords in those pages
-   * will be as borders that split the statements into different index task. If
-   * =0xFF, means only one index task to run.
    */
-  static void SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
-                                 Byte lockPageLevel = UINT8_MAX);
+  void SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap);
 
 public:
   IndexTree() {}
@@ -108,20 +104,16 @@ public:
    * @param parentPage The parent page, if nullptr, means it is root page.
    * @param pageLevel which level for this page
    * @param pnum The number of pages applied this time.
-   * @param block If add lock when apply pages. True if there have multi thread
-   * tasks for this index.
    */
   MVector<IndexPage *> ApplyIndexPages(BranchPage *parentPage, Byte pageLevel,
-                                       uint32_t pnum, bool block);
+                                       uint32_t pnum);
   /**
    * @brief Apply a series of pages for overflow pages. It will search Garbage
    * Pages first. If no suitable, it will apply new page id.
    * @param num The number of pages
-   * @param block If add lock when apply pages. True if there have multi thread
-   * tasks for this index.
    * @return The created OverflowPage
    */
-  OverflowPage *ApplyOvfPage(uint16_t num, bool block);
+  OverflowPage *ApplyOvfPage(uint16_t num);
 
   IndexPage *GetPage(PageID pageId, PageType type,
                      BranchPage *parentPage = nullptr, bool bSyncRead = false);
@@ -135,8 +127,8 @@ public:
    *                     tasks.
    *               False: There only has one thread task for this index tree.
    */
-  inline void RecyclePageId(PageID firstId, uint16_t num, bool bBlock) {
-    _garbageOwner->RecyclePage(firstId, num, bBlock);
+  inline void RecyclePageId(PageID firstId, uint16_t num) {
+    _garbageOwner->RecyclePage(firstId, num, GetSplitPageLevel() != UINT8_MAX);
   }
 
   /** @brief Search B+ tree from an index page according record's key, util find
@@ -206,7 +198,8 @@ public:
   inline FILE_HANDLE GetFileHandle() { return _fileHandle->FileDescriptor(); }
   inline IndexType GetIndexType() { return _indexType; }
   inline IndexPage *GetRootPage() { return _rootPage; }
-  inline void UpdateRootPage(IndexPage *root, bool block) {
+  inline void UpdateRootPage(IndexPage *root) {
+    bool block = (GetSplitPageLevel() != UINT8_MAX);
     if (block) {
       _spinMutex.lock();
     }

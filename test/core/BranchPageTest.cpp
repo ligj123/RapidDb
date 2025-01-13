@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
                              FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
                              IndexType::PRIMARY);
   BranchPage *bp =
-      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
+      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1)[0];
 
   vctKey.push_back(new DataValueLong(1LL));
   vctVal.push_back(new DataValueLong(1LL));
@@ -42,8 +42,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr =
-        new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(IndexType::PRIMARY, lr, i + 100);
     bp->InsertRecord(rr, i);
     delete lr;
@@ -54,7 +53,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 
   *((DataValueLong *)vctKey[0]) = 0;
   *((DataValueLong *)vctVal[0]) = 100;
-  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
   BranchRecord *rr = new BranchRecord(IndexType::PRIMARY, lr, 100);
   BranchRecord &first = bp->GetRecord(0, true);
   BOOST_TEST(rr->CompareTo(first) == 0);
@@ -63,7 +62,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT - 1;
   *((DataValueLong *)vctVal[0]) = ROW_COUNT + 99;
-  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
   rr = new BranchRecord(IndexType::PRIMARY, lr, ROW_COUNT + 99);
   BranchRecord &last = bp->GetRecord(ROW_COUNT - 1, false);
   BOOST_TEST(rr->CompareTo(last) == 0);
@@ -72,7 +71,7 @@ BOOST_AUTO_TEST_CASE(BranchPage_test) {
 
   *((DataValueLong *)vctKey[0]) = ROW_COUNT / 2;
   *((DataValueLong *)vctVal[0]) = ROW_COUNT / 2 + 100;
-  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
+  lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
   rr = new BranchRecord(IndexType::PRIMARY, lr, ROW_COUNT / 2 + 100);
   BranchRecord &mid = bp->GetRecord(ROW_COUNT / 2, false);
   BOOST_TEST(rr->CompareTo(mid) == 0);
@@ -108,15 +107,14 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
                              FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
                              IndexType::PRIMARY);
   BranchPage *bp =
-      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
+      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1)[0];
 
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr =
-        new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(IndexType::PRIMARY, lr, i);
     bp->InsertRecord(rr, i);
     delete lr;
@@ -128,8 +126,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSave_test) {
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr =
-        new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(IndexType::PRIMARY, lr, i);
     uint32_t index = bp->SearchRecord(*rr);
     BranchRecord &br = bp->GetRecord(index, false);
@@ -166,15 +163,14 @@ BOOST_AUTO_TEST_CASE(BranchPageDelete_test) {
                              FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
                              IndexType::PRIMARY);
   BranchPage *bp =
-      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
+      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1)[0];
 
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr =
-        new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(IndexType::PRIMARY, lr, i + 100);
     bp->InsertRecord(rr, i);
     delete lr;
@@ -241,7 +237,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
                              IndexType::PRIMARY);
 
   BranchPage *bp =
-      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
+      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1)[0];
 
   vctKey.push_back(dvKey->Clone(true));
   vctVal.push_back(dvVal->Clone(true));
@@ -250,8 +246,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSearchKey_test) {
     MString str = "testString" + ToMString(arLong[i]);
     *((DataValueVarChar *)vctKey[0]) = str.c_str();
     *((DataValueLong *)vctVal[0]) = i + 100;
-    LeafRecord *lr =
-        new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr, false);
+    LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, nullptr);
     BranchRecord *rr = new BranchRecord(IndexType::PRIMARY, lr, i + 100);
     bp->InsertRecord(rr, i);
     delete lr;
@@ -299,9 +294,8 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
   indexTree->GetRootPage()->SetDirty(false);
 
   MVector<IndexPage *> vctPage =
-      indexTree->ApplyIndexPages(nullptr, 0, ROW_COUNT, false);
-  BranchPage *bp =
-      (BranchPage *)indexTree->ApplyIndexPages(nullptr, 1, 1, false)[0];
+      indexTree->ApplyIndexPages(nullptr, 0, ROW_COUNT);
+  BranchPage *bp = (BranchPage *)indexTree->ApplyIndexPages(nullptr, 1, 1)[0];
   bp->SetBeginPage(true);
   bp->SetEndPage(true);
 
@@ -374,7 +368,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
   BOOST_TEST(count == ROW_COUNT);
 
   MVector<IndexPage *> vctPage2 =
-      indexTree->ApplyIndexPages(nullptr, 0, ROW_COUNT, false);
+      indexTree->ApplyIndexPages(nullptr, 0, ROW_COUNT);
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100LL;

@@ -12,7 +12,7 @@
 #define PRINT_FUNC(str) #str
 
 namespace storage {
-BOOST_AUTO_TEST_SUITE(SqlParserBasicTest)
+BOOST_AUTO_TEST_SUITE(SqlParserTest)
 
 BOOST_AUTO_TEST_CASE(ExprType_test) {
   LOG_INFO << "Run testcase: "

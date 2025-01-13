@@ -38,7 +38,7 @@ TaskStatus IndexTask::Run() {
   }
 
   if (TableTaskMgr::_dtLastWriteDisk > range._dtLastWriteDisk) {
-    IndexTree::SettleUpdatedPages(range._pageMap, idxTree->GetSplitPageLevel());
+    idxTree->SettleUpdatedPages(range._pageMap);
     range._dtLastWriteDisk = TableTaskMgr::_dtLastWriteDisk;
   }
 
@@ -214,6 +214,8 @@ TaskStatus IndexAdjustTask::Run() {
       if (iter->second->GetPageType() == PageType::OVERFLOW_PAGE) {
         FilePagePool::AddWritePage(ThreadPool::GetThreadId(), iter->second,
                                    false);
+      } else if (iter->second->GetPageType() == PageType::HEAD_PAGE) {
+        vctRange[0]._pageMap.insert(*iter);
       } else {
         assert(iter->second->GetPageType() == PageType::BRANCH_PAGE ||
                iter->second->GetPageType() == PageType::LEAF_PAGE);
@@ -229,10 +231,16 @@ TaskStatus IndexAdjustTask::Run() {
       vctRange[pos]._queueAction.push_back(*iter);
     }
   } else {
+    vctRange.resize(1);
+
     idxTree->SetSplitPageLevel(UINT8_MAX);
     IndexRange &range = vctRange[0];
     range._pageMap.swap(pageMap);
-    range._queueAction.swap(queueAction);
+
+    for (auto iter = queueAction.begin(); iter != queueAction.end(); iter++) {
+      (*iter)->SetRangePos(0);
+      vctRange[0]._queueAction.push_back(*iter);
+    }
     range._dtLastWriteDisk = TableTaskMgr::_dtLastWriteDisk;
   }
 

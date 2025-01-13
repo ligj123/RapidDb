@@ -39,12 +39,12 @@ BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
                              FILE_NAME.c_str(), vctKey, vctVal, GetFileId(),
                              IndexType::PRIMARY);
   BranchPage *bp =
-      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1, false)[0];
+      (BranchPage *)indexTree->ApplyIndexPages(nullptr, (Byte)1, 1)[0];
 
   StatementEx stmt(1, 1);
   vctKey.push_back(dvKey.Clone(true));
   vctVal.push_back(dvVal.Clone(true));
-  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, &stmt, false);
+  LeafRecord *lr = new LeafRecord(indexTree, vctKey, vctVal, 1, &stmt);
   BranchRecord *br =
       new BranchRecord(indexTree->GetHeadPage()->GetIndexType(), lr, 20, bp);
 
@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_PrimaryKey_test) {
   BOOST_TEST(br2->GetChildPage() == bp);
 
   lr->SubmitStatement(stmt, RecordStatus::ROLLBACKED);
-  lr->ReleaseLock(indexTree, false);
+  lr->ReleaseLock(indexTree);
   delete lr;
   delete br;
   delete br2;
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
   StatementEx stmt(1, 1);
   vctKey.push_back(dvKey.Clone(true));
   vctVal.push_back(dvVal.Clone(true));
-  LeafRecord *lr = new LeafRecord(indexPri, vctKey, vctVal, 1, &stmt, false);
+  LeafRecord *lr = new LeafRecord(indexPri, vctKey, vctVal, 1, &stmt);
 
   DataValueFixChar dvFix("1234567890abcdefghijklmn", 26, 100);
   VectorDataValue vctSec = {dvFix.Clone(), dvKey.Clone()};
@@ -140,11 +140,11 @@ BOOST_AUTO_TEST_CASE(BranchRecord_UniqueKey_test) {
   BOOST_TEST(br->GetTotalLength() == br2->GetTotalLength());
 
   lr->SubmitStatement(stmt, RecordStatus::COMMITED);
-  lr->ReleaseLock(indexPri, false);
+  lr->ReleaseLock(indexPri);
   delete lr;
 
   lrSec->SubmitStatement(stmt, RecordStatus::COMMITED);
-  lrSec->ReleaseLock(indexSec, false);
+  lrSec->ReleaseLock(indexSec);
   delete lrSec;
 
   delete br;
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   StatementEx stmt(1, 1);
   vctKey.push_back(dvKey.Clone(true));
   vctVal.push_back(dvVal.Clone(true));
-  LeafRecord *lr = new LeafRecord(indexPri, vctKey, vctVal, 1, &stmt, false);
+  LeafRecord *lr = new LeafRecord(indexPri, vctKey, vctVal, 1, &stmt);
 
   DataValueFixChar dvFix("1234567890abcdefghijklmn", 26, 100);
   VectorDataValue vctSec = {dvFix.Clone(), dvKey.Clone()};
@@ -216,11 +216,11 @@ BOOST_AUTO_TEST_CASE(BranchRecord_NonUniqueKey_test) {
   BOOST_TEST(br->GetTotalLength() == br2->GetTotalLength());
 
   lr->SubmitStatement(stmt, RecordStatus::COMMITED);
-  lr->ReleaseLock(indexPri, false);
+  lr->ReleaseLock(indexPri);
   delete lr;
 
   lrSec->SubmitStatement(stmt, RecordStatus::COMMITED);
-  lrSec->ReleaseLock(indexSec, false);
+  lrSec->ReleaseLock(indexSec);
   delete lrSec;
 
   delete br;

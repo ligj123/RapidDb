@@ -73,8 +73,7 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap) {
 
     if (lr->GetLock() != nullptr && lr->ReleaseLockAble()) {
       _bRecordUpdated = true;
-      ReleaseResult res = lr->ReleaseLock(
-          GetIndexTree(), _indexTree->GetSplitPageLevel() != UINT8_MAX);
+      ReleaseResult res = lr->ReleaseLock(GetIndexTree());
       if (res == ReleaseResult::DELETED) {
         assert(lr->_overflowPage == nullptr);
         delete lr;
@@ -217,7 +216,7 @@ void LeafPage::UpdateAction(LeafRecord *lr) {
     if (old->GetLock() != nullptr && old->ReleaseLockAble()) {
       int32_t commLen1, commLen2, tempLen1, tempLen2;
       old->GetLength(tempLen1, commLen1);
-      old->ReleaseLock(_indexTree, _indexTree->IsMultiRange());
+      old->ReleaseLock(_indexTree);
       old->GetLength(tempLen2, commLen2);
 
       _tempDataLength += tempLen2 - tempLen1;
@@ -414,7 +413,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
 
   if (_parentPageId == PAGE_NULL_POINTER) {
     _parentPage = (BranchPage *)_indexTree
-                      ->ApplyIndexPages(nullptr, GetPageLevel() + 1, 1, block)
+                      ->ApplyIndexPages(nullptr, GetPageLevel() + 1, 1)
                       .at(0);
     _parentPage->SetBeginPage(true);
     _parentPage->SetEndPage(true);
@@ -447,7 +446,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
   for (; pos < (int)_vctRecord.size(); pos++) {
     LeafRecord *lr = (LeafRecord *)_vctRecord[pos];
     if (lr->ReleaseLockAble()) {
-      ReleaseResult res = lr->ReleaseLock(GetIndexTree(), block);
+      ReleaseResult res = lr->ReleaseLock(GetIndexTree());
       if (res == ReleaseResult::DELETED) {
         assert(lr->_overflowPage == nullptr);
         _vctRecord.erase(_vctRecord.begin() + pos);
@@ -503,7 +502,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
   _recordNum = vctPos[0];
 
   MVector<IndexPage *> vctPage =
-      _indexTree->ApplyIndexPages(_parentPage, 0, vctPos.size() - 1, block);
+      _indexTree->ApplyIndexPages(_parentPage, 0, vctPos.size() - 1);
 
   for (size_t i = 0; i < vctPage.size(); i++) {
     LeafPage *newPage = (LeafPage *)vctPage[i];
@@ -585,11 +584,14 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
   if (IsRangEndPage()) {
     ((LeafPage *)vctPage[vctPage.size() - 1])->SetRangeEndPage(true);
     SetRangeEndPage(false);
+    size_t pos = _indexTree->CalcIndexRange(GetRecord(0));
+    _indexTree->GetVctRange()[pos]._endPage =
+        (LeafPage *)vctPage[vctPage.size() - 1];
+
     if (lastId != PAGE_NULL_POINTER) {
-      size_t pos = _indexTree->CalcIndexRange(GetRecord(0)) + 1;
       PrevPageAction *act = new PrevPageAction(
           _indexTree, pos, lastId, (vctPage[vctPage.size() - 1])->GetPageId());
-      _indexTree->AddActionFromPrev(pos, act);
+      _indexTree->AddActionFromPrev(pos + 1, act);
     }
   }
 
@@ -606,16 +608,12 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
   _parentPage->AddWriteQueue(pageMap);
 
   if (brParentOld != nullptr) {
-    _parentPage->Unlock();
-  }
-
-  if (brParentOld != nullptr) {
     delete brParentOld;
     if (_parentPage->NeedForceSplit()) {
       _parentPage->SplitPage(pageMap);
     }
   } else {
-    _indexTree->UpdateRootPage(_parentPage, block);
+    _indexTree->UpdateRootPage(_parentPage);
   }
 
   return true;

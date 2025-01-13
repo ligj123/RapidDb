@@ -1,5 +1,4 @@
 ﻿#include "BranchPage.h"
-#include "../pool/StoragePool.h"
 #include "BranchRecord.h"
 #include "IndexTree.h"
 #include "LeafPage.h"
@@ -241,7 +240,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
 
   if (_parentPageId == PAGE_NULL_POINTER) {
     _parentPage = (BranchPage *)_indexTree
-                      ->ApplyIndexPages(nullptr, GetPageLevel() + 1, 1, block)
+                      ->ApplyIndexPages(nullptr, GetPageLevel() + 1, 1)
                       .at(0);
     _parentPage->SetBeginPage(true);
     _parentPage->SetEndPage(true);
@@ -293,7 +292,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
 
   Byte level = GetPageLevel();
   MVector<IndexPage *> vctPage =
-      _indexTree->ApplyIndexPages(_parentPage, level, vctPos.size() - 1, block);
+      _indexTree->ApplyIndexPages(_parentPage, level, vctPos.size() - 1);
 
   for (size_t i = 0; i < vctPage.size(); i++) {
     BranchPage *newPage = (BranchPage *)vctPage[i];
@@ -399,7 +398,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
       _parentPage->SplitPage(pageMap);
     }
   } else {
-    _indexTree->UpdateRootPage(_parentPage, block);
+    _indexTree->UpdateRootPage(_parentPage);
   }
 
   return true;

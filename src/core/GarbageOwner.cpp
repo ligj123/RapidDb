@@ -1,7 +1,6 @@
 ﻿#include "GarbageOwner.h"
 #include "../header.h"
 #include "../pool/FilePagePool.h"
-#include "../pool/StoragePool.h"
 #include "../utils/Log.h"
 #include "CachePage.h"
 #include "IndexTree.h"
@@ -210,6 +209,7 @@ bool GarbageOwner::SavePage(bool isLock) {
   crc32.process_bytes(_ovfPage->GetBysPage(),
                       CachePage::INDEX_PAGE_SIZE * _usedPageNum);
 
+  FilePagePool::SyncWritePage(_ovfPage);
   _indexTree->GetHeadPage()->WriteGabage(_totalGarbagePages, _firstPageId,
                                          _usedPageNum, crc32.checksum());
   return true;

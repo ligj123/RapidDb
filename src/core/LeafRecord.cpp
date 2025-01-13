@@ -115,7 +115,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
 
 LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
-                       Statement *stmt, bool block)
+                       Statement *stmt)
     : RawRecord(nullptr, true, idxTree->GetHeadPage()->GetIndexType()) {
   if (stmt != nullptr) {
     _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,
@@ -144,7 +144,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
   if (lenVal > max_lenVal) {
     uint16_t num =
         (lenVal + CachePage::INDEX_PAGE_SIZE - 1) / CachePage::INDEX_PAGE_SIZE;
-    _overflowPage = idxTree->ApplyOvfPage(num, block);
+    _overflowPage = idxTree->ApplyOvfPage(num);
     infoLen += UI32_LEN + UI32_LEN + UI16_LEN;
   }
 
@@ -174,7 +174,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
 
 LeafRecord::LeafRecord(IndexTree *idxTree, const RawKey &priKey,
                        const VectorDataValue &vctVal, uint64_t recStamp,
-                       Statement *stmt, bool block)
+                       Statement *stmt)
     : RawRecord(nullptr, true, idxTree->GetHeadPage()->GetIndexType()) {
   if (stmt != nullptr) {
     _recLock = new RecordLock(ActionType::INSERT, RecordStatus::INIT, false,
@@ -203,7 +203,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const RawKey &priKey,
   if (lenVal > max_lenVal) {
     uint16_t num =
         (lenVal + CachePage::INDEX_PAGE_SIZE - 1) / CachePage::INDEX_PAGE_SIZE;
-    _overflowPage = idxTree->ApplyOvfPage(num, block);
+    _overflowPage = idxTree->ApplyOvfPage(num);
     infoLen += UI32_LEN + UI32_LEN + UI16_LEN;
   }
 
@@ -242,8 +242,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const RawKey &priKey,
 LeafRecord *LeafRecord::UpdateRecord(IndexTree *idxTree,
                                      const VectorDataValue &vctVal,
                                      uint64_t recStamp, Statement *stmt,
-                                     ActionType type, bool gapLock,
-                                     bool block) {
+                                     ActionType type, bool gapLock) {
   assert(_indexType == IndexType::PRIMARY);
   assert(type == ActionType::UPDATE || type == ActionType::DELETE);
   assert(UpdateAble(stmt->GetTxId()));
@@ -270,7 +269,7 @@ LeafRecord *LeafRecord::UpdateRecord(IndexTree *idxTree,
   if (lenVal > max_lenVal) {
     uint16_t num =
         (lenVal + CachePage::INDEX_PAGE_SIZE - 1) / CachePage::INDEX_PAGE_SIZE;
-    lrNew->_overflowPage = idxTree->ApplyOvfPage(num, block);
+    lrNew->_overflowPage = idxTree->ApplyOvfPage(num);
     lenInfo += UI32_LEN + UI32_LEN + UI16_LEN;
   }
 
@@ -544,7 +543,7 @@ bool LeafRecord::LoadOverflowPage(IndexTree *idxTree, bool bsync) {
  * @param idxTree IndexTree
  * @return the variant length when abort or rollback
  */
-ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
+ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree) {
   assert(ReleaseLockAble());
 
   if (_recLock->_actType == ActionType::READ_SHARE ||
@@ -562,7 +561,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
   if (_recLock->GetRecordStatus() == RecordStatus::ROLLBACKED) {
     if (_overflowPage != nullptr) {
       idxTree->RecyclePageId(_overflowPage->GetPageId(),
-                             _overflowPage->GetPageNum(), block);
+                             _overflowPage->GetPageNum());
       delete _overflowPage;
       _overflowPage = nullptr;
     }
@@ -583,7 +582,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
       } else if (!ReleaseLockAble()) {
         return ReleaseResult::UNFINISH;
       } else {
-        return ReleaseLock(idxTree, block);
+        return ReleaseLock(idxTree);
       }
     } else {
       delete _recLock;
@@ -602,7 +601,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree, bool block) {
     assert(lr->IsStable());
     if (lr->_overflowPage != nullptr) {
       idxTree->RecyclePageId(lr->_overflowPage->GetPageId(),
-                             lr->_overflowPage->GetPageNum(), block);
+                             lr->_overflowPage->GetPageNum());
       delete lr->_overflowPage;
       lr->_overflowPage = nullptr;
     }

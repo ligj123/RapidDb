@@ -219,7 +219,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
     BOOST_TEST(!tree->IsMultiRange());
     IndexRange &range = tree->GetVctRange()[0];
     BOOST_TEST(range._queueAction.size() == 0);
-    BOOST_TEST(range._pageMap.size() == 0);
+    BOOST_TEST(range._pageMap.size() == 1);
   }
 
   BOOST_TEST(stmtResult._rowNum == 500);
@@ -278,7 +278,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
     iter = lst.erase(iter);
   }
 
-  assert(lst.size() == 0);
+  BOOST_TEST(lst.size() == 0);
 
   session->Exec();
   BOOST_TEST(stmt->GetStmtStatus() == StmtStatus::Logging);
@@ -292,16 +292,12 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   for (size_t i = 0; i < vctTasks[0].size(); i++) {
     IndexTask *task = vctTasks[0][i];
     s = task->Run();
-    // assert(task->GetTaskPos() == i);
     BOOST_TEST(s == TaskStatus::INTERVAL);
 
     IndexRange &range = tree->GetVctRange()[i];
 
     BOOST_TEST(range._queueAction.size() == 0);
-    BOOST_TEST(range._pageMap.size() == 0);
-    // if (range._queueAction.size() > 0) {
-    //   LOG_INFO << (*range._queueAction.begin())->GetActionName();
-    // }
+    BOOST_TEST(range._pageMap.size() == (i == 0 ? 1 : 0));
   }
 
   for (int i = 1; i < 3; i++) {
@@ -312,7 +308,81 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
     IndexTree *tree = vctProp[i]._tree;
     IndexRange &range = tree->GetVctRange()[0];
     BOOST_TEST(range._queueAction.size() == 0);
-    BOOST_TEST(range._pageMap.size() == 0);
+    BOOST_TEST(range._pageMap.size() == 1);
+  }
+
+  BOOST_TEST(stmtResult._rowNum == 500);
+  BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
+             ResultStatus::FINISHED);
+
+  // From 5 tasks to 1 task
+  vctInt = GenerateInt(500, mset);
+  vctRow = GenInsertRecords(exprInsert, vctInt);
+  stmtResult._rowNum = 0;
+  stmtResult._status.store(ResultStatus::INIT, memory_order_relaxed);
+  stmt = new InsertStatement(stmtId++, TXID_NULL, exprInsert, move(vctRow),
+                             &stmtResult);
+
+  session->_lstWaittingStmt.push_back(stmt);
+  session->Exec();
+  tmgr->CollectTaskData(0);
+
+  for (IndexTask *task : vctTasks[0]) {
+    task->SetStatus(TaskStatus::FINISHED, false);
+  }
+
+  adjustTask = new IndexAdjustTask(tpool, tmgr, 0, 1);
+  adjustTask->Run();
+  delete adjustTask;
+
+  BOOST_TEST(vctTasks[0].size() == 1);
+  BOOST_TEST(vctProp[0]._tree->GetVctRange()[0]._queueAction.size() == 500);
+
+  s = vctTasks[0][0]->Run();
+  BOOST_TEST(s == TaskStatus::INTERVAL);
+
+  BOOST_TEST(((SecondaryIndexTaskQueue *)vctTaskQueue[1])
+                 ->_fromPrimaryQueue.RoughSize() == 500);
+  BOOST_TEST(((SecondaryIndexTaskQueue *)vctTaskQueue[2])
+                 ->_fromPrimaryQueue.RoughSize() == 500);
+
+  s = vctTasks[1][0]->Run();
+  BOOST_TEST(s == TaskStatus::INTERVAL);
+
+  s = vctTasks[2][0]->Run();
+  BOOST_TEST(s == TaskStatus::INTERVAL);
+
+  sGroup._threaPoolQueue.Pop(lst);
+  BOOST_TEST(lst.size() == 500);
+
+  for (auto iter = lst.begin(); iter != lst.end();) {
+    TaskStatus s = (*iter)->Exec(sGroup);
+    assert(s == TaskStatus::FINISHED);
+    delete (*iter);
+    iter = lst.erase(iter);
+  }
+
+  assert(lst.size() == 0);
+
+  session->Exec();
+  BOOST_TEST(stmt->GetStmtStatus() == StmtStatus::Logging);
+  session->_transaction.SetLogged();
+  session->Exec();
+  BOOST_TEST(session->_currStatement == nullptr);
+
+  TableTaskMgr::_dtLastWriteDisk += 10000;
+  tree = vctProp[0]._tree;
+  BOOST_TEST(!tree->IsMultiRange());
+
+  for (int i = 0; i < 3; i++) {
+    IndexTask *task = vctTasks[i][0];
+    s = task->Run();
+    BOOST_TEST(s == TaskStatus::INTERVAL);
+
+    IndexTree *tree = vctProp[i]._tree;
+    IndexRange &range = tree->GetVctRange()[0];
+    BOOST_TEST(range._queueAction.size() == 0);
+    BOOST_TEST(range._pageMap.size() == 1);
   }
 
   BOOST_TEST(stmtResult._rowNum == 500);

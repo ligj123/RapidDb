@@ -44,9 +44,9 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
   for (int i = 0; i < ROW_COUNT; i++) {
     *((DataValueLong *)vctKey[0]) = i;
     *((DataValueLong *)vctVal[0]) = i + 100LL;
-    LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal,
-                                    indexTree->GetHeadPage()->GetRecordStamp(),
-                                    nullptr, false);
+    LeafRecord *rr =
+        new LeafRecord(indexTree, vctKey, vctVal,
+                       indexTree->GetHeadPage()->GetRecordStamp(), nullptr);
     IndexPage *idxPage = indexTree->GetRootPage();
     bool b = indexTree->SearchPage(*rr, idxPage);
     BOOST_TEST(b);
@@ -290,7 +290,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToPrimaryKey_test) {
   vctVal.push_back(new DataValueLong(100));
 
   IndexPage *idxPage = indexTree->GetRootPage();
-  LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, 0, nullptr, false);
+  LeafRecord *rr = new LeafRecord(indexTree, vctKey, vctVal, 0, nullptr);
   indexTree->SearchPage(*rr, idxPage);
 
   LeafPage *lp = (LeafPage *)idxPage;
@@ -300,7 +300,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToPrimaryKey_test) {
   lp->InsertRecord(rr, pos);
 
   *((DataValueLong *)vctVal[0]) = 200;
-  rr = new LeafRecord(indexTree, vctKey, vctVal, 2, nullptr, false);
+  rr = new LeafRecord(indexTree, vctKey, vctVal, 2, nullptr);
   pos = lp->SearchRecord(*rr, bFind);
   BOOST_TEST(bFind);
   delete rr;
