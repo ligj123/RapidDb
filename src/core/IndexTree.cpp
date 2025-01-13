@@ -352,7 +352,7 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
         iter->second->GetPageType() == PageType::BRANCH_PAGE) {
       IndexPage *page = (IndexPage *)iter->second;
       if (page->IsOverlength()) {
-        page->SplitPage(pageMap, lockPageLevel);
+        page->SplitPage(pageMap);
       }
     }
   }
@@ -374,7 +374,7 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap,
       LeafPage *page = (LeafPage *)iter->second;
       assert(!page->IsOverlength());
       if (page->IsDirty()) {
-        bool b = page->SaveRecords(pageMap, (lockPageLevel != UINT8_MAX));
+        bool b = page->SaveRecords(pageMap);
         if (!b) {
           move = false;
         }
@@ -493,7 +493,7 @@ int IndexTree::CalcIndexRange(IndexPage *page) {
   assert(_vctRange.size() > 1);
   for (size_t i = 0; i < _vctRange.size() - 1; i++) {
     IndexRange &range = _vctRange[i];
-    RawRecord *rr = page->_vctRecord[page->_recordNum];
+    RawRecord *rr = page->_vctRecord[0];
     if (_indexType == IndexType::NON_UNIQUE) {
       if (range.GetLastRecord()->CompareTo(*rr) >= 0) {
         return i;

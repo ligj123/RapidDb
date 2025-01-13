@@ -322,7 +322,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
     bp->InsertRecord(br, i);
   }
 
-  bool b = bp->SplitPage(pageMap, UINT8_MAX);
+  bool b = bp->SplitPage(pageMap);
   BOOST_TEST(b);
 
   BranchPage *root = (BranchPage *)bp->GetParentPage();
@@ -390,7 +390,7 @@ BOOST_AUTO_TEST_CASE(BranchPageSplit_test) {
   }
 
   size_t bpSize = bp->GetRecordNumber();
-  b = bp->SplitPage(pageMap, UINT8_MAX);
+  b = bp->SplitPage(pageMap);
   BOOST_TEST(b);
 
   mapSize +=

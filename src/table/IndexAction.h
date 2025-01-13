@@ -81,6 +81,10 @@ class RecordAction : public IndexAction {
 public:
   RecordAction(IndexTree *idxTree, LeafRecord *lr)
       : IndexAction(idxTree), _lr(lr) {}
+  RecordAction(IndexTree *idxTree, LeafRecord *lr, int rangePos)
+      : IndexAction(idxTree), _lr(lr) {
+    _rangePos = rangePos;
+  }
   TaskStatus Exec() override;
   int JudgeRange() override;
 

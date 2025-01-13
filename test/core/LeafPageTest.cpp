@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(LeafPage_test) {
         new LeafRecord(indexTree, vctKey, vctVal, i, nullptr, false);
     lp->InsertRecord(lr, i);
   }
-  lp->SaveRecords(pageMap, false);
+  lp->SaveRecords(pageMap);
   assert(pageMap.size() == 0);
 
   *((DataValueLong *)vctKey[0]) = 0;
@@ -135,11 +135,11 @@ BOOST_AUTO_TEST_CASE(LeafPageSaveLoad_test) {
     lp->InsertRecord(lr, i);
   }
 
-  lp->SaveRecords(pageMap, false);
+  lp->SaveRecords(pageMap);
   FilePagePool::SyncWritePage(lp);
   lp->SetReferred(false);
   LeafPage *root = (LeafPage *)indexTree->GetRootPage();
-  root->SaveRecords(pageMap, false);
+  root->SaveRecords(pageMap);
   FilePagePool::SyncWritePage(root);
 
   indexTree->Close();
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSplit_test) {
     lp->InsertRecord(rr, i);
   }
 
-  bool b = lp->SplitPage(pageMap, UINT8_MAX);
+  bool b = lp->SplitPage(pageMap);
   BOOST_TEST(b);
 
   BranchPage *root = (BranchPage *)lp->GetParentPage();
@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_CASE(LeafPageSplit_test) {
     lp->InsertRecord(lr, i);
   }
 
-  b = lp->SplitPage(pageMap, UINT8_MAX);
+  b = lp->SplitPage(pageMap);
   BOOST_TEST(b);
   BOOST_TEST(pageMap.size() == root->GetRecordNumber() + 1);
 

@@ -59,7 +59,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRecord_test) {
     lp->InsertRecord(rr, pos);
     lp->AddWriteQueue(pageMap);
     if (lp->NeedForceSplit()) {
-      lp->SplitPage(pageMap, UINT8_MAX);
+      lp->SplitPage(pageMap);
     }
   }
 
@@ -185,7 +185,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeInsertRepeatedKeyToNonUniqueIndex_test) {
     lp->InsertRecord(rr, pos);
     lp->AddWriteQueue(pageMap);
     if (lp->NeedForceSplit()) {
-      lp->SplitPage(pageMap, UINT8_MAX);
+      lp->SplitPage(pageMap);
     }
   }
 
@@ -410,12 +410,12 @@ BOOST_AUTO_TEST_CASE(IndexTreeUniqueIndex_test) {
 
     lp->AddWriteQueue(pageMap);
     if (lp->NeedForceSplit()) {
-      lp->SplitPage(pageMap, UINT8_MAX);
+      lp->SplitPage(pageMap);
     }
   }
 
   LeafPage *lp = (LeafPage *)indexTree->GetRootPage();
-  lp->SaveRecords(pageMap, false);
+  lp->SaveRecords(pageMap);
   FilePagePool::SyncWritePage(lp);
 
   indexTree->Close();
@@ -504,7 +504,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeGetRecordWithNonUniqueIndex_test) {
     lp->InsertRecord(rr, pos);
     lp->AddWriteQueue(pageMap);
     if (lp->NeedForceSplit()) {
-      lp->SplitPage(pageMap, UINT8_MAX);
+      lp->SplitPage(pageMap);
     }
   }
 
@@ -625,7 +625,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryRecordWithPrimaryKey_test) {
     lp->InsertRecord(rr, pos);
     lp->AddWriteQueue(pageMap);
     if (lp->NeedForceSplit()) {
-      lp->SplitPage(pageMap, UINT8_MAX);
+      lp->SplitPage(pageMap);
     }
   }
 
@@ -726,7 +726,7 @@ BOOST_AUTO_TEST_CASE(IndexTreeQueryWithUniqueKeys_test) {
     lp->InsertRecord(rr, pos);
     lp->AddWriteQueue(pageMap);
     if (lp->NeedForceSplit()) {
-      lp->SplitPage(pageMap, UINT8_MAX);
+      lp->SplitPage(pageMap);
     }
   }
 

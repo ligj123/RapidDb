@@ -56,8 +56,7 @@ void LeafPage::LoadRecords() {
   }
 }
 
-bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap,
-                           bool block) {
+bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap) {
   assert(_bDirty);
   if (GetPageStatus() != PageStatus::VALID ||
       _committedDataLength > MAX_DATA_LENGTH_LEAF)
@@ -74,7 +73,8 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap,
 
     if (lr->GetLock() != nullptr && lr->ReleaseLockAble()) {
       _bRecordUpdated = true;
-      ReleaseResult res = lr->ReleaseLock(GetIndexTree(), block);
+      ReleaseResult res = lr->ReleaseLock(
+          GetIndexTree(), _indexTree->GetSplitPageLevel() != UINT8_MAX);
       if (res == ReleaseResult::DELETED) {
         assert(lr->_overflowPage == nullptr);
         delete lr;
@@ -405,14 +405,9 @@ void LeafPage::ClearRecords() {
   _vctRecord.clear();
 }
 
-bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                         Byte lockPageLevel) {
-  if (_pageStatus.load(memory_order_relaxed) != PageStatus::VALID) {
-    return false;
-  }
-
-  bool block = (lockPageLevel != UINT8_MAX);
-  assert(lockPageLevel > GetPageLevel());
+bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
+  bool block = (_indexTree->GetSplitPageLevel() != UINT8_MAX);
+  assert(_indexTree->GetSplitPageLevel() > GetPageLevel());
 
   BranchRecord *brParentOld = nullptr;
   int posInParent = 0;
@@ -428,9 +423,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     assert(_parentPage != nullptr &&
            (_parentPage->GetPageStatus() == PageStatus::VALID ||
             _parentPage->GetPageStatus() == PageStatus::WRITING));
-    if (lockPageLevel <= _parentPage->GetPageLevel()) {
-      _parentPage->Lock();
-    }
+    assert(_indexTree->GetSplitPageLevel() >= _parentPage->GetPageLevel());
 
     BranchRecord br(_indexTree->GetHeadPage()->GetIndexType(),
                     _vctRecord[_recordNum - 1], GetPageId());
@@ -602,28 +595,24 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
 
   for (int i = 0; i < vctPage.size(); i++) {
     ((LeafPage *)vctPage[i])->SetRecordUpdated();
-    ((LeafPage *)vctPage[i])->SaveRecords(pageMap, block);
+    ((LeafPage *)vctPage[i])->SaveRecords(pageMap);
     vctPage[i]->AddWriteQueue(pageMap);
   }
 
   SetRecordUpdated();
-  SaveRecords(pageMap, block);
+  SaveRecords(pageMap);
   AddWriteQueue(pageMap);
   _parentPage->SetRecordUpdated();
   _parentPage->AddWriteQueue(pageMap);
 
-  if (lockPageLevel <= GetPageLevel()) {
-    _spinLock.unlock();
-  }
-
-  if (brParentOld != nullptr && lockPageLevel <= _parentPage->GetPageLevel()) {
+  if (brParentOld != nullptr) {
     _parentPage->Unlock();
   }
 
   if (brParentOld != nullptr) {
     delete brParentOld;
     if (_parentPage->NeedForceSplit()) {
-      _parentPage->SplitPage(pageMap, lockPageLevel);
+      _parentPage->SplitPage(pageMap);
     }
   } else {
     _indexTree->UpdateRootPage(_parentPage, block);

@@ -100,11 +100,10 @@ public:
    * @brief Save the records content into byte array
    * @param pageSet If there has OverflowPages that need to write disk, add into
    * this set
-   * @param block If there have multi thread tasks for this index set it to true
    * @return True: The page is clean and all data has been saved into buffer;
    * False: The page has dirty data and can not save all of data into buffer.
    */
-  bool SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap, bool block);
+  bool SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap);
   /**`
    * @brief Get the Record in this LeafPage with position=pos
    * @param pos The position of records in this page
@@ -123,8 +122,7 @@ public:
    * @brief Load records from buffer into vector and reset children
    */
   void LoadRecords() override;
-  bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                 Byte lockPageLevel = UINT8_MAX) override;
+  bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) override;
 
   inline bool IsRangBeginPage() { return _bRangeBeginPage; }
   inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }

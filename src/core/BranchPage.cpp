@@ -52,6 +52,16 @@ bool BranchPage::SaveRecords() {
     return false;
   }
 
+  bool bUnlock = false;
+  if (GetPageLevel() > _indexTree->GetSplitPageLevel() &&
+      _spinLock.owner() != g_threadId) {
+    if (!_spinLock.try_lock()) {
+      return false;
+    }
+
+    bUnlock = true;
+  }
+
   if (_bRecordUpdated) {
     Byte *tmp = _bysPage;
     _bysPage = CachePool::ApplyPage();
@@ -85,6 +95,10 @@ bool BranchPage::SaveRecords() {
   crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
   WriteInt(CRC32_INDEX_OFFSET, crc32.checksum());
   _bDirty = false;
+
+  if (bUnlock) {
+    _spinLock.unlock();
+  }
   return true;
 }
 
@@ -214,14 +228,9 @@ IndexPage *BranchPage::GetChild(int32_t pos) {
   return br->GetChildPage();
 }
 
-bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                           Byte lockPageLevel) {
-  if (_pageStatus.load(memory_order_relaxed) != PageStatus::VALID) {
-    return false;
-  }
-
-  bool block = (lockPageLevel != UINT8_MAX);
-  if (lockPageLevel < GetPageLevel()) {
+bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
+  bool block = (_indexTree->GetSplitPageLevel() != UINT8_MAX);
+  if (_indexTree->GetSplitPageLevel() < GetPageLevel()) {
     if (!_spinLock.try_lock()) {
       return false;
     }
@@ -242,7 +251,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
            (_parentPage->GetPageStatus() == PageStatus::VALID ||
             _parentPage->GetPageStatus() == PageStatus::WRITING));
 
-    if (lockPageLevel < _parentPage->GetPageLevel()) {
+    if (_indexTree->GetSplitPageLevel() < _parentPage->GetPageLevel()) {
       _parentPage->Lock();
     }
 
@@ -350,7 +359,7 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
     brPage->AddWriteQueue(pageMap);
   }
 
-  if (GetPageLevel() == lockPageLevel) {
+  if (GetPageLevel() == _indexTree->GetSplitPageLevel()) {
     int pos = _indexTree->CalcIndexRange(*last);
     IndexRange &range = _indexTree->GetVctRange().at(pos);
     size_t rpos = 0;
@@ -376,17 +385,18 @@ bool BranchPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
   _parentPage->SetDirty();
   _parentPage->AddWriteQueue(pageMap);
 
-  if (lockPageLevel < GetPageLevel()) {
+  if (_indexTree->GetSplitPageLevel() < GetPageLevel()) {
     _spinLock.unlock();
   }
-  if (brParentOld != nullptr && lockPageLevel < _parentPage->GetPageLevel()) {
+  if (brParentOld != nullptr &&
+      _indexTree->GetSplitPageLevel() < _parentPage->GetPageLevel()) {
     _parentPage->Unlock();
   }
 
   if (brParentOld != nullptr) {
     delete brParentOld;
     if (_parentPage->NeedForceSplit()) {
-      _parentPage->SplitPage(pageMap, lockPageLevel);
+      _parentPage->SplitPage(pageMap);
     }
   } else {
     _indexTree->UpdateRootPage(_parentPage, block);

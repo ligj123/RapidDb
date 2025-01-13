@@ -66,8 +66,7 @@ public:
    */
   void ClearChild(IndexPage *child);
 
-  bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                 Byte lockPageLevel = UINT8_MAX) override;
+  bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) override;
 
   bool IsOverlength() override {
     return _committedDataLength >= MAX_DATA_LENGTH_BRANCH;

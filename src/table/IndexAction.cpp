@@ -83,8 +83,7 @@ TaskStatus RecordAction::Exec() {
   } else {
     lp->AddWriteQueue(_indexTree->GetVctRange()[_rangePos]._pageMap);
     if (lp->NeedForceSplit()) {
-      lp->SplitPage(_indexTree->GetVctRange()[_rangePos]._pageMap,
-                    _indexTree->GetSplitPageLevel());
+      lp->SplitPage(_indexTree->GetVctRange()[_rangePos]._pageMap);
     }
   }
 
@@ -176,8 +175,9 @@ TaskStatus StmtInsertAction::Exec() {
     _stmtRecord->_stmt->SetStmtFailed(true);
     _stmtRecord->_status.store(ActionStatus::FAILED, memory_order_relaxed);
   } else {
-    RecordAction *rAction = new RecordAction(vctProp[0]._tree, vctLr[0]);
-    vctProp[0]._tree->AddActionFromLocal(_rangePos, rAction);
+    RecordAction *pAction =
+        new RecordAction(vctProp[0]._tree, vctLr[0], _rangePos);
+    vctProp[0]._tree->AddActionFromLocal(_rangePos, pAction);
 
     for (size_t i = 1; i < vctProp.size(); i++) {
       IndexTree *secTree = vctProp[i]._tree;

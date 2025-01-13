@@ -118,8 +118,7 @@ public:
    * @return True: The split conditions can be meet and has split this page
    *         False: Failed to split the page
    */
-  virtual bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap,
-                         Byte lockPageLevel = UINT8_MAX) = 0;
+  virtual bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) = 0;
   virtual void LoadRecords() = 0;
   virtual void ClearRecords() = 0;
 

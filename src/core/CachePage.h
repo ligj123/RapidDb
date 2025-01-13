@@ -138,6 +138,7 @@ public:
     pageMap.emplace(((uint64_t)GetPageLevel() << 32) + GetPageId(), this);
     _bWriteQueue = true;
   }
+
   inline void ClearWriteQueue() { _bWriteQueue = false; }
 
 protected:
