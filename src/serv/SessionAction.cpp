@@ -73,7 +73,6 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
   Session *session = iter->second;
   auto itExpr = session->_mapIdExprStatement.find(_exprId);
   if (itExpr == session->_mapIdExprStatement.end()) {
-
     ParserResult result;
     bool b = Parser::Parse(_sql, result);
     if (!b) {
@@ -87,7 +86,11 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
 
     exprStmt = vctPtr->at(0);
     vctPtr->clear();
-    // exprStmt->Preprocess(session);
+    if (!exprStmt->Preprocess(session)) {
+      _stmtResult->_vctError.push_back(move(_threadErrorMsg.ErrorMsg()));
+      _stmtResult->_status.store(ResultStatus::FINISHED, memory_order_release);
+      return TaskStatus::FINISHED;
+    }
 
     session->_mapSqlExprStatement.emplace(_sql, exprStmt);
     session->_mapIdExprStatement.emplace(_exprId, exprStmt);

@@ -38,6 +38,14 @@ public:
     }
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprData->CollectElem(type, &vctElem);
+  }
+
 public:
   ExprData *_exprData;
   bool _bStar;
@@ -59,6 +67,14 @@ public:
 
     val->DecRef();
     return true;
+  }
+
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprData->CollectElem(type, &vctElem);
   }
 
 public:
@@ -84,6 +100,14 @@ public:
     return true;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprData->CollectElem(type, &vctElem);
+  }
+
 public:
   ExprData *_exprData;
 };
@@ -107,6 +131,14 @@ public:
     return true;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprData->CollectElem(type, &vctElem);
+  }
+
 public:
   ExprData *_exprData;
 };
@@ -128,6 +160,14 @@ public:
 
     val->DecRef();
     return true;
+  }
+
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprData->CollectElem(type, &vctElem);
   }
 
 public:

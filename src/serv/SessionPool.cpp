@@ -10,6 +10,7 @@ ThreadPool *SessionPool::_threadPool{nullptr};
 atomic_uint32_t SessionPool::_currSessionId{0};
 
 TaskStatus SessionTask::Run() {
+  SetStatus(TaskStatus::RUNNING, false);
   for (SessionGroup *group : _vctGroup) {
     group->_runTimes++;
     MList<SessionAction *> &lst = group->_lstAction;
@@ -54,33 +55,41 @@ TaskStatus SessionTask::Run() {
         group->_threaPoolQueue.Pop(lst);
         group->_outerQueue.Pop(lst);
         if (lst.size() > 0) {
-          return TaskStatus::RUNNING;
+          empty = false;
+          break;
         }
 
         for (auto iter = group->_mapSession.begin();
              iter != group->_mapSession.end(); iter++) {
           if (!iter->second->IsEmpty()) {
-            return TaskStatus::RUNNING;
+            empty = false;
+            break;
           }
         }
 
         if (group->_obsoleteSession.size() > 0) {
-          return TaskStatus::RUNNING;
+          empty = false;
+          break;
         }
       }
 
-      _tryStopTime--;
-      if (_tryStopTime > 0) {
-        return TaskStatus::RUNNING;
+      if (empty) {
+        _tryStopTime--;
+        if (_tryStopTime == 0) {
+          SetStatus(TaskStatus::FINISHED, false);
+          return TaskStatus::FINISHED;
+        }
       } else {
-        return TaskStatus::FINISHED;
+        _tryStopTime = 5;
       }
     } else {
+      SetStatus(TaskStatus::FINISHED, false);
       return TaskStatus::FINISHED;
     }
-  } else {
-    return TaskStatus::RUNNING;
   }
+
+  SetStatus(TaskStatus::INTERVAL, false);
+  return TaskStatus::INTERVAL;
 }
 
 TaskStatus SessionAdjustTask::Run() {

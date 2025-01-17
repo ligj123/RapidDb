@@ -6,6 +6,24 @@
 #include "../table/Table.h"
 
 namespace storage {
+
+bool FillElemFiled(MVector<ExprElem *> &vctElem, PhysTable *table) {
+  const storage::MStrHashMap<uint32_t> &mapPos =
+      _exprTable->_physTable->GetMapColumnPos();
+  for (ExprElem *elem : vctElem) {
+    ExprField *field = (ExprField *)elem;
+    auto iter = mapPos.find(field->_colName);
+    if (iter == mapPos.end()) {
+      _threadErrorMsg.reset(new ErrorMsg(TB_UNEXIST_COLUMN, {*ecol->_name}));
+      return false;
+    }
+
+    field->_rowPos = iter->second;
+  }
+
+  return true;
+}
+
 ExprInsert::~ExprInsert() {
   delete _exprTable;
   delete _vctCol;
@@ -37,33 +55,24 @@ ExprDelete::~ExprDelete() {
     _physTable->DecRef();
 }
 
-bool ExprSelect::Preprocess(Session *session) {
+bool ExprWhere::Preprocess(PhysTable *table) {
+  MVector<ExprElem *> vctElem;
+  vctElem.reserve(32);
+  _exprLogic->CollectElem(ExprType::EXPR_FIELD, vctElem);
+  if (!FillElemFiled(vctElem, table)) {
+    return false;
+  }
+
+  // if (_exprLogic->GetType()==ExprType::EXPR_FIELD)
+}
+
+bool ExprSelect::Preprocess(Database *currDb) {
   // TO DO
   return false;
 }
 
-bool ExprInsert::Preprocess(Session *session) {
-  if (_exprTable->_dbName == nullptr) {
-    if (session->_currDb != nullptr) {
-      _exprTable->_dbName = new MString(session->_currDb->GetDbName());
-    } else {
-      _threadErrorMsg.reset(new ErrorMsg(SESSION_NO_CURR_DB, {}));
-      return false;
-    }
-  } else {
-    Database *db = DatabaseManager::FindDb(*_exprTable->_dbName);
-    if (db == nullptr) {
-      _threadErrorMsg.reset(new ErrorMsg(DB_NOT_FOUNF, {*_exprTable->_dbName}));
-      return false;
-    }
-  }
-
-  MString tname = *_exprTable->_dbName + "." + *_exprTable->_tName;
-  if (!TableManager::FindTable(tname, _physTable)) {
-    // In following time, add the code to load table from system table. Now only
-    // consider the condition that all tables in memory.
-
-    _threadErrorMsg.reset(new ErrorMsg(TB_INVALID_TABLE_NAME, {tname}));
+bool ExprInsert::Preprocess(Database *currDb) {
+  if (!_exprTable->Preprocess(session)) {
     return false;
   }
 
@@ -90,22 +99,32 @@ bool ExprInsert::Preprocess(Session *session) {
     }
   }
 
+  MVector<ExprElem *> vctElem;
+  vctElem.reserve(32);
   for (MVectorPtr<ExprElem *> *vctElem : *_vctRowData) {
     if (vctElem->size() != _vctCol->size()) {
       _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
       return false;
     }
+
+    for (ExprElem *elem : *vctElem) {
+      elem->CollectElem(ExprType::EXPR_FIELD, vctElem);
+    }
+  }
+
+  if (!FillElemFiled(vctElem, table)) {
+    return false;
   }
 
   return true;
 }
 
-bool ExprUpdate::Preprocess(Session *session) {
+bool ExprUpdate::Preprocess(Database *currDb) {
   // TO DO
   return false;
 }
 
-bool ExprDelete::Preprocess(Session *session) {
+bool ExprDelete::Preprocess(Database *currDb) {
   // TO DO
   return false;
 }

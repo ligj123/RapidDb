@@ -187,6 +187,7 @@ bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
     vctCol.push_back(IndexColumn(iter->first, iter->second));
   }
 
+  _mapIndexFirstField.emplace(vctCol[0].colPos, (uint32_t)_vctIndex.size());
   IndexProp prop(iname, (uint32_t)_vctIndex.size(), indexType, vctCol);
   _mapIndexNamePos.insert({prop._name, prop._position});
   _vctIndex.push_back(move(prop));
@@ -328,6 +329,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     uint32_t isz = prop.Read(buf, i, _mapColumnPos);
     buf += isz;
 
+    _mapIndexFirstField.emplace(prop._vctCol[0].colPos, i);
     _mapIndexNamePos.insert({prop._name, i});
     _vctIndex.push_back(move(prop));
 

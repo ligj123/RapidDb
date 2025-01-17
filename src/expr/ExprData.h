@@ -50,6 +50,12 @@ public:
     return false;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+  }
+
 public:
   IDataValue *_val;
 };
@@ -71,6 +77,12 @@ public:
     return vdRow[_rowPos]->AddRef();
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+  }
+
 public:
   MString *_tableName; // The table name this field belong to
   MString *_colName;   // The field name (The related column)
@@ -85,6 +97,12 @@ public:
   ExprType GetType() override { return ExprType::EXPR_PARAMETER; }
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     return vdParas[_paraPos]->AddRef();
+  }
+
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
   }
 
 public:
@@ -123,6 +141,15 @@ public:
     return rt;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprLeft->CollectElem(type, &vctElem);
+    _exprRight->CollectElem(type, &vctElem);
+  }
+
 public:
   ExprData *_exprLeft;
   ExprData *_exprRight;
@@ -156,6 +183,15 @@ public:
     return rt;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprLeft->CollectElem(type, &vctElem);
+    _exprRight->CollectElem(type, &vctElem);
+  }
+
 public:
   ExprData *_exprLeft;
   ExprData *_exprRight;
@@ -187,6 +223,15 @@ public:
     left->DecRef();
     right->DecRef();
     return rt;
+  }
+
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprLeft->CollectElem(type, &vctElem);
+    _exprRight->CollectElem(type, &vctElem);
   }
 
 public:
@@ -227,6 +272,15 @@ public:
     return rt;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprLeft->CollectElem(type, &vctElem);
+    _exprRight->CollectElem(type, &vctElem);
+  }
+
 public:
   ExprData *_exprLeft;
   ExprData *_exprRight;
@@ -253,6 +307,14 @@ public:
 
     data->DecRef();
     return rt;
+  }
+
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprData->CollectElem(type, &vctElem);
   }
 
 public:

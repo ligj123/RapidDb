@@ -54,6 +54,15 @@ public:
     return b ? TriBool::True : TriBool::False;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprLeft->CollectElem(type, &vctElem);
+    _exprLeft->CollectElem(type, &vctElem);
+  }
+
 public:
   CompType _compType;
   ExprData *_exprLeft;
@@ -80,6 +89,14 @@ public:
     return (_bIn ^ b) ? TriBool::True : TriBool::False;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _exprData->CollectElem(type, &vctElem);
+  }
+
 protected:
   ExprData *_exprData;
   ExprArray *_exprArray;
@@ -100,6 +117,14 @@ public:
     bool b = pdv->IsNull();
     pdv->DecRef();
     return (_bNull ^ b) ? TriBool::True : TriBool::False;
+  }
+
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    child->CollectElem(type, &vctElem);
   }
 
 public:
@@ -140,6 +165,16 @@ public:
     return b ? TriBool::True : TriBool::False;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _child->CollectElem(type, &vctElem);
+    _exprLeft->CollectElem(type, &vctElem);
+    _exprRight->CollectElem(type, &vctElem);
+  }
+
 public:
   ExprData *_child;
   ExprData *_exprLeft;
@@ -164,6 +199,14 @@ public:
     return TriBool::True;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _child->CollectElem(type, &vctElem);
+  }
+
 public:
   ExprData *_child;
   IDataValue *_dvPatten;
@@ -183,6 +226,14 @@ public:
     return tb == TriBool::True ? TriBool::False : TriBool::True;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    _child->CollectElem(type, &vctElem);
+  }
+
 public:
   ExprLogic *_child;
 };
@@ -200,6 +251,15 @@ public:
     return TriBool::True;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+    for (ExprLogic *child : _vctChild) {
+      child->CollectElem(type, &vctElem);
+    }
+  }
+
 public:
   MVectorPtr<ExprLogic *> _vctChild;
 };
@@ -215,6 +275,15 @@ public:
         return tb;
     }
     return TriBool::False;
+  }
+
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+    for (ExprLogic *child : _vctChild) {
+      child->CollectElem(type, &vctElem);
+    }
   }
 
 public:

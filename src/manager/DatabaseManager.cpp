@@ -65,7 +65,7 @@ bool DatabaseManager::AddDb(Database *db) {
   return true;
 }
 
-bool DatabaseManager::DelDb(MString dbName) {
+bool DatabaseManager::DelDb(MString &dbName) {
   unique_lock<SpinMutex> lock(_spinMutex);
   auto iter = _mapDb.find(dbName);
   if (iter == _mapDb.end())
@@ -92,7 +92,7 @@ bool DatabaseManager::ListDb(MVector<MString> &vctDb) {
   return true;
 }
 
-Database *DatabaseManager::FindDb(MString dbName) {
+Database *DatabaseManager::FindDb(MString &dbName) {
   size_t hash = MStrHash{}(dbName);
   if (_fastDbCache[hash % FAST_SIZE] != nullptr &&
       _fastDbCache[hash % FAST_SIZE]->GetDbName() == dbName) {

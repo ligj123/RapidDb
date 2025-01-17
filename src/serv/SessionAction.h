@@ -3,8 +3,8 @@
 #include "../core/LeafRecord.h"
 
 namespace storage {
-class StmtResult;
-class SessionGroup;
+struct StmtResult;
+struct SessionGroup;
 
 class SessionAction {
 public:

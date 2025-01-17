@@ -7,7 +7,7 @@
 namespace storage {
 using namespace std;
 
-bool ExprCreateTable::Preprocess(Session *session) {
+bool ExprCreateTable::Preprocess(Database *currDb) {
   if (_table->_dbName == nullptr) {
     assert(session != nullptr);
     const Database *db = session->_currDb;
@@ -46,22 +46,22 @@ bool ExprCreateTable::Preprocess(Session *session) {
   return true;
 }
 
-bool ExprDropTable::Preprocess(Session *session) {
+bool ExprDropTable::Preprocess(Database *currDb) {
   // TO DO
   return false;
 }
 
-bool ExprShowTables::Preprocess(Session *session) {
+bool ExprShowTables::Preprocess(Database *currDb) {
   // TO DO
   return false;
 }
 
-bool ExprTrunTable::Preprocess(Session *session) {
+bool ExprTrunTable::Preprocess(Database *currDb) {
   // TO DO
   return false;
 }
 
-bool ExprTransaction::Preprocess(Session *session) {
+bool ExprTransaction::Preprocess(Database *currDb) {
   // TO DO
   return false;
 }

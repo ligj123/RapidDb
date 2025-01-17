@@ -131,10 +131,10 @@ public:
       return &_vctColumn[pos];
     }
   }
-  const MStrHashMap<uint32_t> GetMapColumnPos() { return _mapColumnPos; }
-  // const unordered_multimap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
-  //   return _mapIndexFirstField;
-  // }
+  const MStrHashMap<uint32_t> &GetMapColumnPos() { return _mapColumnPos; }
+  const MHashMap<uint32_t, uint32_t> &GetIndexFirstFieldMap() {
+    return _mapIndexFirstField;
+  }
 
   // Add normal column
   bool AddColumn(const MString &columnName, DataType dataType, bool nullable,
@@ -256,7 +256,7 @@ protected:
   MStrHashMap<uint32_t> _mapIndexNamePos;
   /**The map for index with first column's position in _vctColumn and index
    * position in _vctIndex*/
-  // MHashMap<uint32_t, uint32_t> _mapIndexFirstField;
+  MHashMap<uint32_t, uint32_t> _mapIndexFirstField;
   //  The positions of all columns that constitute the all secondary index. This
   //  variable is used to know which columns are compose secondary index.
   MVector<int> _vctIndexPos;

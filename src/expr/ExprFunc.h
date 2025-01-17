@@ -26,6 +26,16 @@ public:
     return nullptr;
   }
 
+  void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
+    if (type == ExprType::EXPR_COUNT) {
+      vctElem.push_back(this);
+    }
+
+    for (ExprData *data : _vctPara) {
+      data->CollectElem(type, &vctElem);
+    }
+  }
+
 public:
   // The function name, must convert to upper case
   MString *_funcName;

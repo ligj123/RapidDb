@@ -36,8 +36,10 @@ struct GlobalFixTure {
         fs::remove(dir_entry);
       }
     }
-#ifdef CACHE_TRACE
+
     LOG_INFO << "Memory leaked: " << CachePool::GetMemoryUsed();
+#ifdef CACHE_TRACE
+
     unordered_map<uint64_t, string> &map = CachePool::_mapApply;
     for (auto iter = map.begin(); iter != map.end(); iter++) {
       LOG_INFO << (void *)iter->first << "    " << iter->second;

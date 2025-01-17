@@ -3,6 +3,8 @@
 #include "../dataType/DataValueFixChar.h"
 #include "../dataType/DataValueVarChar.h"
 #include "../dataType/IDataValue.h"
+#include "../table/Database.h"
+#include "../table/Table.h"
 #include "ExprType.h"
 
 #include <unordered_set>
@@ -27,7 +29,11 @@ public:
 };
 
 // Base class for ExprData, ExprLogic, ExprAggr
-class ExprElem : public BaseExpr {};
+class ExprElem : public BaseExpr {
+public:
+  // Collect the the child elements that are the pointed ExprType
+  virtual void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) {}
+};
 
 /**
  * @brief Base class for all expression to get, calc data value and return it.
@@ -117,6 +123,8 @@ public:
   }
 
   ExprType GetType() override { return ExprType::EXPR_COLUMN; }
+  bool Preprocess(MVectorPtr<ExprTable *> &vctTable);
+  bool Preprocess(ExprTable *table);
 
 public:
   MString *_name;      // column name
@@ -132,26 +140,30 @@ public:
   ExprTable(MString *dbName, MString *tName, MString *_tAlias = nullptr)
       : _dbName(dbName), _tName(tName), _tAlias(_tAlias) {}
   ~ExprTable() {
+
     delete _dbName;
     delete _tName;
     delete _tAlias;
   }
 
   ExprType GetType() override { return ExprType::EXPR_TABLE; }
+  bool Preprocess(Database *currDb = nullptr);
 
 public:
   MString *_dbName;
   MString *_tName;
   MString *_tAlias;
   JoinType _joinType{JoinType::JOIN_NULL};
+  // The physical table will insert into. Filled when preprocess
+  PhysTable *_physTable{nullptr};
 };
 
-class Session;
 class ExprParameter;
 // Base class for all statement
 class ExprStatement : public BaseExpr {
 public:
-  virtual bool Preprocess(Session *session) = 0;
+  virtual bool Preprocess(Database *currDb) = 0;
+  virtual bool IsNeedOptimize() { return false; }
 
 public:
   // The vector of parameters. Params are duplications of its child class

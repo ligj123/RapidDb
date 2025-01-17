@@ -73,6 +73,7 @@ enum class ExprType : uint16_t {
   // Statement
   EXPR_SELECT = 0x200,
   EXPR_TABLE_SELECT,
+  EXPR_JOIN_SELECT,
   EXPR_INSERT,
   EXPR_UPDATE,
   EXPR_DELETE,
