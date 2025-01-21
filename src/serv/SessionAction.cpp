@@ -86,8 +86,8 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
 
     exprStmt = vctPtr->at(0);
     vctPtr->clear();
-    if (!exprStmt->Preprocess(session)) {
-      _stmtResult->_vctError.push_back(move(_threadErrorMsg.ErrorMsg()));
+    if (!exprStmt->Preprocess(session->_currDb)) {
+      _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
       _stmtResult->_status.store(ResultStatus::FINISHED, memory_order_release);
       return TaskStatus::FINISHED;
     }

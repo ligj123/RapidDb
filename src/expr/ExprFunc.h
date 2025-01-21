@@ -31,9 +31,19 @@ public:
       vctElem.push_back(this);
     }
 
-    for (ExprData *data : _vctPara) {
-      data->CollectElem(type, &vctElem);
+    for (ExprData *data : *_vctPara) {
+      data->CollectElem(type, vctElem);
     }
+  }
+
+  bool IsConstValue() override {
+    for (ExprData *data : *_vctPara) {
+      if (!data->IsConstValue()) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
 public:

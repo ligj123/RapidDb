@@ -18,6 +18,8 @@ using namespace std;
 namespace storage {
 class Session;
 class PhysTable;
+bool FillElemFiled(const MStrHashMap<uint32_t> &mapColPos,
+                   MVector<ExprElem *> &vctElem);
 
 template <ExprType ET> class ExprCondition : public BaseExpr {
 public:
@@ -31,6 +33,17 @@ public:
     return _exprLogic->Calc(vdPara, vdRow);
   }
 
+  bool Preprocess(const MStrHashMap<uint32_t> &mapColPos) {
+    MVector<ExprElem *> vctElem;
+    vctElem.reserve(32);
+    _exprLogic->CollectElem(ExprType::EXPR_FIELD, vctElem);
+    if (!FillElemFiled(mapColPos, vctElem)) {
+      return false;
+    }
+
+    return true;
+  }
+
 public:
   ExprLogic *_exprLogic{nullptr};
 };
@@ -42,17 +55,17 @@ typedef ExprCondition<ExprType::EXPR_HAVING> ExprHaving;
 // can be selected.
 class UseIndex {
 public:
-  ~UseIndex() {
-    for (ExprLogic *expr : _vctExpr) {
-      delete expr;
-    }
-  }
+  UseIndex(MVectorPtr<ExprLogic *> &&vctExpr, int idxPos, ExprType type)
+      : _vctExpr(move(vctExpr)), _indexPos(idxPos), _exprType(type) {}
+
   // If the primary or secondary index can be used to query, copy the query
   // conditions to here. Only one index can be used. Only valid for physical
-  // table select
-  MVector<ExprLogic *> _vctExpr{nullptr};
+  // table select.
+  MVectorPtr<ExprLogic *> _vctExpr{nullptr};
   // which index used, The position of index that start from 0(primary key)
-  int _indexPos{-1};
+  int _indexPos;
+  // Now only support 2 types EXPR_AND or EXPR_OR
+  ExprType _exprType;
 };
 
 class ExprWhere : public ExprCondition<ExprType::EXPR_WHERE> {
@@ -60,7 +73,7 @@ public:
   ExprWhere(ExprLogic *exprLogic) : ExprCondition(exprLogic) {}
   ~ExprWhere() { delete _useIndex; }
 
-  bool Preprocess(PhysTable *table);
+  bool Preprocess(PhysTable *table, const MStrHashMap<uint32_t> &mapColPos);
 
 public:
   // This variable will be set when preprocess
@@ -76,6 +89,8 @@ public:
     delete _exprHaving;
   }
   ExprType GetType() override { return ExprType::EXPR_GROUP_BY; }
+
+  bool Preprocess(const MStrHashMap<uint32_t> &mapColPos);
 
 public:
   MVectorPtr<MString *> *_vctColName;
@@ -101,6 +116,8 @@ public:
   ExprOrderBy(MVectorPtr<ExprOrderItem *> *vctItem) : _vctItem(vctItem) {}
   ~ExprOrderBy() { delete _vctItem; }
   ExprType GetType() override { return ExprType::EXPR_ORDER_BY; }
+
+  bool Preprocess(const MStrHashMap<uint32_t> &mapColPos);
 
 public:
   MVectorPtr<ExprOrderItem *> *_vctItem;
@@ -168,10 +185,7 @@ public:
   }
 
   ExprType GetType() override { return ExprType::EXPR_TABLE_SELECT; }
-  bool Preprocess(Database *currDb = nullptr) override {
-    abort();
-    return false;
-  }
+  bool Preprocess(Database *currDb = nullptr) override;
 
 public:
   // This select is to return final result or as bottom of join tables.
@@ -196,7 +210,7 @@ public:
 
 class ExprJoinSelect : public ExprStatement {
 public:
-  ~ExprSelect() {
+  ~ExprJoinSelect() {
     delete _vctCol;
     delete _leftTable;
     delete _rightTable;
@@ -232,7 +246,13 @@ public:
 
 class ExprInsert : public ExprStatement {
 public:
-  ~ExprInsert();
+  ~ExprInsert() {
+    delete _exprTable;
+    delete _vctCol;
+    delete _vctRowData;
+    delete _exprSelect;
+  }
+
   ExprType GetType() override { return ExprType::EXPR_INSERT; }
   bool Preprocess(Database *currDb = nullptr) override;
 
@@ -253,9 +273,13 @@ public:
 
 class ExprUpdate : public ExprStatement {
 public:
-  ExprUpdate() {}
-
-  ~ExprUpdate();
+  ~ExprUpdate() {
+    delete _exprTable;
+    delete _vctCol;
+    delete _exprWhere;
+    delete _exprOrderBy;
+    delete _exprLimit;
+  }
   ExprType GetType() override { return ExprType::EXPR_UPDATE; }
   bool Preprocess(Database *currDb = nullptr) override;
 
@@ -272,7 +296,12 @@ public:
 
 class ExprDelete : public ExprStatement {
 public:
-  ~ExprDelete();
+  ~ExprDelete() {
+    delete _exprTable;
+    delete _exprWhere;
+    delete _exprOrderBy;
+    delete _exprLimit;
+  }
 
   ExprType GetType() override { return ExprType::EXPR_DELETE; }
   bool Preprocess(Database *currDb = nullptr) override;

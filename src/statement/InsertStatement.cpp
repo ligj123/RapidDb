@@ -81,7 +81,7 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
 }
 
 bool InsertStatement::InitRecord() {
-  PhysTable *table = _exprInsert->_physTable;
+  PhysTable *table = _exprInsert->_exprTable->_physTable;
   TableTaskMgr *mgr = table->GetTableTaskMgr();
   IndexProp &priIndex = table->GetVectorIndex()[0];
 

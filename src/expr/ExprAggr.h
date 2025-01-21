@@ -43,7 +43,7 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprData->CollectElem(type, &vctElem);
+    _exprData->CollectElem(type, vctElem);
   }
 
 public:
@@ -74,7 +74,7 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprData->CollectElem(type, &vctElem);
+    _exprData->CollectElem(type, vctElem);
   }
 
 public:
@@ -105,7 +105,7 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprData->CollectElem(type, &vctElem);
+    _exprData->CollectElem(type, vctElem);
   }
 
 public:
@@ -136,7 +136,7 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprData->CollectElem(type, &vctElem);
+    _exprData->CollectElem(type, vctElem);
   }
 
 public:
@@ -167,7 +167,7 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprData->CollectElem(type, &vctElem);
+    _exprData->CollectElem(type, vctElem);
   }
 
 public:

@@ -71,7 +71,7 @@ ExprInsert *CreateInsertExpression(Database *db, const MString &tableName,
   }
   exprInst->_vctRowData = new MVectorPtr<MVectorPtr<ExprElem *> *>();
   exprInst->_vctRowData->push_back(vctElem);
-  exprInst->_physTable = ptable;
+  exprInst->_exprTable->_physTable = ptable;
   return exprInst;
 }
 
@@ -94,7 +94,7 @@ VectorRow GenInsertRecords(ExprInsert *exprInst, const MVector<int> &mvct) {
   MString var1000 = "VARCHAR_1000_" + MString(987, 'a');
   MString fix50 = "FIXCHAR_50_" + MString(37, 'a');
 
-  PhysTable *ptable = exprInst->_physTable;
+  PhysTable *ptable = exprInst->_exprTable->_physTable;
   IndexTree *priTree = ptable->GetVectorIndex()[0]._tree;
   IndexTree *uniTree = ptable->GetVectorIndex()[1]._tree;
   IndexTree *nonTree = ptable->GetVectorIndex()[2]._tree;
@@ -137,7 +137,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
   ExprInsert *exprInsert = CreateInsertExpression(db, TABLE_NAME, 1500);
-  PhysTable *table = exprInsert->_physTable;
+  PhysTable *table = exprInsert->_exprTable->_physTable;
 
   ThreadPool *tpool = ThreadPool::CreateMainPool("test", 1, 8);
   tpool->SetStop();

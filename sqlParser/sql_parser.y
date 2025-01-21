@@ -281,7 +281,7 @@ using namespace storage;
     %type <expr_logic> expr_logic expr_cmp expr_in_not expr_is_null_not expr_between expr_like expr_not
     %type <expr_and> expr_and
     %type <expr_or> expr_or
-    %type <expr_array> expr_array expr_arr_val
+    %type <expr_array> expr_array expr_vct_const
     %type <expr_aggr> expr_aggr expr_count expr_sum expr_max expr_min expr_avg
     %type <expr_table> expr_table  
     
@@ -722,12 +722,12 @@ opt_lock_type : FOR SHARE { $$ = LockType::SHARE_LOCK; }
 | FOR UPDATE { $$ = LockType::WRITE_LOCK; }
 | /* empty */ { $$ = LockType::NO_LOCK; };
 
-expr_array : '(' expr_arr_val ')' { $$ = $2; };
-expr_arr_val : expr_data {
+expr_array : '(' expr_vct_const ')' { $$ = $2; };
+expr_vct_const : const_dv {
   $$ = new ExprArray();
   $$->AddElem($1);
 }
-| expr_arr_val ',' expr_data {
+| expr_vct_const ',' const_dv {
    $1->AddElem($3);
    $$ = $1;
 };

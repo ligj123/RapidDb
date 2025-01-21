@@ -10,6 +10,7 @@
 
 using namespace std;
 namespace storage {
+
 class ExprComp : public ExprLogic {
 public:
   ExprComp(CompType type, ExprData *left, ExprData *right)
@@ -31,20 +32,30 @@ public:
       return TriBool::Error;
     }
 
+    if (!left->AbleCompare(*right)) {
+      return TriBool::Error;
+    }
+
     bool b = false;
     switch (_compType) {
     case CompType::EQ:
       b = (*left == *right);
+      break;
     case CompType::GT:
       b = (*left > *right);
+      break;
     case CompType::GE:
       b = (*left >= *right);
+      break;
     case CompType::LT:
       b = (*left < *right);
+      break;
     case CompType::LE:
       b = (*left <= *right);
+      break;
     case CompType::NE:
       b = (*left != *right);
+      break;
     default:
       abort();
     }
@@ -59,8 +70,58 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprLeft->CollectElem(type, &vctElem);
-    _exprLeft->CollectElem(type, &vctElem);
+    _exprLeft->CollectElem(type, vctElem);
+    _exprLeft->CollectElem(type, vctElem);
+  }
+
+  void Reverse() {
+    ExprData *tmp = _exprLeft;
+    _exprLeft = _exprRight;
+    _exprRight = tmp;
+    switch (_compType) {
+    case CompType::EQ:
+      break;
+    case CompType::GT:
+      _compType = CompType::LT;
+      break;
+    case CompType::GE:
+      _compType = CompType::LE;
+      break;
+    case CompType::LT:
+      _compType = CompType::GT;
+      break;
+    case CompType::LE:
+      _compType = CompType::GE;
+      break;
+    case CompType::NE:
+      break;
+    default:
+      abort();
+    }
+  }
+
+  TriBool PickIndexCondition(PhysTable *table, int &idxPos,
+                             MVectorPtr<ExprLogic *> *vctExpr) override {
+    if (_exprRight->GetType() == ExprType::EXPR_FIELD &&
+        _exprLeft->IsConstValue()) {
+      Reverse();
+    }
+
+    if (_exprLeft->GetType() != ExprType::EXPR_FIELD ||
+        !_exprRight->IsConstValue()) {
+      return TriBool::False;
+    }
+
+    const MHashMap<uint32_t, uint32_t> &map = table->GetIndexFirstFieldMap();
+    ExprField *field = dynamic_cast<ExprField *>(_exprLeft);
+    auto iter = map.find(field->_rowPos);
+    if (iter == map.end()) {
+      return TriBool::False;
+    }
+
+    idxPos = iter->second;
+
+    return TriBool::True;
   }
 
 public:
@@ -94,7 +155,24 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprData->CollectElem(type, &vctElem);
+    _exprData->CollectElem(type, vctElem);
+  }
+
+  TriBool PickIndexCondition(PhysTable *table, int &idxPos,
+                             MVectorPtr<ExprLogic *> *vctExpr) override {
+    if (!_bIn || _exprData->GetType() != ExprType::EXPR_FIELD) {
+      return TriBool::False;
+    }
+
+    const MHashMap<uint32_t, uint32_t> &map = table->GetIndexFirstFieldMap();
+    ExprField *field = dynamic_cast<ExprField *>(_exprData);
+    auto iter = map.find(field->_rowPos);
+    if (iter == map.end()) {
+      return TriBool::False;
+    }
+
+    idxPos = iter->second;
+    return TriBool::True;
   }
 
 protected:
@@ -124,11 +202,17 @@ public:
       vctElem.push_back(this);
     }
 
-    child->CollectElem(type, &vctElem);
+    _child->CollectElem(type, vctElem);
+  }
+
+  TriBool PickIndexCondition(PhysTable *table, int &idxPos,
+                             MVectorPtr<ExprLogic *> *vctExpr) override {
+    return TriBool::False;
   }
 
 public:
   ExprData *_child;
+  // The value of ExprData equal null or not
   bool _bNull;
 };
 
@@ -157,8 +241,11 @@ public:
       return TriBool::Error;
     }
 
-    bool b = (*pdv >= *left && *pdv <= *right);
+    if (!pdv->AbleCompare(*left) || !pdv->AbleCompare(*right)) {
+      return TriBool::Error;
+    }
 
+    bool b = (*pdv >= *left && *pdv <= *right);
     pdv->DecRef();
     left->DecRef();
     right->DecRef();
@@ -170,9 +257,28 @@ public:
       vctElem.push_back(this);
     }
 
-    _child->CollectElem(type, &vctElem);
-    _exprLeft->CollectElem(type, &vctElem);
-    _exprRight->CollectElem(type, &vctElem);
+    _child->CollectElem(type, vctElem);
+    _exprLeft->CollectElem(type, vctElem);
+    _exprRight->CollectElem(type, vctElem);
+  }
+
+  TriBool PickIndexCondition(PhysTable *table, int &idxPos,
+                             MVectorPtr<ExprLogic *> *vctExpr) override {
+    if (_child->GetType() != ExprType::EXPR_FIELD ||
+        !_exprLeft->IsConstValue() || !_exprRight->IsConstValue()) {
+      return TriBool::False;
+    }
+
+    const MHashMap<uint32_t, uint32_t> &map = table->GetIndexFirstFieldMap();
+    ExprField *field = dynamic_cast<ExprField *>(_exprLeft);
+    auto iter = map.find(field->_rowPos);
+    if (iter == map.end()) {
+      return TriBool::False;
+    }
+
+    idxPos = iter->second;
+
+    return TriBool::True;
   }
 
 public:
@@ -204,7 +310,12 @@ public:
       vctElem.push_back(this);
     }
 
-    _child->CollectElem(type, &vctElem);
+    _child->CollectElem(type, vctElem);
+  }
+
+  TriBool PickIndexCondition(PhysTable *table, int &idxPos,
+                             MVectorPtr<ExprLogic *> *vctExpr) override {
+    return TriBool::False;
   }
 
 public:
@@ -231,7 +342,12 @@ public:
       vctElem.push_back(this);
     }
 
-    _child->CollectElem(type, &vctElem);
+    _child->CollectElem(type, vctElem);
+  }
+
+  TriBool PickIndexCondition(PhysTable *table, int &idxPos,
+                             MVectorPtr<ExprLogic *> *vctExpr) override {
+    return TriBool::False;
   }
 
 public:
@@ -256,8 +372,66 @@ public:
       vctElem.push_back(this);
     }
     for (ExprLogic *child : _vctChild) {
-      child->CollectElem(type, &vctElem);
+      child->CollectElem(type, vctElem);
     }
+  }
+
+  TriBool PickIndexCondition(PhysTable *table, int &idxPos,
+                             MVectorPtr<ExprLogic *> *vctExpr) override {
+    struct IdxLogic {
+      MVector<ExprLogic *>::iterator iter;
+      int idxPos;
+    };
+
+    MVector<IdxLogic> vctIL;
+    vctIL.reserve(_vctChild.size());
+
+    for (auto iter = _vctChild.begin(); iter != _vctChild.end();) {
+      ExprLogic *logic = *iter;
+      if (logic->GetType() == ExprType::EXPR_AND ||
+          logic->GetType() == ExprType::EXPR_OR) {
+        iter++;
+        continue;
+      }
+
+      IdxLogic il;
+      TriBool b = logic->PickIndexCondition(table, il.idxPos, nullptr);
+      if (b == TriBool::Error) {
+        return TriBool::Error;
+      } else if (b == TriBool::False) {
+        continue;
+      }
+
+      if (vctIL.size() > 0) {
+        if (vctIL[0].idxPos < il.idxPos) {
+          continue;
+        } else if (vctIL[0].idxPos > il.idxPos) {
+          vctIL.clear();
+        }
+      }
+
+      if (logic->GetType() == ExprType::EXPR_OR) {
+        if (vctIL.size() == 0) {
+          il.iter = iter;
+          vctIL.push_back(il);
+        }
+        break;
+      }
+
+      il.iter = iter;
+      vctIL.push_back(il);
+    }
+
+    if (vctIL.size() == 0) {
+      return TriBool::False;
+    }
+
+    for (auto iter = vctIL.rbegin(); iter != vctIL.rend(); iter++) {
+      vctExpr->push_back(*(iter->iter));
+      _vctChild.erase(iter->iter);
+    }
+
+    return TriBool::True;
   }
 
 public:
@@ -282,8 +456,28 @@ public:
       vctElem.push_back(this);
     }
     for (ExprLogic *child : _vctChild) {
-      child->CollectElem(type, &vctElem);
+      child->CollectElem(type, vctElem);
     }
+  }
+
+  TriBool PickIndexCondition(PhysTable *table, int &idxPos,
+                             MVectorPtr<ExprLogic *> *vctExpr) override {
+    idxPos = -1;
+    for (auto logic : _vctChild) {
+      int ipos = -1;
+      TriBool b = logic->PickIndexCondition(table, ipos, nullptr);
+      if (b != TriBool::True) {
+        return b;
+      }
+
+      if (idxPos == -1) {
+        idxPos = ipos;
+      } else if (idxPos != ipos) {
+        return TriBool::False;
+      }
+    }
+
+    return TriBool::True;
   }
 
 public:

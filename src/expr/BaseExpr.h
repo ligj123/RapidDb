@@ -51,6 +51,11 @@ public:
    */
   virtual IDataValue *Calc(VectorDataValue &vdParas,
                            VectorDataValue &vdRow) = 0;
+  /**
+   * @brief To check if this data is const value or able to get const result
+   * @return True: const value; False: NOT const value
+   */
+  virtual bool IsConstValue() = 0;
 };
 
 /**
@@ -83,6 +88,16 @@ public:
    * will be saved in _threadErrorMsg.
    */
   virtual TriBool Calc(VectorDataValue &vdPara, VectorDataValue &vdRow) = 0;
+  /**
+   * @brief To check if this ExprLogic can be as the index search condition.
+   * @param table The PhysTable that own this ExprLogic
+   * @param idxPos Which index that the conditions belong to
+   * @param idxLogic index conditions picked from search conditions
+   * @return True: Success to pick the condition; False: Failed to pick; Error:
+   * Meet error in the process.
+   */
+  virtual TriBool PickIndexCondition(PhysTable *table, int &idxPos,
+                                     MVectorPtr<ExprLogic *> *vctExpr) = 0;
 };
 
 /**
@@ -99,12 +114,38 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_ARRAY; }
   bool Exist(IDataValue *pdv) { return (_setVal.find(pdv) != _setVal.end()); }
-  void AddElem(IDataValue *dv) { _setVal.insert(dv); }
+  void AddElem(IDataValue *dv) {
+    auto pair = _setVal.insert(dv);
+    if (!pair.second) {
+      delete dv;
+    }
+  }
 
 public:
-  unordered_set<IDataValue *, DataValueHash, DataValueEqual,
-                Mallocator<IDataValue *>>
-      _setVal;
+  MHashSet<IDataValue *, DataValueHash, DataValueEqual> _setVal;
+};
+
+class ExprTable : public BaseExpr {
+public:
+  ExprTable(MString *dbName, MString *tName, MString *_tAlias = nullptr)
+      : _dbName(dbName), _tName(tName), _tAlias(_tAlias) {}
+  ~ExprTable() {
+
+    delete _dbName;
+    delete _tName;
+    delete _tAlias;
+  }
+
+  ExprType GetType() override { return ExprType::EXPR_TABLE; }
+  bool Preprocess(Database *currDb = nullptr);
+
+public:
+  MString *_dbName;
+  MString *_tName;
+  MString *_tAlias;
+  JoinType _joinType{JoinType::JOIN_NULL};
+  // The physical table will insert into. Filled when preprocess
+  PhysTable *_physTable{nullptr};
 };
 
 /**
@@ -133,29 +174,6 @@ public:
   int _dataLength;     // The max length for data storage
   ExprElem *_exprElem; // The expression to get data value from source
   MString *_alias;     // column alias name
-};
-
-class ExprTable : public BaseExpr {
-public:
-  ExprTable(MString *dbName, MString *tName, MString *_tAlias = nullptr)
-      : _dbName(dbName), _tName(tName), _tAlias(_tAlias) {}
-  ~ExprTable() {
-
-    delete _dbName;
-    delete _tName;
-    delete _tAlias;
-  }
-
-  ExprType GetType() override { return ExprType::EXPR_TABLE; }
-  bool Preprocess(Database *currDb = nullptr);
-
-public:
-  MString *_dbName;
-  MString *_tName;
-  MString *_tAlias;
-  JoinType _joinType{JoinType::JOIN_NULL};
-  // The physical table will insert into. Filled when preprocess
-  PhysTable *_physTable{nullptr};
 };
 
 class ExprParameter;

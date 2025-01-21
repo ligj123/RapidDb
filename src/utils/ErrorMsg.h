@@ -1,5 +1,7 @@
 ﻿#pragma once
 #include "../cache/Mallocator.h"
+#include "ErrorID.h"
+
 #include <exception>
 #include <memory>
 #include <mutex>

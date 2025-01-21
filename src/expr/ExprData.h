@@ -29,6 +29,7 @@ public:
   ExprConst(MString *sval) {
     _val = new DataValueVarChar(sval->c_str(), sval->size());
     _val->SetConstRef();
+    delete sval;
   }
   ExprConst(bool bval) {
     _val = new DataValueBool(bval);
@@ -39,15 +40,20 @@ public:
     _val->SetConstRef();
   }
   ~ExprConst() { _val->Free(); }
+
   ExprType GetType() override { return ExprType::EXPR_CONST; }
+
   IDataValue *Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     assert(_val->IsConstRef());
     return _val;
   }
 
   bool IsNull() {
-    assert(_val != nullptr && _val->GetDataType() != DataType::VAL_NULL);
-    return false;
+    if (_val == nullptr || _val->GetDataType() != DataType::VAL_NULL) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
@@ -55,6 +61,8 @@ public:
       vctElem.push_back(this);
     }
   }
+
+  bool IsConstValue() override { return true; }
 
 public:
   IDataValue *_val;
@@ -83,6 +91,8 @@ public:
     }
   }
 
+  bool IsConstValue() override { return false; }
+
 public:
   MString *_tableName; // The table name this field belong to
   MString *_colName;   // The field name (The related column)
@@ -105,6 +115,8 @@ public:
     }
   }
 
+  bool IsConstValue() override { return true; }
+
 public:
   int _paraPos{-1}; // The position in parameter array.
 };
@@ -124,17 +136,17 @@ public:
     IDataValue *right = _exprRight->Calc(vdParas, vdRow);
     IDataValue *rt = nullptr;
 
-    if (left->IsStringType() || right->IsStringType()) {
-      StrBuff sb(left->GetDataLength() * 2 + right->GetDataLength() * 2);
-      left->ToString(sb);
-      right->ToString(sb);
-      rt = new DataValueVarChar(sb.GetBuff(), sb.GetBufLen() + 1);
-    } else if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
+    if (left->IsAutoPrimaryKey() && right->IsAutoPrimaryKey()) {
       rt = new DataValueLong(left->GetLong() + right->GetLong());
     } else if (left->IsDigital() && right->IsDigital()) {
       rt = new DataValueDouble(left->GetDouble() + right->GetDouble());
+    } else if (left->IsStringType() || right->IsStringType()) {
+      StrBuff sb(left->GetDataLength() * 2 + right->GetDataLength() * 2);
+      left->ToString(sb);
+      right->ToString(sb);
+      rt = new DataValueVarChar(sb.GetBuff(), sb.GetStrLen());
     } else {
-      rt = left->Clone();
+      rt = left->Clone(true);
     }
     left->DecRef();
     right->DecRef();
@@ -146,8 +158,12 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprLeft->CollectElem(type, &vctElem);
-    _exprRight->CollectElem(type, &vctElem);
+    _exprLeft->CollectElem(type, vctElem);
+    _exprRight->CollectElem(type, vctElem);
+  }
+
+  bool IsConstValue() override {
+    return _exprLeft->IsConstValue() && _exprRight->IsConstValue();
   }
 
 public:
@@ -175,7 +191,7 @@ public:
     } else if (left->IsDigital() && right->IsDigital()) {
       rt = new DataValueDouble(left->GetDouble() - right->GetDouble());
     } else {
-      rt = left->Clone();
+      rt = left->Clone(true);
     }
 
     left->DecRef();
@@ -188,8 +204,12 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprLeft->CollectElem(type, &vctElem);
-    _exprRight->CollectElem(type, &vctElem);
+    _exprLeft->CollectElem(type, vctElem);
+    _exprRight->CollectElem(type, vctElem);
+  }
+
+  bool IsConstValue() override {
+    return _exprLeft->IsConstValue() && _exprRight->IsConstValue();
   }
 
 public:
@@ -217,7 +237,7 @@ public:
     } else if (left->IsDigital() && right->IsDigital()) {
       rt = new DataValueDouble(left->GetDouble() * right->GetDouble());
     } else {
-      rt = left->Clone();
+      rt = left->Clone(true);
     }
 
     left->DecRef();
@@ -230,8 +250,12 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprLeft->CollectElem(type, &vctElem);
-    _exprRight->CollectElem(type, &vctElem);
+    _exprLeft->CollectElem(type, vctElem);
+    _exprRight->CollectElem(type, vctElem);
+  }
+
+  bool IsConstValue() override {
+    return _exprLeft->IsConstValue() && _exprRight->IsConstValue();
   }
 
 public:
@@ -264,7 +288,7 @@ public:
         rt = new DataValueDouble(left->GetDouble() / r);
     }
     if (rt == nullptr) {
-      rt = left->Clone();
+      rt = left->Clone(true);
     }
 
     left->DecRef();
@@ -277,8 +301,12 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprLeft->CollectElem(type, &vctElem);
-    _exprRight->CollectElem(type, &vctElem);
+    _exprLeft->CollectElem(type, vctElem);
+    _exprRight->CollectElem(type, vctElem);
+  }
+
+  bool IsConstValue() override {
+    return _exprLeft->IsConstValue() && _exprRight->IsConstValue();
   }
 
 public:
@@ -314,8 +342,10 @@ public:
       vctElem.push_back(this);
     }
 
-    _exprData->CollectElem(type, &vctElem);
+    _exprData->CollectElem(type, vctElem);
   }
+
+  bool IsConstValue() override { return _exprData->IsConstValue(); }
 
 public:
   ExprData *_exprData;

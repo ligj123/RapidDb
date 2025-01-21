@@ -26,11 +26,11 @@ BOOST_AUTO_TEST_CASE(SessionBasic_test) {
     SessionGroup &sGroup = vctSessGroup[i];
     BOOST_TEST(sGroup._groupSn == i);
     BOOST_TEST(sGroup._restartNum == 1);
-    BOOST_TEST(sGroup._currTranId == (1LL << 48) + (i << 40))
+    BOOST_TEST(sGroup._currTranId == (1LL << 48) + (i << 40));
   }
 
   vector<SessionTask *> &vctTask = SessionPool::GetVctSessionTask();
-  BOST_TEST(vctTask.size() == 2);
+  BOOST_TEST(vctTask.size() == 2);
   for (size_t i = 0; i < 2; i++) {
     SessionTask *task = vctTask[i];
     MVector<SessionGroup *> &vctGroup = task->GetVctSessionGroup();
@@ -39,7 +39,7 @@ BOOST_AUTO_TEST_CASE(SessionBasic_test) {
     BOOST_TEST(vctGroup[1]->_groupSn == i * 2 + 1);
   }
 
-  for (int i = 0; i < 16; ++) {
+  for (int i = 0; i < 16; i++) {
     StmtResult sr;
     uint32_t sid = SessionPool::CreateSession(i % 2, &sr);
     BOOST_TEST(sid == i);
@@ -52,7 +52,8 @@ BOOST_AUTO_TEST_CASE(SessionBasic_test) {
     BOOST_TEST(vctSessGroup[i % 4]._mapSession.size() == i / 4 + 1);
 
     auto iter = vctSessGroup[i % 4]._mapSession.find(sid);
-    BOOST_TEST(iter != vctSessGroup[i % 4]._mapSession.end());
+    bool b = iter != vctSessGroup[i % 4]._mapSession.end();
+    BOOST_TEST(b);
   }
 
   ThreadPool::SetThreadId(tidOld);

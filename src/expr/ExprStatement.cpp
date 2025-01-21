@@ -4,80 +4,184 @@
 #include "../manager/TableManager.h"
 #include "../serv/Session.h"
 #include "../table/Table.h"
+#include "../utils/ErrorMsg.h"
 
 namespace storage {
-
-bool FillElemFiled(MVector<ExprElem *> &vctElem, PhysTable *table) {
-  const storage::MStrHashMap<uint32_t> &mapPos =
-      _exprTable->_physTable->GetMapColumnPos();
+bool FillElemFiled(const MStrHashMap<uint32_t> &mapColPos,
+                   MVector<ExprElem *> &vctElem) {
   for (ExprElem *elem : vctElem) {
     ExprField *field = (ExprField *)elem;
-    auto iter = mapPos.find(field->_colName);
-    if (iter == mapPos.end()) {
-      _threadErrorMsg.reset(new ErrorMsg(TB_UNEXIST_COLUMN, {*ecol->_name}));
+    auto iter = mapColPos.find(*field->_colName);
+    if (iter != mapColPos.end()) {
+      field->_rowPos = iter->second;
+    } else {
+      _threadErrorMsg.reset(
+          new ErrorMsg(TB_UNEXIST_COLUMN, {*field->_colName}));
       return false;
     }
-
-    field->_rowPos = iter->second;
   }
 
   return true;
 }
 
-ExprInsert::~ExprInsert() {
-  delete _exprTable;
-  delete _vctCol;
-  delete _vctRowData;
-  delete _exprSelect;
-
-  if (_physTable != nullptr)
-    _physTable->DecRef();
-}
-
-ExprUpdate::~ExprUpdate() {
-  delete _exprTable;
-  delete _vctCol;
-  delete _exprWhere;
-  delete _exprOrderBy;
-  delete _exprLimit;
-
-  if (_physTable != nullptr)
-    _physTable->DecRef();
-}
-
-ExprDelete::~ExprDelete() {
-  delete _exprTable;
-  delete _exprWhere;
-  delete _exprOrderBy;
-  delete _exprLimit;
-
-  if (_physTable != nullptr)
-    _physTable->DecRef();
-}
-
-bool ExprWhere::Preprocess(PhysTable *table) {
+bool ExprWhere::Preprocess(PhysTable *table,
+                           const MStrHashMap<uint32_t> &mapColPos) {
   MVector<ExprElem *> vctElem;
   vctElem.reserve(32);
   _exprLogic->CollectElem(ExprType::EXPR_FIELD, vctElem);
-  if (!FillElemFiled(vctElem, table)) {
+  if (!FillElemFiled(mapColPos, vctElem)) {
     return false;
   }
 
-  // if (_exprLogic->GetType()==ExprType::EXPR_FIELD)
+  if (_exprLogic->GetType() == ExprType::EXPR_AND) {
+    int idxPos;
+    MVectorPtr<ExprLogic *> vctExpr;
+
+    TriBool b = _exprLogic->PickIndexCondition(table, idxPos, &vctExpr);
+    if (b == TriBool::Error) {
+      return false;
+    } else if (b == TriBool::True) {
+      _useIndex = new UseIndex(move(vctExpr), idxPos, ExprType::EXPR_ADD);
+      if (dynamic_cast<ExprAnd *>(_exprLogic)->_vctChild.size() == 0) {
+        delete _exprLogic;
+        _exprLogic = nullptr;
+      }
+    }
+  } else if (_exprLogic->GetType() == ExprType::EXPR_OR) {
+    int idxPos;
+
+    TriBool b = _exprLogic->PickIndexCondition(table, idxPos, nullptr);
+    if (b == TriBool::Error) {
+      return false;
+    } else if (b == TriBool::True) {
+      ExprOr *exprOr = dynamic_cast<ExprOr *>(_exprLogic);
+      _useIndex =
+          new UseIndex(move(exprOr->_vctChild), idxPos, ExprType::EXPR_OR);
+      delete _exprLogic;
+      _exprLogic = nullptr;
+    }
+  }
+
+  return true;
+}
+
+bool ExprGroupBy::Preprocess(const MStrHashMap<uint32_t> &mapColPos) {
+  assert(_vctColPos.size() == 0);
+  for (MString *name : *_vctColName) {
+    auto iter = mapColPos.find(*name);
+    if (iter != mapColPos.end()) {
+      _vctColPos.push_back(iter->second);
+    } else {
+      _threadErrorMsg.reset(new ErrorMsg(TB_UNEXIST_COLUMN, {*name}));
+      return false;
+    }
+  }
+
+  return true;
+}
+
+bool ExprOrderBy::Preprocess(const MStrHashMap<uint32_t> &mapColPos) {
+  for (ExprOrderItem *item : *_vctItem) {
+    auto iter = mapColPos.find(*item->_colName);
+    if (iter != mapColPos.end()) {
+      item->_pos = iter->second;
+    } else {
+      _threadErrorMsg.reset(new ErrorMsg(TB_UNEXIST_COLUMN, {*item->_colName}));
+      return false;
+    }
+  }
+
+  return true;
 }
 
 bool ExprSelect::Preprocess(Database *currDb) {
-  // TO DO
-  return false;
+  if (_vctTable->size() == 1) {
+    ExprTableSelect *tsel = new ExprTableSelect();
+    tsel->_vctPara = move(_vctPara);
+    tsel->_exprId = _exprId;
+    tsel->_bDistinct = _bDistinct;
+    tsel->_vctCol = _vctCol;
+    _vctCol = nullptr;
+    tsel->_exprTable = _vctTable->at(0);
+    _vctTable->clear();
+    tsel->_exprWhere = _exprWhere;
+    _exprWhere = nullptr;
+    tsel->_exprGroupBy = _exprGroupBy;
+    _exprGroupBy = nullptr;
+    tsel->_exprOrderBy = _exprOrderBy;
+    _exprOrderBy = nullptr;
+    tsel->_exprLimit = _exprLimit;
+    _exprLimit = nullptr;
+    _exprDestSelect = tsel;
+    if (!tsel->Preprocess(currDb)) {
+      return false;
+    }
+  } else {
+    _threadErrorMsg.reset(new ErrorMsg(
+        SYS_UNSUPPORT_OPERATION, {"This version does not support table join"}));
+    return false;
+  }
+
+  return true;
+}
+
+bool ExprTableSelect::Preprocess(Database *currDb) {
+  if (!_exprTable->Preprocess(currDb)) {
+    return false;
+  }
+
+  const MStrHashMap<uint32_t> &mapTPos =
+      _exprTable->_physTable->GetMapColumnPos();
+  MStrHashMap<uint32_t> mapRPos;
+
+  MVector<ExprElem *> vctField;
+  vctField.reserve(32);
+  for (size_t i = 0; i < _vctCol->size(); i++) {
+    ExprColumn *ecol = _vctCol->at(i);
+    bool bAlias = true;
+    if (ecol->_exprElem->GetType() == ExprType::EXPR_FIELD) {
+      ecol->_name =
+          new MString(*(dynamic_cast<ExprField *>(ecol->_exprElem)->_colName));
+    } else if (ecol->_alias != nullptr) {
+      ecol->_name = new MString(*ecol->_alias);
+      bAlias = false;
+    } else {
+      ecol->_name = new MString("col" + ToMString(i));
+    }
+
+    ecol->_exprElem->CollectElem(ExprType::EXPR_FIELD, vctField);
+    mapRPos.emplace(*ecol->_name, i);
+    if (bAlias && ecol->_alias != nullptr) {
+      mapRPos.emplace(*ecol->_alias, i);
+    }
+  }
+
+  if (!FillElemFiled(mapTPos, vctField)) {
+    return false;
+  }
+
+  if (!_exprWhere->Preprocess(_exprTable->_physTable, mapTPos)) {
+    return false;
+  }
+
+  if (!_exprGroupBy->Preprocess(mapRPos)) {
+    return false;
+  }
+  if (!_exprOrderBy->Preprocess(mapRPos)) {
+    return false;
+  }
+
+  return true;
 }
 
 bool ExprInsert::Preprocess(Database *currDb) {
-  if (!_exprTable->Preprocess(session)) {
+  if (!_exprTable->Preprocess(currDb)) {
     return false;
   }
 
   if (_vctCol->size() == 0) {
-    const MVector<PhysColumn> &vctPCol = _physTable->GetColumnArray();
+    const MVector<PhysColumn> &vctPCol =
+        _exprTable->_physTable->GetColumnArray();
     for (const PhysColumn &pcol : vctPCol) {
       ExprColumn *ecol = new ExprColumn(new MString(pcol.GetName()), nullptr,
                                         new MString(pcol.GetName()));
@@ -88,7 +192,7 @@ bool ExprInsert::Preprocess(Database *currDb) {
     }
   } else {
     for (ExprColumn *ecol : *_vctCol) {
-      const PhysColumn *pcol = _physTable->GetColumn(*ecol->_name);
+      const PhysColumn *pcol = _exprTable->_physTable->GetColumn(*ecol->_name);
       if (pcol == nullptr) {
         _threadErrorMsg.reset(new ErrorMsg(TB_UNEXIST_COLUMN, {*ecol->_name}));
         return false;
@@ -99,8 +203,8 @@ bool ExprInsert::Preprocess(Database *currDb) {
     }
   }
 
-  MVector<ExprElem *> vctElem;
-  vctElem.reserve(32);
+  MVector<ExprElem *> vctExpr;
+  vctExpr.reserve(32);
   for (MVectorPtr<ExprElem *> *vctElem : *_vctRowData) {
     if (vctElem->size() != _vctCol->size()) {
       _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
@@ -108,11 +212,11 @@ bool ExprInsert::Preprocess(Database *currDb) {
     }
 
     for (ExprElem *elem : *vctElem) {
-      elem->CollectElem(ExprType::EXPR_FIELD, vctElem);
+      elem->CollectElem(ExprType::EXPR_FIELD, vctExpr);
     }
   }
 
-  if (!FillElemFiled(vctElem, table)) {
+  if (!FillElemFiled(_exprTable->_physTable->GetMapColumnPos(), vctExpr)) {
     return false;
   }
 
@@ -120,12 +224,55 @@ bool ExprInsert::Preprocess(Database *currDb) {
 }
 
 bool ExprUpdate::Preprocess(Database *currDb) {
-  // TO DO
-  return false;
+  if (!_exprTable->Preprocess(currDb)) {
+    return false;
+  }
+
+  const MStrHashMap<uint32_t> &mapPos =
+      _exprTable->_physTable->GetMapColumnPos();
+  MVector<ExprElem *> vctElem;
+  for (ExprColumn *ecol : *_vctCol) {
+    auto iter = mapPos.find(*ecol->_name);
+    if (iter != mapPos.end()) {
+      ecol->_pos = iter->second;
+    } else {
+      _threadErrorMsg.reset(new ErrorMsg(TB_UNEXIST_COLUMN, {*ecol->_name}));
+      return false;
+    }
+
+    ecol->_exprElem->CollectElem(ExprType::EXPR_FIELD, vctElem);
+  }
+
+  if (!FillElemFiled(mapPos, vctElem)) {
+    return false;
+  }
+
+  if (_exprWhere != nullptr &&
+      !_exprWhere->Preprocess(_exprTable->_physTable, mapPos)) {
+    return false;
+  }
+  if (_exprOrderBy != nullptr && !_exprOrderBy->Preprocess(mapPos)) {
+    return false;
+  }
+
+  return true;
 }
 
 bool ExprDelete::Preprocess(Database *currDb) {
-  // TO DO
-  return false;
+  if (!_exprTable->Preprocess(currDb)) {
+    return false;
+  }
+
+  const MStrHashMap<uint32_t> &mapPos =
+      _exprTable->_physTable->GetMapColumnPos();
+  if (_exprWhere != nullptr &&
+      !_exprWhere->Preprocess(_exprTable->_physTable, mapPos)) {
+    return false;
+  }
+  if (_exprOrderBy != nullptr && !_exprOrderBy->Preprocess(mapPos)) {
+    return false;
+  }
+
+  return true;
 }
 } // namespace storage

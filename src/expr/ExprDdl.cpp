@@ -9,14 +9,12 @@ using namespace std;
 
 bool ExprCreateTable::Preprocess(Database *currDb) {
   if (_table->_dbName == nullptr) {
-    assert(session != nullptr);
-    const Database *db = session->_currDb;
-    if (db == nullptr) {
+    if (currDb == nullptr) {
       _threadErrorMsg.reset(new ErrorMsg(SESSION_NO_CURR_DB, {}));
       return false;
     }
 
-    _table->_dbName = new MString(db->GetDbName());
+    _table->_dbName = new MString(currDb->GetDbName());
   }
 
   for (ExprCreateTableItem *item : *_vctItem) {

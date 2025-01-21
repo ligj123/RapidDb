@@ -2,7 +2,10 @@
 #include "../cache/CachePool.h"
 #include "../cache/Mallocator.h"
 #include "../cache/StrBuff.h"
+#include "../utils/ErrorID.h"
+#include "../utils/ErrorMsg.h"
 #include "DataType.h"
+
 #include <any>
 #include <cassert>
 #include <cstring>
@@ -140,6 +143,21 @@ public:
   virtual Byte *GetBuff() const {
     assert(false);
     return nullptr;
+  }
+
+  bool AbleCompare(IDataValue &dv) {
+    if (GetDataType() == dv.GetDataType()) {
+      return true;
+    } else if (IsDigital() && dv.IsDigital()) {
+      return true;
+    } else if (IsArrayType() && dv.IsArrayType()) {
+      return true;
+    } else {
+      _threadErrorMsg.reset(new ErrorMsg(
+          DT_UNSUPPORT_COMPARE,
+          {StrOfDataType(GetDataType()), StrOfDataType(dv.GetDataType())}));
+      return false;
+    }
   }
   virtual void Add(int64_t val) {}
   virtual void Add(double val) {}

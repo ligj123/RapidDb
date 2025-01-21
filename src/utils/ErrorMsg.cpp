@@ -1,6 +1,6 @@
 ﻿#include "ErrorMsg.h"
 #include "BytesFuncs.h"
-#include "ErrorID.h"
+
 #include <fstream>
 #include <iostream>
 #include <regex>
@@ -8,6 +8,7 @@
 namespace storage {
 thread_local unique_ptr<ErrorMsg> _threadErrorMsg = nullptr;
 unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
+    {SYS_UNSUPPORT_OPERATION, "Unsupport operation: {1}"},
     {TB_INVALID_FILE_VERSION,
      "Failed to parse file version text {1}, it is not a valid version."},
     {TB_INVALID_TABLE_NAME, "Invalid table name, name = {1}."},
@@ -39,6 +40,8 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
     {DT_UNKNOWN_TYPE, "Unknown data type, data type = {1}."},
     {DT_UNSUPPORT_OPER, "Unsupport operation {1} for data type {2}. "},
     {DT_NULL_VALUE, "Column {1} does not support null value in table {2}"},
+    {DT_UNSUPPORT_COMPARE,
+     "Unable to compare data type {1} with data type {2}"},
 
     // Cache manage
     {CM_EXCEED_LIMIT, "Exceed the cache size limit."},
