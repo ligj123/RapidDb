@@ -33,4 +33,22 @@ bool ExprTable::Preprocess(Database *currDb) {
 
   return true;
 }
+
+std::ostream &operator<<(std::ostream &os, const TriBool &b) {
+  switch (b) {
+  case TriBool::Error:
+    os << "Error(" << (int)TriBool::Error << ")";
+    break;
+  case TriBool::False:
+    os << "False(" << (int)TriBool::False << ")";
+    break;
+  case TriBool::True:
+    os << "True(" << (int)TriBool::True << ")";
+    break;
+  default:
+    os << "UNKNOWN TriBool";
+    break;
+  }
+  return os;
+}
 } // namespace storage

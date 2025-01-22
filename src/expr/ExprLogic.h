@@ -33,6 +33,8 @@ public:
     }
 
     if (!left->AbleCompare(*right)) {
+      left->DecRef();
+      right->DecRef();
       return TriBool::Error;
     }
 
@@ -133,7 +135,7 @@ public:
 class ExprInNot : public ExprLogic {
 public:
   ExprInNot(ExprData *exprData, ExprArray *exprArray, bool bIn = true)
-      : _exprData(exprData), _exprArray(exprArray) {}
+      : _exprData(exprData), _exprArray(exprArray), _bIn(bIn) {}
   ~ExprInNot() {
     delete _exprData;
     delete _exprArray;
@@ -147,7 +149,7 @@ public:
 
     bool b = _exprArray->Exist(pdv);
     pdv->DecRef();
-    return (_bIn ^ b) ? TriBool::True : TriBool::False;
+    return (_bIn ^ b) ? TriBool::False : TriBool::True;
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
@@ -175,7 +177,7 @@ public:
     return TriBool::True;
   }
 
-protected:
+public:
   ExprData *_exprData;
   ExprArray *_exprArray;
   bool _bIn;
@@ -194,7 +196,7 @@ public:
 
     bool b = pdv->IsNull();
     pdv->DecRef();
-    return (_bNull ^ b) ? TriBool::True : TriBool::False;
+    return (_bNull ^ b) ? TriBool::False : TriBool::True;
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
@@ -242,6 +244,9 @@ public:
     }
 
     if (!pdv->AbleCompare(*left) || !pdv->AbleCompare(*right)) {
+      pdv->DecRef();
+      left->DecRef();
+      right->DecRef();
       return TriBool::Error;
     }
 
@@ -302,7 +307,7 @@ public:
   ExprType GetType() override { return ExprType::EXPR_LIKE; }
   TriBool Calc(VectorDataValue &vdParas, VectorDataValue &vdRow) override {
     // TO DO
-    return TriBool::True;
+    return TriBool::False;
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {

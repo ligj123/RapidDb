@@ -75,6 +75,8 @@ public:
 };
 
 enum class TriBool : int8_t { Error = -1, False = 0, True = 1 };
+std::ostream &operator<<(std::ostream &os, const TriBool &b);
+
 /**
  * @brief Base class for all logic expression, for example and,or
  */

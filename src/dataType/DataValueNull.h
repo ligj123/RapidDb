@@ -16,7 +16,7 @@ namespace storage {
 class DataValueNull : public IDataValue {
 public:
   DataValueNull(const DataValueNull &dv) : IDataValue(dv) {}
-  DataValueNull() : IDataValue(DataType::VAL_NULL, ValueType::SOLE_VALUE) {}
+  DataValueNull() : IDataValue(DataType::VAL_NULL, ValueType::NULL_VALUE) {}
 
   bool Copy(IDataValue &dv, bool bMove = false) override { return true; }
   DataValueNull *Clone(bool incVal = false) override {
