@@ -57,7 +57,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_CONST) {
       vctElem.push_back(this);
     }
   }
@@ -86,7 +86,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_FIELD) {
       vctElem.push_back(this);
     }
   }
@@ -110,7 +110,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_PARAMETER) {
       vctElem.push_back(this);
     }
   }
@@ -154,7 +154,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_ADD) {
       vctElem.push_back(this);
     }
 
@@ -200,7 +200,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_SUB) {
       vctElem.push_back(this);
     }
 
@@ -246,7 +246,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_MUL) {
       vctElem.push_back(this);
     }
 
@@ -297,7 +297,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_DIV) {
       vctElem.push_back(this);
     }
 
@@ -338,7 +338,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_MINUS) {
       vctElem.push_back(this);
     }
 

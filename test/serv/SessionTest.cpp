@@ -56,8 +56,19 @@ BOOST_AUTO_TEST_CASE(SessionBasic_test) {
     BOOST_TEST(b);
   }
 
+  for (SessionTask *task : vctTask) {
+    task->SetStatus(TaskStatus::FINISHED, false);
+  }
+  for (SessionGroup &sg : vctSessGroup) {
+    for (auto iter = sg._mapSession.begin(); iter != sg._mapSession.end();
+         iter++) {
+      iter->second->_transaction.SetTranStatus(TranStatus::FINISHED);
+    }
+  }
   ThreadPool::SetThreadId(tidOld);
   SessionPool::ClearPool();
+  tpool->ClearTasks();
+  delete tpool;
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

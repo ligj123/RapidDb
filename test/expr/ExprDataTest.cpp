@@ -13,6 +13,8 @@ namespace storage {
 
 BOOST_AUTO_TEST_SUITE(ExprTest)
 BOOST_AUTO_TEST_CASE(ExprConst_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   ExprConst ec1(1.123);
   BOOST_TEST(ec1._val->GetDataType() == DataType::DOUBLE);
   BOOST_TEST(ec1._val->IsConstRef());
@@ -38,6 +40,8 @@ BOOST_AUTO_TEST_CASE(ExprConst_test) {
 }
 
 BOOST_AUTO_TEST_CASE(ExprDataCalc_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   VectorDataValue vdParas;
   vdParas.push_back(new DataValueBool(true));
   vdParas.push_back(new DataValueLong(1234LL));

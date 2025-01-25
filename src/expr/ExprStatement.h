@@ -55,17 +55,16 @@ typedef ExprCondition<ExprType::EXPR_HAVING> ExprHaving;
 // can be selected.
 class UseIndex {
 public:
-  UseIndex(MVectorPtr<ExprLogic *> &&vctExpr, int idxPos, ExprType type)
-      : _vctExpr(move(vctExpr)), _indexPos(idxPos), _exprType(type) {}
+  UseIndex(ExprLogic *idxLogic, int idxPos)
+      : _idxLogic(move(idxLogic)), _indexPos(idxPos) {}
+  ~UseIndex() { delete _idxLogic; }
 
   // If the primary or secondary index can be used to query, copy the query
   // conditions to here. Only one index can be used. Only valid for physical
   // table select.
-  MVectorPtr<ExprLogic *> _vctExpr{nullptr};
+  ExprLogic *_idxLogic{nullptr};
   // which index used, The position of index that start from 0(primary key)
   int _indexPos;
-  // Now only support 2 types EXPR_AND or EXPR_OR
-  ExprType _exprType;
 };
 
 class ExprWhere : public ExprCondition<ExprType::EXPR_WHERE> {
@@ -149,6 +148,7 @@ public:
     delete _exprGroupBy;
     delete _exprOrderBy;
     delete _exprLimit;
+    delete _exprDestSelect;
   }
   ExprType GetType() override { return ExprType::EXPR_SELECT; }
   bool Preprocess(Database *currDb = nullptr) override;

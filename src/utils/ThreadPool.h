@@ -255,6 +255,18 @@ public:
   uint32_t GetAliveThreadCount() const { return _aliveThreads; }
   uint32_t GetMinThreads() const { return _minThreads; }
   uint32_t GetMaxThreads() const { return _maxThreads; }
+  // Only for test
+  void ClearTasks() {
+    _rapidTaskQueue.Pop(_queueTask);
+    for (ThreadTask *task : _queueTask) {
+      task->SetStatus(TaskStatus::FINISHED, true);
+      if (task->IsNeedDelete()) {
+        delete task;
+      }
+    }
+
+    _queueTask.clear();
+  }
 
 protected:
   void CreateWorkThread(int id = -1);

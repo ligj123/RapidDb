@@ -146,10 +146,9 @@ bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,
   MVector<ThreadTask *> vct;
 
   for (uint64_t i = 0; i < groupNum; i++) {
-    _vctGroup.emplace_back(i, 0, 0, threadPool->GetMaxThreads(),
+    _vctGroup.emplace_back(i, 0, restartNum, threadPool->GetMaxThreads(),
                            outsiteThreadNum);
     SessionGroup &group = _vctGroup[i];
-    group._currTranId = ((uint64_t)restartNum << 48) + (i << 40);
 
     if (i % num == 0) {
       task = new SessionTask(threadPool);

@@ -33,33 +33,38 @@ bool ExprWhere::Preprocess(PhysTable *table,
     return false;
   }
 
+  int idxPos;
+  MVectorPtr<ExprLogic *> vctExpr;
+  TriBool b = _exprLogic->PickIndexCondition(table, idxPos, &vctExpr);
+  if (b == TriBool::Error) {
+    return false;
+  } else if (b == TriBool::False) {
+    return true;
+  }
+
   if (_exprLogic->GetType() == ExprType::EXPR_AND) {
-    int idxPos;
-    MVectorPtr<ExprLogic *> vctExpr;
-
-    TriBool b = _exprLogic->PickIndexCondition(table, idxPos, &vctExpr);
-    if (b == TriBool::Error) {
-      return false;
-    } else if (b == TriBool::True) {
-      _useIndex = new UseIndex(move(vctExpr), idxPos, ExprType::EXPR_ADD);
-      if (dynamic_cast<ExprAnd *>(_exprLogic)->_vctChild.size() == 0) {
-        delete _exprLogic;
-        _exprLogic = nullptr;
-      }
+    if (vctExpr.size() == 1) {
+      _useIndex = new UseIndex(*vctExpr.begin(), idxPos);
+      vctExpr.clear();
+    } else {
+      ExprAnd *expr = new ExprAnd();
+      expr->_vctChild = move(vctExpr);
+      _useIndex = new UseIndex(expr, idxPos);
     }
-  } else if (_exprLogic->GetType() == ExprType::EXPR_OR) {
-    int idxPos;
 
-    TriBool b = _exprLogic->PickIndexCondition(table, idxPos, nullptr);
-    if (b == TriBool::Error) {
-      return false;
-    } else if (b == TriBool::True) {
-      ExprOr *exprOr = dynamic_cast<ExprOr *>(_exprLogic);
-      _useIndex =
-          new UseIndex(move(exprOr->_vctChild), idxPos, ExprType::EXPR_OR);
+    ExprAnd *eand = dynamic_cast<ExprAnd *>(_exprLogic);
+    if (eand->_vctChild.size() == 0) {
       delete _exprLogic;
       _exprLogic = nullptr;
+    } else if (eand->_vctChild.size() == 1) {
+      ExprLogic *logic = *eand->_vctChild.begin();
+      eand->_vctChild.clear();
+      delete _exprLogic;
+      _exprLogic = logic;
     }
+  } else {
+    _useIndex = new UseIndex(_exprLogic, idxPos);
+    _exprLogic = nullptr;
   }
 
   return true;
@@ -77,7 +82,11 @@ bool ExprGroupBy::Preprocess(const MStrHashMap<uint32_t> &mapColPos) {
     }
   }
 
-  return true;
+  if (_exprHaving != nullptr) {
+    return _exprHaving->Preprocess(mapColPos);
+  } else {
+    return true;
+  }
 }
 
 bool ExprOrderBy::Preprocess(const MStrHashMap<uint32_t> &mapColPos) {
@@ -179,7 +188,8 @@ bool ExprInsert::Preprocess(Database *currDb) {
     return false;
   }
 
-  if (_vctCol->size() == 0) {
+  if (_vctCol == nullptr) {
+    _vctCol = new MVectorPtr<ExprColumn *>();
     const MVector<PhysColumn> &vctPCol =
         _exprTable->_physTable->GetColumnArray();
     for (const PhysColumn &pcol : vctPCol) {
@@ -230,11 +240,15 @@ bool ExprUpdate::Preprocess(Database *currDb) {
 
   const MStrHashMap<uint32_t> &mapPos =
       _exprTable->_physTable->GetMapColumnPos();
+  const storage::MVector<storage::PhysColumn> &vctCmn =
+      _exprTable->_physTable->GetColumnArray();
   MVector<ExprElem *> vctElem;
   for (ExprColumn *ecol : *_vctCol) {
     auto iter = mapPos.find(*ecol->_name);
     if (iter != mapPos.end()) {
       ecol->_pos = iter->second;
+      ecol->_dataType = vctCmn[iter->second].GetDataType();
+      ecol->_dataLength = vctCmn[iter->second].GetMaxLength();
     } else {
       _threadErrorMsg.reset(new ErrorMsg(TB_UNEXIST_COLUMN, {*ecol->_name}));
       return false;

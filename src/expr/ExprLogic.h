@@ -68,12 +68,12 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_COMP) {
       vctElem.push_back(this);
     }
 
     _exprLeft->CollectElem(type, vctElem);
-    _exprLeft->CollectElem(type, vctElem);
+    _exprRight->CollectElem(type, vctElem);
   }
 
   void Reverse() {
@@ -153,7 +153,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_IN_OR_NOT) {
       vctElem.push_back(this);
     }
 
@@ -200,7 +200,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_IS_NULL_NOT) {
       vctElem.push_back(this);
     }
 
@@ -258,7 +258,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_BETWEEN) {
       vctElem.push_back(this);
     }
 
@@ -311,7 +311,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_LIKE) {
       vctElem.push_back(this);
     }
 
@@ -343,7 +343,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_NOT) {
       vctElem.push_back(this);
     }
 
@@ -373,7 +373,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_AND) {
       vctElem.push_back(this);
     }
     for (ExprLogic *child : _vctChild) {
@@ -391,11 +391,9 @@ public:
     MVector<IdxLogic> vctIL;
     vctIL.reserve(_vctChild.size());
 
-    for (auto iter = _vctChild.begin(); iter != _vctChild.end();) {
+    for (auto iter = _vctChild.begin(); iter != _vctChild.end(); iter++) {
       ExprLogic *logic = *iter;
-      if (logic->GetType() == ExprType::EXPR_AND ||
-          logic->GetType() == ExprType::EXPR_OR) {
-        iter++;
+      if (logic->GetType() == ExprType::EXPR_AND) {
         continue;
       }
 
@@ -436,6 +434,7 @@ public:
       _vctChild.erase(iter->iter);
     }
 
+    idxPos = vctIL.begin()->idxPos;
     return TriBool::True;
   }
 
@@ -453,11 +452,12 @@ public:
       if (tb == TriBool::Error || tb == TriBool::True)
         return tb;
     }
+
     return TriBool::False;
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_OR) {
       vctElem.push_back(this);
     }
     for (ExprLogic *child : _vctChild) {

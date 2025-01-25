@@ -27,7 +27,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_FUNCTION) {
       vctElem.push_back(this);
     }
 

@@ -70,7 +70,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_SUM) {
       vctElem.push_back(this);
     }
 
@@ -101,7 +101,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_MAX) {
       vctElem.push_back(this);
     }
 
@@ -132,7 +132,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_MIN) {
       vctElem.push_back(this);
     }
 
@@ -163,7 +163,7 @@ public:
   }
 
   void CollectElem(ExprType type, MVector<ExprElem *> &vctElem) override {
-    if (type == ExprType::EXPR_COUNT) {
+    if (type == ExprType::EXPR_AVG) {
       vctElem.push_back(this);
     }
 

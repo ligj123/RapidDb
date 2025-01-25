@@ -22,9 +22,10 @@ class SessionTask;
 struct SessionGroup {
   SessionGroup(uint16_t groupSn, uint16_t nodeId, uint16_t restartNum,
                uint16_t poolThreadNum, uint16_t outsideThreadNum)
-      : _threaPoolQueue(poolThreadNum), _outerQueue(outsideThreadNum) {
-    _currTranId = ((uint64_t)nodeId) << 52 + ((uint64_t)restartNum)
-                                     << 48 + ((uint64_t)groupSn) << 40;
+      : _groupSn(groupSn), _nodeId(nodeId), _restartNum(restartNum),
+        _threaPoolQueue(poolThreadNum), _outerQueue(outsideThreadNum) {
+    _currTranId = (((uint64_t)nodeId) << 52) + (((uint64_t)restartNum) << 48) +
+                  (((uint64_t)groupSn) << 40);
   }
 
   SessionGroup(SessionGroup &&src)

@@ -14,6 +14,7 @@ public:
   static bool RemoveTable(const MString &tblName);
   static bool FindTable(const MString &tblName, PhysTable *&tbl);
   static bool ListTables(const MString &dbName, MVector<MString> &vctTbl);
+  static void ClearTable();
 
 protected:
   static MStrTreeMap<PhysTable *> _mapTable;

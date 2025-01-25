@@ -131,4 +131,22 @@ bool TableManager::ListTables(const MString &dbName, MVector<MString> &vctTbl) {
 
   return true;
 }
+
+void TableManager::ClearTable() {
+  unique_lock<SpinMutex> lock(_spinMutex);
+  for (auto iter = _mapTable.begin(); iter != _mapTable.end(); iter++) {
+    delete iter->second;
+  }
+
+  _mapTable.clear();
+  for (size_t i = 0; i < _fastTableCache.size(); i++) {
+    _fastTableCache[i] = nullptr;
+  }
+
+  for (PhysTable *table : _discardTable) {
+    delete table;
+  }
+
+  _discardTable.clear();
+}
 } // namespace storage

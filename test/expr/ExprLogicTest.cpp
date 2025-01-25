@@ -14,6 +14,8 @@ namespace storage {
 
 BOOST_AUTO_TEST_SUITE(ExprTest)
 BOOST_AUTO_TEST_CASE(ExprLogicBase_test) {
+  LOG_INFO << "Run testcase: "
+           << boost::unit_test::framework::current_test_case().p_name;
   VectorDataValue vdParas;
   vdParas.push_back(new DataValueBool(true));
   vdParas.push_back(new DataValueLong(1234LL));
@@ -120,6 +122,53 @@ BOOST_AUTO_TEST_CASE(ExprLogicBase_test) {
 
   exprNot._child = nullptr;
   exprNull._child = nullptr;
+
+  // ExprAnd
+  ExprField ef1(nullptr, nullptr), ef2(nullptr, nullptr);
+  ef1._rowPos = 3;
+  ef2._rowPos = 2;
+  ExprParameter ep1, ep2;
+  ep1._paraPos = 1;
+  ep2._paraPos = 2;
+
+  ExprComp exprCmp1(CompType::GT, &ef1, &ep1);
+  ExprComp exprCmp2(CompType::GT, &ef2, &ep2);
+
+  ExprAnd exprAnd;
+  exprAnd._vctChild.push_back(&exprCmp1);
+  exprAnd._vctChild.push_back(&exprCmp2);
+
+  b = exprAnd.Calc(vdParas, vdRow);
+  BOOST_TEST(b == TriBool::False);
+
+  exprCmp1._compType = CompType::GE;
+  b = exprAnd.Calc(vdParas, vdRow);
+  BOOST_TEST(b == TriBool::False);
+
+  exprCmp2._compType = CompType::GE;
+  b = exprAnd.Calc(vdParas, vdRow);
+  BOOST_TEST(b == TriBool::True);
+
+  // ExprOr
+  ExprOr exprOr;
+  exprOr._vctChild = move(exprAnd._vctChild);
+  b = exprOr.Calc(vdParas, vdRow);
+  BOOST_TEST(b == TriBool::True);
+
+  exprCmp1._compType = CompType::GT;
+  b = exprOr.Calc(vdParas, vdRow);
+  BOOST_TEST(b == TriBool::True);
+
+  exprCmp2._compType = CompType::GT;
+  b = exprOr.Calc(vdParas, vdRow);
+  BOOST_TEST(b == TriBool::False);
+
+  exprOr._vctChild.clear();
+  exprCmp1._exprLeft = nullptr;
+  exprCmp1._exprRight = nullptr;
+
+  exprCmp2._exprLeft = nullptr;
+  exprCmp2._exprRight = nullptr;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
