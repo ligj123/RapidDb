@@ -294,7 +294,7 @@ bool IndexTree::SearchPage(const RawKey &key, IndexPage *&page) {
     PageStatus status = page->GetPageStatus();
     if (status == PageStatus::READED) {
       page->SetPageStatus(PageStatus::VALID, true);
-    } else if (status != PageStatus::VALID) {
+    } else if (status != PageStatus::VALID && status != PageStatus::WRITING) {
       return false;
     }
 
@@ -468,7 +468,7 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
   }
 }
 
-int IndexTree::CalcIndexRange(RawRecord &rr) {
+int IndexTree::CalcIndexRange(const RawRecord &rr) {
   assert(_vctRange.size() > 0);
 
   for (size_t i = 0; i < _vctRange.size() - 1; i++) {
@@ -487,7 +487,7 @@ int IndexTree::CalcIndexRange(RawRecord &rr) {
   return _vctRange.size() - 1;
 }
 
-int IndexTree::CalcIndexRange(RawKey &key) {
+int IndexTree::CalcIndexRange(const RawKey &key) {
   assert(GetHeadPage()->GetIndexType() == IndexType::PRIMARY);
   assert(_vctRange.size() > 0);
 

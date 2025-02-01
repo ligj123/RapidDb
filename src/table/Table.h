@@ -71,6 +71,15 @@ struct IndexProp {
    */
   uint32_t CalcSize();
 
+  VectorDataValue GenSecondaryData(VectorDataValue &vctPri) {
+    VectorDataValue vctSec;
+    vctSec.reserve(_vctCol.size());
+    for (IndexColumn &icol : _vctCol) {
+      vctSec.push_back(vctPri[icol.colPos]->AddRef());
+    }
+
+    return vctSec;
+  }
   // Index name
   MString _name;
   // The position of this index, start from 0 and primary key must be 0. Table

@@ -37,7 +37,7 @@ void Transaction::WriteLog(LogTask *logTask) {
   *((uint64_t *)cBuff) = _tid;
   cBuff += UI64_LEN;
 
-  MTreeSet<LeafRecord *, LeafRecordCmp> setRec;
+  TreeSetRecord setRec;
   for (auto iter = _lstStatement.rbegin(); iter != _lstStatement.rend();
        iter++) {
     (*iter)->CollectLogRecords(setRec);

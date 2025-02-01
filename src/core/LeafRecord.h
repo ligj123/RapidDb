@@ -41,6 +41,8 @@ struct RecordLock {
       delete _errMsg;
       _errMsg = nullptr;
     }
+
+    assert(_undoRec == nullptr);
   }
   // Get transaction id, if more than 1, return the first txid
   uint64_t TxID() {
@@ -248,6 +250,7 @@ public:
     return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(), key.GetBysVal(),
                         key.GetLength());
   }
+
   inline int CompareKey(const LeafRecord &lr) const {
     return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(),
                         lr.GetBysValue() + UI16_2_LEN, lr.GetKeyLength());
@@ -350,6 +353,16 @@ public:
     return BytesHash(_bysVal + UI16_2_LEN, GetKeyLength());
   }
 
+  bool UpdateAble(TranID txid) {
+    if (_recLock == nullptr)
+      return true;
+    else if (_recLock->_lstTxid.size() == 1 &&
+             _recLock->_lstTxid.back() == txid)
+      return true;
+
+    return false;
+  }
+
 protected:
   // To calc a version's value length
   uint32_t CalcValueLength(IndexTree *idxTree, const VectorDataValue &vctVal,
@@ -364,16 +377,6 @@ protected:
 
   // Save a version's value into buffer
   void FillValueBuff(ValueStruct &valStru, const VectorDataValue &vctVal);
-
-  bool UpdateAble(TranID txid) {
-    if (_recLock == nullptr)
-      return true;
-    else if (_recLock->_lstTxid.size() == 1 &&
-             _recLock->_lstTxid.back() == txid)
-      return true;
-
-    return false;
-  }
 
 protected:
   // Default is nullptr, If a statement locked this record, set this variable to

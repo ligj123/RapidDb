@@ -49,8 +49,9 @@ enum ActionType : uint8_t {
   DELETE = 0x40,      // Delete this record with write lock
   UPSERT = 0x80,      // Insert if not exist or update with write lock
 
+  READ_LOCK_MASK = 0x11,  // The mask of READ_SHARE, READ_UPDATE
   WRITE_LOCK_MASK = 0xF0, // The mask to know if it has write lock
-  UPDATE_MASK = 0xE0      // The mask of Insert,Update,Delete
+  UPDATE_MASK = 0xE0      // The mask of Insert,Update,Delete,UPSERT
 };
 
 // The record's status

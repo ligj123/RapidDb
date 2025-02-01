@@ -13,7 +13,7 @@ class LeafRecord;
 class IndexRange;
 class LeafPage;
 class StmtInsertRecord;
-class StmtPriKey;
+class StmtSecRecord;
 
 class IndexAction {
 public:
@@ -112,7 +112,7 @@ class StmtInsertAction : public IndexAction {
 public:
   StmtInsertAction(IndexTree *idxTree, StmtInsertRecord *stmtRecord)
       : IndexAction(idxTree), _stmtRecord(stmtRecord) {}
-  ~StmtInsertAction();
+  ~StmtInsertAction() {}
   TaskStatus Exec() override;
   int JudgeRange() override;
   const char *GetActionName() override { return "StmtInsertAction"; }
@@ -121,17 +121,17 @@ protected:
   StmtInsertRecord *_stmtRecord;
 };
 
-class StmtPriKeyAction : public IndexAction {
+class StmtSecRecordAction : public IndexAction {
 public:
-  StmtPriKeyAction(IndexTree *idxTree, StmtPriKey *stmtPriKey)
-      : IndexAction(idxTree), _stmtPriKey(stmtPriKey) {}
-  ~StmtPriKeyAction();
+  StmtSecRecordAction(IndexTree *idxTree, StmtSecRecord *stmtSecRec)
+      : IndexAction(idxTree), _stmtSecRec(stmtSecRec) {}
+  ~StmtSecRecordAction() {}
   TaskStatus Exec() override;
   int JudgeRange() override;
-  const char *GetActionName() override { return "StmtPriKeyAction"; }
+  const char *GetActionName() override { return "StmtSecRecordAction"; }
 
 protected:
-  StmtPriKey *_stmtPriKey;
+  StmtSecRecord *_stmtSecRec;
 };
 
 } // namespace storage

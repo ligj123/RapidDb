@@ -47,7 +47,7 @@ TaskStatus PrevPageAction::Exec() {
   if (s == PageStatus::READING) {
     _page->SetPageStatus(PageStatus::VALID, true);
   } else if (s != PageStatus::VALID) {
-    return TaskStatus::RUNNING;
+    return TaskStatus::INTERVAL;
   }
 
   assert(_pageId == _page->GetPageId());
@@ -57,16 +57,6 @@ TaskStatus PrevPageAction::Exec() {
 }
 
 TaskStatus RecordAction::Exec() {
-  if (_idxPage == nullptr) {
-    _idxPage = _indexTree->GetRootPage();
-  }
-  if (_idxPage->GetPageType() != PageType::LEAF_PAGE) {
-    bool b = _indexTree->SearchPage(*_lr, _idxPage);
-    if (!b) {
-      return TaskStatus::RUNNING;
-    }
-  }
-
   RecordLock *lock = _lr->GetLock();
   if (lock->GetRecordStatus() != RecordStatus::INIT) {
     assert(lock->GetRecordResult() != RecordResult::IN_PAGE &&
@@ -74,6 +64,16 @@ TaskStatus RecordAction::Exec() {
     delete _lr;
     _lr = nullptr;
     return TaskStatus::FINISHED;
+  }
+
+  if (_idxPage == nullptr) {
+    _idxPage = _indexTree->GetRootPage();
+  }
+  if (_idxPage->GetPageType() != PageType::LEAF_PAGE) {
+    bool b = _indexTree->SearchPage(*_lr, _idxPage);
+    if (!b) {
+      return TaskStatus::INTERVAL;
+    }
   }
 
   LeafPage *lp = (LeafPage *)_idxPage;
@@ -104,12 +104,10 @@ TaskStatus StatementAction::Exec() {
     b = _stmt->SecondaryKeyExec(_rangePos);
   }
 
-  return b ? TaskStatus::FINISHED : TaskStatus::RUNNING;
+  return b ? TaskStatus::FINISHED : TaskStatus::INTERVAL;
 }
 
 int StatementAction::JudgeRange() { return _stmt->CalcIndexRanges(_indexTree); }
-
-StmtInsertAction::~StmtInsertAction() { delete _stmtRecord; }
 
 TaskStatus StmtInsertAction::Exec() {
   if (_stmtRecord->_stmt->IsStmtFailed()) {
@@ -117,7 +115,6 @@ TaskStatus StmtInsertAction::Exec() {
     return TaskStatus::FINISHED;
   }
 
-  TableTaskMgr *mgr = _stmtRecord->_table->GetTableTaskMgr();
   MVector<storage::IndexProp> &vctProp = _stmtRecord->_table->GetVectorIndex();
   MVector<LeafRecord *> vctLr;
 
@@ -127,12 +124,12 @@ TaskStatus StmtInsertAction::Exec() {
                      _stmtRecord->_vctParas, stamp, _stmtRecord->_stmt);
 
   if (!lrPri->IsValid()) {
-    _stmtRecord->_status.store(ActionStatus::FAILED, memory_order_release);
     SessionErrMsgAction *eAction = new SessionErrMsgAction(
         _stmtRecord->_stmt, move(_threadErrorMsg->GetErrorMsg()));
     SessionPool::AddAction(ThreadPool::GetThreadId(),
                            _stmtRecord->_stmt->GetTxId(), eAction);
     _stmtRecord->_stmt->SetStmtFailed(true);
+    _stmtRecord->_status.store(ActionStatus::FAILED, memory_order_relaxed);
     delete lrPri;
     return TaskStatus::FINISHED;
   }
@@ -178,6 +175,7 @@ TaskStatus StmtInsertAction::Exec() {
     RecordAction *pAction =
         new RecordAction(vctProp[0]._tree, vctLr[0], _rangePos);
     vctProp[0]._tree->AddActionFromLocal(_rangePos, pAction);
+    TableTaskMgr *mgr = _stmtRecord->_table->GetTableTaskMgr();
 
     for (size_t i = 1; i < vctProp.size(); i++) {
       IndexTree *secTree = vctProp[i]._tree;
@@ -194,20 +192,180 @@ TaskStatus StmtInsertAction::Exec() {
   }
 
   return TaskStatus::FINISHED;
-};
+}
 
 int StmtInsertAction::JudgeRange() {
   _rangePos = _indexTree->CalcIndexRange(_stmtRecord->_priKey);
   return _rangePos;
-};
+}
 
-StmtPriKeyAction::~StmtPriKeyAction() { delete _stmtPriKey; }
+TaskStatus StmtSecRecordAction::Exec() {
+  if (_stmtSecRec->_stmt->IsStmtFailed()) {
+    _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
+    return TaskStatus::FINISHED;
+  }
 
-TaskStatus StmtPriKeyAction::Exec() { return TaskStatus::UNINIT; };
+  if (_idxPage == nullptr) {
+    _idxPage = _indexTree->GetRootPage();
+  }
 
-int StmtPriKeyAction::JudgeRange() {
-  _rangePos = _indexTree->CalcIndexRange(_stmtPriKey->_priKey);
+  const RawKey priKey = _stmtSecRec->_secLr->GetPrimayKey();
+  if (_idxPage->GetPageType() != PageType::LEAF_PAGE) {
+    bool b = _indexTree->SearchPage(priKey, _idxPage);
+    if (!b) {
+      return TaskStatus::INTERVAL;
+    }
+  } else {
+    PageStatus s = _idxPage->GetPageStatus();
+    if (s != PageStatus::VALID && s != PageStatus::WRITING) {
+      if (s == PageStatus::READING) {
+        return TaskStatus::INTERVAL;
+      } else if (s == PageStatus::READED) {
+        _idxPage->SetPageStatus(PageStatus::VALID, true);
+      }
+    }
+  }
+
+  LeafPage *lp = dynamic_cast<LeafPage *>(_idxPage);
+  bool bFind = false;
+  int32_t pos = lp->SearchKey(priKey, bFind);
+  assert(bFind);
+
+  VectorDataValue vct;
+  LeafRecord &lr = lp->GetRecord(pos);
+  ReadResult rr = lr.ReadListValue({}, vct, _indexTree, _stmtSecRec->_stmt,
+                                   ActionType::NO_ACTION);
+  assert(rr = ReadResult::OK_NOLOCK);
+
+  ExprType type = _stmtSecRec->_stmt->GetType();
+  ExprLogic *exprLogic = nullptr;
+  if (type == ExprType::EXPR_UPDATE) {
+    exprLogic =
+        dynamic_cast<ExprUpdate *>(_stmtSecRec->_stmt->GetExprStatement())
+            ->_exprWhere->_exprLogic;
+  } else {
+    assert(type == ExprType::EXPR_DELETE);
+    exprLogic =
+        dynamic_cast<ExprDelete *>(_stmtSecRec->_stmt->GetExprStatement())
+            ->_exprWhere->_exprLogic;
+  }
+
+  if (exprLogic != nullptr) {
+    TriBool tb = exprLogic->Calc(_stmtSecRec->_stmt->GetParameters(), vct);
+    if (tb == TriBool::Error) {
+      SessionErrMsgAction *eAction = new SessionErrMsgAction(
+          _stmtSecRec->_stmt, move(_threadErrorMsg->GetErrorMsg()));
+      SessionPool::AddAction(ThreadPool::GetThreadId(),
+                             _stmtSecRec->_stmt->GetTxId(), eAction);
+      _stmtSecRec->_stmt->SetStmtFailed(true);
+      _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
+      return TaskStatus::FINISHED;
+    } else if (tb == TriBool::False) {
+      _stmtSecRec->_status.store(ActionStatus::SUCEED, memory_order_relaxed);
+      return TaskStatus::FINISHED;
+    }
+  }
+
+  if (!lr.UpdateAble(_stmtSecRec->_stmt->GetTxId())) {
+    ErrorMsg msg(TRAN_LOCK_CONFLICT, {});
+    SessionErrMsgAction *eAction =
+        new SessionErrMsgAction(_stmtSecRec->_stmt, move(msg.GetErrorMsg()));
+    SessionPool::AddAction(ThreadPool::GetThreadId(),
+                           _stmtSecRec->_stmt->GetTxId(), eAction);
+    _stmtSecRec->_stmt->SetStmtFailed(true);
+    _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
+    return TaskStatus::FINISHED;
+  }
+
+  MVector<LeafRecord *> vctLr;
+  MVector<storage::IndexProp> &vctProp = _stmtSecRec->_table->GetVectorIndex();
+  bool bFailed = false;
+
+  if (type == ExprType::EXPR_UPDATE) {
+    MVectorPtr<storage::ExprColumn *> *vctCol =
+        dynamic_cast<ExprUpdate *>(_stmtSecRec->_stmt->GetExprStatement())
+            ->_vctCol;
+    for (size_t i = 0; i < vctCol->size(); i++) {
+      ExprColumn *ecol = vctCol->at(i);
+      ExprData *edata = dynamic_cast<ExprData *>(ecol->_exprElem);
+      IDataValue *dv = edata->Calc(_stmtSecRec->_stmt->GetParameters(), vct);
+      vct[ecol->_pos]->DecRef();
+      vct[ecol->_pos] = dv;
+    }
+
+    VersionStamp stamp = vctProp[0]._tree->ApplyStamp(_rangePos);
+    lr.UpdateRecord(vctProp[0]._tree, vct, stamp, _stmtSecRec->_stmt,
+                    ActionType::UPDATE, false);
+    for (size_t i = 1; i < vctProp.size(); i++) {
+      IndexProp &prop = vctProp[i];
+      VectorDataValue vctSec = prop.GenSecondaryData(vct);
+      LeafRecord *lrSec = new LeafRecord(
+          prop._tree, vctSec, lr.GetBysValue() + UI16_2_LEN, lr.GetKeyLength(),
+          ActionType::UPDATE, stamp, _stmtSecRec->_stmt);
+      vctLr.push_back(lrSec);
+      if (!lrSec->IsValid()) {
+        bFailed = true;
+        break;
+      }
+    }
+  } else {
+    VersionStamp stamp = vctProp[0]._tree->ApplyStamp(_rangePos);
+    lr.UpdateRecord(vctProp[0]._tree, vct, stamp, _stmtSecRec->_stmt,
+                    ActionType::DELETE, false);
+
+    for (size_t i = 1; i < vctProp.size(); i++) {
+      IndexProp &prop = vctProp[i];
+      VectorDataValue vctSec = prop.GenSecondaryData(vct);
+      LeafRecord *lrSec = new LeafRecord(
+          prop._tree, vctSec, lr.GetBysValue() + UI16_2_LEN, lr.GetKeyLength(),
+          ActionType::DELETE, stamp, _stmtSecRec->_stmt);
+      vctLr.push_back(lrSec);
+      if (!lrSec->IsValid()) {
+        bFailed = true;
+        break;
+      }
+    }
+  }
+
+  if (bFailed) {
+    lr.SubmitStatement(*_stmtSecRec->_stmt, RecordStatus::ROLLBACKED);
+    lr.ReleaseLock(vctProp[0]._tree);
+
+    for (LeafRecord *lrSec : vctLr) {
+      delete lrSec;
+    }
+
+    SessionErrMsgAction *eAction = new SessionErrMsgAction(
+        _stmtSecRec->_stmt, move(_threadErrorMsg->GetErrorMsg()));
+    SessionPool::AddAction(ThreadPool::GetThreadId(),
+                           _stmtSecRec->_stmt->GetTxId(), eAction);
+    _stmtSecRec->_stmt->SetStmtFailed(true);
+    _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
+    return TaskStatus::FINISHED;
+  }
+
+  TableTaskMgr *mgr = _stmtSecRec->_table->GetTableTaskMgr();
+
+  for (size_t i = 1; i < vctProp.size(); i++) {
+    IndexTree *secTree = vctProp[i]._tree;
+    RecordAction *rAction = new RecordAction(secTree, vctLr[i - 1]);
+    mgr->AddFromPrimaryAction(i, _rangePos, rAction);
+  }
+
+  vctLr.push_back(&lr);
+  _stmtSecRec->_numLeafRecord = vctLr.size();
+  SessionRecordAction *action =
+      new SessionRecordAction(_stmtSecRec->_stmt, move(vctLr));
+  SessionPool::AddAction(ThreadPool::GetThreadId(),
+                         _stmtSecRec->_stmt->GetTxId(), action);
+  _stmtSecRec->_status.store(ActionStatus::SUCEED, memory_order_relaxed);
+
+  return TaskStatus::FINISHED;
+}
+
+int StmtSecRecordAction::JudgeRange() {
+  _rangePos = _indexTree->CalcIndexRange(_stmtSecRec->_secLr->GetPrimayKey());
   return _rangePos;
-};
+}
 
 } // namespace storage

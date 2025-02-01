@@ -70,6 +70,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
      "Try to add task to a transaction with invalid status. ID={1}"},
     {TRAN_PARAM_INVALID,
      "The byte array for statement's parameters is invalid."},
+    {TRAN_LOCK_CONFLICT, "Try to visit a locked record by other transaction."},
 
     // Statement
     {STMT_PARAM_NUM_INVALID,

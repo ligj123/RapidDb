@@ -9,6 +9,8 @@ namespace storage {
 class IndexPage;
 class IndexTree;
 
+enum class RecordType : uint8_t { NORMAL = 0, MIN, MAX };
+
 class RawRecord {
 public:
   RawRecord(Byte *bys, bool bSole, IndexType type)

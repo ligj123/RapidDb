@@ -22,6 +22,7 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
             _cntLeafRec += (*iter)->_numLeafRecord;
           }
 
+          delete (*iter);
           iter = _lstRecord.erase(iter);
         }
       }
@@ -81,7 +82,8 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
 }
 
 bool InsertStatement::InitRecord() {
-  PhysTable *table = _exprInsert->_exprTable->_physTable;
+  ExprInsert *exprInst = GetExprInsert();
+  PhysTable *table = exprInst->_exprTable->_physTable;
   TableTaskMgr *mgr = table->GetTableTaskMgr();
   IndexProp &priIndex = table->GetVectorIndex()[0];
 
@@ -89,8 +91,8 @@ bool InsertStatement::InitRecord() {
     _vctParas.push_back(new VectorDataValue());
   }
 
-  size_t para_sz = _exprInsert->_vctPara.size();
-  MVectorPtr<MVectorPtr<ExprElem *> *> *vctRow = _exprInsert->_vctRowData;
+  size_t para_sz = exprInst->_vctPara.size();
+  MVectorPtr<MVectorPtr<ExprElem *> *> *vctRow = exprInst->_vctRowData;
   for (VectorDataValue *pvct : _vctParas) {
     if (pvct->size() != para_sz) {
       _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
@@ -102,7 +104,7 @@ bool InsertStatement::InitRecord() {
 
       for (size_t i = 0; i < rowData->size(); i++) {
         ExprElem *elem = rowData->at(i);
-        ExprColumn *col = _exprInsert->_vctCol->at(i);
+        ExprColumn *col = exprInst->_vctCol->at(i);
         IDataValue *dv = ((ExprData *)elem)->Calc(*pvct, vctVal);
         bool b = vctVal[col->_pos]->Copy(*dv, true);
         dv->DecRef();
@@ -147,8 +149,7 @@ bool InsertStatement::InitRecord() {
 
 StmtStatus InsertStatement::CheckStatus() { return _status; }
 
-void InsertStatement::CollectLogRecords(
-    MTreeSet<LeafRecord *, LeafRecordCmp> &setRec) {
+void InsertStatement::CollectLogRecords(TreeSetRecord &setRec) {
   if (_stmtFailed.load(memory_order_relaxed)) {
     return;
   }

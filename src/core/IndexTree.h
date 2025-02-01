@@ -216,8 +216,8 @@ public:
   LeafRecord MakeMinLeafRecord();
 
   MVector<IndexRange> &GetVctRange() { return _vctRange; }
-  int CalcIndexRange(RawRecord &rr);
-  int CalcIndexRange(RawKey &key);
+  int CalcIndexRange(const RawRecord &rr);
+  int CalcIndexRange(const RawKey &key);
   int CalcIndexRange(IndexPage *page);
   bool IsMultiRange() { return _vctRange.size() > 1; }
 

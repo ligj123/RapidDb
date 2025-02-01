@@ -20,6 +20,7 @@ class IndexTree;
 class IndexAction;
 struct LeafRecordCmp;
 class Statement;
+using TreeSetRecord = MTreeSet<LeafRecord *, LeafRecordCmp>;
 
 enum class StmtStatus : uint8_t {
   Created,   // Just create this statement and NOT start to execute
@@ -58,13 +59,13 @@ public:
   VectorDataValue _vctParas; // The columns' values of this record
   Statement *_stmt;
   PhysTable *_table;
-  uint32_t _numLeafRecord; // The number of LeafRecords that generated for
-                           // this record
+  // The number of LeafRecords that generated for this record
+  uint32_t _numLeafRecord{0};
   atomic<ActionStatus> _status{ActionStatus::INIT};
 };
 
-// To save primary key selected from secondary index.
-struct StmtPriKey {
+// To save secondary LeafRecord selected from secondary index.
+struct StmtSecRecord {
 public:
   static void *operator new(size_t size) {
     return CachePool::Apply((uint32_t)size);
@@ -73,9 +74,13 @@ public:
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
-  RawKey _priKey;
+  // The LeafRecord from secondary index
+  LeafRecord *_secLr;
   Statement *_stmt;
-  ActionStatus _status{ActionStatus::INIT};
+  PhysTable *_table;
+  atomic<ActionStatus> _status{ActionStatus::INIT};
+  // The number of LeafRecords that generated for this key
+  uint32_t _numLeafRecord{0};
 };
 
 class Statement {
@@ -94,8 +99,19 @@ public:
    * @param tran The transaction own this statement.
    * @param stmtResult The pointer of statement result
    */
-  Statement(uint32_t id, TranID txid, StmtResult *stmtResult = nullptr)
-      : _id(id), _txid(txid), _stmtResult(stmtResult) {
+  Statement(uint32_t id, TranID txid, ExprStatement *exprStmt,
+            StmtResult *stmtResult)
+      : _id(id), _txid(txid), _stmtResult(stmtResult), _exprStmt(exprStmt) {
+    _createTime = MicroSecTime();
+  }
+  Statement(uint32_t id, TranID txid, ExprStatement *exprStmt,
+            StmtResult *stmtResult, VectorDataValue &&vctPara)
+      : _id(id), _txid(txid), _stmtResult(stmtResult), _exprStmt(exprStmt),
+        _vctPara(move(vctPara)) {
+    _createTime = MicroSecTime();
+  }
+  Statement(uint32_t id, TranID txid)
+      : _id(id), _txid(txid), _stmtResult(nullptr), _exprStmt(nullptr) {
     _createTime = MicroSecTime();
   }
   virtual ~Statement() {}
@@ -153,8 +169,7 @@ public:
    * first, the first statement should be the last one to call this method.
    * @param setRec: The tree set to save the LeafRecords to write log
    */
-  virtual void
-  CollectLogRecords(MTreeSet<LeafRecord *, LeafRecordCmp> &setRec) {
+  virtual void CollectLogRecords(TreeSetRecord &setRec) {
     // For readonly statement, it has not records that need to write log.
     abort();
   }
@@ -205,6 +220,10 @@ public:
   void SetStmtStatus(StmtStatus s) { _status = s; }
   StmtStatus GetStmtStatus() { return _status; }
 
+  ExprStatement *GetExprStatement() { return _exprStmt; }
+
+  VectorDataValue &GetParameters() { return _vctPara; }
+
 protected:
   // Id will auto increment 1 every time in self session.
   uint32_t _id;
@@ -225,6 +244,12 @@ protected:
   MList<LeafRecord *> _lstFinishRecord;
   // Return the result to end user
   StmtResult *_stmtResult;
+  // ExprInsert will be unified managed by a class, do not delete here
+  ExprStatement *_exprStmt;
+  // The parameters for statement
+  VectorDataValue _vctPara;
+  // Which range the statement is sent to
+  int _rangePos{-1};
 };
 
 std::ostream &operator<<(std::ostream &os, const StmtStatus &s);
