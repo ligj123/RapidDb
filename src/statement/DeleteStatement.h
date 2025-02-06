@@ -16,8 +16,8 @@ public:
   bool IsReadonly() override { return false; }
 
   StmtStatus SessionExec(Session *sess) override;
-  bool PrimaryKeyExec(int rangePos) override;
-  bool SecondaryKeyExec(int rangePos) override;
+  bool PrimaryKeyExec() override;
+  bool SecondaryKeyExec() override;
   StmtStatus CheckStatus() override;
   void CollectLogRecords(TreeSetRecord &setRec) override;
   int CalcIndexRanges(IndexTree *idxTree) override;
@@ -30,10 +30,9 @@ protected:
   // If The search index is secondary index, below variable to save the selected
   // primary key to primary index and used to pick the records.
   MList<StmtSecRecord *> _lstStmtRec;
-  // This statement has been executed or not
-  bool _bFinished{false};
-  // The total number of updated records, only valid when the search index is
-  // secondary index
+
+  // The total number of updated LeafRecords, only valid when the search index
+  // is secondary index
   uint32_t _totalRecNum{0};
 };
 } // namespace storage

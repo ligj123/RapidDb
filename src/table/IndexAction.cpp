@@ -99,9 +99,9 @@ int RecordAction::JudgeRange() {
 TaskStatus StatementAction::Exec() {
   bool b;
   if (_indexTree->GetIndexType() == IndexType::PRIMARY) {
-    b = _stmt->PrimaryKeyExec(_rangePos);
+    b = _stmt->PrimaryKeyExec();
   } else {
-    b = _stmt->SecondaryKeyExec(_rangePos);
+    b = _stmt->SecondaryKeyExec();
   }
 
   return b ? TaskStatus::FINISHED : TaskStatus::INTERVAL;

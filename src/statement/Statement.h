@@ -141,24 +141,20 @@ public:
 
   /**
    * @brief Execute this statement in primary key IndexTask
-   * @param rangePos The range position of IndexTask to call this method
-   * @return True: This method has finished all work and need not to run
-   * again. False: There still has no finished work, need to run this method
-   * again.
+   * @return True: This method has finished all work and no need to run again.
+   * False: There still has no finished work, need to run this method again.
    */
-  virtual bool PrimaryKeyExec(int rangePos) {
+  virtual bool PrimaryKeyExec() {
     abort();
     return false;
   }
 
   /**
    * @brief Execute this statement in secondary key IndexTask
-   * @param rangePos The range position of IndexTask to call this method
-   * @return True: This method has finished all work and need not to run
-   * again. False: There still has no finished work, need to run this method
-   * again.
+   * @return True: This method has finished all work and no need to run again.
+   * False: There still has no finished work, need to run this method again.
    */
-  virtual bool SecondaryKeyExec(int rangePos) {
+  virtual bool SecondaryKeyExec() {
     abort();
     return false;
   }
@@ -225,12 +221,31 @@ public:
   VectorDataValue &GetParameters() { return _vctPara; }
 
 protected:
+  MVector<IndexValue> MergeAndIndexValue(MVector<IndexValue> &vctLeft,
+                                         MVector<IndexValue> &vctRight);
+
+  void MergeOrIndexValue(MVector<IndexValue> &vctResult,
+                         MVector<IndexValue> &vctRight);
+
+  MVector<IndexValue> ConditionConvert(ExprLogic *logic,
+                                       VectorDataValue &paras);
+  ExprField *GetFrieldFromExprLogic(ExprLogic *logic);
+
+  void GenIndexSearchKey(IndexTree *idxTree, RawKey &startKey, RawKey &endKey);
+
+protected:
   // Id will auto increment 1 every time in self session.
   uint32_t _id;
   // Statement status
   StmtStatus _status{StmtStatus::Created};
+  // This statement has been executed or not
+  bool _bFinished{false};
   // Meet error when executing
   atomic_bool _stmtFailed{false};
+  // KeyExec start from the begin of range or search the position by index
+  // condition
+  bool _bFromBegin{false};
+
   // The create time for this statement
   DT_MicroSec _createTime;
   // The finished or abort time to execute for this statement
@@ -250,6 +265,11 @@ protected:
   VectorDataValue _vctPara;
   // Which range the statement is sent to
   int _rangePos{-1};
+  // Which IndexCondition will be executed in _vctCondition
+  int _condPos{0};
+  // The search condition to using primary or secondary indexs. In this version
+  // only consider single field index.
+  IndexCondition _indexCondition;
 };
 
 std::ostream &operator<<(std::ostream &os, const StmtStatus &s);

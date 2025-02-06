@@ -100,6 +100,17 @@ public:
    */
   virtual TriBool PickIndexCondition(PhysTable *table, int &idxPos,
                                      MVectorPtr<ExprLogic *> *vctExpr) = 0;
+  /**
+   * @brief To judge if The ExprLogic can be point search condition from the
+   * second column in combined index.
+   * @param vctCol The vector of columns to combined the index, point to
+   * IndexProp::_vctCol
+   * @return return the column position in index if this ExprLogic is according
+   * to the point search condition.
+   */
+  virtual int CombinedIndexCondition(MVector<IndexColumn> &vctCol) {
+    return -1;
+  }
 };
 
 /**
@@ -124,7 +135,7 @@ public:
   }
 
 public:
-  MHashSet<IDataValue *, DataValueHash, DataValueEqual> _setVal;
+  MTreeSet<IDataValue *, DataValueCmp> _setVal;
 };
 
 class ExprTable : public BaseExpr {

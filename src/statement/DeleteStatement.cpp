@@ -1,5 +1,6 @@
 #include "DeleteStatement.h"
 
+#include "../binlog/LogTask.h"
 #include "../table/TableTaskMgr.h"
 
 namespace storage {
@@ -9,7 +10,14 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
     assert(_rangePos == -1);
     ExprDelete *exprDel = GetExprDelete();
     PhysTable *table = exprDel->_exprTable->_physTable;
-    int idxPos = exprDel->_exprWhere->_useIndex->_indexPos;
+
+    IndexSearch *idxSearch = exprDel->_exprWhere->_indexSearch;
+    int idxPos = idxSearch->_indexPos;
+
+    _indexCondition._vctValue =
+        ConditionConvert(idxSearch->_idxLogic, _vctPara);
+    _indexCondition._field = GetFrieldFromExprLogic(idxSearch->_idxLogic);
+
     MVector<IndexProp> &vctProp = table->GetVectorIndex();
     assert(idxPos > 0 && idxPos < vctProp.size());
 
@@ -24,19 +32,10 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
         ActionStatus s = (*iter)->_status.load(memory_order_acquire);
         if (s == ActionStatus::INIT) {
           iter++;
-          continue;
         } else {
-          if (s == ActionStatus::SUCEED) {
-            _totalRecNum += (*iter)->_numLeafRecord;
-          }
-
           delete (*iter);
           iter = _lstStmtRec.erase(iter);
         }
-      }
-
-      if (_lstStmtRec.size() == 0) {
-        _bFinished = true;
       }
     }
 
@@ -50,14 +49,71 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
         }
       }
     }
+
+    if (_lstWaitRecord.size() == 0 && _lstStmtRec.size() == 0 && _bFinished) {
+      if (_stmtFailed.load(memory_order_relaxed)) {
+        for (auto lr : _lstFinishRecord) {
+          lr->GetLock()->_recStatus.store(RecordStatus::ROLLBACKED,
+                                          memory_order_relaxed);
+        }
+
+        _stmtResult->_rowNum = 0;
+        _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+        _status = StmtStatus::Finished;
+      } else if (sess->_transaction.IsAutoCommit()) {
+        _status = StmtStatus::Logging;
+        LogTask::AddTransaction(ThreadPool::GetThreadId(),
+                                &(sess->_transaction));
+      } else {
+        size_t idxNum =
+            GetExprDelete()->_exprTable->_physTable->GetVectorIndex().size();
+        _stmtResult->_rowNum = _lstFinishRecord.size() / idxNum;
+        _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+        _status = StmtStatus::Executed;
+      }
+    }
+  } else if (_status == StmtStatus::Logging) {
+    if (sess->_transaction.IsLogged()) {
+      for (auto lr : _lstFinishRecord) {
+        lr->GetLock()->_recStatus.store(RecordStatus::COMMITED,
+                                        memory_order_relaxed);
+      }
+
+      sess->_transaction.SetTranStatus(TranStatus::FINISHED);
+      size_t idxNum =
+          GetExprDelete()->_exprTable->_physTable->GetVectorIndex().size();
+      _stmtResult->_rowNum = _lstFinishRecord.size() / idxNum;
+      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+      _status = StmtStatus::Finished;
+    }
   }
 
   return _status;
 }
 
-bool DeleteStatement::PrimaryKeyExec(int rangePos) { return false; }
+bool DeleteStatement::PrimaryKeyExec() { return false; }
 
-bool DeleteStatement::SecondaryKeyExec(int rangePos) { return false; }
+bool DeleteStatement::SecondaryKeyExec() {
+  assert(_rangePos >= 0);
+  ExprDelete *exprDel = GetExprDelete();
+  PhysTable *table = exprDel->_exprTable->_physTable;
+  IndexSearch *idxSearch = exprDel->_exprWhere->_indexSearch;
+  int idxPos = idxSearch->_indexPos;
+  assert(idxPos >= 0 && idxPos <= table->GetVectorIndex().size());
+
+  IndexTree *idxTree = table->GetVectorIndex()[idxPos]._tree;
+  BranchPage *parentPage = nullptr;
+  LeafPage *leafPage = nullptr;
+
+  if (_bFromBegin) {
+    IndexRange &range = idxTree->GetVctRange()[_rangePos];
+    leafPage = range._startPage;
+    parentPage = leafPage->GetParentPage();
+  } else {
+  }
+
+  return false;
+}
 
 int DeleteStatement::CalcIndexRanges(IndexTree *idxTree) { return -1; }
 

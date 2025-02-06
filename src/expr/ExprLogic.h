@@ -2,6 +2,7 @@
 #include "../cache/Mallocator.h"
 #include "../dataType/DataValueFactory.h"
 #include "../dataType/IDataValue.h"
+#include "../table/Table.h"
 #include "../utils/ErrorMsg.h"
 #include "BaseExpr.h"
 #include "ExprData.h"
@@ -126,6 +127,22 @@ public:
     return TriBool::True;
   }
 
+  int CombinedIndexCondition(MVector<IndexColumn> &vctCol) override {
+    assert(_exprLeft->GetType() == ExprType::EXPR_FIELD);
+    if (_compType != CompType::EQ) {
+      return -1;
+    }
+
+    ExprField *field = dynamic_cast<ExprField *>(_exprLeft);
+    for (size_t i = 1; i < vctCol.size(); i++) {
+      IndexColumn &icol = vctCol[i];
+      if (icol.colPos == field->_rowPos) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
 public:
   CompType _compType;
   ExprData *_exprLeft;
@@ -175,6 +192,20 @@ public:
 
     idxPos = iter->second;
     return TriBool::True;
+  }
+
+  int CombinedIndexCondition(MVector<IndexColumn> &vctCol) override {
+    assert(_exprData->GetType() == ExprType::EXPR_FIELD);
+
+    ExprField *field = dynamic_cast<ExprField *>(_exprData);
+    for (size_t i = 1; i < vctCol.size(); i++) {
+      IndexColumn &icol = vctCol[i];
+      if (icol.colPos == field->_rowPos) {
+        return i;
+      }
+    }
+
+    return -1;
   }
 
 public:
@@ -250,7 +281,7 @@ public:
       return TriBool::Error;
     }
 
-    bool b = (*pdv >= *left && *pdv <= *right);
+    bool b = *pdv >= *left && *pdv <= *right;
     pdv->DecRef();
     left->DecRef();
     right->DecRef();

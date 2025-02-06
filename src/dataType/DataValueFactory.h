@@ -147,7 +147,7 @@ inline bool operator==(const IDataValue &dv1, const IDataValue &dv2) {
                        dv2.GetDataLength()) == 0);
   }
 
-  abort();
+  return false;
 }
 
 inline bool operator>(const IDataValue &dv1, const IDataValue &dv2) {
@@ -171,7 +171,7 @@ inline bool operator>(const IDataValue &dv1, const IDataValue &dv2) {
                          dv2.GetDataLength()) > 0);
   }
 
-  abort();
+  return dv1.IsDigital() ? false : true;
 }
 
 inline bool operator>=(const IDataValue &dv1, const IDataValue &dv2) {
@@ -195,7 +195,7 @@ inline bool operator>=(const IDataValue &dv1, const IDataValue &dv2) {
                          dv2.GetDataLength()) >= 0);
   }
 
-  abort();
+  return dv1.IsDigital() ? false : true;
 }
 
 inline bool operator!=(const IDataValue &dv1, const IDataValue &dv2) {

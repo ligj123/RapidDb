@@ -111,8 +111,9 @@ BOOST_AUTO_TEST_CASE(ExprWhere_test) {
   BOOST_TEST(ef2->_rowPos == 2);
   BOOST_TEST(exprWhere._exprLogic->GetType() == ExprType::EXPR_COMP);
 
-  BOOST_TEST(exprWhere._useIndex->_idxLogic->GetType() == ExprType::EXPR_COMP);
-  BOOST_TEST(exprWhere._useIndex->_indexPos == 1);
+  BOOST_TEST(exprWhere._indexSearch->_idxLogic->GetType() ==
+             ExprType::EXPR_COMP);
+  BOOST_TEST(exprWhere._indexSearch->_indexPos == 1);
 
   delete table;
 }
