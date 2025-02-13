@@ -97,12 +97,7 @@ int RecordAction::JudgeRange() {
 }
 
 TaskStatus StatementAction::Exec() {
-  bool b;
-  if (_indexTree->GetIndexType() == IndexType::PRIMARY) {
-    b = _stmt->PrimaryKeyExec();
-  } else {
-    b = _stmt->SecondaryKeyExec();
-  }
+  bool b = _stmt->SacnIndex(_rangePos);
 
   return b ? TaskStatus::FINISHED : TaskStatus::INTERVAL;
 }
@@ -201,6 +196,8 @@ int StmtInsertAction::JudgeRange() {
 
 TaskStatus StmtSecRecordAction::Exec() {
   if (_stmtSecRec->_stmt->IsStmtFailed()) {
+    _stmtSecRec->_secLr->SubmitStatement(*_stmtSecRec->_stmt,
+                                         RecordStatus::FREEED);
     _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
     return TaskStatus::FINISHED;
   }
@@ -231,134 +228,36 @@ TaskStatus StmtSecRecordAction::Exec() {
   int32_t pos = lp->SearchKey(priKey, bFind);
   assert(bFind);
 
-  VectorDataValue vct;
-  LeafRecord &lr = lp->GetRecord(pos);
-  ReadResult rr = lr.ReadListValue({}, vct, _indexTree, _stmtSecRec->_stmt,
-                                   ActionType::NO_ACTION);
-  assert(rr = ReadResult::OK_NOLOCK);
+  ExprType exprType = _stmtSecRec->_stmt->GetType();
+  assert(exprType == ExprType::EXPR_UPDATE ||
+         exprType == ExprType::EXPR_DELETE ||
+         exprType == ExprType::EXPR_TABLE_SELECT);
 
-  ExprType type = _stmtSecRec->_stmt->GetType();
-  ExprLogic *exprLogic = nullptr;
-  if (type == ExprType::EXPR_UPDATE) {
-    exprLogic =
-        dynamic_cast<ExprUpdate *>(_stmtSecRec->_stmt->GetExprStatement())
-            ->_exprWhere->_exprLogic;
-  } else {
-    assert(type == ExprType::EXPR_DELETE);
-    exprLogic =
-        dynamic_cast<ExprDelete *>(_stmtSecRec->_stmt->GetExprStatement())
-            ->_exprWhere->_exprLogic;
+  switch (exprType) {
+  case ExprType::EXPR_TABLE_SELECT:
+    break;
+  case ExprType::EXPR_UPDATE: {
+    break;
   }
-
-  if (exprLogic != nullptr) {
-    TriBool tb = exprLogic->Calc(_stmtSecRec->_stmt->GetParameters(), vct);
+  case ExprType::EXPR_DELETE: {
+    TriBool tb = _stmtSecRec->_stmt->HandleLeafRecord(lp, pos, _rangePos);
     if (tb == TriBool::Error) {
-      SessionErrMsgAction *eAction = new SessionErrMsgAction(
-          _stmtSecRec->_stmt, move(_threadErrorMsg->GetErrorMsg()));
-      SessionPool::AddAction(ThreadPool::GetThreadId(),
-                             _stmtSecRec->_stmt->GetTxId(), eAction);
-      _stmtSecRec->_stmt->SetStmtFailed(true);
+      _stmtSecRec->_secLr->SubmitStatement(*_stmtSecRec->_stmt,
+                                           RecordStatus::FREEED);
       _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
-      return TaskStatus::FINISHED;
     } else if (tb == TriBool::False) {
+      _stmtSecRec->_secLr->SubmitStatement(*_stmtSecRec->_stmt,
+                                           RecordStatus::FREEED);
       _stmtSecRec->_status.store(ActionStatus::SUCEED, memory_order_relaxed);
-      return TaskStatus::FINISHED;
+    } else {
+      _stmtSecRec->_numLeafRecord = 1;
+      _stmtSecRec->_status.store(ActionStatus::SUCEED, memory_order_relaxed);
     }
+    break;
   }
-
-  if (!lr.UpdateAble(_stmtSecRec->_stmt->GetTxId())) {
-    ErrorMsg msg(TRAN_LOCK_CONFLICT, {});
-    SessionErrMsgAction *eAction =
-        new SessionErrMsgAction(_stmtSecRec->_stmt, move(msg.GetErrorMsg()));
-    SessionPool::AddAction(ThreadPool::GetThreadId(),
-                           _stmtSecRec->_stmt->GetTxId(), eAction);
-    _stmtSecRec->_stmt->SetStmtFailed(true);
-    _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
-    return TaskStatus::FINISHED;
+  default:
+    abort();
   }
-
-  MVector<LeafRecord *> vctLr;
-  MVector<storage::IndexProp> &vctProp = _stmtSecRec->_table->GetVectorIndex();
-  bool bFailed = false;
-
-  if (type == ExprType::EXPR_UPDATE) {
-    MVectorPtr<storage::ExprColumn *> *vctCol =
-        dynamic_cast<ExprUpdate *>(_stmtSecRec->_stmt->GetExprStatement())
-            ->_vctCol;
-    for (size_t i = 0; i < vctCol->size(); i++) {
-      ExprColumn *ecol = vctCol->at(i);
-      ExprData *edata = dynamic_cast<ExprData *>(ecol->_exprElem);
-      IDataValue *dv = edata->Calc(_stmtSecRec->_stmt->GetParameters(), vct);
-      vct[ecol->_pos]->DecRef();
-      vct[ecol->_pos] = dv;
-    }
-
-    VersionStamp stamp = vctProp[0]._tree->ApplyStamp(_rangePos);
-    lr.UpdateRecord(vctProp[0]._tree, vct, stamp, _stmtSecRec->_stmt,
-                    ActionType::UPDATE, false);
-    for (size_t i = 1; i < vctProp.size(); i++) {
-      IndexProp &prop = vctProp[i];
-      VectorDataValue vctSec = prop.GenSecondaryData(vct);
-      LeafRecord *lrSec = new LeafRecord(
-          prop._tree, vctSec, lr.GetBysValue() + UI16_2_LEN, lr.GetKeyLength(),
-          ActionType::UPDATE, stamp, _stmtSecRec->_stmt);
-      vctLr.push_back(lrSec);
-      if (!lrSec->IsValid()) {
-        bFailed = true;
-        break;
-      }
-    }
-  } else {
-    VersionStamp stamp = vctProp[0]._tree->ApplyStamp(_rangePos);
-    lr.UpdateRecord(vctProp[0]._tree, vct, stamp, _stmtSecRec->_stmt,
-                    ActionType::DELETE, false);
-
-    for (size_t i = 1; i < vctProp.size(); i++) {
-      IndexProp &prop = vctProp[i];
-      VectorDataValue vctSec = prop.GenSecondaryData(vct);
-      LeafRecord *lrSec = new LeafRecord(
-          prop._tree, vctSec, lr.GetBysValue() + UI16_2_LEN, lr.GetKeyLength(),
-          ActionType::DELETE, stamp, _stmtSecRec->_stmt);
-      vctLr.push_back(lrSec);
-      if (!lrSec->IsValid()) {
-        bFailed = true;
-        break;
-      }
-    }
-  }
-
-  if (bFailed) {
-    lr.SubmitStatement(*_stmtSecRec->_stmt, RecordStatus::ROLLBACKED);
-    lr.ReleaseLock(vctProp[0]._tree);
-
-    for (LeafRecord *lrSec : vctLr) {
-      delete lrSec;
-    }
-
-    SessionErrMsgAction *eAction = new SessionErrMsgAction(
-        _stmtSecRec->_stmt, move(_threadErrorMsg->GetErrorMsg()));
-    SessionPool::AddAction(ThreadPool::GetThreadId(),
-                           _stmtSecRec->_stmt->GetTxId(), eAction);
-    _stmtSecRec->_stmt->SetStmtFailed(true);
-    _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
-    return TaskStatus::FINISHED;
-  }
-
-  TableTaskMgr *mgr = _stmtSecRec->_table->GetTableTaskMgr();
-
-  for (size_t i = 1; i < vctProp.size(); i++) {
-    IndexTree *secTree = vctProp[i]._tree;
-    RecordAction *rAction = new RecordAction(secTree, vctLr[i - 1]);
-    mgr->AddFromPrimaryAction(i, _rangePos, rAction);
-  }
-
-  vctLr.push_back(&lr);
-  _stmtSecRec->_numLeafRecord = vctLr.size();
-  SessionRecordAction *action =
-      new SessionRecordAction(_stmtSecRec->_stmt, move(vctLr));
-  SessionPool::AddAction(ThreadPool::GetThreadId(),
-                         _stmtSecRec->_stmt->GetTxId(), action);
-  _stmtSecRec->_status.store(ActionStatus::SUCEED, memory_order_relaxed);
 
   return TaskStatus::FINISHED;
 }

@@ -464,4 +464,71 @@ LeafPage *BranchPage::GetRightLeafChild() {
     }
   }
 }
+
+IndexPage *BranchPage::GetNextPage(IndexPage *currPage) {
+  assert(!IsEndPage());
+  auto iter = _vctRecord.rbegin();
+  if (dynamic_cast<BranchRecord *>(*iter)->GetChildPage() == currPage) {
+    BranchPage *bp = dynamic_cast<BranchPage *>(_parentPage->GetNextPage(this));
+    IndexPage *ip = bp->GetChild(0);
+    if (ip == nullptr) {
+      ip = _indexTree->GetPage(bp->GetRecord(0, false).GetChildPageId(),
+                               currPage->GetPageType(), bp,
+                               currPage->GetPageLevel() != 0);
+    }
+
+    return ip;
+  }
+
+  iter++;
+  for (; iter != _vctRecord.rend(); iter++) {
+    if (dynamic_cast<BranchRecord *>(*iter)->GetChildPage() == currPage) {
+      iter--;
+      return dynamic_cast<BranchRecord *>(*iter)->GetChildPage();
+    }
+  }
+
+  assert(false);
+  return nullptr;
+}
+
+void BranchPage::FillNextPage(IndexPage *currPage, bool bAll) {
+  assert(GetPageLevel() == 1);
+  LeafPage *lpCurr = dynamic_cast<LeafPage *>(currPage);
+  auto iter = _vctRecord.rbegin();
+  if (dynamic_cast<BranchRecord *>(*iter)->GetChildPage() == currPage) {
+    LeafPage *lpNext = dynamic_cast<LeafPage *>(GetNextPage(currPage));
+    lpCurr->SetNextPage(lpNext);
+    return;
+  }
+
+  LeafPage *lpNext = dynamic_cast<LeafPage *>(
+      dynamic_cast<BranchRecord *>(*iter)->GetChildPage());
+  if (lpNext == nullptr) {
+    lpNext == dynamic_cast<LeafPage *>(_indexTree->GetPage(
+                  dynamic_cast<BranchRecord *>(*iter)->GetChildPageId(),
+                  PageType::LEAF_PAGE, this));
+  }
+
+  iter++;
+  for (; iter != _vctRecord.rend(); iter++) {
+    lpCurr = dynamic_cast<LeafPage *>(
+        dynamic_cast<BranchRecord *>(*iter)->GetChildPage());
+    if (lpCurr == nullptr) {
+      lpCurr = dynamic_cast<LeafPage *>(_indexTree->GetPage(
+          dynamic_cast<BranchRecord *>(*iter)->GetChildPageId(),
+          PageType::LEAF_PAGE, this));
+    }
+    if (lpCurr->GetNextPage() == nullptr) {
+      lpCurr->SetNextPage(lpNext);
+    }
+
+    if (!bAll && lpCurr == currPage) {
+      break;
+    }
+
+    lpNext = lpCurr;
+  }
+}
+
 } // namespace storage

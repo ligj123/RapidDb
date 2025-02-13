@@ -6,21 +6,23 @@
 #include "Statement.h"
 
 namespace storage {
-class DeleteStatement : public Statement {
+class SelectStatement : public Statement {
 public:
-  DeleteStatement(uint32_t id, TranID txid, ExprDelete *exprDelete,
+  SelectStatement(uint32_t id, TranID txid, ExprTableSelect *exprSelect,
                   VectorDataValue &&vctPara, StmtResult *result)
-      : Statement(id, txid, exprDelete, result, move(vctPara)) {}
-  ~DeleteStatement() { assert(_lstStmtRec.size() == 0); }
+      : Statement(id, txid, exprSelect, result, move(vctPara)) {}
+  ~SelectStatement() { assert(_lstStmtRec.size() == 0); }
   ExprType GetType() override { return ExprType::EXPR_DELETE; }
-  bool IsReadonly() override { return false; }
+  bool IsReadonly() override { return true; }
 
   StmtStatus SessionExec(Session *sess) override;
   bool SacnIndex(int rangPos) override;
   TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos) override;
-
-  ExprDelete *GetExprDelete() { return dynamic_cast<ExprDelete *>(_exprStmt); }
   int CalcIndexRanges(IndexTree *idxTree) override;
+
+  ExprTableSelect *GetExprTableSelect() {
+    return dynamic_cast<ExprTableSelect *>(_exprStmt);
+  }
 
 protected:
   // If The search index is secondary index, below variable to save the selected

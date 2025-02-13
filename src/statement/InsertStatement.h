@@ -18,11 +18,6 @@ public:
 
   StmtStatus SessionExec(Session *sess) override;
 
-  StmtStatus CheckStatus() override;
-  void CollectLogRecords(TreeSetRecord &setRec) override;
-
-  void Commit() override;
-  void Rollback() override;
   ExprInsert *GetExprInsert() { return dynamic_cast<ExprInsert *>(_exprStmt); }
 
 protected:

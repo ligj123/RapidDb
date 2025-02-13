@@ -1,6 +1,7 @@
 ﻿#include "Statement.h"
 
 #include "../core/LeafRecord.h"
+#include "../table/TableTaskMgr.h"
 
 namespace storage {
 
@@ -18,16 +19,16 @@ void Statement::AddLeafRecord(LeafRecord *lr) {
 }
 
 /**
- * @brief Merge two MVector<IndexValue> into one by AND operation， ASSUME every
+ * @brief Merge two MVector<QueryRange> into one by AND operation， ASSUME every
  * vector is sorted.
  * @param vctLeft
  * @param vctRight
  * @return The merged result
  */
-MVector<IndexValue>
-Statement::MergeAndIndexValue(MVector<IndexValue> &vctLeft,
-                              MVector<IndexValue> &vctRight) {
-  MVector<IndexValue> vctVal;
+MVector<QueryRange>
+Statement::MergeAndQueryRange(MVector<QueryRange> &vctLeft,
+                              MVector<QueryRange> &vctRight) {
+  MVector<QueryRange> vctVal;
 
   size_t lpos = 0, rpos = 0;
   while (true) {
@@ -35,14 +36,13 @@ Statement::MergeAndIndexValue(MVector<IndexValue> &vctLeft,
       return vctVal;
     }
 
-    IndexValue *v1 = &vctLeft[lpos];
-    IndexValue *v2 = &vctRight[rpos];
+    QueryRange *v1 = &vctLeft[lpos];
+    QueryRange *v2 = &vctRight[rpos];
     assert(v1->_bRange || v1->_dvLeft == v1->_dvRight);
     assert(v2->_bRange || v2->_dvLeft == v2->_dvRight);
-    assert(v1->_bValid && v2->_bValid);
 
     if (*v1->_dvLeft > *v2->_dvLeft) {
-      IndexValue *tmp = v1;
+      QueryRange *tmp = v1;
       v1 = v2;
       v2 = tmp;
       rpos++;
@@ -50,7 +50,7 @@ Statement::MergeAndIndexValue(MVector<IndexValue> &vctLeft,
       lpos++;
     }
 
-    IndexValue val;
+    QueryRange val;
     if (*v1->_dvRight >= *v2->_dvLeft) {
       val._dvLeft = v2->_dvLeft->AddRef();
       if (*v1->_dvLeft == *v2->_dvLeft) {
@@ -86,14 +86,14 @@ Statement::MergeAndIndexValue(MVector<IndexValue> &vctLeft,
   return vctVal;
 }
 
-void Statement::MergeOrIndexValue(MVector<IndexValue> &vctResult,
-                                  MVector<IndexValue> &vctRight) {
-  for (IndexValue &rVal : vctRight) {
+void Statement::MergeOrQueryRange(MVector<QueryRange> &vctResult,
+                                  MVector<QueryRange> &vctRight) {
+  for (QueryRange &rVal : vctRight) {
     bool bFinished = false;
 
     size_t i;
     for (i = 0; i < vctResult.size(); i++) {
-      IndexValue &lVal = vctResult[i];
+      QueryRange &lVal = vctResult[i];
       if (*lVal._dvRight < *rVal._dvLeft) {
         continue;
       }
@@ -121,7 +121,7 @@ void Statement::MergeOrIndexValue(MVector<IndexValue> &vctResult,
       }
 
       if (i < vctResult.size() - 1) {
-        IndexValue &valNext = vctResult[i + 1];
+        QueryRange &valNext = vctResult[i + 1];
         if (*valNext._dvLeft < *lVal._dvRight) {
           lVal._dvRight->DecRef();
           lVal._dvRight = valNext._dvRight->AddRef();
@@ -143,10 +143,10 @@ void Statement::MergeOrIndexValue(MVector<IndexValue> &vctResult,
   }
 }
 
-MVector<IndexValue> Statement::ConditionConvert(ExprLogic *logic,
+MVector<QueryRange> Statement::ConditionConvert(ExprLogic *logic,
                                                 VectorDataValue &paras) {
   assert(logic != nullptr);
-  MVector<IndexValue> vctVal;
+  MVector<QueryRange> vctVal;
 
   switch (logic->GetType()) {
   case ExprType::EXPR_COMP: {
@@ -208,7 +208,7 @@ MVector<IndexValue> Statement::ConditionConvert(ExprLogic *logic,
 
     size_t pos = 0;
     for (IDataValue *dv : exprIn->_exprArray->_setVal) {
-      IndexValue &idxVal = vctVal[pos];
+      QueryRange &idxVal = vctVal[pos];
       pos++;
       idxVal._bRange = false;
       idxVal._dvLeft = dv;
@@ -228,7 +228,7 @@ MVector<IndexValue> Statement::ConditionConvert(ExprLogic *logic,
     if (*dvL > *dvR) {
       dvL->DecRef();
       dvR->DecRef();
-      vctVal[0]._bValid = false;
+      vctVal.clear();
     } else {
       vctVal[0]._dvLeft = dvL;
       vctVal[0]._dvRight = dvR;
@@ -242,9 +242,9 @@ MVector<IndexValue> Statement::ConditionConvert(ExprLogic *logic,
   case ExprType::EXPR_AND: {
     ExprAnd *exprAnd = dynamic_cast<ExprAnd *>(logic);
     for (ExprLogic *logic : exprAnd->_vctChild) {
-      MVector<IndexValue> vctRes = ConditionConvert(logic, paras);
+      MVector<QueryRange> vctRes = ConditionConvert(logic, paras);
       if (vctVal.size() > 0) {
-        MVector<IndexValue> vct = MergeAndIndexValue(vctVal, vctRes);
+        MVector<QueryRange> vct = MergeAndQueryRange(vctVal, vctRes);
         vctVal.swap(vct);
       } else {
         vctVal = move(vctRes);
@@ -256,8 +256,8 @@ MVector<IndexValue> Statement::ConditionConvert(ExprLogic *logic,
   case ExprType::EXPR_OR: {
     ExprOr *exprOr = dynamic_cast<ExprOr *>(logic);
     for (ExprLogic *logic : exprOr->_vctChild) {
-      MVector<IndexValue> vctRes = ConditionConvert(logic, paras);
-      MergeOrIndexValue(vctVal, vctRes);
+      MVector<QueryRange> vctRes = ConditionConvert(logic, paras);
+      MergeOrQueryRange(vctVal, vctRes);
     }
     break;
   }
@@ -324,30 +324,79 @@ ExprField *Statement::GetFrieldFromExprLogic(ExprLogic *logic) {
   return nullptr;
 }
 
-void Statement::GenIndexSearchKey(IndexTree *idxTree, RawKey &startKey,
-                                  RawKey &endKey) {
-  RawKey sKey;
-  RawKey eKey;
-  ExprField *exprField = _indexCondition._field;
-  IndexValue &idxValue = _indexCondition._vctValue[_condPos];
-
+KeyRange Statement::GenIndexSearchKey(IndexTree *idxTree, ExprField *field,
+                                      QueryRange *qRange) {
+  RawKey *sKey = nullptr;
+  RawKey *eKey = nullptr;
   VectorDataValue vdv;
-  idxTree->CloneKeys(vdv);
 
-  vdv[0]->Copy(*(idxValue._dvLeft), false);
+  idxTree->CloneKeys(vdv);
+  vdv[0]->Copy(*(qRange->_dvLeft), true);
   for (size_t i = 1; i < vdv.size(); i++) {
     vdv[i]->SetMinValue();
   }
 
-  startKey = RawKey(vdv);
+  sKey = new RawKey(vdv);
 
-  if (idxValue._bRange) {
-    vdv[0]->Copy(*(idxValue._dvRight), false);
+  if (qRange->_bRange || vdv.size() > 1) {
+    if (qRange->_bRange) {
+      vdv[0]->Copy(*(qRange->_dvRight), true);
+    }
+
     for (size_t i = 1; i < vdv.size(); i++) {
       vdv[i]->SetMaxValue();
     }
 
-    endKey = RawKey(vdv);
+    eKey = new RawKey(vdv);
+  }
+
+  return KeyRange(sKey, eKey, qRange->_bRange, qRange->_bIncLeft,
+                  qRange->_bIncRight);
+}
+
+void Statement::SendStmtRecord(int idxPos, int rangePos, PhysTable *table,
+                               Statement *stmt, LeafRecord *lr,
+                               IndexTree *idxTree) {
+  StmtSecRecord *stmtRec = new StmtSecRecord();
+  stmtRec->_table = table;
+  stmtRec->_stmt = stmt;
+  stmtRec->_secLr = lr;
+
+  TableTaskMgr *mgr = table->GetTableTaskMgr();
+  StmtSecRecordAction *action =
+      new StmtSecRecordAction(table->GetVectorIndex()[0]._tree, stmtRec);
+  mgr->AddToPrimaryAction(idxPos, rangePos, action);
+}
+
+void Statement::CollectLogRecords(TreeSetRecord &setRec) {
+  assert(!_stmtFailed.load(memory_order_relaxed) && !IsReadonly());
+
+  for (LeafRecord *lr : _lstFinishRecord) {
+    assert(lr->GetLock()->_recResult != RecordResult::INIT);
+    if (lr->GetLock()->_recResult == RecordResult::ERROR) {
+      continue;
+    }
+
+    setRec.insert(lr);
   }
 }
+
+void Statement::Commit() {
+  assert(!_stmtFailed.load(memory_order_relaxed));
+
+  for (LeafRecord *lr : _lstFinishRecord) {
+    lr->SubmitStatement(*this, (lr->GetLock()->_actType & READ_LOCK_MASK) == 0
+                                   ? RecordStatus::COMMITED
+                                   : RecordStatus::FREEED);
+  }
+}
+
+void Statement::Rollback() {
+  for (LeafRecord *lr : _lstFinishRecord) {
+    lr->SubmitStatement(*this, (lr->GetLock()->_actType & READ_LOCK_MASK) == 0
+                                   ? RecordStatus::ROLLBACKED
+                                   : RecordStatus::FREEED);
+  }
+}
+
 } // namespace storage

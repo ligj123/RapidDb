@@ -29,6 +29,7 @@ struct IndexRange {
   ~IndexRange();
 
   IndexPage *GetTopPage(IndexType type, RawRecord &rr);
+  IndexPage *GetTopPage(RawKey &key);
   BranchRecord *GetLastRecord() {
     assert(_borderRecord != nullptr);
     return _borderRecord;
@@ -117,8 +118,7 @@ public:
 
   IndexPage *GetPage(PageID pageId, PageType type,
                      BranchPage *parentPage = nullptr, bool bSyncRead = false);
-  LeafPage *GetLeafPage(PageID pageId, BranchPage *parentPage, LeafPage *prev,
-                        LeafPage *next);
+
   /**
    * @brief Recycle the unused pages into garbage owner
    * @param firstId The first page id of a series of pages.

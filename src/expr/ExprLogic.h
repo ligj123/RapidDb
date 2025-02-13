@@ -134,7 +134,7 @@ public:
     }
 
     ExprField *field = dynamic_cast<ExprField *>(_exprLeft);
-    for (size_t i = 1; i < vctCol.size(); i++) {
+    for (size_t i = 0; i < vctCol.size(); i++) {
       IndexColumn &icol = vctCol[i];
       if (icol.colPos == field->_rowPos) {
         return i;
@@ -194,19 +194,19 @@ public:
     return TriBool::True;
   }
 
-  int CombinedIndexCondition(MVector<IndexColumn> &vctCol) override {
-    assert(_exprData->GetType() == ExprType::EXPR_FIELD);
+  // int CombinedIndexCondition(MVector<IndexColumn> &vctCol) override {
+  //   assert(_exprData->GetType() == ExprType::EXPR_FIELD);
 
-    ExprField *field = dynamic_cast<ExprField *>(_exprData);
-    for (size_t i = 1; i < vctCol.size(); i++) {
-      IndexColumn &icol = vctCol[i];
-      if (icol.colPos == field->_rowPos) {
-        return i;
-      }
-    }
+  //   ExprField *field = dynamic_cast<ExprField *>(_exprData);
+  //   for (size_t i = 1; i < vctCol.size(); i++) {
+  //     IndexColumn &icol = vctCol[i];
+  //     if (icol.colPos == field->_rowPos) {
+  //       return i;
+  //     }
+  //   }
 
-    return -1;
-  }
+  //   return -1;
+  // }
 
 public:
   ExprData *_exprData;

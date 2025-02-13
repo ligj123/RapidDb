@@ -129,6 +129,7 @@ public:
   TaskStatus Exec() override;
   int JudgeRange() override;
   const char *GetActionName() override { return "StmtSecRecordAction"; }
+  StmtSecRecord *GetStmtRecord() { return _stmtSecRec; }
 
 protected:
   StmtSecRecord *_stmtSecRec;

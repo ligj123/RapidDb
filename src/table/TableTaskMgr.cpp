@@ -65,6 +65,7 @@ void TableTaskMgr::CollectTaskData(uint16_t idxPos) {
 
   MList<IndexAction *> qs;
   itq->_queueSessionAction.Pop(qs);
+  itq->_queueRangeAction.Pop(qs);
 
   if (idxPos == 0) {
     // Primary Key
@@ -246,16 +247,18 @@ TaskStatus IndexAdjustTask::Run() {
 
   if (_indexPos == 0) {
     for (size_t i = 1; i < _tableTaskMgr->_vctIndexTaskQueue.size(); i++) {
-      SecondaryIndexTaskQueue *itq =
-          (SecondaryIndexTaskQueue *)_tableTaskMgr->_vctIndexTaskQueue[i];
+      SecondaryIndexTaskQueue *itq = dynamic_cast<SecondaryIndexTaskQueue *>(
+          _tableTaskMgr->_vctIndexTaskQueue[i]);
       itq->_fromPrimaryQueue.ResetLiveThreadNumber(_exptTaskNum);
     }
   } else {
-    SecondaryIndexTaskQueue *itq = (SecondaryIndexTaskQueue *)&_tableTaskMgr
-                                       ->_vctIndexTaskQueue[_indexPos];
+    SecondaryIndexTaskQueue *itq = dynamic_cast<SecondaryIndexTaskQueue *>(
+        _tableTaskMgr->_vctIndexTaskQueue[_indexPos]);
     itq->_toPrimaryQueue.ResetLiveThreadNumber(_exptTaskNum);
   }
 
+  _tableTaskMgr->_vctIndexTaskQueue[_indexPos]
+      ->_queueRangeAction.ResetLiveThreadNumber(_exptTaskNum);
   vctTask.reserve(_exptTaskNum);
   MVector<ThreadTask *> vct;
   vct.reserve(vctTask.size());

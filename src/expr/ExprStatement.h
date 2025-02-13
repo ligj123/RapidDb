@@ -51,67 +51,6 @@ public:
 typedef ExprCondition<ExprType::EXPR_ON> ExprOn;
 typedef ExprCondition<ExprType::EXPR_HAVING> ExprHaving;
 
-struct IndexValue {
-  IndexValue() {}
-  IndexValue(IndexValue &&src)
-      : _dvLeft(src._dvLeft), _dvRight(src._dvRight), _bRange(src._bRange),
-        _bIncLeft(src._bIncLeft), _bIncRight(src._bIncRight),
-        _bValid(src._bValid) {
-    src._dvLeft = nullptr;
-    src._dvRight = nullptr;
-  }
-
-  ~IndexValue() {
-    assert(_bRange || *_dvLeft == *_dvRight);
-    if (_dvLeft != nullptr) {
-      _dvLeft->DecRef();
-      _dvRight->DecRef();
-    }
-  }
-
-  IndexValue &operator=(IndexValue &&src) {
-    _dvLeft = src._dvLeft;
-    _dvRight = src._dvRight;
-    _bRange = src._bRange;
-    _bIncLeft = src._bIncLeft;
-    _bIncRight = src._bIncRight;
-    _bValid = src._bValid;
-    src._dvLeft = nullptr;
-    src._dvRight = nullptr;
-    return *this;
-  }
-
-  // The left range border
-  IDataValue *_dvLeft{nullptr};
-  // The right range boder, if _bRange=False, it should euqal right border
-  IDataValue *_dvRight{nullptr};
-  bool _bRange{true};
-  bool _bIncLeft{true};  // Include left border, only valid bRange=TRUE
-  bool _bIncRight{true}; // Include right boder, only valid bRange=TRUE
-  bool _bValid{true};    // The range is valid or not
-};
-
-class IndexCondition {
-public:
-  IndexCondition() {}
-  IndexCondition(IndexCondition &&src)
-      : _field(src._field), _vctValue(move(src._vctValue)) {
-    src._field = nullptr;
-  }
-  ~IndexCondition() {}
-  IndexCondition &operator=(IndexCondition &&src) {
-    _field = src._field;
-    src._field = nullptr;
-    _vctValue = move(src._vctValue);
-    return *this;
-  }
-
-public:
-  // Copied from UseIndex, NOT need to free
-  ExprField *_field{nullptr};
-  MVector<IndexValue> _vctValue;
-};
-
 // To query physical table, point out which index will be used. Only one index
 // can be selected.
 class IndexSearch {

@@ -20,6 +20,9 @@ class IndexTree;
 class IndexAction;
 struct LeafRecordCmp;
 class Statement;
+class PhysTable;
+class StmtSecRecordAction;
+
 using TreeSetRecord = MTreeSet<LeafRecord *, LeafRecordCmp>;
 
 enum class StmtStatus : uint8_t {
@@ -35,9 +38,10 @@ enum class StmtStatus : uint8_t {
 };
 
 enum class ActionStatus {
-  INIT,   // Just initialized
-  SUCEED, // Succeed to insert
-  FAILED, // Failed to insert due to error or rollback
+  INIT,     // Just initialized
+  INTERVAL, // Unfinished and need to execute again
+  SUCEED,   // Succeed to insert
+  FAILED,   // Failed to insert due to error or rollback
 };
 
 // To save the handles paras in InsertStatement.
@@ -83,6 +87,102 @@ public:
   uint32_t _numLeafRecord{0};
 };
 
+struct QueryRange {
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+  QueryRange() {}
+  QueryRange(QueryRange &&src)
+      : _dvLeft(src._dvLeft), _dvRight(src._dvRight), _bRange(src._bRange),
+        _bIncLeft(src._bIncLeft), _bIncRight(src._bIncRight) {
+    src._dvLeft = nullptr;
+    src._dvRight = nullptr;
+  }
+
+  ~QueryRange() {
+    assert(_bRange || *_dvLeft == *_dvRight);
+    if (_dvLeft != nullptr) {
+      _dvLeft->DecRef();
+      _dvRight->DecRef();
+    }
+  }
+
+  QueryRange &operator=(QueryRange &&src) {
+    _dvLeft = src._dvLeft;
+    _dvRight = src._dvRight;
+    _bRange = src._bRange;
+    _bIncLeft = src._bIncLeft;
+    _bIncRight = src._bIncRight;
+    src._dvLeft = nullptr;
+    src._dvRight = nullptr;
+    return *this;
+  }
+
+  // The left range border
+  IDataValue *_dvLeft{nullptr};
+  // The right range boder, if _bRange=False, it should euqal right border
+  IDataValue *_dvRight{nullptr};
+  bool _bRange{true};
+  bool _bIncLeft{true};  // Include left border, only valid bRange=TRUE
+  bool _bIncRight{true}; // Include right boder, only valid bRange=TRUE
+};
+
+struct KeyRange {
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+  KeyRange(RawKey *sKey, RawKey *eKey, bool bRange, bool bIncLeft,
+           bool bIncRight)
+      : _startKey(sKey), _endKey(eKey), _bRange(bRange), _bIncLeft(bIncLeft),
+        _bIncRight(bIncRight) {}
+  KeyRange(KeyRange &&src)
+      : _startKey(src._startKey), _endKey(src._endKey), _bRange(src._bRange),
+        _bIncLeft(src._bIncLeft), _bIncRight(src._bIncRight) {
+    src._startKey = nullptr;
+    src._endKey = nullptr;
+  }
+  ~KeyRange() {
+    delete _startKey;
+    delete _endKey;
+  }
+
+  RawKey *_startKey{nullptr};
+  RawKey *_endKey{nullptr};
+  bool _bRange{true};
+  bool _bIncLeft{true};  // Include left border, only valid bRange=TRUE
+  bool _bIncRight{true}; // Include right boder, only valid bRange=TRUE
+};
+
+struct MiddleVar {
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+  IndexPage *_midPage{nullptr};
+  // The Index key to search, only valid when point search.
+  MVector<KeyRange> _vctKeyRange;
+
+  int _keyPos{0};
+  int _rangePos{-1};
+  // True: start from IndexTree range begin;
+  // False: start from the position of search key in the range.
+  bool _bFromRangeBegin{false};
+  // True: Start from page begin;
+  // False: Start from the position of search key in the page.
+  bool _bFromPageBegin{false};
+};
+
 class Statement {
 public:
   static void *operator new(size_t size) {
@@ -120,14 +220,6 @@ public:
    */
   virtual ExprType GetType() = 0;
   /**
-   * @brief To be called in session group, to check if current step has
-   * finished and can go to next step.
-   */
-  virtual StmtStatus CheckStatus() {
-    abort();
-    return StmtStatus::Finished;
-  }
-  /**
    * @brief Execute this statement in SessionTask
    * @param sess The session that this statement belong to
    * @return True: This method has finished all work and need not to run
@@ -141,45 +233,46 @@ public:
 
   /**
    * @brief Execute this statement in primary key IndexTask
+   * @param rangePos Which range in index that is executing this statement
    * @return True: This method has finished all work and no need to run again.
    * False: There still has no finished work, need to run this method again.
    */
-  virtual bool PrimaryKeyExec() {
+  virtual bool SacnIndex(int rangPos) {
     abort();
     return false;
   }
 
   /**
-   * @brief Execute this statement in secondary key IndexTask
-   * @return True: This method has finished all work and no need to run again.
-   * False: There still has no finished work, need to run this method again.
+   * @brief To execute the opertion of delete, update, select.
+   * @param page The page that the LeafRecord belong to.
+   * @param pagePos The position of LeafRecord in LeafPage.
+   * @param rangePos Which index range that the page belong to.
+   * @return True: The LeafRecord has passed the operation;
+   *         false: The LeafRecord has been filter by logic filter
+   *         Error: Meet error inoperation, the statement need to set fail
    */
-  virtual bool SecondaryKeyExec() {
+  virtual TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos) {
     abort();
-    return false;
+    return TriBool::False;
   }
-
   /**
    * @brief Collect all LeafRecord for log write. To ensure the last version
    * can be added into set, it should the last statement to call this method
    * first, the first statement should be the last one to call this method.
    * @param setRec: The tree set to save the LeafRecords to write log
    */
-  virtual void CollectLogRecords(TreeSetRecord &setRec) {
-    // For readonly statement, it has not records that need to write log.
-    abort();
-  }
+  void CollectLogRecords(TreeSetRecord &setRec);
   /**
    * @brief To update RecordStatus into COMMITED of all locked LeafRecord in
    * this statement.
    */
-  virtual void Commit() { assert(false); }
+  void Commit();
 
   /**
    * @brief To update RecordStatus into ROLLBACKED of all locked LeafRecord in
    * this statement.
    */
-  virtual void Rollback() { assert(false); }
+  void Rollback();
 
   /**The statement is readonly or not */
   virtual bool IsReadonly() = 0;
@@ -220,25 +313,31 @@ public:
 
   VectorDataValue &GetParameters() { return _vctPara; }
 
+  void SetFinished(bool b) { _bFinished = b; }
+
 protected:
-  MVector<IndexValue> MergeAndIndexValue(MVector<IndexValue> &vctLeft,
-                                         MVector<IndexValue> &vctRight);
+  MVector<QueryRange> MergeAndQueryRange(MVector<QueryRange> &vctLeft,
+                                         MVector<QueryRange> &vctRight);
 
-  void MergeOrIndexValue(MVector<IndexValue> &vctResult,
-                         MVector<IndexValue> &vctRight);
+  void MergeOrQueryRange(MVector<QueryRange> &vctResult,
+                         MVector<QueryRange> &vctRight);
 
-  MVector<IndexValue> ConditionConvert(ExprLogic *logic,
+  MVector<QueryRange> ConditionConvert(ExprLogic *logic,
                                        VectorDataValue &paras);
   ExprField *GetFrieldFromExprLogic(ExprLogic *logic);
 
-  void GenIndexSearchKey(IndexTree *idxTree, RawKey &startKey, RawKey &endKey);
+  KeyRange GenIndexSearchKey(IndexTree *idxTree, ExprField *field,
+                             QueryRange *qRange);
+
+  void SendStmtRecord(int idxPos, int rangePos, PhysTable *table,
+                      Statement *stmt, LeafRecord *lr, IndexTree *idxTree);
 
 protected:
   // Id will auto increment 1 every time in self session.
   uint32_t _id;
   // Statement status
   StmtStatus _status{StmtStatus::Created};
-  // This statement has been executed or not
+  // The index scan has finished for this statement or not
   bool _bFinished{false};
   // Meet error when executing
   atomic_bool _stmtFailed{false};
@@ -263,13 +362,8 @@ protected:
   ExprStatement *_exprStmt;
   // The parameters for statement
   VectorDataValue _vctPara;
-  // Which range the statement is sent to
-  int _rangePos{-1};
-  // Which IndexCondition will be executed in _vctCondition
-  int _condPos{0};
-  // The search condition to using primary or secondary indexs. In this version
-  // only consider single field index.
-  IndexCondition _indexCondition;
+
+  MiddleVar *_midVar{nullptr};
 };
 
 std::ostream &operator<<(std::ostream &os, const StmtStatus &s);

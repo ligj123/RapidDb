@@ -33,6 +33,17 @@ IndexPage *IndexRange::GetTopPage(IndexType type, RawRecord &rr) {
   return _vctRangePage[_vctRangePage.size() - 1];
 }
 
+IndexPage *IndexRange::GetTopPage(RawKey &key) {
+  for (size_t i = 0; i < _vctRangePage.size() - 1; i++) {
+    BranchRecord &br = _vctRangePage[i]->GetRecord(INT32_MAX, true);
+    if (br.CompareKey(key) >= 0) {
+      return _vctRangePage[i];
+    }
+  }
+
+  return _vctRangePage[_vctRangePage.size() - 1];
+}
+
 IndexTree::~IndexTree() {
   while (_pagesInMem.load(memory_order_acquire) > 0) {
     this_thread::sleep_for(chrono::milliseconds(1));
@@ -265,26 +276,6 @@ IndexPage *IndexTree::GetPage(PageID pageId, PageType type,
   return page;
 }
 
-LeafPage *IndexTree::GetLeafPage(PageID pageId, BranchPage *parentPage,
-                                 LeafPage *prev, LeafPage *next) {
-  assert(pageId < _headPage->GetTotalPageCount());
-  LeafPage *page =
-      (LeafPage *)CachePagePool::GetPage(this, pageId, PageType::LEAF_PAGE);
-  if (parentPage != nullptr) {
-    page->SetParentPage(parentPage);
-  }
-  if (prev != nullptr) {
-    page->SetPrevPage(prev);
-  }
-  if (next != nullptr) {
-    page->SetNextPage(next);
-  }
-  if (page->GetPageStatus() == PageStatus::EMPTY) {
-    FilePagePool::AddReadPage(ThreadPool::GetThreadId(), page);
-  }
-
-  return page;
-}
 /**
  * @brief
  */

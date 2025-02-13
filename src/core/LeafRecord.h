@@ -353,12 +353,15 @@ public:
     return BytesHash(_bysVal + UI16_2_LEN, GetKeyLength());
   }
 
-  bool UpdateAble(TranID txid) {
-    if (_recLock == nullptr)
+  bool LockAble(TranID txid, ActionType actType) {
+    if (_recLock == nullptr) {
       return true;
-    else if (_recLock->_lstTxid.size() == 1 &&
-             _recLock->_lstTxid.back() == txid)
+    } else if (_recLock->_lstTxid.size() == 1 &&
+               _recLock->_lstTxid.back() == txid) {
       return true;
+    } else if (actType == READ_SHARE && _recLock->_actType == READ_SHARE) {
+      return true;
+    }
 
     return false;
   }

@@ -8,6 +8,27 @@
 namespace storage {
 class UpdateStatement : public Statement {
 public:
+  UpdateStatement(uint32_t id, TranID txid, ExprUpdate *expr,
+                  VectorDataValue &&vctPara, StmtResult *result)
+      : Statement(id, txid, expr, result, move(vctPara)) {}
+  ~UpdateStatement() { assert(_lstStmtRec.size() == 0); }
+  ExprType GetType() override { return ExprType::EXPR_UPDATE; }
+  bool IsReadonly() override { return false; }
+
+  StmtStatus SessionExec(Session *sess) override;
+  bool SacnIndex(int rangPos) override;
+  TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos) override;
+
+  ExprUpdate *GetExprUpdate() { return dynamic_cast<ExprUpdate *>(_exprStmt); }
+  int CalcIndexRanges(IndexTree *idxTree) override;
+
 protected:
+  // If The search index is secondary index, below variable to save the selected
+  // primary key to primary index and used to pick the records.
+  MList<StmtSecRecord *> _lstStmtRec;
+
+  // The total number of updated LeafRecords, only valid when the search index
+  // is secondary index
+  uint32_t _totalRecNum{0};
 };
 } // namespace storage

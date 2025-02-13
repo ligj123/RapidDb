@@ -283,6 +283,12 @@ void LeafPage::UpdateAction(LeafRecord *lr) {
     _bRecordUpdated = true;
     lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
   }
+
+  if (lr->GetIndexType() != IndexType::PRIMARY &&
+      lr->GetLock()->_undoRec != nullptr) {
+    lr->GetLock()->_undoRec->SubmitStatement(*lr->GetLock()->_stmt,
+                                             RecordStatus::FREEED);
+  }
 }
 
 LeafRecord &LeafPage::GetRecord(int32_t pos) {

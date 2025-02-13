@@ -69,25 +69,14 @@ bool ExprWhere::Preprocess(PhysTable *table,
     _exprLogic = nullptr;
   }
 
-  bool bPoint = false;
-  ExprType etype = _indexSearch->_idxLogic->GetType();
-  if (etype == ExprType::EXPR_COMP) {
-    ExprComp *ecmp = dynamic_cast<ExprComp *>(_indexSearch->_idxLogic);
-    if (ecmp->_compType == CompType::EQ) {
-      bPoint = true;
-    }
-  } else if (etype == ExprType::EXPR_IN_OR_NOT) {
-    ExprInNot *exprIn = dynamic_cast<ExprInNot *>(_indexSearch->_idxLogic);
-    bPoint = exprIn->_bIn;
-  }
+  IndexProp &prop = table->GetVectorIndex()[idxPos];
 
-  if (bPoint) {
+  if (_indexSearch->_idxLogic->CombinedIndexCondition(prop._vctCol)) {
     _indexSearch->_bPointQuery = true;
     _indexSearch->_vctPointCond = new MVectorPtr<ExprLogic *>();
     _indexSearch->_vctPointCond->push_back(_indexSearch->_idxLogic);
     _indexSearch->_idxLogic = nullptr;
 
-    IndexProp &prop = table->GetVectorIndex()[idxPos];
     if (prop._vctCol.size() > 1 && _exprLogic != nullptr) {
       if (_exprLogic->GetType() == ExprType::EXPR_AND) {
         ExprAnd *eand = dynamic_cast<ExprAnd *>(_exprLogic);
@@ -112,6 +101,14 @@ bool ExprWhere::Preprocess(PhysTable *table,
               }
             }
           }
+        }
+
+        if (eand->_vctChild.size() == 0) {
+          delete _exprLogic;
+          _exprLogic = nullptr;
+        } else if (eand->_vctChild.size() == 1) {
+          _exprLogic = eand->_vctChild[0];
+          delete eand;
         }
       } else {
         if (_exprLogic->CombinedIndexCondition(prop._vctCol) == 1) {

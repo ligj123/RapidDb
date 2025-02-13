@@ -26,15 +26,22 @@ public:
    * @param sessionGroupCount The session groups number.
    * @param idxTree The primary index tree
    */
-  IndexTaskQueue(uint16_t sessionGroupNum)
+  IndexTaskQueue(uint16_t sessionGroupNum, uint16_t currTaskNum)
       : _queueSessionAction(sessionGroupNum, sessionGroupNum),
+        _queueRangeAction(Configure::GetMaxIndexTaskNum(), currTaskNum),
         _createTime(MilliSecTime()) {}
   virtual ~IndexTaskQueue() {}
 
-  virtual bool IsQueueEmpty() { return _queueSessionAction.RoughSize() == 0; }
+  virtual bool IsQueueEmpty() {
+    return _queueSessionAction.RoughSize() == 0 &&
+           _queueRangeAction.RoughSize() == 0;
+  }
 
   // To receive IndexAction from sessions. Its lines equal session groups number
   RapidQueue<IndexAction> _queueSessionAction;
+  // To receive IndexAction from other range in same IndexTree. Its lines equal
+  // to current index tasks number.
+  RapidQueue<IndexAction> _queueRangeAction;
   // The time of this IndexTaskQueue created
   DT_MilliSec _createTime;
 };
@@ -50,12 +57,13 @@ public:
    */
   SecondaryIndexTaskQueue(uint16_t sessionGroupNum, uint16_t secTaskNum,
                           uint16_t priTaskNum)
-      : IndexTaskQueue(sessionGroupNum),
+      : IndexTaskQueue(sessionGroupNum, secTaskNum),
         _fromPrimaryQueue(Configure::GetMaxIndexTaskNum(), priTaskNum),
         _toPrimaryQueue(Configure::GetMaxIndexTaskNum(), secTaskNum) {}
 
   bool IsQueueEmpty() override {
     return _queueSessionAction.RoughSize() == 0 &&
+           _queueRangeAction.RoughSize() == 0 &&
            _fromPrimaryQueue.RoughSize() == 0 &&
            _toPrimaryQueue.RoughSize() == 0;
   }
@@ -63,7 +71,7 @@ public:
   // To receive the IndexAction from primary index tasks. Its lines equal to the
   // primary index tasks number.
   RapidQueue<IndexAction> _fromPrimaryQueue;
-  // To send the IndexAction to primary index tasks.Its lines equal to current
+  // To send the IndexAction to primary index tasks. Its lines equal to current
   // index tasks number.
   RapidQueue<IndexAction> _toPrimaryQueue;
 };
@@ -127,7 +135,7 @@ public:
     for (size_t i = 0; i < vctIndex.size(); i++) {
       auto &prop = vctIndex[i];
       if (i == 0) {
-        _vctIndexTaskQueue.push_back(new IndexTaskQueue(sessionGroupNum));
+        _vctIndexTaskQueue.push_back(new IndexTaskQueue(sessionGroupNum, 1));
       } else {
         _vctIndexTaskQueue.push_back(
             new SecondaryIndexTaskQueue(sessionGroupNum, 1, 1));
@@ -177,6 +185,12 @@ public:
     assert(indexPos < _vctIndexTaskQueue.size());
     _vctIndexTaskQueue[indexPos]->_queueSessionAction.Push(sessionGroupId,
                                                            action);
+  }
+
+  void AddIndexRangeAction(uint16_t indexPos, uint16_t rangePos,
+                           IndexAction *action) {
+    assert(indexPos < _vctIndexTaskQueue.size());
+    _vctIndexTaskQueue[indexPos]->_queueRangeAction.Push(rangePos, action);
   }
   /**
    *@brief The IndexActions that generate by primary index and will insert into

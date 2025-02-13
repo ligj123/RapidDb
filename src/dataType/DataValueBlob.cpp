@@ -82,7 +82,7 @@ bool DataValueBlob::PutValue(std::any val) {
 }
 
 bool DataValueBlob::Copy(IDataValue &dv, bool bMove) {
-  if (dv.IsConstRef()) {
+  if (dv.GetRef() > 1) {
     bMove = false;
   };
   if (dataType_ != dv.GetDataType()) {

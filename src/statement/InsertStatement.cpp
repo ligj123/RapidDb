@@ -147,40 +147,4 @@ bool InsertStatement::InitRecord() {
   return false;
 }
 
-StmtStatus InsertStatement::CheckStatus() { return _status; }
-
-void InsertStatement::CollectLogRecords(TreeSetRecord &setRec) {
-  if (_stmtFailed.load(memory_order_relaxed)) {
-    return;
-  }
-
-  for (LeafRecord *lr : _lstFinishRecord) {
-    assert(lr->GetLock()->_recResult != RecordResult::INIT);
-    if (lr->GetLock()->_recResult == RecordResult::ERROR) {
-      continue;
-    }
-
-    setRec.insert(lr);
-  }
-}
-
-void InsertStatement::Commit() {
-  if (_stmtFailed.load(memory_order_relaxed)) {
-    return;
-  }
-
-  for (LeafRecord *lr : _lstFinishRecord) {
-    lr->SubmitStatement(*this, RecordStatus::COMMITED);
-  }
-}
-
-void InsertStatement::Rollback() {
-  if (_stmtFailed.load(memory_order_relaxed)) {
-    return;
-  }
-
-  for (LeafRecord *lr : _lstFinishRecord) {
-    lr->SubmitStatement(*this, RecordStatus::ROLLBACKED);
-  }
-}
 } // namespace storage

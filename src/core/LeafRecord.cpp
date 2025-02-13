@@ -245,7 +245,7 @@ LeafRecord *LeafRecord::UpdateRecord(IndexTree *idxTree,
                                      ActionType type, bool gapLock) {
   assert(_indexType == IndexType::PRIMARY);
   assert(type == ActionType::UPDATE || type == ActionType::DELETE);
-  assert(UpdateAble(stmt->GetTxId()));
+  assert(LockAble(stmt->GetTxId(), type));
 
   LeafRecord *lrNew = new LeafRecord();
   lrNew->_bSole = true;

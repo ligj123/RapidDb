@@ -39,7 +39,8 @@ protected:
 };
 
 /**
- * @brief After finished an IndexRange, send this action to SessionPool if need
+ * @brief After finished a scan for the IndexRange, send this action to
+ * SessionPool to notify the statement has finished index scan
  */
 class SessionRangeEndAction : public SessionAction {
 public:

@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "../dataType/DataType.h"
 #include "../dataType/IDataValue.h"
+#include "../expr/BaseExpr.h"
 
 #include <utility>
 
@@ -17,6 +18,11 @@ public:
   }
 
 public:
+  IResultSet(MVectorPtr<ExprColumn *> *vctCol) : _vctCol(vctCol) {
+    for (ExprColumn *ecol : *_vctCol) {
+      _mapColPos.emplace(*ecol->_name, ecol->_pos);
+    }
+  }
   /**
    * Move to the first row if possible
    * @return true if moved to the first row; false if failed to move or not able
@@ -58,7 +64,7 @@ public:
    * @return the total rows number if possible, or -1 if can not get total rows
    * number
    */
-  virtual int GetRowCount() = 0;
+  virtual int64_t GetRowCount() = 0;
   /**
    * Get the fields number
    * @return the fields number
@@ -82,122 +88,14 @@ public:
    * @return the field index
    */
   virtual int GetFieldIndex(MString &fieldName) = 0;
-  /**
-   * Get the field long value
-   * @param fieldIndex the filed index
-   * @return the field long value
-   */
-  virtual long GetLong(int fieldIndex) = 0;
-  /**
-   * Get the field int value
-   * @param fieldIndex the filed index
-   * @return the field int value
-   */
-  virtual int GetInt(int fieldIndex) = 0;
-  /**
-   * Get the field boolean value
-   * @param fieldIndex the filed index
-   * @return the field boolean value
-   */
-  virtual bool GetBoolean(int fieldIndex) = 0;
-  /**
-   * Get the field blob value
-   * @param fieldIndex the filed index
-   * @return the field blob value, pair<blob length, blob value>
-   */
-  virtual pair<uint32_t, char *> &GetBlob(int fieldIndex) = 0;
-  /**
-   * Get the filed string value
-   * @param fieldIndex the filed index
-   * @return the field string value
-   */
-  virtual MString &GetString(int fieldIndex) = 0;
-  /**
-   * Get the field double value
-   * @param fieldIndex the filed index
-   * @return the field double value
-   */
-  virtual double GetDouble(int fieldIndex) = 0;
-  /**
-   * Get the field float value
-   * @param fieldIndex the filed index
-   * @return the field float value
-   */
-  virtual float GetFloat(int fieldIndex) = 0;
-  /**
-   * Get the field date value
-   * @param fieldIndex the filed index
-   * @return the field double value
-   */
-  virtual time_t GetDate(int fieldIndex) = 0;
-  /**
-   * Get the field short value
-   * @param fieldIndex the filed index
-   * @return the field float value
-   */
-  virtual short GetShort(int fieldIndex) = 0;
+
   /**
    * Get IDataValue
    * @param fieldIndex the filed index
    * @return the field value
    */
   virtual IDataValue *GetDataValue(int fieldIndex) = 0;
-  /**
-   * Get the field long value from field name
-   * @param fieldName the field name
-   * @return the field long value
-   */
-  virtual long GetLong(MString &fieldName) = 0;
-  /**
-   * Get the field int value from field name
-   * @param fieldName the field name
-   * @return the field int value
-   */
-  virtual int GetInt(MString &fieldName) = 0;
-  /**
-   * Get the field boolean value from field name
-   * @param fieldName the field name
-   * @return the field boolean value
-   */
-  virtual bool GetBoolean(MString &fieldName) = 0;
-  /**
-   * Get the field blob value from field name
-   * @param fieldName the field name
-   * @return the field blob value, pair<blob length, blob value>
-   */
-  virtual pair<uint32_t, char *> &GetBlob(MString &fieldName) = 0;
-  /**
-   * Get the field string value from field name
-   * @param fieldName the field name
-   * @return the field string value
-   */
-  virtual MString &GetString(MString &fieldName) = 0;
-  /**
-   * Get the field double value from field name
-   * @param fieldName the field name
-   * @return the field double value
-   */
-  virtual double GetDouble(MString &fieldName) = 0;
-  /**
-   * Get the field float value from field name
-   * @param fieldName the field name
-   * @return the field float value
-   */
-  virtual float GetFloat(MString &fieldName) = 0;
-  /**
-   * Get the field date value from field name
-   * @param fieldName the field name
-   * @return the field double value
-   */
-  virtual time_t getDate(MString &fieldName) = 0;
-  /**
-   * Get the field short value from field name
-   * @param fieldName the field name
-   * @return the field float value
-   * @throws StorageInvalidDataTypeException
-   * @throws StorageInvalidFiledNameException
-   */
-  virtual short GetShort(MString &fieldName) = 0;
+
   /**
    * Get a field DataValue
    * @param fieldName the field name
@@ -210,11 +108,12 @@ public:
    * Get the current row with DataValue type
    * @return
    */
-  virtual void GetCurrDataValueRow(VectorDataValue &vct) = 0;
+  virtual bool GetCurrDataValueRow(VectorDataValue &vct) = 0;
   virtual void close() {}
 
 protected:
-  // MVectorPtr<ExprColumn *> *_vctCol;
+  MVectorPtr<ExprColumn *> *_vctCol;
+  MHashMap<MString, int> _mapColPos;
 };
 
 } // namespace storage

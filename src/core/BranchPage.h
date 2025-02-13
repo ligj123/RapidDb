@@ -78,6 +78,17 @@ public:
   LeafPage *GetLeftLeafChild();
   LeafPage *GetRightLeafChild();
 
+  IndexPage *GetNextPage(IndexPage *currPage);
+  /**
+   * @brief Fill _nextPage for following pages with same parent page. If this
+   * page is the last page in parent page, it will fill the next page for
+   * current page.
+   * @param bAll True: Fill all next page with same parent page
+   *             False: Only fill the pages follow current pages in same parent
+   *                    page.
+   */
+  void FillNextPage(IndexPage *currPage, bool bAll = false);
+
 protected:
 };
 } // namespace storage
