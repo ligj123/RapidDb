@@ -16,9 +16,8 @@ public:
   bool IsReadonly() override { return true; }
 
   StmtStatus SessionExec(Session *sess) override;
-  bool SacnIndex(int rangPos) override;
+
   TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos) override;
-  int CalcIndexRanges(IndexTree *idxTree) override;
 
   ExprTableSelect *GetExprTableSelect() {
     return dynamic_cast<ExprTableSelect *>(_exprStmt);

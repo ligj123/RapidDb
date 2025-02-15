@@ -98,7 +98,6 @@ int RecordAction::JudgeRange() {
 
 TaskStatus StatementAction::Exec() {
   bool b = _stmt->SacnIndex(_rangePos);
-
   return b ? TaskStatus::FINISHED : TaskStatus::INTERVAL;
 }
 

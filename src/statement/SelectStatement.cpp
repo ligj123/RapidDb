@@ -1,5 +1,12 @@
 #include "SelectStatement.h"
 
+#include "../binlog/LogTask.h"
+#include "../core/BranchRecord.h"
+#include "../serv/SessionAction.h"
+#include "../serv/SessionPool.h"
+#include "../table/IndexAction.h"
+#include "../table/TableTaskMgr.h"
+
 namespace storage {
 
 StmtStatus SelectStatement::SessionExec(Session *sess) {
@@ -120,7 +127,7 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
 
       sess->_transaction.SetTranStatus(TranStatus::FINISHED);
       size_t idxNum =
-          GetExprDelete()->_exprTable->_physTable->GetVectorIndex().size();
+          GetExprTableSelect()->_exprTable->_physTable->GetVectorIndex().size();
       _stmtResult->_rowNum = _totalRecNum;
       _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Finished;
@@ -130,10 +137,9 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
   return _status;
 }
 
-bool SelectStatement::SacnIndex(int rangPos) {}
-
 TriBool SelectStatement::HandleLeafRecord(LeafPage *page, int pagePos,
-                                          int rangePos) {}
+                                          int rangePos) {
+  return TriBool::Error;
+}
 
-int SelectStatement::CalcIndexRanges(IndexTree *idxTree) {}
 } // namespace storage

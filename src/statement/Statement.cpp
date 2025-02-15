@@ -1,5 +1,7 @@
 ﻿#include "Statement.h"
 
+#include "../core/BranchRecord.h"
+#include "../core/LeafPage.h"
 #include "../core/LeafRecord.h"
 #include "../table/TableTaskMgr.h"
 
@@ -397,6 +399,136 @@ void Statement::Rollback() {
                                    ? RecordStatus::ROLLBACKED
                                    : RecordStatus::FREEED);
   }
+}
+
+int Statement::CalcIndexRanges(IndexTree *idxTree) {
+  assert(_midVar->_keyPos >= 0 &&
+         _midVar->_keyPos < _midVar->_vctKeyRange.size());
+  assert(_midVar->_indexPos >= 0 &&
+         _midVar->_indexPos < _midVar->_table->GetVectorIndex().size());
+  RawKey *key = _midVar->_vctKeyRange[_midVar->_keyPos]._startKey;
+  return _midVar->_table->GetVectorIndex()[_midVar->_indexPos]
+      ._tree->CalcIndexRange(*key);
+}
+
+bool Statement::SacnIndex(int rangePos) {
+  assert(rangePos == _midVar->_rangePos);
+  assert(_midVar->_indexPos &&
+         _midVar->_indexPos <= _midVar->_table->GetVectorIndex().size());
+  if (IsStmtFailed()) {
+    return true;
+  }
+
+  IndexTree *idxTree =
+      _midVar->_table->GetVectorIndex()[_midVar->_indexPos]._tree;
+  IndexRange &idxRange = idxTree->GetVctRange()[_midVar->_rangePos];
+
+  while (true) {
+    KeyRange *keyRange = &_midVar->_vctKeyRange[_midVar->_keyPos];
+    if (_midVar->_midPage == nullptr ||
+        _midVar->_midPage->GetPageType() != PageType::LEAF_PAGE) {
+      if (_midVar->_bFromRangeBegin) {
+        _midVar->_midPage = idxRange._startPage;
+      } else {
+        if (_midVar->_midPage == nullptr) {
+          _midVar->_midPage = idxRange.GetTopPage(*keyRange->_startKey);
+        }
+
+        if (!idxTree->SearchPage(*keyRange->_startKey, _midVar->_midPage)) {
+          return false;
+        }
+      }
+    }
+
+    int pos = 0;
+    bool bFind = true;
+
+    LeafPage *lpage = dynamic_cast<LeafPage *>(_midVar->_midPage);
+    if (!_midVar->_bFromPageBegin) {
+      pos = lpage->SearchKey(*keyRange->_startKey, bFind);
+      if (!keyRange->_bIncLeft && bFind) {
+        pos++;
+      }
+    }
+
+    bool bend = false;
+    if (!keyRange->_bRange &&
+        idxTree->GetIndexType() != IndexType::NON_UNIQUE) {
+      bend = true;
+      if (bFind) {
+        LeafRecord *lr = &lpage->GetRecord(pos);
+        if (_midVar->_indexPos == 0) {
+          TriBool tb = HandleLeafRecord(lpage, pos, rangePos);
+          if (tb == TriBool::Error) {
+            SetFinished(true);
+            return true;
+          }
+        } else {
+          SendStmtRecord(_midVar->_indexPos, rangePos, _midVar->_table, this,
+                         lr, idxTree);
+        }
+      }
+    } else {
+      for (; pos < lpage->GetRecordNumber(); pos++) {
+        LeafRecord *lr = &lpage->GetRecord(pos);
+        int res = lr->CompareKey(*keyRange->_endKey);
+        if ((res == 0 && !keyRange->_bIncRight) || res > 0) {
+          bend = true;
+          break;
+        }
+        if (_midVar->_indexPos == 0) {
+          TriBool tb = HandleLeafRecord(lpage, pos, rangePos);
+          if (tb == TriBool::Error) {
+            SetFinished(true);
+            return true;
+          }
+        } else {
+          SendStmtRecord(_midVar->_indexPos, rangePos, _midVar->_table, this,
+                         lr, idxTree);
+        }
+      }
+    }
+
+    if (IsStmtFailed()) {
+      SetFinished(true);
+      return true;
+    }
+
+    if (bend) {
+      _midVar->_keyPos++;
+      if (_midVar->_keyPos < _midVar->_vctKeyRange.size()) {
+        _midVar->_midPage = nullptr;
+        _midVar->_bFromPageBegin = false;
+        if (idxRange._borderRecord->CompareKey(
+                *_midVar->_vctKeyRange[_midVar->_keyPos]._startKey) < 0) {
+          StatementAction *action = new StatementAction(idxTree, this);
+          TableTaskMgr *mgr = _midVar->_table->GetTableTaskMgr();
+          _midVar->_rangePos = idxTree->CalcIndexRange(
+              *_midVar->_vctKeyRange[_midVar->_keyPos]._startKey);
+          mgr->AddIndexRangeAction(_midVar->_indexPos, _midVar->_rangePos,
+                                   action);
+        }
+      } else {
+        SetFinished(true);
+        return true;
+      }
+    } else {
+      _midVar->_bFromPageBegin = true;
+      if (lpage->IsRangEndPage()) {
+        _midVar->_midPage = nullptr;
+        StatementAction *action = new StatementAction(idxTree, this);
+        TableTaskMgr *mgr = _midVar->_table->GetTableTaskMgr();
+        _midVar->_rangePos++;
+        mgr->AddIndexRangeAction(_midVar->_indexPos, _midVar->_rangePos,
+                                 action);
+        return true;
+      } else {
+        _midVar->_midPage = lpage->GetNextPage();
+      }
+    }
+  }
+
+  return true;
 }
 
 } // namespace storage

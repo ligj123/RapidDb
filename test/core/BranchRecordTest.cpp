@@ -18,7 +18,6 @@ public:
   using Statement::Statement;
   ExprType GetType() override { return ExprType::EXPR_INSERT; }
   bool IsReadonly() override { return true; }
-  int CalcIndexRanges(IndexTree *idxTree) override { return -1; }
 };
 
 BOOST_AUTO_TEST_SUITE(CoreTest)

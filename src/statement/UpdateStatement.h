@@ -16,11 +16,9 @@ public:
   bool IsReadonly() override { return false; }
 
   StmtStatus SessionExec(Session *sess) override;
-  bool SacnIndex(int rangPos) override;
   TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos) override;
 
   ExprUpdate *GetExprUpdate() { return dynamic_cast<ExprUpdate *>(_exprStmt); }
-  int CalcIndexRanges(IndexTree *idxTree) override;
 
 protected:
   // If The search index is secondary index, below variable to save the selected

@@ -111,7 +111,10 @@ BOOST_AUTO_TEST_CASE(ExprWhere_test) {
   BOOST_TEST(ef2->_rowPos == 2);
   BOOST_TEST(exprWhere._exprLogic->GetType() == ExprType::EXPR_COMP);
 
-  BOOST_TEST(exprWhere._indexSearch->_idxLogic->GetType() ==
+  BOOST_TEST(exprWhere._indexSearch->_idxLogic == nullptr);
+  BOOST_TEST(exprWhere._indexSearch->_bPointQuery);
+  BOOST_TEST(exprWhere._indexSearch->_vctPointCond->size() == 1);
+  BOOST_TEST(exprWhere._indexSearch->_vctPointCond->at(0)->GetType() ==
              ExprType::EXPR_COMP);
   BOOST_TEST(exprWhere._indexSearch->_indexPos == 1);
 

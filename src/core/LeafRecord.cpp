@@ -574,6 +574,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree) {
 
     if (_recLock->_undoRec != nullptr) {
       LeafRecord *lr = _recLock->_undoRec;
+      _recLock->_undoRec = nullptr;
       delete _recLock;
       *this = move(*lr);
       delete lr;
@@ -593,6 +594,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree) {
   }
 
   LeafRecord *lr = _recLock->_undoRec;
+  _recLock->_undoRec = nullptr;
   bool bDel = (_recLock->_actType == ActionType::DELETE);
   delete _recLock;
   _recLock = nullptr;
@@ -618,6 +620,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree) {
       lr = nullptr;
     } else {
       LeafRecord *lr2 = lr->_recLock->_undoRec;
+      lr->_recLock->_undoRec = nullptr;
       delete lr->_recLock;
       lr->_recLock = nullptr;
       delete lr;

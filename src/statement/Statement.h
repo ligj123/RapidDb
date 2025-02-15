@@ -168,10 +168,12 @@ struct MiddleVar {
   static void operator delete(void *ptr, size_t size) {
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
-
+  // The BrancePage or LeafPage that is handling.
   IndexPage *_midPage{nullptr};
   // The Index key to search, only valid when point search.
   MVector<KeyRange> _vctKeyRange;
+  // The PhysTable that the statement is running on
+  PhysTable *_table{nullptr};
 
   int _keyPos{0};
   int _rangePos{-1};
@@ -181,6 +183,8 @@ struct MiddleVar {
   // True: Start from page begin;
   // False: Start from the position of search key in the page.
   bool _bFromPageBegin{false};
+  // The index position
+  int _indexPos{-1};
 };
 
 class Statement {
@@ -237,10 +241,7 @@ public:
    * @return True: This method has finished all work and no need to run again.
    * False: There still has no finished work, need to run this method again.
    */
-  virtual bool SacnIndex(int rangPos) {
-    abort();
-    return false;
-  }
+  bool SacnIndex(int rangePos);
 
   /**
    * @brief To execute the opertion of delete, update, select.
@@ -287,10 +288,7 @@ public:
    * @param idxTree The IndexTree
    * @return The ranges that this statement need to exec.
    */
-  virtual int CalcIndexRanges(IndexTree *idxTree) {
-    abort();
-    return -1;
-  }
+  int CalcIndexRanges(IndexTree *idxTree);
 
   void SetTxID(TranID txid) { _txid = txid; }
 

@@ -14,13 +14,16 @@ StmtStatus UpdateStatement::SessionExec(Session *sess) {
     _midVar = new MiddleVar();
 
     ExprUpdate *exprUpdate = GetExprUpdate();
+    _midVar->_table = exprUpdate->_exprTable->_physTable;
+    IndexSearch *idxSearch = exprUpdate->_exprWhere->_indexSearch;
+    _midVar->_indexPos = (idxSearch == nullptr ? 0 : idxSearch->_indexPos);
+
     size_t para_sz = exprUpdate->_vctPara.size();
     if (_vctPara.size() != para_sz) {
       _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
     }
 
     PhysTable *table = exprUpdate->_exprTable->_physTable;
-    IndexSearch *idxSearch = exprUpdate->_exprWhere->_indexSearch;
     int idxPos = idxSearch->_indexPos;
 
     if (idxSearch->_bPointQuery) {
@@ -136,132 +139,6 @@ StmtStatus UpdateStatement::SessionExec(Session *sess) {
   return _status;
 }
 
-bool UpdateStatement::SacnIndex(int rangePos) {
-  assert(_midVar->_rangePos >= 0);
-  ExprUpdate *exprUpdate = GetExprUpdate();
-  PhysTable *table = exprUpdate->_exprTable->_physTable;
-  IndexSearch *idxSearch = exprUpdate->_exprWhere->_indexSearch;
-  int idxPos = idxSearch->_indexPos;
-  assert(idxPos >= 0 && idxPos <= table->GetVectorIndex().size());
-
-  IndexTree *idxTree = table->GetVectorIndex()[idxPos]._tree;
-  IndexRange &idxRange = idxTree->GetVctRange()[_midVar->_rangePos];
-
-  while (true) {
-    KeyRange *keyRange = &_midVar->_vctKeyRange[_midVar->_keyPos];
-    if (_midVar->_midPage == nullptr ||
-        _midVar->_midPage->GetPageType() != PageType::LEAF_PAGE) {
-      if (_midVar->_bFromRangeBegin) {
-        _midVar->_midPage = idxRange._startPage;
-      } else {
-        if (_midVar->_midPage == nullptr) {
-          _midVar->_midPage = idxRange.GetTopPage(*keyRange->_startKey);
-        }
-
-        if (!idxTree->SearchPage(*keyRange->_startKey, _midVar->_midPage)) {
-          return false;
-        }
-      }
-    }
-
-    int pos = 0;
-    LeafPage *lpage = dynamic_cast<LeafPage *>(_midVar->_midPage);
-    if (!_midVar->_bFromPageBegin) {
-      bool bFind;
-      pos = lpage->SearchKey(*keyRange->_startKey, bFind);
-      if (!keyRange->_bRange) {
-        if (bFind) {
-          LeafRecord *lr = &lpage->GetRecord(pos);
-
-          if (idxPos == 0) {
-            TriBool tb = HandleLeafRecord(lpage, pos, rangePos);
-            if (tb == TriBool::Error) {
-              SetFinished(true);
-              return true;
-            } else if (tb == TriBool::True) {
-              _totalRecNum++;
-            }
-          } else {
-            SendStmtRecord(idxPos, rangePos, table, this, lr, idxTree);
-          }
-        }
-
-        _midVar->_keyPos++;
-        if (_midVar->_keyPos < _midVar->_vctKeyRange.size()) {
-          _midVar->_midPage = nullptr;
-          _midVar->_bFromPageBegin = false;
-          continue;
-        } else {
-          SetFinished(true);
-          return true;
-        }
-      }
-
-      if (!keyRange->_bIncLeft && bFind) {
-        pos++;
-      }
-    }
-
-    bool bend = false;
-    for (; pos < lpage->GetRecordNumber(); pos++) {
-      LeafRecord *lr = &lpage->GetRecord(pos);
-      int res = lr->CompareKey(*keyRange->_endKey);
-      if ((res == 0 && !keyRange->_bIncRight) || res > 0) {
-        bend = true;
-        break;
-      }
-      if (idxPos == 0) {
-        TriBool tb = HandleLeafRecord(lpage, pos, rangePos);
-        if (tb == TriBool::Error) {
-          SetFinished(true);
-          return true;
-        } else if (tb == TriBool::True) {
-          _totalRecNum++;
-        }
-      } else {
-        SendStmtRecord(idxPos, rangePos, table, this, lr, idxTree);
-      }
-    }
-
-    if (bend) {
-      _midVar->_keyPos++;
-      if (_midVar->_keyPos < _midVar->_vctKeyRange.size()) {
-        _midVar->_midPage = nullptr;
-        _midVar->_bFromPageBegin = false;
-        if (idxRange._borderRecord->CompareKey(
-                *_midVar->_vctKeyRange[_midVar->_keyPos]._startKey) < 0) {
-          StatementAction *action = new StatementAction(idxTree, this);
-          TableTaskMgr *mgr = table->GetTableTaskMgr();
-          int rpos = idxTree->CalcIndexRange(
-              *_midVar->_vctKeyRange[_midVar->_keyPos]._startKey);
-          mgr->AddIndexRangeAction(idxPos, rpos, action);
-        } else {
-          continue;
-        }
-      } else {
-        SetFinished(true);
-        return true;
-      }
-    } else if (IsStmtFailed()) {
-      SetFinished(true);
-      return true;
-    }
-
-    _midVar->_bFromPageBegin = true;
-    if (lpage->IsRangEndPage()) {
-      _midVar->_midPage = nullptr;
-      StatementAction *action = new StatementAction(idxTree, this);
-      TableTaskMgr *mgr = table->GetTableTaskMgr();
-      mgr->AddIndexRangeAction(idxPos, rangePos + 1, action);
-      return true;
-    } else {
-      _midVar->_midPage = lpage->GetNextPage();
-    }
-  }
-
-  return true;
-}
-
 TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
                                           int rangePos) {
   ExprUpdate *exprUpdate = GetExprUpdate();
@@ -358,19 +235,6 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
     SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), action);
     return TriBool::True;
   }
-}
-
-int UpdateStatement::CalcIndexRanges(IndexTree *idxTree) {
-  assert(_midVar->_keyPos >= 0 &&
-         _midVar->_keyPos < _midVar->_vctKeyRange.size());
-  ExprUpdate *exprUpdate = GetExprUpdate();
-  PhysTable *table = exprUpdate->_exprTable->_physTable;
-  IndexSearch *idxSearch = exprUpdate->_exprWhere->_indexSearch;
-  int idxPos = idxSearch->_indexPos;
-
-  assert(idxPos >= 0 && idxPos < table->GetVectorIndex().size());
-  RawKey *key = _midVar->_vctKeyRange[_midVar->_keyPos]._startKey;
-  return table->GetVectorIndex()[idxPos]._tree->CalcIndexRange(*key);
 }
 
 } // namespace storage
