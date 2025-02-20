@@ -85,6 +85,7 @@ public:
   atomic<ActionStatus> _status{ActionStatus::INIT};
   // The number of LeafRecords that generated for this key
   uint32_t _numLeafRecord{0};
+  VectorLeafRecord _vctLr;
 };
 
 struct QueryRange {
@@ -96,6 +97,18 @@ struct QueryRange {
   }
 
   QueryRange() {}
+  QueryRange(IDataValue *dvLeft, IDataValue *dvRight, bool bRange, bool incLeft,
+             bool incRight)
+      : _dvLeft(dvLeft), _dvRight(dvRight), _bRange(bRange), _bIncLeft(incLeft),
+        _bIncRight(incRight) {}
+  QueryRange(const QueryRange &src)
+      : _bRange(src._bRange), _bIncLeft(src._bIncLeft),
+        _bIncRight(src._bIncRight) {
+    if (src._dvLeft != nullptr) {
+      _dvLeft = src._dvLeft->AddRef();
+      _dvRight = src._dvRight->AddRef();
+    }
+  }
   QueryRange(QueryRange &&src)
       : _dvLeft(src._dvLeft), _dvRight(src._dvRight), _bRange(src._bRange),
         _bIncLeft(src._bIncLeft), _bIncRight(src._bIncRight) {
@@ -104,14 +117,31 @@ struct QueryRange {
   }
 
   ~QueryRange() {
-    assert(_bRange || *_dvLeft == *_dvRight);
+    assert(_bRange || (_dvLeft == nullptr || *_dvLeft == *_dvRight));
     if (_dvLeft != nullptr) {
       _dvLeft->DecRef();
       _dvRight->DecRef();
     }
   }
+  QueryRange &operator=(const QueryRange &src) {
+    if (_dvLeft != nullptr) {
+      _dvLeft->DecRef();
+      _dvRight->DecRef();
+    }
 
+    _dvLeft = src._dvLeft->AddRef();
+    _dvRight = src._dvRight->AddRef();
+    _bRange = src._bRange;
+    _bIncLeft = src._bIncLeft;
+    _bIncRight = src._bIncRight;
+    return *this;
+  }
   QueryRange &operator=(QueryRange &&src) {
+    if (_dvLeft != nullptr) {
+      _dvLeft->DecRef();
+      _dvRight->DecRef();
+    }
+
     _dvLeft = src._dvLeft;
     _dvRight = src._dvRight;
     _bRange = src._bRange;
@@ -252,7 +282,8 @@ public:
    *         false: The LeafRecord has been filter by logic filter
    *         Error: Meet error inoperation, the statement need to set fail
    */
-  virtual TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos) {
+  virtual TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos,
+                                   VectorLeafRecord *vctLr = nullptr) {
     abort();
     return TriBool::False;
   }
@@ -292,6 +323,7 @@ public:
 
   void SetTxID(TranID txid) { _txid = txid; }
 
+  void AddLeafRecords(VectorLeafRecord &vctLr);
   void AddLeafRecord(LeafRecord *lr);
 
   StmtResult *GetStmtResult() { return _stmtResult; }
@@ -311,18 +343,20 @@ public:
 
   VectorDataValue &GetParameters() { return _vctPara; }
 
-  void SetFinished(bool b) { _bFinished = b; }
+  void SetFinished(bool b) { _bFinished.store(b, memory_order_release); }
+
+  void SendErrMsg(MString &&errMsg);
 
 protected:
   MVector<QueryRange> MergeAndQueryRange(MVector<QueryRange> &vctLeft,
                                          MVector<QueryRange> &vctRight);
 
   void MergeOrQueryRange(MVector<QueryRange> &vctResult,
-                         MVector<QueryRange> &vctRight);
+                         MVector<QueryRange> &vctSrc);
 
   MVector<QueryRange> ConditionConvert(ExprLogic *logic,
                                        VectorDataValue &paras);
-  ExprField *GetFrieldFromExprLogic(ExprLogic *logic);
+  ExprField *GetFieldFromExprLogic(ExprLogic *logic);
 
   KeyRange GenIndexSearchKey(IndexTree *idxTree, ExprField *field,
                              QueryRange *qRange);
@@ -336,7 +370,7 @@ protected:
   // Statement status
   StmtStatus _status{StmtStatus::Created};
   // The index scan has finished for this statement or not
-  bool _bFinished{false};
+  atomic_bool _bFinished{false};
   // Meet error when executing
   atomic_bool _stmtFailed{false};
   // KeyExec start from the begin of range or search the position by index

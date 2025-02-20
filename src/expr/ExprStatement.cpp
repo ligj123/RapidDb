@@ -71,7 +71,7 @@ bool ExprWhere::Preprocess(PhysTable *table,
 
   IndexProp &prop = table->GetVectorIndex()[idxPos];
 
-  if (_indexSearch->_idxLogic->CombinedIndexCondition(prop._vctCol)) {
+  if (_indexSearch->_idxLogic->CombinedIndexCondition(prop._vctCol) >= 0) {
     _indexSearch->_bPointQuery = true;
     _indexSearch->_vctPointCond = new MVectorPtr<ExprLogic *>();
     _indexSearch->_vctPointCond->push_back(_indexSearch->_idxLogic);

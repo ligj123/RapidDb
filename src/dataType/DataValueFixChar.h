@@ -24,7 +24,18 @@ public:
       : IDataValue(DataType::FIXCHAR, ValueType::BYTES_VALUE),
         bysValue_(byArray), maxLength_(maxLength) {}
 
-  DataValueFixChar(const DataValueFixChar &src);
+  DataValueFixChar(const DataValueFixChar &src) : IDataValue(src) {
+    maxLength_ = src.maxLength_;
+
+    if (valType_ == ValueType::NULL_VALUE) {
+      bysValue_ = nullptr;
+    } else {
+      valType_ = ValueType::SOLE_VALUE;
+      bysValue_ = CachePool::Apply(maxLength_);
+      BytesCopy(bysValue_, src.bysValue_, maxLength_);
+    }
+  }
+
   ~DataValueFixChar() {
     if (valType_ == ValueType::SOLE_VALUE) {
       CachePool::Release(bysValue_, maxLength_);
@@ -184,7 +195,7 @@ public:
     return BytesCompare(bysValue_, maxLength_, dv.bysValue_, dv.maxLength_) ==
            0;
   }
-  Byte *GetBuff() const override { return bysValue_; }
+  const Byte *GetBuff() const override { return bysValue_; }
   bool operator!=(const DataValueFixChar &dv) const { return !(*this == dv); }
   friend std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv);
 

@@ -28,7 +28,7 @@ CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
 #ifdef CACHE_TRACE
 SpinMutex CachePool::_spinTrace;
 unordered_map<uint64_t, string> CachePool::_mapApply;
-bool CachePool::_bWriteLog{false};
+bool CachePool::_bWriteLog{true};
 
 fstream CreateStream() {
   if (!CachePool::_bWriteLog) {
@@ -123,7 +123,7 @@ CachePool::~CachePool() {
   }
 
   for (Byte *bys : _vctFreeBlock) {
-    delete[] bys;
+    std::free(bys);
   }
 }
 
@@ -191,7 +191,7 @@ Byte *CachePool::ApplyBlock() {
     bys = pool->_vctFreeBlock.back();
     pool->_vctFreeBlock.pop_back();
   } else {
-    bys = new Byte[Configure::GetResultPageSize()];
+    bys = reinterpret_cast<Byte *>(std::malloc(Configure::GetResultPageSize()));
     pool->_totalBlockNum++;
   }
 
@@ -211,7 +211,7 @@ void CachePool::ReleaseBlock(Byte *bys) {
   unique_lock<SpinMutex> lock(pool->_spinMutex);
   if (pool->_vctFreeBlock.size() > Configure::GetMaxFreeResultBlock()) {
     pool->_totalBlockNum--;
-    delete bys;
+    std::free(bys);
   } else {
     pool->_vctFreeBlock.push_back(bys);
   }

@@ -152,7 +152,7 @@ bool DataValueVarChar::Copy(IDataValue &dv, bool bMove) {
     valType_ = ValueType::SOLE_VALUE;
     if (dv.GetDataType() == DataType::FIXCHAR) {
       uint32_t len = dv.GetDataLength();
-      Byte *bys = dv.GetBuff();
+      const Byte *bys = dv.GetBuff();
       while (true) {
         len--;
         if (bys[len] == ' ')

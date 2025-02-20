@@ -84,7 +84,7 @@ public:
       bys = pool->_vctFreeBlock.back();
       pool->_vctFreeBlock.pop_back();
     } else {
-      bys = new Byte[Configure::GetResultPageSize()];
+      bys = reinterpret_cast<Byte*>(std::malloc(Configure::GetResultPageSize());
       pool->_totalBlockNum++;
     }
 
@@ -96,7 +96,7 @@ public:
     unique_lock<SpinMutex> lock(pool->_spinMutex);
     if (pool->_vctFreeBlock.size() > Configure::GetMaxFreeResultBlock()) {
       pool->_totalBlockNum--;
-      delete bys;
+      std::free(bys);
     } else {
       pool->_vctFreeBlock.push_back(bys);
     }

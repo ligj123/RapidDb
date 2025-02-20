@@ -6,18 +6,19 @@
 #include "Statement.h"
 
 namespace storage {
-class SelectStatement : public Statement {
+class TableSelectStatement : public Statement {
 public:
-  SelectStatement(uint32_t id, TranID txid, ExprTableSelect *exprSelect,
-                  VectorDataValue &&vctPara, StmtResult *result)
+  TableSelectStatement(uint32_t id, TranID txid, ExprTableSelect *exprSelect,
+                       VectorDataValue &&vctPara, StmtResult *result)
       : Statement(id, txid, exprSelect, result, move(vctPara)) {}
-  ~SelectStatement() { assert(_lstStmtRec.size() == 0); }
-  ExprType GetType() override { return ExprType::EXPR_DELETE; }
+  ~TableSelectStatement() { assert(_lstStmtRec.size() == 0); }
+  ExprType GetType() override { return ExprType::EXPR_TABLE_SELECT; }
   bool IsReadonly() override { return true; }
 
   StmtStatus SessionExec(Session *sess) override;
 
-  TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos) override;
+  TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos,
+                           VectorLeafRecord *vctLeafRec = nullptr) override;
 
   ExprTableSelect *GetExprTableSelect() {
     return dynamic_cast<ExprTableSelect *>(_exprStmt);

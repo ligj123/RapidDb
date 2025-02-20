@@ -45,7 +45,7 @@ public:
     _errId = errId;
     auto iter = _mapErrorMsg.find(errId);
     if (iter == _mapErrorMsg.end()) {
-      _errMsg = MString("Failed to find the error id, id=" + ToMString(errId));
+      _errMsg = "Failed to find the error id, id=" + ToMString(errId);
     } else {
       _errMsg = iter->second;
       for (int i = 0; i < paras.size(); i++) {

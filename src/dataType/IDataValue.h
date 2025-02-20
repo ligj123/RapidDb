@@ -140,7 +140,7 @@ public:
     return 0;
   }
   // Only used for array data type
-  virtual Byte *GetBuff() const {
+  virtual const Byte *GetBuff() const {
     assert(false);
     return nullptr;
   }
@@ -220,24 +220,15 @@ public:
   bool _bDecrease{true}; // Decrease elements' refer count or not
 };
 
-class VectorRow : public MVector<VectorDataValue *> {
+class VectorRow : public MVector<VectorDataValue> {
 public:
-  using MVector<VectorDataValue *>::MVector;
+  using MVector<VectorDataValue>::MVector;
 
-  VectorRow(VectorRow &&src) noexcept : MVector<VectorDataValue *>(move(src)) {}
-  ~VectorRow() { clear(); }
+  VectorRow(VectorRow &&src) noexcept : MVector<VectorDataValue>(move(src)) {}
 
   VectorRow &operator=(VectorRow &&src) {
-    MVector<VectorDataValue *>::operator=(move(src));
+    MVector<VectorDataValue>::operator=(move(src));
     return *this;
-  }
-
-  void clear() {
-    for (auto iter = begin(); iter != end(); iter++) {
-      delete *iter;
-    }
-
-    erase(begin(), end());
   }
 };
 

@@ -18,14 +18,21 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
     size_t para_sz = exprDel->_vctPara.size();
     if (_vctPara.size() != para_sz) {
       _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
+      _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
+      _stmtResult->_rowNum = 0;
+      SetStmtFailed(true);
+      SetFinished(true);
+      return StmtStatus::Finished;
     }
 
     PhysTable *table = exprDel->_exprTable->_physTable;
     IndexSearch *idxSearch = exprDel->_exprWhere->_indexSearch;
-    int idxPos = idxSearch->_indexPos;
+    int idxPos = (idxSearch == nullptr ? 0 : idxSearch->_indexPos);
+    _midVar->_table = table;
+    _midVar->_indexPos = idxPos;
+    IndexProp &prop = table->GetVectorIndex()[idxPos];
 
     if (idxSearch->_bPointQuery) {
-      IndexProp &prop = table->GetVectorIndex()[idxPos];
       VectorDataValue vctDv, vEmpty;
       prop._tree->CloneKeys(vctDv);
       auto vctCond = idxSearch->_vctPointCond;
@@ -33,6 +40,7 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
       for (size_t i = 0; i < vctCond->size(); i++) {
         assert((*vctCond)[i]->GetType() == ExprType::EXPR_COMP);
         ExprComp *ecmp = dynamic_cast<ExprComp *>((*vctCond)[i]);
+        assert(ecmp->_compType == CompType::EQ);
         IDataValue *dv = ecmp->_exprRight->Calc(_vctPara, vEmpty);
         vctDv[i]->Copy(*dv, true);
         dv->DecRef();
@@ -44,7 +52,8 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
 
       RawKey *sKey = new RawKey(vctDv);
       RawKey *eKey = nullptr;
-      if (vctCond->size() < vctDv.size()) {
+      if (vctCond->size() < vctDv.size() ||
+          prop._tree->GetIndexType() == IndexType::NON_UNIQUE) {
         for (size_t i = vctCond->size(); i < vctDv.size(); i++) {
           vctDv[i]->SetMaxValue();
         }
@@ -55,10 +64,9 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
       _midVar->_vctKeyRange.emplace_back(sKey, eKey, eKey != nullptr, true,
                                          true);
     } else {
-      IndexProp &prop = table->GetVectorIndex()[idxPos];
       MVector<QueryRange> vctQR =
           ConditionConvert(idxSearch->_idxLogic, _vctPara);
-      ExprField *field = GetFrieldFromExprLogic(idxSearch->_idxLogic);
+      ExprField *field = GetFieldFromExprLogic(idxSearch->_idxLogic);
 
       for (QueryRange &range : vctQR) {
         _midVar->_vctKeyRange.push_back(
@@ -66,9 +74,7 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
       }
     }
 
-    MVector<IndexProp> &vctProp = table->GetVectorIndex();
-
-    StatementAction *action = new StatementAction(vctProp[idxPos]._tree, this);
+    StatementAction *action = new StatementAction(prop._tree, this);
     TableTaskMgr *mgr = table->GetTableTaskMgr();
     _status = StmtStatus::Executing;
     mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
@@ -79,6 +85,7 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
         if (s == ActionStatus::INIT) {
           iter++;
         } else {
+          AddLeafRecords((*iter)->_vctLr);
           _totalRecNum += (*iter)->_numLeafRecord;
           delete (*iter);
           iter = _lstStmtRec.erase(iter);
@@ -97,7 +104,8 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
       }
     }
 
-    if (_lstWaitRecord.size() == 0 && _lstStmtRec.size() == 0 && _bFinished) {
+    if (_lstWaitRecord.size() == 0 && _lstStmtRec.size() == 0 &&
+        _bFinished.load(memory_order_acquire)) {
       if (_stmtFailed.load(memory_order_relaxed)) {
         for (auto lr : _lstFinishRecord) {
           lr->GetLock()->_recStatus.store(RecordStatus::ROLLBACKED,
@@ -138,7 +146,8 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
 }
 
 TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
-                                          int rangePos) {
+                                          int rangePos,
+                                          VectorLeafRecord *vctLeafRec) {
   ExprDelete *exprDel = GetExprDelete();
   PhysTable *table = exprDel->_exprTable->_physTable;
   MVector<IndexProp> &vctProp = table->GetVectorIndex();
@@ -151,20 +160,14 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
 
   if (res != ReadResult::OK_NOLOCK) {
     _threadErrorMsg.reset(new ErrorMsg(STMT_LOCK_CONFLICT, {}));
-    SessionErrMsgAction *eAction =
-        new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
-    SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), eAction);
-    SetStmtFailed(true);
+    SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));
     return TriBool::Error;
   }
 
   if (exprLogic != nullptr) {
     TriBool tb = exprLogic->Calc(_vctPara, vdv);
     if (tb == TriBool::Error) {
-      SessionErrMsgAction *eAction =
-          new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
-      SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), eAction);
-      SetStmtFailed(true);
+      SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));
       return TriBool::Error;
     } else if (tb == TriBool::False) {
       return TriBool::False;
@@ -207,14 +210,12 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
       delete lr;
     }
 
-    SessionErrMsgAction *eAction =
-        new SessionErrMsgAction(this, move(_threadErrorMsg->GetErrorMsg()));
-    SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), eAction);
-    SetStmtFailed(true);
+    SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));
     return TriBool::Error;
   } else {
     MVector<RawRecord *> &vctRec = page->GetRecords();
     vctRec[pagePos] = lrNew;
+
     TableTaskMgr *mgr = table->GetTableTaskMgr();
     for (size_t i = 1; i < vctProp.size(); i++) {
       IndexTree *secTree = vctProp[i]._tree;
@@ -222,8 +223,13 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
       mgr->AddFromPrimaryAction(i, rangePos, rAction);
     }
 
-    SessionRecordAction *action = new SessionRecordAction(this, move(vctLr));
-    SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), action);
+    vctLr.push_back(lrNew);
+    if (_midVar->_indexPos == 0) {
+      AddLeafRecords(vctLr);
+    } else {
+      assert(vctLeafRec != nullptr);
+      vctLeafRec->swap(vctLr);
+    }
     return TriBool::True;
   }
 }

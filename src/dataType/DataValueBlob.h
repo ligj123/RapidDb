@@ -27,18 +27,12 @@ public:
     maxLength_ = src.maxLength_;
     soleLength_ = src.soleLength_;
 
-    switch (valType_) {
-    case ValueType::SOLE_VALUE:
+    if (valType_ == ValueType::NULL_VALUE) {
+      bysValue_ = nullptr;
+    } else {
+      valType_ = ValueType::SOLE_VALUE;
       bysValue_ = CachePool::Apply(soleLength_);
       BytesCopy(bysValue_, src.bysValue_, soleLength_);
-      break;
-    case ValueType::BYTES_VALUE:
-      bysValue_ = src.bysValue_;
-      break;
-    case ValueType::NULL_VALUE:
-    default:
-      bysValue_ = nullptr;
-      break;
     }
   }
   ~DataValueBlob() {
@@ -114,7 +108,7 @@ public:
   }
   DataValueBlob &operator=(const DataValueBlob &src);
   bool operator==(const DataValueBlob &dv) const;
-  Byte *GetBuff() const override { return bysValue_; }
+  const Byte *GetBuff() const override { return bysValue_; }
   void ToString(StrBuff &sb) const override;
 
   bool EQ(const IDataValue &dv) const override {

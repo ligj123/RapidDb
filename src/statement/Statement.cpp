@@ -3,9 +3,60 @@
 #include "../core/BranchRecord.h"
 #include "../core/LeafPage.h"
 #include "../core/LeafRecord.h"
+#include "../serv/SessionAction.h"
+#include "../serv/SessionPool.h"
 #include "../table/TableTaskMgr.h"
 
 namespace storage {
+bool CheckQueryRangeOrder(MVector<QueryRange> &vctQR) {
+  if (vctQR.size() == 0) {
+    return true;
+  }
+
+  auto iter = vctQR.begin();
+  while (true) {
+    if (*iter->_dvLeft > *iter->_dvRight) {
+      return false;
+    } else if (*iter->_dvLeft == *iter->_dvRight) {
+      if (iter->_bRange) {
+        return false;
+      } else if (!iter->_bIncLeft || !iter->_bIncRight) {
+        return false;
+      }
+    }
+
+    auto itPrev = iter;
+    iter++;
+    if (iter == vctQR.end()) {
+      break;
+    }
+
+    if (*itPrev->_dvRight > *iter->_dvLeft) {
+      return false;
+    } else if (*itPrev->_dvRight == *iter->_dvLeft) {
+      if (itPrev->_bIncRight || iter->_bIncLeft) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+void Statement::AddLeafRecords(VectorLeafRecord &vctLr) {
+  for (LeafRecord *lr : vctLr) {
+    if (lr->GetLock()->GetRecordResult() == RecordResult::INIT) {
+      _lstWaitRecord.push_back(lr);
+    } else {
+      _lstFinishRecord.push_back(lr);
+      if (lr->GetLock()->GetRecordResult() == RecordResult::ERROR) {
+        _stmtResult->_vctError.push_back(
+            move(lr->GetLock()->_errMsg->GetErrorMsg()));
+        _stmtFailed.store(true, memory_order_relaxed);
+      }
+    }
+  }
+}
 
 void Statement::AddLeafRecord(LeafRecord *lr) {
   if (lr->GetLock()->GetRecordResult() == RecordResult::INIT) {
@@ -30,12 +81,14 @@ void Statement::AddLeafRecord(LeafRecord *lr) {
 MVector<QueryRange>
 Statement::MergeAndQueryRange(MVector<QueryRange> &vctLeft,
                               MVector<QueryRange> &vctRight) {
+  assert(CheckQueryRangeOrder(vctLeft));
+  assert(CheckQueryRangeOrder(vctRight));
   MVector<QueryRange> vctVal;
 
   size_t lpos = 0, rpos = 0;
   while (true) {
     if (lpos >= vctLeft.size() || rpos >= vctRight.size()) {
-      return vctVal;
+      break;
     }
 
     QueryRange *v1 = &vctLeft[lpos];
@@ -43,16 +96,20 @@ Statement::MergeAndQueryRange(MVector<QueryRange> &vctLeft,
     assert(v1->_bRange || v1->_dvLeft == v1->_dvRight);
     assert(v2->_bRange || v2->_dvLeft == v2->_dvRight);
 
-    if (*v1->_dvLeft > *v2->_dvLeft) {
-      QueryRange *tmp = v1;
-      v1 = v2;
-      v2 = tmp;
+    if (*v1->_dvRight > *v2->_dvRight) {
       rpos++;
     } else {
       lpos++;
     }
 
+    if (*v1->_dvLeft > *v2->_dvLeft) {
+      QueryRange *tmp = v1;
+      v1 = v2;
+      v2 = tmp;
+    }
+
     QueryRange val;
+
     if (*v1->_dvRight >= *v2->_dvLeft) {
       val._dvLeft = v2->_dvLeft->AddRef();
       if (*v1->_dvLeft == *v2->_dvLeft) {
@@ -65,7 +122,7 @@ Statement::MergeAndQueryRange(MVector<QueryRange> &vctLeft,
         val._dvRight = v2->_dvRight->AddRef();
         val._bIncRight = v2->_bIncRight;
       } else {
-        val._dvRight = v1->_dvRight;
+        val._dvRight = v1->_dvRight->AddRef();
         if (*v1->_dvRight == *v2->_dvRight) {
           val._bIncRight = (v1->_bIncRight && v2->_bIncRight);
         } else {
@@ -89,60 +146,57 @@ Statement::MergeAndQueryRange(MVector<QueryRange> &vctLeft,
 }
 
 void Statement::MergeOrQueryRange(MVector<QueryRange> &vctResult,
-                                  MVector<QueryRange> &vctRight) {
-  for (QueryRange &rVal : vctRight) {
-    bool bFinished = false;
+                                  MVector<QueryRange> &vctSrc) {
+  assert(CheckQueryRangeOrder(vctSrc));
 
-    size_t i;
-    for (i = 0; i < vctResult.size(); i++) {
-      QueryRange &lVal = vctResult[i];
-      if (*lVal._dvRight < *rVal._dvLeft) {
-        continue;
-      }
-
-      if (*lVal._dvLeft < *rVal._dvRight) {
-        vctResult.insert(vctResult.begin() + i, move(rVal));
-        bFinished = true;
-        break;
-      }
-
-      if (*lVal._dvLeft > *rVal._dvLeft) {
-        lVal._dvLeft->DecRef();
-        lVal._dvLeft = rVal._dvLeft->AddRef();
-        lVal._bIncLeft = rVal._bIncLeft;
-      } else if (*lVal._dvLeft == *rVal._dvLeft && rVal._bIncLeft) {
-        lVal._bIncLeft = true;
-      }
-
-      if (*lVal._dvRight < *rVal._dvRight) {
-        lVal._dvRight->DecRef();
-        lVal._dvRight = rVal._dvRight->AddRef();
-        lVal._bIncRight = rVal._bIncRight;
-      } else if (*lVal._dvRight == *rVal._dvRight && rVal._bIncRight) {
-        lVal._bIncRight = true;
-      }
-
-      if (i < vctResult.size() - 1) {
-        QueryRange &valNext = vctResult[i + 1];
-        if (*valNext._dvLeft < *lVal._dvRight) {
-          lVal._dvRight->DecRef();
-          lVal._dvRight = valNext._dvRight->AddRef();
-          lVal._bIncRight = valNext._bIncRight;
-          vctResult.erase(vctResult.begin() + i + 1);
-        } else if (*valNext._dvLeft == *lVal._dvRight &&
-                   (lVal._bIncRight || valNext._bIncLeft)) {
-          lVal._bIncRight = true;
-          vctResult.erase(vctResult.begin() + i + 1);
-        }
-      }
-      bFinished = true;
+  size_t rpos = 0, spos = 0;
+  while (true) {
+    if (rpos >= vctResult.size() || spos >= vctSrc.size()) {
       break;
     }
 
-    if (!bFinished) {
-      vctResult.push_back(move(rVal));
+    QueryRange &v1 = vctResult[rpos];
+    QueryRange &v2 = vctSrc[spos];
+
+    if (*v1._dvLeft > *v2._dvLeft) {
+      vctResult.insert(vctResult.begin() + rpos, move(v2));
+      rpos++;
+      spos++;
+    } else {
+      rpos++;
     }
   }
+
+  if (spos < vctSrc.size()) {
+    vctResult.insert(vctResult.end(), vctSrc.begin() + spos, vctSrc.end());
+  }
+
+  assert(vctResult.size() > 0);
+  auto iter = vctResult.begin();
+  while (true) {
+    auto itprev = iter;
+    iter++;
+    if (iter == vctResult.end()) {
+      break;
+    }
+
+    if (*itprev->_dvRight > *iter->_dvLeft ||
+        (*itprev->_dvRight == *iter->_dvLeft &&
+         (itprev->_bIncRight || iter->_bIncLeft))) {
+      if (*itprev->_dvRight < *iter->_dvRight) {
+        itprev->_dvRight->DecRef();
+        itprev->_dvRight = iter->_dvRight->AddRef();
+        itprev->_bIncRight = iter->_bIncRight;
+      } else if (*itprev->_dvRight == *iter->_dvRight) {
+        itprev->_bIncRight |= iter->_bIncRight;
+      }
+
+      vctResult.erase(iter);
+      iter = itprev;
+    }
+  }
+
+  assert(CheckQueryRangeOrder(vctResult));
 }
 
 MVector<QueryRange> Statement::ConditionConvert(ExprLogic *logic,
@@ -194,7 +248,21 @@ MVector<QueryRange> Statement::ConditionConvert(ExprLogic *logic,
       vctVal[0]._dvRight = dv;
       break;
     }
-    case CompType::NE:
+    case CompType::NE: {
+      IDataValue *border = dv->Clone(false);
+      border->SetMinValue();
+      vctVal[0]._dvLeft = border;
+      vctVal[0]._dvRight = dv;
+      vctVal[0]._bIncRight = false;
+
+      vctVal.emplace_back();
+      border = dv->Clone(false);
+      border->SetMaxValue();
+      vctVal[1]._dvLeft = dv;
+      vctVal[1]._dvRight = border;
+      vctVal[1]._bIncLeft = false;
+      break;
+    }
     default:
       LOG_ERROR << "Unsupport compare type : " << ecmp->_compType;
       abort();
@@ -297,7 +365,7 @@ std::ostream &operator<<(std::ostream &os, const StmtStatus &s) {
   return os;
 }
 
-ExprField *Statement::GetFrieldFromExprLogic(ExprLogic *logic) {
+ExprField *Statement::GetFieldFromExprLogic(ExprLogic *logic) {
   switch (logic->GetType()) {
   case ExprType::EXPR_COMP: {
     ExprComp *ecmp = dynamic_cast<ExprComp *>(logic);
@@ -313,11 +381,11 @@ ExprField *Statement::GetFrieldFromExprLogic(ExprLogic *logic) {
   }
   case ExprType::EXPR_AND: {
     ExprAnd *exprAnd = dynamic_cast<ExprAnd *>(logic);
-    return GetFrieldFromExprLogic(exprAnd->_vctChild[0]);
+    return GetFieldFromExprLogic(exprAnd->_vctChild[0]);
   }
   case ExprType::EXPR_OR: {
     ExprOr *exprOr = dynamic_cast<ExprOr *>(logic);
-    return GetFrieldFromExprLogic(exprOr->_vctChild[0]);
+    return GetFieldFromExprLogic(exprOr->_vctChild[0]);
   }
   default:
     LOG_ERROR << "Unsupport Expr type : " << logic->GetType();
@@ -531,4 +599,13 @@ bool Statement::SacnIndex(int rangePos) {
   return true;
 }
 
+void Statement::SendErrMsg(MString &&errMsg) {
+  if (_midVar->_indexPos == 0) {
+    _stmtResult->_vctError.push_back(move(errMsg));
+  } else {
+    SessionErrMsgAction *eAction = new SessionErrMsgAction(this, move(errMsg));
+    SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), eAction);
+  }
+  SetStmtFailed(true);
+}
 } // namespace storage

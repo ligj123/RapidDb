@@ -17,7 +17,8 @@ public:
 
   StmtStatus SessionExec(Session *sess) override;
 
-  TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos) override;
+  TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos,
+                           VectorLeafRecord *vctLeafRec = nullptr) override;
 
   ExprDelete *GetExprDelete() { return dynamic_cast<ExprDelete *>(_exprStmt); }
 

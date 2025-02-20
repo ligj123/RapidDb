@@ -1,7 +1,8 @@
-#include "SelectStatement.h"
+#include "TableSelectStatement.h"
 
 #include "../binlog/LogTask.h"
 #include "../core/BranchRecord.h"
+#include "../result/CacheResultSet.h"
 #include "../serv/SessionAction.h"
 #include "../serv/SessionPool.h"
 #include "../table/IndexAction.h"
@@ -9,7 +10,7 @@
 
 namespace storage {
 
-StmtStatus SelectStatement::SessionExec(Session *sess) {
+StmtStatus TableSelectStatement::SessionExec(Session *sess) {
   if (_status == StmtStatus::Created) {
     assert(_midVar == nullptr);
     _midVar = new MiddleVar();
@@ -18,14 +19,22 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
     size_t para_sz = exprSel->_vctPara.size();
     if (_vctPara.size() != para_sz) {
       _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
+      _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
+      _stmtResult->_rowNum = 0;
+      SetStmtFailed(true);
+      SetFinished(true);
+      return StmtStatus::Finished;
     }
 
     PhysTable *table = exprSel->_exprTable->_physTable;
     IndexSearch *idxSearch = exprSel->_exprWhere->_indexSearch;
-    int idxPos = idxSearch->_indexPos;
+    int idxPos = (idxSearch == nullptr ? 0 : idxSearch->_indexPos);
+    _midVar->_table = table;
+    _midVar->_indexPos = idxPos;
+    IndexProp &prop = table->GetVectorIndex()[idxPos];
+    _stmtResult->_resultSet = new CacheResultSet(exprSel->_vctCol);
 
     if (idxSearch->_bPointQuery) {
-      IndexProp &prop = table->GetVectorIndex()[idxPos];
       VectorDataValue vctDv, vEmpty;
       prop._tree->CloneKeys(vctDv);
       auto vctCond = idxSearch->_vctPointCond;
@@ -33,6 +42,7 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
       for (size_t i = 0; i < vctCond->size(); i++) {
         assert((*vctCond)[i]->GetType() == ExprType::EXPR_COMP);
         ExprComp *ecmp = dynamic_cast<ExprComp *>((*vctCond)[i]);
+        assert(ecmp->_compType == CompType::EQ);
         IDataValue *dv = ecmp->_exprRight->Calc(_vctPara, vEmpty);
         vctDv[i]->Copy(*dv, true);
         dv->DecRef();
@@ -44,7 +54,8 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
 
       RawKey *sKey = new RawKey(vctDv);
       RawKey *eKey = nullptr;
-      if (vctCond->size() < vctDv.size()) {
+      if (vctCond->size() < vctDv.size() ||
+          prop._tree->GetIndexType() == IndexType::NON_UNIQUE) {
         for (size_t i = vctCond->size(); i < vctDv.size(); i++) {
           vctDv[i]->SetMaxValue();
         }
@@ -55,10 +66,9 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
       _midVar->_vctKeyRange.emplace_back(sKey, eKey, eKey != nullptr, true,
                                          true);
     } else {
-      IndexProp &prop = table->GetVectorIndex()[idxPos];
       MVector<QueryRange> vctQR =
           ConditionConvert(idxSearch->_idxLogic, _vctPara);
-      ExprField *field = GetFrieldFromExprLogic(idxSearch->_idxLogic);
+      ExprField *field = GetFieldFromExprLogic(idxSearch->_idxLogic);
 
       for (QueryRange &range : vctQR) {
         _midVar->_vctKeyRange.push_back(
@@ -66,9 +76,7 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
       }
     }
 
-    MVector<IndexProp> &vctProp = table->GetVectorIndex();
-
-    StatementAction *action = new StatementAction(vctProp[idxPos]._tree, this);
+    StatementAction *action = new StatementAction(prop._tree, this);
     TableTaskMgr *mgr = table->GetTableTaskMgr();
     _status = StmtStatus::Executing;
     mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
@@ -79,6 +87,7 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
         if (s == ActionStatus::INIT) {
           iter++;
         } else {
+          AddLeafRecords((*iter)->_vctLr);
           _totalRecNum += (*iter)->_numLeafRecord;
           delete (*iter);
           iter = _lstStmtRec.erase(iter);
@@ -97,7 +106,8 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
       }
     }
 
-    if (_lstWaitRecord.size() == 0 && _lstStmtRec.size() == 0 && _bFinished) {
+    if (_lstWaitRecord.size() == 0 && _lstStmtRec.size() == 0 &&
+        _bFinished.load(memory_order_acquire)) {
       if (_stmtFailed.load(memory_order_relaxed)) {
         for (auto lr : _lstFinishRecord) {
           lr->GetLock()->_recStatus.store(RecordStatus::ROLLBACKED,
@@ -137,9 +147,64 @@ StmtStatus SelectStatement::SessionExec(Session *sess) {
   return _status;
 }
 
-TriBool SelectStatement::HandleLeafRecord(LeafPage *page, int pagePos,
-                                          int rangePos) {
-  return TriBool::Error;
+TriBool TableSelectStatement::HandleLeafRecord(LeafPage *page, int pagePos,
+                                               int rangePos,
+                                               VectorLeafRecord *vctLeafRec) {
+  ExprTableSelect *exprSel = GetExprTableSelect();
+  PhysTable *table = exprSel->_exprTable->_physTable;
+  MVector<IndexProp> &vctProp = table->GetVectorIndex();
+  ExprLogic *exprLogic = exprSel->_exprWhere->_exprLogic;
+  ActionType aType = ActionType::NO_ACTION;
+  if (exprSel->_lockType == LockType::SHARE_LOCK) {
+    aType = ActionType::READ_SHARE;
+  } else if (exprSel->_lockType == LockType::WRITE_LOCK) {
+    aType = ActionType::READ_UPDATE;
+  }
+
+  LeafRecord *lr = &page->GetRecord(pagePos);
+  VectorDataValue vdv;
+  ReadResult res = lr->ReadListValue({}, vdv, vctProp[0]._tree, this, aType);
+
+  if (res != ReadResult::OK_NOLOCK && res != ReadResult::OK_LOCK) {
+    _threadErrorMsg.reset(new ErrorMsg(STMT_LOCK_CONFLICT, {}));
+    SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));
+    return TriBool::Error;
+  }
+
+  if (exprLogic != nullptr) {
+    TriBool tb = exprLogic->Calc(_vctPara, vdv);
+    if (tb == TriBool::Error) {
+      SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));
+      lr->SubmitStatement(*this, RecordStatus::FREEED);
+      return TriBool::Error;
+    } else if (tb == TriBool::False) {
+      lr->SubmitStatement(*this, RecordStatus::FREEED);
+      return TriBool::False;
+    }
+  }
+
+  VectorDataValue vctDv;
+  vctDv.reserve(exprSel->_vctCol->size());
+  for (ExprColumn *ecol : *exprSel->_vctCol) {
+    IDataValue *dv = vdv[ecol->_pos];
+    if (res == ReadResult::OK_LOCK || !dv->IsArrayType()) {
+      vctDv.push_back(dv->AddRef());
+    } else
+      vctDv.push_back(dv->Clone(true));
+  }
+
+  if (_midVar->_indexPos == 0) {
+    _stmtResult->_resultSet->AddRow(move(vctDv));
+    if (res == ReadResult::OK_LOCK) {
+
+      AddLeafRecord(lr);
+    }
+  } else {
+    assert(vctLeafRec != nullptr);
+    vctLeafRec->push_back(lr);
+  }
+
+  return TriBool::True;
 }
 
 } // namespace storage

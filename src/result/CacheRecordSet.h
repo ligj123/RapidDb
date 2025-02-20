@@ -3,13 +3,20 @@
 #include "IResultSet.h"
 
 namespace storage {
-class CacheResultSet : public IResultSet {
+struct RowData {
+  RowData(LeafRecord *lr, VectorDataValue &&vctDv)
+      : _lr(lr), _vctDv(move(vctDv)) {}
+
+  LeafRecord *_lr;
+  VectorDataValue _vctDv;
+};
+
+class CacheRecordSet : public IResultSet {
 public:
-  CacheResultSet(MVectorPtr<ExprColumn *> *vctCol) : IResultSet(vctCol) {}
-  ~CacheResultSet() {}
+  CacheRecordSet(MVectorPtr<ExprColumn *> *vctCol) : IResultSet(vctCol) {}
+  ~CacheRecordSet() {}
   void AddRow(VectorDataValue &&vctDv, LeafRecord *lr = nullptr) override {
-    assert(lr = nullptr);
-    _vctRow.push_back(move(vctDv));
+    _vctRow.emplace_back(lr, move(vctDv));
   }
   bool First() override {
     if (_vctRow.size() == 0) {
@@ -84,7 +91,7 @@ public:
       return nullptr;
     }
 
-    return _vctRow[_currPos][fieldIndex]->AddRef();
+    return _vctRow[_currPos]._vctDv[fieldIndex]->AddRef();
   }
 
   IDataValue *GetDataValue(MString &fieldName) override {
@@ -95,7 +102,7 @@ public:
     if (iter == _mapColPos.end()) {
       return nullptr;
     } else {
-      return _vctRow[_currPos][iter->second]->AddRef();
+      return _vctRow[_currPos]._vctDv[iter->second]->AddRef();
     }
   }
 
@@ -105,7 +112,7 @@ public:
       return false;
     }
 
-    VectorDataValue &src = _vctRow[_currPos];
+    VectorDataValue &src = _vctRow[_currPos]._vctDv;
     vct.reserve(src.size());
     for (IDataValue *dv : src) {
       vct.push_back(dv->AddRef());
@@ -115,7 +122,7 @@ public:
   }
 
 protected:
-  MVector<VectorDataValue> _vctRow;
+  MVector<RowData> _vctRow;
   int64_t _currPos;
 };
 } // namespace storage

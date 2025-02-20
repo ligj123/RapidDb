@@ -39,9 +39,27 @@ inline bool operator!=(const Mallocator<T> &, const Mallocator<U> &) {
   return false;
 }
 
-template <class V> using MVector = std::vector<V, Mallocator<V>>;
+template <class V> class MVector : public std::vector<V, Mallocator<V>> {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+  using std::vector<V, Mallocator<V>>::vector;
+  using std::vector<V, Mallocator<V>>::operator=;
+};
+
 template <class V> class MVectorPtr : public MVector<V> {
 public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
   using MVector<V>::MVector;
 
   MVectorPtr(MVectorPtr &&src) noexcept : MVector<V>(move(src)) {}
@@ -72,7 +90,9 @@ template <class Key, class Compare = std::less<Key>>
 using MTreeSet = std::set<Key, Compare, Mallocator<Key>>;
 
 template <class T> using MList = std::list<T, Mallocator<T>>;
+
 template <class T> using MDeque = std::deque<T, Mallocator<T>>;
+
 template <class T> using MSList = std::forward_list<T, Mallocator<T>>;
 
 using MString = basic_string<char, std::char_traits<char>, Mallocator<char>>;

@@ -3,6 +3,7 @@
 #include "../cache/Mallocator.h"
 #include "../expr/ExprData.h"
 #include "../expr/ExprStatement.h"
+#include "../utils/Log.h"
 
 namespace storage {
 // Represents the result of the SQLParser.
@@ -11,12 +12,13 @@ class ParserResult {
 public:
   ParserResult(){};
   ParserResult(ParserResult &&src) { *this = std::move(src); }
-  virtual ~ParserResult() { Reset(); }
+  virtual ~ParserResult() { delete _vctStatement; }
 
   ParserResult &operator=(ParserResult &&src) {
     _isValid = src._isValid;
     _errorMsg = std::move(src._errorMsg);
     _vctStatement = src._vctStatement;
+    src._vctStatement = nullptr;
     _errorLine = src._errorLine;
     _errorColumn = src._errorColumn;
 
@@ -63,10 +65,11 @@ public:
   }
   const MVector<ExprParameter *> *GetVctPara() { return &_vctPara; }
   void Reset() {
-    if (_vctStatement != nullptr)
+    if (_vctStatement != nullptr) {
       delete _vctStatement;
+      _vctStatement = nullptr;
+    }
 
-    _vctStatement = new MVectorPtr<ExprStatement *>();
     _vctPara.clear();
     _isValid = true;
     _errorMsg.clear();

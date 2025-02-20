@@ -14,16 +14,12 @@
 
 namespace storage {
 TaskStatus SessionRecordAction::Exec(SessionGroup &sGroup) {
-  for (LeafRecord *lr : _vctLr) {
-    assert(lr->GetLock() != nullptr);
-    _stmt->AddLeafRecord(lr);
-  }
+  _stmt->AddLeafRecords(_vctLr);
   return TaskStatus::FINISHED;
 }
 
 TaskStatus SessionErrMsgAction::Exec(SessionGroup &sGroup) {
   _stmt->GetStmtResult()->_vctError.push_back(move(_errMsg));
-  _stmt->SetStmtFailed(true);
   return TaskStatus::FINISHED;
 }
 

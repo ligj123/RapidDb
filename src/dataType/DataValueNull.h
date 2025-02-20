@@ -42,7 +42,7 @@ public:
   size_t Hash() const override { return 0; }
   int64_t GetLong() const override { return 0; }
   double GetDouble() const override { return 0; }
-  Byte *GetBuff() const override { return nullptr; }
+  const Byte *GetBuff() const override { return nullptr; }
 
   bool EQ(const IDataValue &dv) const override {
     return dv.GetDataType() == DataType::VAL_NULL;

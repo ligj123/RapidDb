@@ -8,25 +8,6 @@
 #include <stdexcept>
 
 namespace storage {
-DataValueFixChar::DataValueFixChar(const DataValueFixChar &src)
-    : IDataValue(src) {
-  maxLength_ = src.maxLength_;
-
-  switch (valType_) {
-  case ValueType::SOLE_VALUE:
-    bysValue_ = CachePool::Apply(maxLength_);
-    BytesCopy(bysValue_, src.bysValue_, maxLength_);
-    break;
-  case ValueType::BYTES_VALUE:
-    bysValue_ = src.bysValue_;
-    break;
-  case ValueType::NULL_VALUE:
-  default:
-    bysValue_ = nullptr;
-    break;
-  }
-}
-
 bool DataValueFixChar::SetValue(const char *val, uint32_t len) {
   if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(

@@ -88,14 +88,17 @@ bool InsertStatement::InitRecord() {
   IndexProp &priIndex = table->GetVectorIndex()[0];
 
   if (_vctParas.size() == 0) {
-    _vctParas.push_back(new VectorDataValue());
+    _vctParas.emplace_back();
   }
 
   size_t para_sz = exprInst->_vctPara.size();
   MVectorPtr<MVectorPtr<ExprElem *> *> *vctRow = exprInst->_vctRowData;
-  for (VectorDataValue *pvct : _vctParas) {
-    if (pvct->size() != para_sz) {
+  for (VectorDataValue &pvct : _vctParas) {
+    if (pvct.size() != para_sz) {
       _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
+      _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
+      SetStmtFailed(true);
+      return true;
     }
 
     for (MVectorPtr<ExprElem *> *rowData : (*vctRow)) {
@@ -105,7 +108,7 @@ bool InsertStatement::InitRecord() {
       for (size_t i = 0; i < rowData->size(); i++) {
         ExprElem *elem = rowData->at(i);
         ExprColumn *col = exprInst->_vctCol->at(i);
-        IDataValue *dv = ((ExprData *)elem)->Calc(*pvct, vctVal);
+        IDataValue *dv = ((ExprData *)elem)->Calc(pvct, vctVal);
         bool b = vctVal[col->_pos]->Copy(*dv, true);
         dv->DecRef();
 

@@ -356,6 +356,10 @@ public:
     return this;
   }
 
+  const Byte *GetBuff() const override {
+    return reinterpret_cast<const Byte *>(&_value);
+  }
+
 protected:
   T _value;
 };

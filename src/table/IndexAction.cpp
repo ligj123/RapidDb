@@ -233,8 +233,9 @@ TaskStatus StmtSecRecordAction::Exec() {
          exprType == ExprType::EXPR_TABLE_SELECT);
 
   switch (exprType) {
-  case ExprType::EXPR_TABLE_SELECT:
+  case ExprType::EXPR_TABLE_SELECT: {
     break;
+  }
   case ExprType::EXPR_UPDATE: {
     break;
   }

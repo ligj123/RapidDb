@@ -23,10 +23,12 @@ public:
       _mapColPos.emplace(*ecol->_name, ecol->_pos);
     }
   }
+
+  virtual void AddRow(VectorDataValue &&vctDv, LeafRecord *lr = nullptr) = 0;
   /**
    * Move to the first row if possible
-   * @return true if moved to the first row; false if failed to move or not able
-   * to move to the first row.
+   * @return true if moved to the first row; false if failed to move or not
+   * able to move to the first row.
    */
   virtual bool First() = 0;
   /**
