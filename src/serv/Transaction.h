@@ -51,6 +51,11 @@ public:
   void WriteLog(LogTask *logTask);
   TranID GetTranID() { return _tid; }
 
+  /**
+   * @brief Close the transaction and delete all internal statements.
+   */
+  void CloseTransaction();
+
 protected:
   TranID _tid{TXID_NULL};
   // The start time of current transaction

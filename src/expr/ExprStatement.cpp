@@ -123,7 +123,6 @@ bool ExprWhere::Preprocess(PhysTable *table,
 }
 
 bool ExprGroupBy::Preprocess(const MStrHashMap<uint32_t> &mapColPos) {
-  assert(_vctColPos.size() == 0);
   for (MString *name : *_vctColName) {
     auto iter = mapColPos.find(*name);
     if (iter != mapColPos.end()) {
@@ -195,40 +194,59 @@ bool ExprTableSelect::Preprocess(Database *currDb) {
       _exprTable->_physTable->GetMapColumnPos();
   MStrHashMap<uint32_t> mapRPos;
 
-  MVector<ExprElem *> vctField;
-  vctField.reserve(32);
-  for (size_t i = 0; i < _vctCol->size(); i++) {
-    ExprColumn *ecol = _vctCol->at(i);
-    bool bAlias = true;
-    if (ecol->_exprElem->GetType() == ExprType::EXPR_FIELD) {
-      ecol->_name =
-          new MString(*(dynamic_cast<ExprField *>(ecol->_exprElem)->_colName));
-    } else if (ecol->_alias != nullptr) {
-      ecol->_name = new MString(*ecol->_alias);
-      bAlias = false;
-    } else {
-      ecol->_name = new MString("col" + ToMString(i));
+  if (_vctCol == nullptr) {
+    _vctCol = new MVectorPtr<ExprColumn *>();
+    const MVector<PhysColumn> &vctPCol =
+        _exprTable->_physTable->GetColumnArray();
+    _vctCol->reserve(vctPCol.size());
+
+    for (const PhysColumn &pcol : vctPCol) {
+      ExprColumn *ecol = new ExprColumn(new MString(pcol.GetName()), nullptr,
+                                        new MString(pcol.GetName()));
+      ecol->_pos = pcol.GetIndex();
+      ecol->_dataType = pcol.GetDataType();
+      ecol->_dataLength = pcol.GetMaxLength();
+      _vctCol->push_back(ecol);
     }
 
-    ecol->_exprElem->CollectElem(ExprType::EXPR_FIELD, vctField);
-    mapRPos.emplace(*ecol->_name, i);
-    if (bAlias && ecol->_alias != nullptr) {
-      mapRPos.emplace(*ecol->_alias, i);
+    mapRPos = mapTPos;
+  } else {
+    MVector<ExprElem *> vctField;
+    vctField.reserve(32);
+    for (size_t i = 0; i < _vctCol->size(); i++) {
+      ExprColumn *ecol = _vctCol->at(i);
+      bool bAlias = true;
+      if (ecol->_exprElem->GetType() == ExprType::EXPR_FIELD) {
+        ecol->_name = new MString(
+            *(dynamic_cast<ExprField *>(ecol->_exprElem)->_colName));
+      } else if (ecol->_alias != nullptr) {
+        ecol->_name = new MString(*ecol->_alias);
+        bAlias = false;
+      } else {
+        ecol->_name = new MString("col" + ToMString(i));
+      }
+
+      ecol->_exprElem->CollectElem(ExprType::EXPR_FIELD, vctField);
+      mapRPos.emplace(*ecol->_name, i);
+      if (bAlias && ecol->_alias != nullptr) {
+        mapRPos.emplace(*ecol->_alias, i);
+      }
+    }
+
+    if (!FillElemFiled(mapTPos, vctField)) {
+      return false;
     }
   }
 
-  if (!FillElemFiled(mapTPos, vctField)) {
+  if (_exprWhere != nullptr &&
+      !_exprWhere->Preprocess(_exprTable->_physTable, mapTPos)) {
     return false;
   }
 
-  if (!_exprWhere->Preprocess(_exprTable->_physTable, mapTPos)) {
+  if (_exprGroupBy != nullptr && !_exprGroupBy->Preprocess(mapRPos)) {
     return false;
   }
-
-  if (!_exprGroupBy->Preprocess(mapRPos)) {
-    return false;
-  }
-  if (!_exprOrderBy->Preprocess(mapRPos)) {
+  if (_exprOrderBy != nullptr && !_exprOrderBy->Preprocess(mapRPos)) {
     return false;
   }
 
@@ -244,6 +262,8 @@ bool ExprInsert::Preprocess(Database *currDb) {
     _vctCol = new MVectorPtr<ExprColumn *>();
     const MVector<PhysColumn> &vctPCol =
         _exprTable->_physTable->GetColumnArray();
+    _vctCol->reserve(vctPCol.size());
+
     for (const PhysColumn &pcol : vctPCol) {
       ExprColumn *ecol = new ExprColumn(new MString(pcol.GetName()), nullptr,
                                         new MString(pcol.GetName()));

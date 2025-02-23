@@ -44,6 +44,7 @@ LogTask::LogTask(ThreadPool *threadPool, const MString &logPath)
 }
 
 TaskStatus LogTask::Run() {
+  SetStatus(TaskStatus::RUNNING, false);
   MList<Transaction *> lstTran;
   _queueTran->Pop(lstTran);
   for (Transaction *tran : lstTran) {
@@ -63,7 +64,8 @@ TaskStatus LogTask::Run() {
     }
   }
 
-  return TaskStatus::RUNNING;
+  SetStatus(TaskStatus::INTERVAL, false);
+  return TaskStatus::INTERVAL;
 }
 
 void LogTask::WriteBuff(int64_t dataLen, bool bTranStart) {

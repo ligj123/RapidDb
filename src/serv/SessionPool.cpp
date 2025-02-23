@@ -17,7 +17,7 @@ TaskStatus SessionTask::Run() {
     group->_threaPoolQueue.Pop(lst);
     group->_outerQueue.Pop(lst);
 
-    for (auto iter = lst.begin(); iter != lst.end(); iter++) {
+    for (auto iter = lst.begin(); iter != lst.end();) {
       TaskStatus s = (*iter)->Exec(*group);
       if (s == TaskStatus::FINISHED) {
         delete (*iter);

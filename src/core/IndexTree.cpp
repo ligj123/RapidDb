@@ -17,6 +17,7 @@ IndexRange::~IndexRange() {
 }
 
 IndexPage *IndexRange::GetTopPage(IndexType type, RawRecord &rr) {
+  assert(_vctRangePage.size() > 0);
   for (size_t i = 0; i < _vctRangePage.size() - 1; i++) {
     BranchRecord &br = _vctRangePage[i]->GetRecord(INT32_MAX, true);
     if (type == IndexType::NON_UNIQUE) {
@@ -34,6 +35,7 @@ IndexPage *IndexRange::GetTopPage(IndexType type, RawRecord &rr) {
 }
 
 IndexPage *IndexRange::GetTopPage(RawKey &key) {
+  assert(_vctRangePage.size() > 0);
   for (size_t i = 0; i < _vctRangePage.size() - 1; i++) {
     BranchRecord &br = _vctRangePage[i]->GetRecord(INT32_MAX, true);
     if (br.CompareKey(key) >= 0) {

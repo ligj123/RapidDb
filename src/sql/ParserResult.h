@@ -48,6 +48,12 @@ public:
     _vctStatement = vct_stmt;
   }
   MVectorPtr<ExprStatement *> *GetStatements() { return _vctStatement; }
+  ExprStatement *RemoveFirstStatement() {
+    assert(_vctStatement != nullptr && _vctStatement->size() >= 1);
+    ExprStatement *stmt = _vctStatement->at(0);
+    _vctStatement->erase(_vctStatement->begin());
+    return stmt;
+  }
   void AddParameters(MVector<ExprParameter *> &vct_para) {
     size_t ii = _vctPara.size();
     for (ExprParameter *para : vct_para) {

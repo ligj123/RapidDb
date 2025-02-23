@@ -314,17 +314,12 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
                                      IndexTree *idxTree, Statement *stmt,
                                      ActionType atype, bool bGapLock) {
   assert(_indexType == IndexType::PRIMARY);
-  assert(atype == ActionType::READ_UPDATE || atype == ActionType::READ_SHARE ||
-         atype == ActionType::NO_ACTION);
-  assert(_recLock == nullptr || !ReleaseLockAble());
-  assert((stmt != nullptr && atype != ActionType::NO_ACTION) ||
-         (stmt == nullptr && atype == ActionType::NO_ACTION));
   assert(vctVal.size() == 0);
 
   const LeafRecord *lr = this;
 
   if (_recLock != nullptr) {
-    if (atype == ActionType::READ_UPDATE) {
+    if ((atype & ActionType::WRITE_LOCK_MASK) != 0) {
       for (auto iter = _recLock->_lstTxid.begin();
            iter != _recLock->_lstTxid.end(); iter++) {
         if (*iter != TXID_NULL && *iter != stmt->GetTxId()) {
@@ -332,22 +327,21 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
         }
       }
 
-      if (_recLock->_actType == ActionType::READ_SHARE) {
-        _recLock->_actType = ActionType::READ_UPDATE;
-        _recLock->_bGapLock = _recLock->_bGapLock | bGapLock;
-        _recLock->_stmt = stmt;
+      if (_recLock->_lstTxid.size() > 1) {
+        _recLock->_lstTxid = {stmt->GetTxId()};
       }
     } else if (atype == ActionType::READ_SHARE &&
                (_recLock->_actType != ActionType::READ_SHARE &&
                 _recLock->_lstTxid.back() != stmt->GetTxId())) {
       return ReadResult::LOCKED;
     } else if (atype == ActionType::NO_ACTION &&
-               (_recLock->_actType & ActionType::UPDATE_MASK) != 0) {
+               (_recLock->_actType & ActionType::UPDATEABLE_MASK) != 0) {
       while (true) {
         lr = lr->_recLock->_undoRec;
         if (lr == nullptr) {
           return ReadResult::LOCKED;
-        } else if (lr->_recLock == nullptr) {
+        } else if (lr->_recLock == nullptr ||
+                   (lr->_recLock->_actType & ActionType::READ_LOCK_MASK) != 0) {
           break;
         }
       }
@@ -360,7 +354,7 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
   }
 
   bool bAddLock = true;
-  if (atype != ActionType::NO_ACTION) {
+  if ((atype & ActionType::READ_LOCK_MASK) != 0) {
     assert(lr == this);
     if (_recLock == nullptr) {
       _recLock = new RecordLock(atype, RecordStatus::LOCK_ONLY, bGapLock,
@@ -375,7 +369,13 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
         _recLock->_lstTxid.push_back(stmt->GetTxId());
       }
 
-      assert(_recLock->_actType == ActionType::READ_SHARE || !bAddLock);
+      if (atype == ActionType::READ_UPDATE &&
+          _recLock->_actType == ActionType::READ_SHARE) {
+        _recLock->_actType = ActionType::READ_UPDATE;
+        _recLock->_stmt = stmt;
+      }
+
+      _recLock->_bGapLock = _recLock->_bGapLock | bGapLock;
     }
   } else {
     bAddLock = false;

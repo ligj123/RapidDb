@@ -42,6 +42,8 @@ public:
   // Only for test purpose
   static void Clear();
 
+  static LogTask *GetTask() { return _logTask; }
+
 public:
   LogTask(ThreadPool *threadPool, const MString &logPath);
   ~LogTask() {}

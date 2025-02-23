@@ -13,9 +13,10 @@ namespace storage {
 StmtStatus TableSelectStatement::SessionExec(Session *sess) {
   if (_status == StmtStatus::Created) {
     assert(_midVar == nullptr);
+    assert(_stmtResult->_resultSet == nullptr);
     _midVar = new MiddleVar();
-
     ExprTableSelect *exprSel = GetExprTableSelect();
+
     size_t para_sz = exprSel->_vctPara.size();
     if (_vctPara.size() != para_sz) {
       _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
@@ -135,7 +136,6 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
                                         memory_order_relaxed);
       }
 
-      sess->_transaction.SetTranStatus(TranStatus::FINISHED);
       size_t idxNum =
           GetExprTableSelect()->_exprTable->_physTable->GetVectorIndex().size();
       _stmtResult->_rowNum = _totalRecNum;
@@ -162,6 +162,14 @@ TriBool TableSelectStatement::HandleLeafRecord(LeafPage *page, int pagePos,
   }
 
   LeafRecord *lr = &page->GetRecord(pagePos);
+  if (lr->ReleaseLockAble()) {
+    int32_t commLen1, commLen2, tempLen1, tempLen2;
+    lr->GetLength(tempLen1, commLen1);
+    lr->ReleaseLock(page->GetIndexTree());
+    lr->GetLength(tempLen2, commLen2);
+    page->UpdateDataLength(commLen2 - commLen1, tempLen2 - tempLen1);
+  }
+
   VectorDataValue vdv;
   ReadResult res = lr->ReadListValue({}, vdv, vctProp[0]._tree, this, aType);
 

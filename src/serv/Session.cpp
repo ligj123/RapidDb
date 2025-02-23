@@ -39,16 +39,16 @@ void Session::Exec() {
       _transaction.StartTransaction(_bAutoCommit);
     }
 
+    _transaction.AddStatement(_currStatement);
     _currStatement->SetTxID(_transaction.GetTranID());
   }
 
   StmtStatus s = _currStatement->SessionExec(this);
   if (s == StmtStatus::Finished) {
-    delete _currStatement;
+    _transaction.CloseTransaction();
     _currStatement = nullptr;
   } else if (s == StmtStatus::Executed) {
     assert(!_transaction.IsAutoCommit());
-    _transaction.AddStatement(_currStatement);
     _currStatement = nullptr;
   }
 }

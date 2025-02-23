@@ -99,9 +99,11 @@ BOOST_AUTO_TEST_CASE(ExprWhere_test) {
   ExprParameter *ep2 = new ExprParameter();
   ep2->_paraPos = 5;
 
+  ExprComp *exprCmp1 = new ExprComp(CompType::GE, ef1, ep1);
+  ExprComp *exprCmp2 = new ExprComp(CompType::GT, ef2, ep2);
   ExprAnd *eand = new ExprAnd();
-  eand->_vctChild.push_back(new ExprComp(CompType::GE, ef1, ep1));
-  eand->_vctChild.push_back(new ExprComp(CompType::GT, ef2, ep2));
+  eand->_vctChild.push_back(exprCmp1);
+  eand->_vctChild.push_back(exprCmp2);
 
   exprWhere._exprLogic = eand;
   const MStrHashMap<uint32_t> &mapColPos = table->GetMapColumnPos();
@@ -109,13 +111,11 @@ BOOST_AUTO_TEST_CASE(ExprWhere_test) {
   BOOST_TEST(bl);
   BOOST_TEST(ef1->_rowPos == 1);
   BOOST_TEST(ef2->_rowPos == 2);
-  BOOST_TEST(exprWhere._exprLogic->GetType() == ExprType::EXPR_COMP);
+  BOOST_TEST(exprWhere._exprLogic == exprCmp2);
 
-  BOOST_TEST(exprWhere._indexSearch->_idxLogic == nullptr);
-  BOOST_TEST(exprWhere._indexSearch->_bPointQuery);
-  BOOST_TEST(exprWhere._indexSearch->_vctPointCond->size() == 1);
-  BOOST_TEST(exprWhere._indexSearch->_vctPointCond->at(0)->GetType() ==
-             ExprType::EXPR_COMP);
+  BOOST_TEST(exprWhere._indexSearch->_idxLogic == exprCmp1);
+  BOOST_TEST(exprWhere._indexSearch->_bPointQuery == false);
+  BOOST_TEST(exprWhere._indexSearch->_vctPointCond == nullptr);
   BOOST_TEST(exprWhere._indexSearch->_indexPos == 1);
 
   delete table;

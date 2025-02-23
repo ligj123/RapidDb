@@ -71,6 +71,16 @@ void Transaction::WriteLog(LogTask *logTask) {
   }
 
   logTask->WriteBuff(cBuff - sBuff, bStart);
+  SetLogged();
+}
+
+void Transaction::CloseTransaction() {
+  _tranStatus = TranStatus::FINISHED;
+  for (Statement *stmt : _lstStatement) {
+    delete stmt;
+  }
+
+  _lstStatement.clear();
 }
 
 } // namespace storage

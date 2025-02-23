@@ -7,8 +7,11 @@
 #include "../../src/expr/ExprLogic.h"
 #include "../../src/expr/ExprStatement.h"
 #include "../../src/sql/Parser.h"
+#include "../statement/DeleteStatement.h"
 #include "../statement/InsertStatement.h"
 #include "../statement/StmtResult.h"
+#include "../statement/TableSelectStatement.h"
+#include "../statement/UpdateStatement.h"
 #include "../utils/Log.h"
 #include "SessionPool.h"
 
@@ -63,6 +66,7 @@ TaskStatus SessionCloseAction::Exec(SessionGroup &sGroup) {
 }
 
 TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
+  _stmtResult->Reset();
   auto iter = sGroup._mapSession.find(_sessionId);
   if (iter == sGroup._mapSession.end()) {
     _stmtResult->_vctError.push_back("Failed to find session " +
@@ -70,8 +74,8 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
     return TaskStatus::FINISHED;
   }
 
-  ExprStatement *exprStmt = nullptr;
   Session *session = iter->second;
+  ExprStatement *exprStmt = nullptr;
   auto itExpr = session->_mapIdExprStatement.find(_exprId);
   if (itExpr == session->_mapIdExprStatement.end()) {
     ParserResult result;
@@ -100,17 +104,36 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
   }
 
   Statement *stmt = nullptr;
+
   switch (exprStmt->GetType()) {
   case ExprType::EXPR_INSERT:
-    stmt = new InsertStatement(_stmtId, TXID_NULL, (ExprInsert *)exprStmt,
+    stmt = new InsertStatement(_stmtId, TXID_NULL,
+                               dynamic_cast<ExprInsert *>(exprStmt),
                                move(_vctParas), _stmtResult);
     break;
   case ExprType::EXPR_UPDATE:
+    stmt = new UpdateStatement(_stmtId, TXID_NULL,
+                               dynamic_cast<ExprUpdate *>(stmt),
+                               move(_vctParas[0]), _stmtResult);
     break;
   case ExprType::EXPR_DELETE:
+    stmt = new DeleteStatement(_stmtId, TXID_NULL,
+                               dynamic_cast<ExprDelete *>(exprStmt),
+                               move(_vctParas[0]), _stmtResult);
     break;
-  case ExprType::EXPR_SELECT:
+  case ExprType::EXPR_SELECT: {
+    ExprStatement *exprDest =
+        dynamic_cast<ExprSelect *>(exprStmt)->_exprDestSelect;
+    if (exprDest->GetType() == ExprType::EXPR_TABLE_SELECT) {
+      stmt = new TableSelectStatement(_stmtId, TXID_NULL,
+                                      dynamic_cast<ExprTableSelect *>(exprDest),
+                                      move(_vctParas[0]), _stmtResult);
+    } else {
+      LOG_FATAL << "Unsupport ExprType " << exprStmt->GetType();
+      abort();
+    }
     break;
+  }
   default:
     LOG_FATAL << "Unsupport ExprType " << exprStmt->GetType();
     abort();

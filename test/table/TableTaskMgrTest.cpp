@@ -24,9 +24,7 @@ namespace storage {
 static uint32_t stmtId{0};
 static TranID txID{0};
 
-ExprInsert *CreateInsertExpression(Database *db, const MString &tableName,
-                                   int rowNum) {
-  MTreeMap<uint64_t, CachePage *> priMap, uniMap, nonMap;
+ExprInsert *CreateInsertExpression(Database *db, const MString &tableName) {
   PhysTable *ptable =
       new PhysTable(db, tableName, 0x100, MilliSecTime(), MilliSecTime());
   ptable->AddColumn("c1", DataType::FIXCHAR, false, 1000, "primary key",
@@ -89,20 +87,16 @@ MVector<int> GenerateInt(int num, MTreeSet<int> &mset) {
   return mvct;
 }
 
-VectorRow GenInsertRecords(ExprInsert *exprInst, const MVector<int> &mvct) {
+VectorRow GenInsertRecords(const MVector<int> &mvct) {
   MString fix1000 = "FIXCHAR_1000_" + MString(987, 'a');
   MString var1000 = "VARCHAR_1000_" + MString(987, 'a');
   MString fix50 = "FIXCHAR_50_" + MString(37, 'a');
 
-  PhysTable *ptable = exprInst->_exprTable->_physTable;
-  IndexTree *priTree = ptable->GetVectorIndex()[0]._tree;
-  IndexTree *uniTree = ptable->GetVectorIndex()[1]._tree;
-  IndexTree *nonTree = ptable->GetVectorIndex()[2]._tree;
   VectorRow vctRow;
   vctRow.reserve(mvct.size());
 
   for (int ival : mvct) {
-    VectorDataValue *vctDv = new VectorDataValue();
+    VectorDataValue vctDv;
     DataValueFixChar *dvFix1000 =
         new DataValueFixChar(fix1000.c_str(), 999, 1000);
     DataValueVarChar *dvVar1000 =
@@ -111,13 +105,16 @@ VectorRow GenInsertRecords(ExprInsert *exprInst, const MVector<int> &mvct) {
 
     stringstream ss;
     ss << "_0x" << std::setfill('0') << std::setw(8) << std::hex << ival;
-    memcpy(dvFix1000->GetBuff() + 988, ss.str().c_str(), 11);
-    memcpy(dvVar1000->GetBuff() + 988, ss.str().c_str(), 11);
-    memcpy(dvFix50->GetBuff() + 38, ss.str().c_str(), 11);
-    vctDv->push_back(dvFix1000);
-    vctDv->push_back(dvVar1000);
-    vctDv->push_back(dvFix50);
-    vctRow.push_back(vctDv);
+
+    memcpy(const_cast<Byte *>(dvFix1000->GetBuff()) + 988, ss.str().c_str(),
+           11);
+    memcpy(const_cast<Byte *>(dvVar1000->GetBuff()) + 988, ss.str().c_str(),
+           11);
+    memcpy(const_cast<Byte *>(dvFix50->GetBuff()) + 38, ss.str().c_str(), 11);
+    vctDv.push_back(dvFix1000);
+    vctDv.push_back(dvVar1000);
+    vctDv.push_back(dvFix50);
+    vctRow.push_back(move(vctDv));
   }
 
   return vctRow;
@@ -136,7 +133,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   Database *db = new Database(1, ROOT_PATH.c_str(), DB_NAME, MilliSecTime(),
                               MicroSecTime());
   DatabaseManager::AddDb(db);
-  ExprInsert *exprInsert = CreateInsertExpression(db, TABLE_NAME, 1500);
+  ExprInsert *exprInsert = CreateInsertExpression(db, TABLE_NAME);
   PhysTable *table = exprInsert->_exprTable->_physTable;
 
   ThreadPool *tpool = ThreadPool::CreateMainPool("test", 1, 8);
@@ -154,9 +151,9 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
 
   MTreeSet<int> mset;
   MVector<int> vctInt = GenerateInt(500, mset);
-  VectorRow vctRow = GenInsertRecords(exprInsert, vctInt);
+  VectorRow vctRow = GenInsertRecords(vctInt);
 
-  uint32_t sid = SessionPool::GenSessionId();
+  uint32_t sid = 0;
   SessionGroup &sGroup = SessionPool::GetVctSessionGroup()[0];
   Session *session = new Session(sid);
   sGroup._mapSession.emplace(sid, session);
@@ -227,7 +224,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
              ResultStatus::FINISHED);
 
   vctInt = GenerateInt(500, mset);
-  vctRow = GenInsertRecords(exprInsert, vctInt);
+  vctRow = GenInsertRecords(vctInt);
   stmtResult._rowNum = 0;
   stmtResult._status.store(ResultStatus::INIT, memory_order_relaxed);
   stmt = new InsertStatement(stmtId++, TXID_NULL, exprInsert, move(vctRow),
@@ -317,7 +314,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
 
   // From 5 tasks to 1 task
   vctInt = GenerateInt(500, mset);
-  vctRow = GenInsertRecords(exprInsert, vctInt);
+  vctRow = GenInsertRecords(vctInt);
   stmtResult._rowNum = 0;
   stmtResult._status.store(ResultStatus::INIT, memory_order_relaxed);
   stmt = new InsertStatement(stmtId++, TXID_NULL, exprInsert, move(vctRow),

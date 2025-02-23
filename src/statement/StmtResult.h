@@ -1,5 +1,6 @@
 #pragma once
 #include "../cache/Mallocator.h"
+#include "../result/CacheResultSet.h"
 #include "../result/IResultSet.h"
 
 namespace storage {
@@ -41,6 +42,17 @@ public:
   }
 
   ResultStatus GetResultStatus() { return _status.load(memory_order_relaxed); }
+
+  void Reset() {
+    _rowNum = 0;
+    _vctError.clear();
+    _vctWarning.clear();
+    if (_resultSet != nullptr) {
+      delete _resultSet;
+      _resultSet = nullptr;
+    }
+    _status.store(ResultStatus::INIT, memory_order_release);
+  }
 
 public:
   atomic<ResultStatus> _status{ResultStatus::INIT};

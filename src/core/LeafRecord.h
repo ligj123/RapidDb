@@ -282,7 +282,7 @@ public:
    */
   inline bool IsStable() {
     if (_recLock == nullptr ||
-        (_recLock->_actType & ActionType::UPDATE_MASK) == 0) {
+        (_recLock->_actType & ActionType::UPDATEABLE_MASK) == 0) {
       return true;
     } else if (_recLock->GetRecordStatus() >= RecordStatus::COMMITED) {
       return true;
@@ -293,6 +293,10 @@ public:
 
   inline bool IsGapLock() { return _recLock != nullptr && _recLock->_bGapLock; }
   inline bool HasOverflowPage() {
+    if (_indexType != IndexType::PRIMARY) {
+      return false;
+    }
+
     uint16_t keyLen = *(uint16_t *)(_bysVal + UI16_LEN);
     return (*(_bysVal + UI16_2_LEN + keyLen) & REC_OVERFLOW) != 0;
   }
@@ -336,6 +340,7 @@ public:
 
     return false;
   }
+
   void GetLength(int32_t &tempLen, int32_t &commitLen) {
     tempLen = GetTotalLength();
     LeafRecord *lr = this;

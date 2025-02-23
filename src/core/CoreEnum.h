@@ -51,7 +51,7 @@ enum ActionType : uint8_t {
 
   READ_LOCK_MASK = 0x11,  // The mask of READ_SHARE, READ_UPDATE
   WRITE_LOCK_MASK = 0xF0, // The mask to know if it has write lock
-  UPDATE_MASK = 0xE0      // The mask of Insert,Update,Delete,UPSERT
+  UPDATEABLE_MASK = 0xE0  // The mask of Insert,Update,Delete,UPSERT
 };
 
 // The record's status
@@ -202,8 +202,8 @@ inline std::ostream &operator<<(std::ostream &os, const ActionType &type) {
   case ActionType::WRITE_LOCK_MASK:
     os << "WRITE_LOCK_MASK(" << (int)ActionType::WRITE_LOCK_MASK << ")";
     break;
-  case ActionType::UPDATE_MASK:
-    os << "UPDATE_MASK(" << (int)ActionType::UPDATE_MASK << ")";
+  case ActionType::UPDATEABLE_MASK:
+    os << "UPDATEABLE_MASK(" << (int)ActionType::UPDATEABLE_MASK << ")";
     break;
   default:
     assert(false);

@@ -136,6 +136,11 @@ public:
 
   MVector<RawRecord *> &GetRecords() { return _vctRecord; }
 
+  void UpdateDataLength(int committedLen, int tempLen) {
+    _committedDataLength += committedLen;
+    _tempDataLength += tempLen;
+  }
+
 protected:
   // Parent page ID
   PageID _parentPageId{0};

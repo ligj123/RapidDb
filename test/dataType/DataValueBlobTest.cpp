@@ -80,7 +80,7 @@ BOOST_AUTO_TEST_CASE(DataValueBlob_test) {
   dv3.SetMinValue();
   BOOST_TEST(dv3.GetBuff()[0] == 0);
   dv3.SetMaxValue();
-  Byte *p = dv3.GetBuff();
+  const Byte *p = dv3.GetBuff();
   BOOST_TEST((p[0] == 0xff && p[1] == 0xff && p[2] == 0xff));
   dv3.SetDefaultValue();
   BOOST_TEST((string)dv3 == "");

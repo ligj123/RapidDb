@@ -480,13 +480,13 @@ int Statement::CalcIndexRanges(IndexTree *idxTree) {
 }
 
 bool Statement::SacnIndex(int rangePos) {
-  assert(rangePos == _midVar->_rangePos);
-  assert(_midVar->_indexPos &&
+  assert(_midVar->_indexPos >= 0 &&
          _midVar->_indexPos <= _midVar->_table->GetVectorIndex().size());
   if (IsStmtFailed()) {
     return true;
   }
 
+  _midVar->_rangePos = rangePos;
   IndexTree *idxTree =
       _midVar->_table->GetVectorIndex()[_midVar->_indexPos]._tree;
   IndexRange &idxRange = idxTree->GetVctRange()[_midVar->_rangePos];
@@ -499,7 +499,11 @@ bool Statement::SacnIndex(int rangePos) {
         _midVar->_midPage = idxRange._startPage;
       } else {
         if (_midVar->_midPage == nullptr) {
-          _midVar->_midPage = idxRange.GetTopPage(*keyRange->_startKey);
+          if (idxTree->GetVctRange().size() > 1) {
+            _midVar->_midPage = idxRange.GetTopPage(*keyRange->_startKey);
+          } else {
+            _midVar->_midPage = idxTree->GetRootPage();
+          }
         }
 
         if (!idxTree->SearchPage(*keyRange->_startKey, _midVar->_midPage)) {

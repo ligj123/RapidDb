@@ -71,7 +71,6 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
                                         memory_order_relaxed);
       }
 
-      sess->_transaction.SetTranStatus(TranStatus::FINISHED);
       _stmtResult->_rowNum = _recordNum;
       _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Finished;
