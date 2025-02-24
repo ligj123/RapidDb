@@ -180,6 +180,12 @@ bool IndexTree::LoadIndexTree(const MString &tableName,
 }
 
 void IndexTree ::Close() {
+  for (IndexRange &idxRange : _vctRange) {
+    assert(idxRange._pageMap.size() == 1 &&
+           idxRange._pageMap.begin()->second->GetPageType() ==
+               PageType::HEAD_PAGE);
+  }
+
   if (_rootPage != nullptr) {
     ReleaseIndexPage(_rootPage);
     _rootPage = nullptr;

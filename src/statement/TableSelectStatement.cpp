@@ -82,18 +82,24 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
     _status = StmtStatus::Executing;
     mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
   } else if (_status == StmtStatus::Executing) {
-    if (_lstStmtRec.size() > 0) {
-      for (auto iter = _lstStmtRec.begin(); iter != _lstStmtRec.end(); iter++) {
-        ActionStatus s = (*iter)->_status.load(memory_order_acquire);
-        if (s == ActionStatus::INIT) {
-          iter++;
-        } else {
-          AddLeafRecords((*iter)->_vctLr);
-          _totalRecNum += (*iter)->_numLeafRecord;
-          delete (*iter);
-          iter = _lstStmtRec.erase(iter);
-        }
+    if (!_bFinished.load(memory_order_acquire)) {
+      return _status;
+    }
+
+    for (auto iter = _lstStmtRec.begin(); iter != _lstStmtRec.end(); iter++) {
+      ActionStatus s = (*iter)->_status.load(memory_order_acquire);
+      if (s == ActionStatus::INIT) {
+        iter++;
+      } else {
+        AddLeafRecords((*iter)->_vctLr);
+        _totalRecNum += (*iter)->_numLeafRecord;
+        delete (*iter);
+        iter = _lstStmtRec.erase(iter);
       }
+    }
+
+    if (_lstStmtRec.size() > 0) {
+      return _status;
     }
 
     if (_lstWaitRecord.size() > 0) {
@@ -107,8 +113,7 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
       }
     }
 
-    if (_lstWaitRecord.size() == 0 && _lstStmtRec.size() == 0 &&
-        _bFinished.load(memory_order_acquire)) {
+    if (_lstWaitRecord.size() == 0 && _lstStmtRec.size() == 0) {
       if (_stmtFailed.load(memory_order_relaxed)) {
         for (auto lr : _lstFinishRecord) {
           lr->GetLock()->_recStatus.store(RecordStatus::ROLLBACKED,
@@ -119,28 +124,18 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
         _stmtResult->SetResultStatus(ResultStatus::FINISHED);
         _status = StmtStatus::Finished;
       } else if (sess->_transaction.IsAutoCommit()) {
-        _status = StmtStatus::Logging;
-        LogTask::AddTransaction(ThreadPool::GetThreadId(),
-                                &(sess->_transaction));
-      } else {
+        for (auto lr : _lstFinishRecord) {
+          lr->GetLock()->_recStatus.store(RecordStatus::FREEED,
+                                          memory_order_relaxed);
+        }
 
-        _stmtResult->_rowNum = _totalRecNum;
-        _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+        _status = StmtStatus::Finished;
+      } else {
         _status = StmtStatus::Executed;
       }
-    }
-  } else if (_status == StmtStatus::Logging) {
-    if (sess->_transaction.IsLogged()) {
-      for (auto lr : _lstFinishRecord) {
-        lr->GetLock()->_recStatus.store(RecordStatus::COMMITED,
-                                        memory_order_relaxed);
-      }
 
-      size_t idxNum =
-          GetExprTableSelect()->_exprTable->_physTable->GetVectorIndex().size();
-      _stmtResult->_rowNum = _totalRecNum;
+      _stmtResult->_rowNum = _stmtResult->_resultSet->GetRowCount();
       _stmtResult->SetResultStatus(ResultStatus::FINISHED);
-      _status = StmtStatus::Finished;
     }
   }
 
@@ -197,14 +192,14 @@ TriBool TableSelectStatement::HandleLeafRecord(LeafPage *page, int pagePos,
     IDataValue *dv = vdv[ecol->_pos];
     if (res == ReadResult::OK_LOCK || !dv->IsArrayType()) {
       vctDv.push_back(dv->AddRef());
-    } else
+    } else {
       vctDv.push_back(dv->Clone(true));
+    }
   }
 
   if (_midVar->_indexPos == 0) {
     _stmtResult->_resultSet->AddRow(move(vctDv));
     if (res == ReadResult::OK_LOCK) {
-
       AddLeafRecord(lr);
     }
   } else {

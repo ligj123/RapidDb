@@ -24,7 +24,8 @@ public:
     }
   }
 
-  virtual void AddRow(VectorDataValue &&vctDv, LeafRecord *lr = nullptr) = 0;
+  virtual void AddRow(VectorDataValue &&vctDv) { abort(); }
+  virtual void AddRow(VectorDataValue &&vctDv, LeafRecord *lr) { abort(); }
   /**
    * Move to the first row if possible
    * @return true if moved to the first row; false if failed to move or not

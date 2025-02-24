@@ -431,6 +431,7 @@ void Statement::SendStmtRecord(int idxPos, int rangePos, PhysTable *table,
   stmtRec->_table = table;
   stmtRec->_stmt = stmt;
   stmtRec->_secLr = lr;
+  _lstStmtRec.push_back(stmtRec);
 
   TableTaskMgr *mgr = table->GetTableTaskMgr();
   StmtSecRecordAction *action =

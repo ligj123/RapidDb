@@ -374,7 +374,7 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
     dvVal.reserve(pPri._vctCol.size());
     for (IndexColumn &ic : pPri._vctCol) {
       PhysColumn &pc = _vctColumn[ic.colPos];
-      dvKey.push_back(DataValueFactory(pc.GetDataType(), pc.GetMaxLength()));
+      dvVal.push_back(DataValueFactory(pc.GetDataType(), pc.GetMaxLength()));
     }
   }
 

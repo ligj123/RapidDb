@@ -21,14 +21,5 @@ public:
                            VectorLeafRecord *vctLeafRec = nullptr) override;
 
   ExprDelete *GetExprDelete() { return dynamic_cast<ExprDelete *>(_exprStmt); }
-
-protected:
-  // If The search index is secondary index, below variable to save the selected
-  // primary key to primary index and used to pick the records.
-  MList<StmtSecRecord *> _lstStmtRec;
-
-  // The total number of updated LeafRecords, only valid when the search index
-  // is secondary index
-  uint32_t _totalRecNum{0};
 };
 } // namespace storage

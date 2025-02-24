@@ -627,6 +627,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree) {
       lr = lr2;
     }
   }
+
   _bDelete = bDel;
   return bDel ? ReleaseResult::DELETED : ReleaseResult::FINISHED;
 }

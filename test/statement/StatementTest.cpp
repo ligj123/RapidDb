@@ -20,8 +20,9 @@
 namespace storage {
 const MString TABLE_NAME = "t1";
 const MString DB_NAME = "testDb";
-static uint32_t stmtId{0};
+static uint32_t StmtId{0};
 static TranID txID{0};
+static uint32_t ExprId{1};
 
 MVector<int> GenerateInt(int send, int num, MTreeSet<int> &mset) {
   std::srand(send);
@@ -59,6 +60,12 @@ VectorRow GenRecords(const MVector<int> &mvct) {
   }
 
   return vctRow;
+}
+
+MString GenMString(int ival) {
+  stringstream ss;
+  ss << "_0x" << std::setfill('0') << std::setw(8) << std::hex << ival;
+  return "VARCHAR_50_" + MString(20, 'a') + ss.str().c_str();
 }
 
 PhysTable *CreateTable(Database *db, const MString &tableName) {
@@ -136,7 +143,7 @@ BOOST_AUTO_TEST_CASE(Statement_Task_test) {
   ExprInsert *exprInst = dynamic_cast<ExprInsert *>(
       CreateExprStatement(db, "insert into t1 values(?,?,?)"));
   StmtResult stmtResult;
-  InsertStatement *stmt = new InsertStatement(stmtId++, TXID_NULL, exprInst,
+  InsertStatement *stmt = new InsertStatement(StmtId++, TXID_NULL, exprInst,
                                               move(vctRow), &stmtResult);
   session->_lstWaittingStmt.push_back(stmt);
   session->Exec();
@@ -179,8 +186,8 @@ BOOST_AUTO_TEST_CASE(Statement_Task_test) {
   int64_t val = (int64_t)vctInt[5] * vctInt[5] + vctInt[5];
   vctParas.push_back({new DataValueLong(val)});
 
-  SessionPool::AddStatement(0, 0, stmtId++, 1, move(msql), move(vctParas),
-                            &stmtResult);
+  SessionPool::AddStatement(0, 0, StmtId++, ExprId++, move(msql),
+                            move(vctParas), &stmtResult);
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
@@ -194,16 +201,93 @@ BOOST_AUTO_TEST_CASE(Statement_Task_test) {
   sGroup._threaPoolQueue.Pop(lst);
   assert(lst.size() == 0);
 
-  s = logTask->Run();
+  BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
+             ResultStatus::FINISHED);
+  BOOST_TEST(stmtResult._resultSet->First());
+
+  VectorDataValue vct;
+  BOOST_TEST(stmtResult._resultSet->GetCurrDataValueRow(vct));
+  BOOST_TEST(vct[0]->GetLong() == val);
+  BOOST_TEST(vct[1]->GetLong() == (int)BytesSwap32(vctInt[5]));
+  BOOST_TEST(GenMString(vctInt[5]) == (MString) * (DataValueVarChar *)vct[2]);
+
+  // Select records with unique key query
+  msql = "select * from t1 where c2=?";
+  vctParas.push_back({new DataValueInt((int)BytesSwap32(vctInt[5]))});
+
+  SessionPool::AddStatement(0, 0, StmtId++, ExprId++, move(msql),
+                            move(vctParas), &stmtResult);
+
+  s = sessTask->Run();
+  BOOST_TEST(s == TaskStatus::INTERVAL);
+
+  s = vctTasks[1][0]->Run();
+  BOOST_TEST(s == TaskStatus::INTERVAL);
+
+  s = vctTasks[0][0]->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement == nullptr);
+
+  BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
+             ResultStatus::FINISHED);
+  BOOST_TEST(stmtResult._resultSet->First());
+
+  vct.clear();
+  BOOST_TEST(stmtResult._resultSet->GetCurrDataValueRow(vct));
+  BOOST_TEST(vct[0]->GetLong() == val);
+  BOOST_TEST(vct[1]->GetLong() == (int)BytesSwap32(vctInt[5]));
+  BOOST_TEST(GenMString(vctInt[5]) == (MString) * (DataValueVarChar *)vct[2]);
+
+  // Select records with nonunique key query
+  msql = "select * from t1 where c3=?";
+  MString ss = GenMString(vctInt[5]);
+  vctParas.push_back({new DataValueVarChar(ss.c_str(), ss.size(), 50)});
+
+  SessionPool::AddStatement(0, 0, StmtId++, ExprId++, move(msql),
+                            move(vctParas), &stmtResult);
+
+  s = sessTask->Run();
+  BOOST_TEST(s == TaskStatus::INTERVAL);
+
+  s = vctTasks[2][0]->Run();
+  BOOST_TEST(s == TaskStatus::INTERVAL);
+
+  s = vctTasks[0][0]->Run();
+  BOOST_TEST(s == TaskStatus::INTERVAL);
+
+  s = sessTask->Run();
+  BOOST_TEST(s == TaskStatus::INTERVAL);
+
+  BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
+             ResultStatus::FINISHED);
+  BOOST_TEST(stmtResult._resultSet->First());
+
+  vct.clear();
+  BOOST_TEST(stmtResult._resultSet->GetCurrDataValueRow(vct));
+  BOOST_TEST(vct[0]->GetLong() == val);
+  BOOST_TEST(vct[1]->GetLong() == (int)BytesSwap32(vctInt[5]));
+  BOOST_TEST(GenMString(vctInt[5]) == (MString) * (DataValueVarChar *)vct[2]);
 
   // Clear
-  CachePagePool::ClearPool();
+  TableTaskMgr::_dtLastWriteDisk = MicroSecTime();
+  vctTasks[0][0]->Run();
+  vctTasks[0][0]->SetStatus(TaskStatus::FINISHED, false);
+  vctTasks[1][0]->Run();
+  vctTasks[1][0]->SetStatus(TaskStatus::FINISHED, false);
+  vctTasks[2][0]->Run();
+  vctTasks[2][0]->SetStatus(TaskStatus::FINISHED, false);
+
+  vector<SessionTask *> &vctSessTask = SessionPool::GetVctSessionTask();
+  for (SessionTask *task : vctSessTask) {
+    task->SetStatus(TaskStatus::FINISHED, false);
+  }
+
+  table->CloseIndex();
+  TableManager::ClearTable();
   DatabaseManager::ClearDB();
+  CachePagePool::ClearPool();
   ThreadPool::SetThreadId(tidOld);
   ThreadPool::CloseMainPool(true);
   FilePagePool::Stop();

@@ -342,18 +342,26 @@ public:
   }
 
   void GetLength(int32_t &tempLen, int32_t &commitLen) {
-    tempLen = GetTotalLength();
+    if (_bDelete ||
+        (_recLock != nullptr && _recLock->_actType == ActionType::DELETE)) {
+      tempLen = 0;
+    } else {
+      tempLen = GetTotalLength() + UI16_LEN;
+    }
+
     LeafRecord *lr = this;
     while (lr->_recLock != nullptr && lr->_recLock->_undoRec != nullptr) {
       lr = lr->_recLock->_undoRec;
     }
 
-    if (lr->IsStable()) {
-      commitLen = lr->GetTotalLength();
-    } else {
+    if (_bDelete || (_recLock != nullptr &&
+                     (_recLock->_actType & ActionType::UPDATEABLE_MASK) != 0)) {
       commitLen = 0;
+    } else {
+      commitLen = lr->GetTotalLength() + UI16_LEN;
     }
   }
+
   size_t Hash() const {
     return BytesHash(_bysVal + UI16_2_LEN, GetKeyLength());
   }

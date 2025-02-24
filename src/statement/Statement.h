@@ -394,8 +394,14 @@ protected:
   ExprStatement *_exprStmt;
   // The parameters for statement
   VectorDataValue _vctPara;
-
+  // To save the variable that are used for multi visit.
   MiddleVar *_midVar{nullptr};
+  // If The search index is secondary index, below variable to save the selected
+  // primary key to primary index and used to pick the records.
+  MList<StmtSecRecord *> _lstStmtRec;
+  // The total number of updated LeafRecords, only valid when the search index
+  // is secondary index
+  uint32_t _totalRecNum{0};
 };
 
 std::ostream &operator<<(std::ostream &os, const StmtStatus &s);

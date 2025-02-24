@@ -7,8 +7,7 @@ class CacheResultSet : public IResultSet {
 public:
   CacheResultSet(MVectorPtr<ExprColumn *> *vctCol) : IResultSet(vctCol) {}
   ~CacheResultSet() {}
-  void AddRow(VectorDataValue &&vctDv, LeafRecord *lr = nullptr) override {
-    assert(lr = nullptr);
+  void AddRow(VectorDataValue &&vctDv) override {
     _vctRow.push_back(move(vctDv));
   }
   bool First() override {
