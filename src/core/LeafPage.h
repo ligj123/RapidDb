@@ -58,24 +58,6 @@ public:
    * @param pos The position for insert.
    */
   void InsertRecord(LeafRecord *lr, int32_t pos);
-  /**
-   * @brief For test aim, if insert fail will put the error message into
-   * _threadErrorMsg
-   * @param lr The leaf record will be inserted
-   * @return True: succeed to insert the record; False: failed to insert and set
-   * the failed reason into ErrorMsg::_threadErrorMsg
-   */
-  // bool InsertRecord(LeafRecord *lr) {
-  //   bool bFind;
-  //   int32_t pos = SearchRecord(*lr, bFind);
-  //   if (bFind) {
-  //     _threadErrorMsg.reset(new ErrorMsg(CORE_REPEATED_RECORD, {}));
-  //     return false;
-  //   }
-
-  //   InsertRecord(lr, pos);
-  //   return true;
-  // }
 
   /**
    * @brief Insert or delete a LeafRecord
@@ -123,11 +105,20 @@ public:
    */
   void LoadRecords() override;
   bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) override;
+  /**
+   * @brief Clear all RecordLock in this page if the locks has been commited or
+   * freed.
+   */
+  void ClearObsoleteLocks();
 
   inline bool IsRangBeginPage() { return _bRangeBeginPage; }
   inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }
   inline bool IsRangEndPage() { return _bRangeEndPage; }
   inline void SetRangeEndPage(bool b) { _bRangeEndPage = b; }
+  inline void SetRecordUpdated() {
+    _bDirty = true;
+    _bRecordUpdated = true;
+  }
 
 protected:
   uint32_t _prevPageId{PAGE_NULL_POINTER};

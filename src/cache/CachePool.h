@@ -84,7 +84,8 @@ public:
       bys = pool->_vctFreeBlock.back();
       pool->_vctFreeBlock.pop_back();
     } else {
-      bys = reinterpret_cast<Byte*>(std::malloc(Configure::GetResultPageSize());
+      bys =
+          reinterpret_cast<Byte *>(std::malloc(Configure::GetResultPageSize()));
       pool->_totalBlockNum++;
     }
 

@@ -82,6 +82,7 @@ public:
   LeafRecord *_secLr;
   Statement *_stmt;
   PhysTable *_table;
+  bool _bReleaseLock; // Need to release _secLr's lock or not
   atomic<ActionStatus> _status{ActionStatus::INIT};
   // The number of LeafRecords that generated for this key
   uint32_t _numLeafRecord{0};
@@ -248,7 +249,7 @@ public:
       : _id(id), _txid(txid), _stmtResult(nullptr), _exprStmt(nullptr) {
     _createTime = MicroSecTime();
   }
-  virtual ~Statement() {}
+  virtual ~Statement() { delete _midVar; }
   /**
    * @brief Return the expression type
    */
@@ -362,7 +363,8 @@ protected:
                              QueryRange *qRange);
 
   void SendStmtRecord(int idxPos, int rangePos, PhysTable *table,
-                      Statement *stmt, LeafRecord *lr, IndexTree *idxTree);
+                      Statement *stmt, LeafRecord *lr, IndexTree *idxTree,
+                      bool bRelRec);
 
 protected:
   // Id will auto increment 1 every time in self session.
@@ -388,9 +390,9 @@ protected:
   MList<LeafRecord *> _lstWaitRecord;
   // The LeafRecords that has been added into LeafPages or have error.
   MList<LeafRecord *> _lstFinishRecord;
-  // Return the result to end user
+  // Return the result to end user, does not need to free.
   StmtResult *_stmtResult;
-  // ExprInsert will be unified managed by a class, do not delete here
+  // ExprStatement will be unified managed by a class, do not delete here
   ExprStatement *_exprStmt;
   // The parameters for statement
   VectorDataValue _vctPara;

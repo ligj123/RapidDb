@@ -29,7 +29,8 @@ public:
     _pool->_readRapidQueue.Push(tid, page, submit);
   }
   static void AddWritePage(uint16_t tid, CachePage *page, bool submit = true) {
-    assert(page->GetPageStatus() == PageStatus::VALID);
+    assert(page->GetPageStatus() == PageStatus::VALID ||
+           page->GetPageStatus() == PageStatus::WRITING);
     page->SetPageStatus(PageStatus::WRITING);
     _pool->_writeRapidQueue.Push(tid, page, submit);
   }

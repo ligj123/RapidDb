@@ -181,7 +181,7 @@ bool IndexTree::LoadIndexTree(const MString &tableName,
 
 void IndexTree ::Close() {
   for (IndexRange &idxRange : _vctRange) {
-    assert(idxRange._pageMap.size() == 1 &&
+    assert(idxRange._pageMap.size() <= 1 &&
            idxRange._pageMap.begin()->second->GetPageType() ==
                PageType::HEAD_PAGE);
   }
@@ -358,12 +358,14 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap) {
   }
 
   for (auto iter = pageMap.begin(); iter != pageMap.end();) {
-    bool block = false;
     bool move = true;
+    bool bReadonly = false;
+
     switch (iter->second->GetPageType()) {
     case PageType::BRANCH_PAGE: {
       BranchPage *page = (BranchPage *)iter->second;
       assert(!page->IsOverlength());
+      bool block = false;
       if (GetSplitPageLevel() < page->GetPageLevel()) {
         block = true;
         page->Lock();
@@ -373,7 +375,9 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap) {
         bool b = page->SaveRecords();
         assert(b);
       }
-
+      if (block) {
+        iter->second->Unlock();
+      }
       break;
     }
     case PageType::LEAF_PAGE: {
@@ -384,6 +388,9 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap) {
         if (!b) {
           move = false;
         }
+      } else {
+        page->ClearObsoleteLocks();
+        bReadonly = true;
       }
       break;
     }
@@ -397,9 +404,9 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap) {
       break;
     }
 
-    FilePagePool::AddWritePage(ThreadPool::GetThreadId(), iter->second, false);
-    if (block) {
-      iter->second->Unlock();
+    if (!bReadonly) {
+      FilePagePool::AddWritePage(ThreadPool::GetThreadId(), iter->second,
+                                 false);
     }
 
     if (move) {

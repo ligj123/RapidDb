@@ -426,11 +426,12 @@ KeyRange Statement::GenIndexSearchKey(IndexTree *idxTree, ExprField *field,
 
 void Statement::SendStmtRecord(int idxPos, int rangePos, PhysTable *table,
                                Statement *stmt, LeafRecord *lr,
-                               IndexTree *idxTree) {
+                               IndexTree *idxTree, bool bRelRec) {
   StmtSecRecord *stmtRec = new StmtSecRecord();
   stmtRec->_table = table;
   stmtRec->_stmt = stmt;
   stmtRec->_secLr = lr;
+  stmtRec->_bReleaseLock = bRelRec;
   _lstStmtRec.push_back(stmtRec);
 
   TableTaskMgr *mgr = table->GetTableTaskMgr();
@@ -537,8 +538,24 @@ bool Statement::SacnIndex(int rangePos) {
             return true;
           }
         } else {
+          if (lr->ReleaseLockAble()) {
+            int32_t commLen1, commLen2, tempLen1, tempLen2;
+            lr->GetLength(tempLen1, commLen1);
+            lr->ReleaseLock(lpage->GetIndexTree());
+            lr->GetLength(tempLen2, commLen2);
+            lpage->UpdateDataLength(commLen2 - commLen1, tempLen2 - tempLen1);
+          }
+
+          SecLockResult slr =
+              lr->SecondaryReadLock(this, ActionType::READ_UPDATE);
+          if (slr == SecLockResult::CONFLICT) {
+            SendErrMsg(move(ErrorMsg(STMT_LOCK_CONFLICT, {}).GetErrorMsg()));
+            SetStmtFailed(true);
+            return true;
+          }
+
           SendStmtRecord(_midVar->_indexPos, rangePos, _midVar->_table, this,
-                         lr, idxTree);
+                         lr, idxTree, slr == SecLockResult::LOCKED);
         }
       }
     } else {
@@ -556,16 +573,30 @@ bool Statement::SacnIndex(int rangePos) {
             return true;
           }
         } else {
+          if (lr->ReleaseLockAble()) {
+            int32_t commLen1, commLen2, tempLen1, tempLen2;
+            lr->GetLength(tempLen1, commLen1);
+            lr->ReleaseLock(lpage->GetIndexTree());
+            lr->GetLength(tempLen2, commLen2);
+            lpage->UpdateDataLength(commLen2 - commLen1, tempLen2 - tempLen1);
+          }
+
+          SecLockResult slr =
+              lr->SecondaryReadLock(this, ActionType::READ_UPDATE);
+          if (slr == SecLockResult::CONFLICT) {
+            SendErrMsg(move(ErrorMsg(STMT_LOCK_CONFLICT, {}).GetErrorMsg()));
+            SetStmtFailed(true);
+            return true;
+          }
+
           SendStmtRecord(_midVar->_indexPos, rangePos, _midVar->_table, this,
-                         lr, idxTree);
+                         lr, idxTree, slr == SecLockResult::LOCKED);
         }
       }
     }
 
-    if (IsStmtFailed()) {
-      SetFinished(true);
-      return true;
-    }
+    lpage->AddWriteQueue(idxRange._pageMap);
+    assert(!IsStmtFailed());
 
     if (bend) {
       _midVar->_keyPos++;
@@ -578,6 +609,7 @@ bool Statement::SacnIndex(int rangePos) {
           TableTaskMgr *mgr = _midVar->_table->GetTableTaskMgr();
           _midVar->_rangePos = idxTree->CalcIndexRange(
               *_midVar->_vctKeyRange[_midVar->_keyPos]._startKey);
+          action->SetRangePos(_midVar->_rangePos);
           mgr->AddIndexRangeAction(_midVar->_indexPos, _midVar->_rangePos,
                                    action);
         }
@@ -592,6 +624,7 @@ bool Statement::SacnIndex(int rangePos) {
         StatementAction *action = new StatementAction(idxTree, this);
         TableTaskMgr *mgr = _midVar->_table->GetTableTaskMgr();
         _midVar->_rangePos++;
+        action->SetRangePos(_midVar->_rangePos);
         mgr->AddIndexRangeAction(_midVar->_indexPos, _midVar->_rangePos,
                                  action);
         return true;

@@ -128,12 +128,11 @@ bool InsertStatement::InitRecord() {
       }
 
       VectorDataValue vctKey;
-      vctKey._bDecrease = false;
       vctKey.reserve(priIndex._vctCol.size());
 
       for (IndexColumn &col : priIndex._vctCol) {
         IDataValue *dv = vctVal[col.colPos];
-        vctKey.push_back(dv);
+        vctKey.push_back(dv->AddRef());
       }
 
       StmtInsertRecord *insr =

@@ -134,12 +134,11 @@ TaskStatus StmtInsertAction::Exec() {
   for (size_t i = 1; i < vctProp.size(); i++) {
     IndexTree *secTree = vctProp[i]._tree;
     VectorDataValue vctKey;
-    vctKey._bDecrease = false;
     vctKey.reserve(vctProp[i]._vctCol.size());
 
     for (IndexColumn &col : vctProp[i]._vctCol) {
       IDataValue *dv = _stmtRecord->_vctParas[col.colPos];
-      vctKey.push_back(dv);
+      vctKey.push_back(dv->AddRef());
     }
 
     LeafRecord *lrSec = new LeafRecord(
@@ -195,8 +194,10 @@ int StmtInsertAction::JudgeRange() {
 
 TaskStatus StmtSecRecordAction::Exec() {
   if (_stmtSecRec->_stmt->IsStmtFailed()) {
-    _stmtSecRec->_secLr->SubmitStatement(*_stmtSecRec->_stmt,
-                                         RecordStatus::FREEED);
+    if (_stmtSecRec->_bReleaseLock) {
+      _stmtSecRec->_secLr->SubmitStatement(*_stmtSecRec->_stmt,
+                                           RecordStatus::FREEED);
+    }
     _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
     return TaskStatus::FINISHED;
   }
@@ -232,33 +233,22 @@ TaskStatus StmtSecRecordAction::Exec() {
          exprType == ExprType::EXPR_DELETE ||
          exprType == ExprType::EXPR_TABLE_SELECT);
 
-  switch (exprType) {
-  case ExprType::EXPR_TABLE_SELECT: {
-    break;
+  TriBool tb = _stmtSecRec->_stmt->HandleLeafRecord(lp, pos, _rangePos,
+                                                    &_stmtSecRec->_vctLr);
+  if (_stmtSecRec->_bReleaseLock) {
+    _stmtSecRec->_secLr->SubmitStatement(*_stmtSecRec->_stmt,
+                                         RecordStatus::FREEED);
   }
-  case ExprType::EXPR_UPDATE: {
-    break;
-  }
-  case ExprType::EXPR_DELETE: {
-    TriBool tb = _stmtSecRec->_stmt->HandleLeafRecord(lp, pos, _rangePos);
-    if (tb == TriBool::Error) {
-      _stmtSecRec->_secLr->SubmitStatement(*_stmtSecRec->_stmt,
-                                           RecordStatus::FREEED);
-      _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_relaxed);
-    } else if (tb == TriBool::False) {
-      _stmtSecRec->_secLr->SubmitStatement(*_stmtSecRec->_stmt,
-                                           RecordStatus::FREEED);
-      _stmtSecRec->_status.store(ActionStatus::SUCEED, memory_order_relaxed);
-    } else {
-      _stmtSecRec->_numLeafRecord = 1;
-      _stmtSecRec->_status.store(ActionStatus::SUCEED, memory_order_relaxed);
-    }
-    break;
-  }
-  default:
-    abort();
+  if (tb == TriBool::Error) {
+    _stmtSecRec->_status.store(ActionStatus::FAILED, memory_order_release);
+  } else if (tb == TriBool::False) {
+    _stmtSecRec->_status.store(ActionStatus::SUCEED, memory_order_release);
+  } else {
+    _stmtSecRec->_numLeafRecord = 1;
+    _stmtSecRec->_status.store(ActionStatus::SUCEED, memory_order_release);
   }
 
+  lp->AddWriteQueue(_indexTree->GetVctRange()[_rangePos]._pageMap);
   return TaskStatus::FINISHED;
 }
 

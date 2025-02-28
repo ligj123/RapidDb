@@ -41,17 +41,17 @@ enum class PageStatus : uint8_t {
 
 // How to operate the record
 enum ActionType : uint8_t {
-  NO_ACTION = 0,      // No Lock for this record
-  READ_SHARE = 0x1,   // Read with read lock
-  READ_UPDATE = 0x10, // Read with write lock
-  INSERT = 0x20,      // Insert this record with write lock
-  UPDATE = 0x30,      // Update this record with write lock
-  DELETE = 0x40,      // Delete this record with write lock
-  UPSERT = 0x80,      // Insert if not exist or update with write lock
+  NO_ACTION = 0,     // No Lock for this record
+  READ_SHARE = 0x1,  // Read with read lock
+  READ_UPDATE = 0x2, // Read with write lock
+  INSERT = 0x10,     // Insert this record with write lock
+  UPDATE = 0x20,     // Update this record with write lock
+  DELETE = 0x40,     // Delete this record with write lock
+  UPSERT = 0x80,     // Insert if not exist or update with write lock
 
-  READ_LOCK_MASK = 0x11,  // The mask of READ_SHARE, READ_UPDATE
-  WRITE_LOCK_MASK = 0xF0, // The mask to know if it has write lock
-  UPDATEABLE_MASK = 0xE0  // The mask of Insert,Update,Delete,UPSERT
+  READ_LOCK_MASK = 0x3,   // The mask of READ_SHARE, READ_UPDATE
+  WRITE_LOCK_MASK = 0xF2, // The mask to know if it has write lock
+  UPDATEABLE_MASK = 0xF0  // The mask of Insert,Update,Delete,UPSERT
 };
 
 // The record's status

@@ -333,10 +333,12 @@ inline int BytesCompare(const Byte *bys1, size_t len1, const Byte *bys2,
   size_t min8 = minLen & 0xFFFFFFFFFFFFFFF8;
   size_t i = 0;
   for (; i < min8; i += 8) {
-    int64_t hr =
-        BytesSwap64(*(uint64_t *)bys1) - BytesSwap64(*(uint64_t *)bys2);
-    if (hr != 0)
-      return hr > 0 ? 1 : -1;
+    uint64_t v1 = BytesSwap64(*(uint64_t *)bys1);
+    uint64_t v2 = BytesSwap64(*(uint64_t *)bys2);
+    if (v1 != v2) {
+      return v1 > v2 ? 1 : -1;
+    }
+
     bys1 += 8;
     bys2 += 8;
   }

@@ -24,7 +24,11 @@ bool Parser::Parse(const MString &sql, ParserResult &result) {
   db__delete_buffer(state, scanner);
   db_lex_destroy(scanner);
 
-  return true;
+  if (!result.IsValid()) {
+    return false;
+  } else {
+    return true;
+  }
 }
 
 bool Parser::Tokenize(const MString &sql, MVector<int16_t> &tokens) {

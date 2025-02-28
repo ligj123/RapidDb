@@ -41,8 +41,20 @@ StmtStatus UpdateStatement::SessionExec(Session *sess) {
         ExprComp *ecmp = dynamic_cast<ExprComp *>((*vctCond)[i]);
         assert(ecmp->_compType == CompType::EQ);
         IDataValue *dv = ecmp->_exprRight->Calc(_vctPara, vEmpty);
-        vctDv[i]->Copy(*dv, true);
-        dv->DecRef();
+        if (dv == nullptr || !vctDv[i]->Copy(*dv, true)) {
+          if (dv != nullptr) {
+            dv->DecRef();
+          }
+
+          _stmtResult->_vctError.push_back(
+              move(_threadErrorMsg->GetErrorMsg()));
+          _stmtResult->_rowNum = 0;
+          SetStmtFailed(true);
+          SetFinished(true);
+          return StmtStatus::Finished;
+        } else {
+          dv->DecRef();
+        }
       }
 
       for (size_t i = vctCond->size(); i < vctDv.size(); i++) {
@@ -79,7 +91,7 @@ StmtStatus UpdateStatement::SessionExec(Session *sess) {
     mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
   } else if (_status == StmtStatus::Executing) {
     if (_lstStmtRec.size() > 0) {
-      for (auto iter = _lstStmtRec.begin(); iter != _lstStmtRec.end(); iter++) {
+      for (auto iter = _lstStmtRec.begin(); iter != _lstStmtRec.end();) {
         ActionStatus s = (*iter)->_status.load(memory_order_acquire);
         if (s == ActionStatus::INIT) {
           iter++;
@@ -162,9 +174,10 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
 
   VectorDataValue vdv;
   ReadResult res =
-      lr->ReadListValue({}, vdv, vctProp[0]._tree, this, ActionType::DELETE);
+      lr->ReadListValue({}, vdv, vctProp[0]._tree, this, ActionType::UPDATE);
 
   if (res != ReadResult::OK_NOLOCK) {
+    assert(res != ReadResult::OK_LOCK);
     _threadErrorMsg.reset(new ErrorMsg(STMT_LOCK_CONFLICT, {}));
     SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));
     return TriBool::Error;
@@ -180,38 +193,79 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
     }
   }
 
+  VectorDataValue vdv2(vdv.size(), nullptr);
+
   for (ExprColumn *ecol : *exprUpdate->_vctCol) {
     IDataValue *dv =
         dynamic_cast<ExprData *>(ecol->_exprElem)->Calc(_vctPara, vdv);
-    vdv[ecol->_pos]->DecRef();
-    vdv[ecol->_pos] = dv;
+    if (dv == nullptr) {
+      SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));
+      return TriBool::Error;
+    }
+
+    vdv2[ecol->_pos] = vdv[ecol->_pos]->Clone(true);
+    vdv[ecol->_pos]->Copy(*dv, true);
+    dv->DecRef();
   }
 
   VersionStamp stamp = vctProp[0]._tree->ApplyStamp(rangePos);
   LeafRecord *lrNew = lr->UpdateRecord(vctProp[0]._tree, vdv, stamp, this,
                                        ActionType::UPDATE, false);
-  MVector<LeafRecord *> vctLr;
+  MVector<pair<int, LeafRecord *>> vctPair;
   bool failed = false;
 
   for (size_t i = 1; i < vctProp.size(); i++) {
     IndexTree *secTree = vctProp[i]._tree;
-    VectorDataValue vctKey;
-    vctKey._bDecrease = false;
+    VectorDataValue vctKey, vctKey2;
     vctKey.reserve(vctProp[i]._vctCol.size());
+    vctKey2.reserve(vctProp[i]._vctCol.size());
+    bool changed = false;
 
     for (IndexColumn &col : vctProp[i]._vctCol) {
-      IDataValue *dv = vdv[col.colPos];
-      vctKey.push_back(dv);
+      vctKey.push_back(vdv[col.colPos]->AddRef());
+      if (vdv2[col.colPos] != nullptr) {
+        changed = true;
+      }
     }
 
-    LeafRecord *lrSec =
-        new LeafRecord(secTree, vctKey, lrNew->GetBysValue() + UI16_2_LEN,
-                       lrNew->GetKeyLength(), ActionType::UPDATE, stamp, this);
-    vctLr.push_back(lrSec);
+    if (changed) {
+      for (IndexColumn &col : vctProp[i]._vctCol) {
+        IDataValue *dv;
+        if (vdv2[col.colPos] != nullptr) {
+          dv = vdv2[col.colPos]->AddRef();
+        } else {
+          dv = vdv[col.colPos]->AddRef();
+        }
 
-    if (!lrSec->IsValid()) {
-      failed = true;
-      break;
+        vctKey2.push_back(dv);
+      }
+
+      LeafRecord *lrSecOld = new LeafRecord(
+          secTree, vctKey2, lrNew->GetBysValue() + UI16_2_LEN,
+          lrNew->GetKeyLength(), ActionType::DELETE, stamp, this);
+      vctPair.push_back(make_pair<>(i, lrSecOld));
+      if (!lrSecOld->IsValid()) {
+        failed = true;
+        break;
+      }
+
+      LeafRecord *lrSecNew = new LeafRecord(
+          secTree, vctKey, lrNew->GetBysValue() + UI16_2_LEN,
+          lrNew->GetKeyLength(), ActionType::INSERT, stamp, this);
+      vctPair.push_back(make_pair<>(i, lrSecNew));
+      if (!lrSecNew->IsValid()) {
+        failed = true;
+        break;
+      }
+    } else {
+      LeafRecord *lrSec = new LeafRecord(
+          secTree, vctKey, lrNew->GetBysValue() + UI16_2_LEN,
+          lrNew->GetKeyLength(), ActionType::UPDATE, stamp, this);
+      vctPair.push_back(make_pair<>(i, lrSec));
+      if (!lrSec->IsValid()) {
+        failed = true;
+        break;
+      }
     }
   }
 
@@ -219,8 +273,8 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
     lrNew->GetLock()->_undoRec = nullptr;
     delete lrNew;
 
-    for (LeafRecord *lr : vctLr) {
-      delete lr;
+    for (auto &pair : vctPair) {
+      delete pair.second;
     }
 
     SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));
@@ -228,21 +282,27 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
   } else {
     MVector<RawRecord *> &vctRec = page->GetRecords();
     vctRec[pagePos] = lrNew;
+    VectorLeafRecord vctLr;
+    vctLr.reserve(vctPair.size() + 1);
+
     TableTaskMgr *mgr = table->GetTableTaskMgr();
-    for (size_t i = 1; i < vctProp.size(); i++) {
-      IndexTree *secTree = vctProp[i]._tree;
-      RecordAction *rAction = new RecordAction(secTree, vctLr[i]);
-      mgr->AddFromPrimaryAction(i, rangePos, rAction);
+    for (auto &pair : vctPair) {
+      IndexTree *secTree = vctProp[pair.first]._tree;
+      RecordAction *rAction = new RecordAction(secTree, pair.second);
+      mgr->AddFromPrimaryAction(pair.first, rangePos, rAction);
+      vctLr.push_back(pair.second);
     }
 
     vctLr.push_back(lrNew);
     if (_midVar->_indexPos == 0) {
       AddLeafRecords(vctLr);
+      _totalRecNum++;
     } else {
       assert(vctLeafRec != nullptr);
       vctLeafRec->swap(vctLr);
     }
 
+    page->SetRecordUpdated();
     return TriBool::True;
   }
 }

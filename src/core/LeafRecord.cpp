@@ -111,6 +111,7 @@ LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
   BytesCopy(bys, bysPri, lenPri);
   bys += lenPri;
   *((uint64_t *)bys) = recStamp;
+  _bDelete = (actType == ActionType::DELETE);
 }
 
 LeafRecord::LeafRecord(IndexTree *idxTree, const VectorDataValue &vctKey,
@@ -296,6 +297,7 @@ LeafRecord *LeafRecord::UpdateRecord(IndexTree *idxTree,
     recStru._arrCrc32[0] = crc32.checksum();
   }
 
+  lrNew->_bDelete = (type == ActionType::DELETE);
   return lrNew;
 }
 
@@ -315,6 +317,7 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
                                      ActionType atype, bool bGapLock) {
   assert(_indexType == IndexType::PRIMARY);
   assert(vctVal.size() == 0);
+  assert(!ReleaseLockAble());
 
   const LeafRecord *lr = this;
 
@@ -687,6 +690,31 @@ MString LeafRecord::GetKeyString() {
   }
 
   return ss;
+}
+
+SecLockResult LeafRecord::SecondaryReadLock(Statement *stmt,
+                                            ActionType actType) {
+  assert(actType == ActionType::READ_SHARE ||
+         actType == ActionType::READ_UPDATE);
+  if (_recLock == nullptr) {
+    _recLock = new RecordLock(actType, RecordStatus::LOCK_ONLY, false,
+                              RecordResult::IN_PAGE, stmt->GetTxId(), stmt);
+    return SecLockResult::LOCKED;
+  } else if (actType == READ_SHARE && _recLock->_actType == READ_SHARE) {
+    for (TranID txid : _recLock->_lstTxid) {
+      if (txid == stmt->GetTxId()) {
+        return SecLockResult::NOLOCK;
+      }
+    }
+
+    _recLock->_lstTxid.push_back(stmt->GetTxId());
+    return SecLockResult::LOCKED;
+  } else if (_recLock->_lstTxid.size() == 1 &&
+             _recLock->_lstTxid.back() == stmt->GetTxId()) {
+    return SecLockResult::NOLOCK;
+  }
+
+  return SecLockResult::CONFLICT;
 }
 
 void RawRecord::PrintKey(bool bchar) {

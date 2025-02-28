@@ -42,8 +42,20 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
         ExprComp *ecmp = dynamic_cast<ExprComp *>((*vctCond)[i]);
         assert(ecmp->_compType == CompType::EQ);
         IDataValue *dv = ecmp->_exprRight->Calc(_vctPara, vEmpty);
-        vctDv[i]->Copy(*dv, true);
-        dv->DecRef();
+        if (dv == nullptr || !vctDv[i]->Copy(*dv, true)) {
+          if (dv != nullptr) {
+            dv->DecRef();
+          }
+
+          _stmtResult->_vctError.push_back(
+              move(_threadErrorMsg->GetErrorMsg()));
+          _stmtResult->_rowNum = 0;
+          SetStmtFailed(true);
+          SetFinished(true);
+          return StmtStatus::Finished;
+        } else {
+          dv->DecRef();
+        }
       }
 
       for (size_t i = vctCond->size(); i < vctDv.size(); i++) {
@@ -79,17 +91,19 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
     _status = StmtStatus::Executing;
     mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
   } else if (_status == StmtStatus::Executing) {
-    if (_lstStmtRec.size() > 0) {
-      for (auto iter = _lstStmtRec.begin(); iter != _lstStmtRec.end(); iter++) {
-        ActionStatus s = (*iter)->_status.load(memory_order_acquire);
-        if (s == ActionStatus::INIT) {
-          iter++;
-        } else {
-          AddLeafRecords((*iter)->_vctLr);
-          _totalRecNum += (*iter)->_numLeafRecord;
-          delete (*iter);
-          iter = _lstStmtRec.erase(iter);
-        }
+    if (!_bFinished.load(memory_order_acquire)) {
+      return _status;
+    }
+
+    for (auto iter = _lstStmtRec.begin(); iter != _lstStmtRec.end();) {
+      ActionStatus s = (*iter)->_status.load(memory_order_acquire);
+      if (s == ActionStatus::INIT) {
+        iter++;
+      } else {
+        AddLeafRecords((*iter)->_vctLr);
+        _totalRecNum += (*iter)->_numLeafRecord;
+        delete (*iter);
+        iter = _lstStmtRec.erase(iter);
       }
     }
 
@@ -104,8 +118,7 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
       }
     }
 
-    if (_lstWaitRecord.size() == 0 && _lstStmtRec.size() == 0 &&
-        _bFinished.load(memory_order_acquire)) {
+    if (_lstWaitRecord.size() == 0 && _lstStmtRec.size() == 0) {
       if (_stmtFailed.load(memory_order_relaxed)) {
         for (auto lr : _lstFinishRecord) {
           lr->GetLock()->_recStatus.store(RecordStatus::ROLLBACKED,
@@ -120,7 +133,6 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
         LogTask::AddTransaction(ThreadPool::GetThreadId(),
                                 &(sess->_transaction));
       } else {
-
         _stmtResult->_rowNum = _totalRecNum;
         _stmtResult->SetResultStatus(ResultStatus::FINISHED);
         _status = StmtStatus::Executed;
@@ -133,8 +145,6 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
                                         memory_order_relaxed);
       }
 
-      size_t idxNum =
-          GetExprDelete()->_exprTable->_physTable->GetVectorIndex().size();
       _stmtResult->_rowNum = _totalRecNum;
       _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Finished;
@@ -185,17 +195,17 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
   LeafRecord *lrNew = lr->UpdateRecord(vctProp[0]._tree, vdv, stamp, this,
                                        ActionType::DELETE, false);
   MVector<LeafRecord *> vctLr;
+  vctLr.push_back(lrNew);
   bool failed = false;
 
   for (size_t i = 1; i < vctProp.size(); i++) {
     IndexTree *secTree = vctProp[i]._tree;
     VectorDataValue vctKey;
-    vctKey._bDecrease = false;
     vctKey.reserve(vctProp[i]._vctCol.size());
 
     for (IndexColumn &col : vctProp[i]._vctCol) {
       IDataValue *dv = vdv[col.colPos];
-      vctKey.push_back(dv);
+      vctKey.push_back(dv->AddRef());
     }
 
     LeafRecord *lrSec =
@@ -211,7 +221,6 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
 
   if (failed) {
     lrNew->GetLock()->_undoRec = nullptr;
-    delete lrNew;
 
     for (LeafRecord *lr : vctLr) {
       delete lr;
@@ -223,6 +232,11 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
     MVector<RawRecord *> &vctRec = page->GetRecords();
     vctRec[pagePos] = lrNew;
 
+    int32_t commLen1, commLen2, tempLen1, tempLen2;
+    lr->GetLength(tempLen1, commLen1);
+    lrNew->GetLength(tempLen2, commLen2);
+    page->UpdateDataLength(commLen2 - commLen1, tempLen2 - tempLen1);
+
     TableTaskMgr *mgr = table->GetTableTaskMgr();
     for (size_t i = 1; i < vctProp.size(); i++) {
       IndexTree *secTree = vctProp[i]._tree;
@@ -230,13 +244,15 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
       mgr->AddFromPrimaryAction(i, rangePos, rAction);
     }
 
-    vctLr.push_back(lrNew);
     if (_midVar->_indexPos == 0) {
       AddLeafRecords(vctLr);
+      _totalRecNum++;
     } else {
-      assert(vctLeafRec != nullptr);
+      assert(vctLeafRec != nullptr && vctLeafRec->size() == 0);
       vctLeafRec->swap(vctLr);
     }
+
+    page->SetRecordUpdated();
     return TriBool::True;
   }
 }

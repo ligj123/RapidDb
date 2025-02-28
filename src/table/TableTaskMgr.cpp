@@ -42,7 +42,7 @@ TaskStatus IndexTask::Run() {
     range._dtLastWriteDisk = TableTaskMgr::_dtLastWriteDisk;
   }
 
-  if (range._queueAction.size() == 0 && range._pageMap.size() == 0) {
+  if (range._queueAction.size() == 0 && range._pageMap.size() < 1) {
     if (_taskMgr->GetMgrStatus() == MgrStatus::SET_STOP) {
       if (range._dtTaskStop == 0) {
         range._dtTaskStop = MicroSecTime();

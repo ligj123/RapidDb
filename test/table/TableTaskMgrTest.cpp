@@ -206,7 +206,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   session->Exec();
   BOOST_TEST(session->_currStatement == nullptr);
 
-  TableTaskMgr::_dtLastWriteDisk = MicroSecTime();
+  TableTaskMgr::_dtLastWriteDisk += 10000;
 
   for (int i = 0; i < 3; i++) {
     s = vctTasks[i][0]->Run();

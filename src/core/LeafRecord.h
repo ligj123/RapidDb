@@ -20,6 +20,12 @@ class Statement;
 class LeafRecord;
 class LeafPage;
 
+enum class SecLockResult {
+  LOCKED = 0, // Passed to lock the secondary record.
+  NOLOCK,  // No need to lock again,it has been lock by other statement in same
+           // transaction.
+  CONFLICT // Locked by other transactions.
+};
 // LeafRecord lock
 struct RecordLock {
   RecordLock(ActionType t, RecordStatus s, bool gapLock, RecordResult recRst,
@@ -236,14 +242,18 @@ public:
    * @brief Only for secondary index, Get the primary key, deep copy.*/
   inline RawKey GetPrimayKey() const {
     int start = GetKeyLength() + UI16_2_LEN;
-    int len = GetTotalLength() - start - UI64_LEN;
+    int len = GetActualLength() - start - UI64_LEN;
     return RawKey(len, _bysVal + start);
   }
 
   inline int CompareTo(const LeafRecord &lr) const {
-    return BytesCompare(
-        _bysVal + UI16_2_LEN, GetTotalLength() - UI16_2_LEN - UI64_LEN,
-        lr._bysVal + UI16_2_LEN, lr.GetTotalLength() - UI16_2_LEN - UI64_LEN);
+    if (_indexType != IndexType::NON_UNIQUE) {
+      return BytesCompare(_bysVal + UI16_2_LEN, GetKeyLength(),
+                          lr.GetBysValue() + UI16_2_LEN, lr.GetKeyLength());
+    } else {
+      return BytesCompare(_bysVal + UI16_2_LEN, GetDataLength(),
+                          lr._bysVal + UI16_2_LEN, lr.GetDataLength());
+    }
   }
 
   inline int CompareKey(const RawKey &key) const {
@@ -267,7 +277,7 @@ public:
     }
   }
 
-  uint16_t GetActualLength() { return *((uint16_t *)_bysVal); }
+  uint16_t GetActualLength() const { return *((uint16_t *)_bysVal); }
 
   inline uint16_t SaveData(Byte *bysPage) {
     assert(_recLock == nullptr);
@@ -378,6 +388,15 @@ public:
 
     return false;
   }
+
+  /**
+   * @brief Add READ_SHARE or READ_UPDATE lock for secondary records when scan
+   * secondary index.
+   * @param stmt The statement to lock this record.
+   * @param actType READ_SHARE or READ_UPDATE
+   * @return
+   */
+  SecLockResult SecondaryReadLock(Statement *stmt, ActionType actType);
 
 protected:
   // To calc a version's value length

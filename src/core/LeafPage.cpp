@@ -62,61 +62,62 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap) {
       _committedDataLength > MAX_DATA_LENGTH_LEAF)
     return false;
 
-  MVector<LeafRecord *> vctLr;
-  vctLr.reserve(_vctRecord.size());
-  _committedDataLength = 0;
-  _tempDataLength = 0;
   bool bClean = true;
+  if (_bRecordUpdated) {
+    MVector<LeafRecord *> vctLr;
+    vctLr.reserve(_vctRecord.size());
+    _committedDataLength = 0;
+    _tempDataLength = 0;
 
-  for (uint16_t i = 0; i < _vctRecord.size(); i++) {
-    LeafRecord *lr = (LeafRecord *)_vctRecord[i];
+    for (uint16_t i = 0; i < _vctRecord.size(); i++) {
+      LeafRecord *lr = (LeafRecord *)_vctRecord[i];
 
-    if (lr->GetLock() != nullptr && lr->ReleaseLockAble()) {
-      _bRecordUpdated = true;
-      ReleaseResult res = lr->ReleaseLock(GetIndexTree());
-      if (res == ReleaseResult::DELETED) {
-        assert(lr->_overflowPage == nullptr);
-        delete lr;
-        _vctRecord.erase(_vctRecord.begin() + i);
-        i--;
-        continue;
-      }
-    }
-
-    if (lr->IsStable()) {
-      int n = lr->GetTotalLength() + UI16_LEN;
-      _tempDataLength += n;
-      _committedDataLength += n;
-    } else {
-      _tempDataLength += lr->GetTotalLength() + UI16_LEN;
-
-      lr = lr->_recLock->_undoRec;
-      while (lr != nullptr) {
-        if (lr->IsStable()) {
-          assert(lr->_recLock == nullptr || lr->_recLock->_undoRec == nullptr);
-          _committedDataLength += lr->GetTotalLength() + UI16_LEN;
-          break;
+      if (lr->ReleaseLockAble()) {
+        ReleaseResult res = lr->ReleaseLock(GetIndexTree());
+        if (res == ReleaseResult::DELETED) {
+          assert(lr->_overflowPage == nullptr);
+          delete lr;
+          _vctRecord.erase(_vctRecord.begin() + i);
+          i--;
+          continue;
         }
+      }
+
+      if (lr->IsStable()) {
+        int n = lr->GetTotalLength() + UI16_LEN;
+        _tempDataLength += n;
+        _committedDataLength += n;
+      } else {
+        _tempDataLength += lr->GetTotalLength() + UI16_LEN;
 
         lr = lr->_recLock->_undoRec;
+        while (lr != nullptr) {
+          if (lr->IsStable()) {
+            assert(lr->_recLock == nullptr ||
+                   lr->_recLock->_undoRec == nullptr);
+            _committedDataLength += lr->GetTotalLength() + UI16_LEN;
+            break;
+          }
+
+          lr = lr->_recLock->_undoRec;
+        }
+
+        bClean = false;
       }
-      bClean = false;
+
+      if (lr != nullptr) {
+        assert(lr->_recLock == nullptr || lr->_recLock->_undoRec == nullptr);
+        vctLr.push_back(lr);
+        if (lr->_overflowPage != nullptr) {
+          lr->_overflowPage->AddWriteQueue(pageMap);
+        }
+      }
     }
 
-    if (lr != nullptr) {
-      assert(lr->_recLock == nullptr || lr->_recLock->_undoRec == nullptr);
-      vctLr.push_back(lr);
-      if (lr->_overflowPage != nullptr) {
-        lr->_overflowPage->AddWriteQueue(pageMap);
-      }
+    if (_committedDataLength > MAX_DATA_LENGTH_LEAF) {
+      return false;
     }
-  }
 
-  if (_committedDataLength > MAX_DATA_LENGTH_LEAF) {
-    return false;
-  }
-
-  if (_bRecordUpdated) {
     Byte *tmp = _bysPage;
     _bysPage = CachePool::ApplyPage();
 
@@ -247,7 +248,7 @@ void LeafPage::UpdateAction(LeafRecord *lr) {
       lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
     }
   } else if (lr->GetAction() == ActionType::DELETE) {
-    assert(bFind);
+    assert(bFind && lr->GetIndexType() != IndexType::PRIMARY);
     LeafRecord *old = (LeafRecord *)_vctRecord[pos];
 
     if (old->IsConflict(lock->TxID(), lock->_actType)) {
@@ -262,7 +263,9 @@ void LeafPage::UpdateAction(LeafRecord *lr) {
       lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
     }
   } else {
-    assert(lr->GetAction() == ActionType::UPSERT);
+    assert(lr->GetAction() == ActionType::UPDATE);
+    assert(lr->GetIndexType() != IndexType::PRIMARY);
+
     if (bFind) {
       LeafRecord *old = (LeafRecord *)_vctRecord[pos];
       if (old->IsConflict(lock->TxID(), lock->_actType)) {
@@ -282,12 +285,6 @@ void LeafPage::UpdateAction(LeafRecord *lr) {
     _bDirty = true;
     _bRecordUpdated = true;
     lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
-  }
-
-  if (lr->GetIndexType() != IndexType::PRIMARY &&
-      lr->GetLock()->_undoRec != nullptr) {
-    lr->GetLock()->_undoRec->SubmitStatement(*lr->GetLock()->_stmt,
-                                             RecordStatus::FREEED);
   }
 }
 
@@ -604,11 +601,13 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
   for (int i = 0; i < vctPage.size(); i++) {
     ((LeafPage *)vctPage[i])->SetRecordUpdated();
     ((LeafPage *)vctPage[i])->SaveRecords(pageMap);
+    ((LeafPage *)vctPage[i])->SetDirty();
     vctPage[i]->AddWriteQueue(pageMap);
   }
 
   SetRecordUpdated();
   SaveRecords(pageMap);
+  SetDirty();
   AddWriteQueue(pageMap);
   _parentPage->SetRecordUpdated();
   _parentPage->AddWriteQueue(pageMap);
@@ -649,6 +648,16 @@ LeafPage *LeafPage::GetNextPage() {
   _nextPage = (LeafPage *)_indexTree->GetPage(_nextPageId, PageType::LEAF_PAGE);
   _nextPage->SetPrevPage(this);
   return _nextPage;
+}
+
+void LeafPage::ClearObsoleteLocks() {
+  for (RawRecord *rr : _vctRecord) {
+    LeafRecord *lr = dynamic_cast<LeafRecord *>(rr);
+    if (lr->ReleaseLockAble()) {
+      assert((lr->GetLock()->_actType & ActionType::READ_LOCK_MASK) != 0);
+      lr->ReleaseLock(_indexTree);
+    }
+  }
 }
 
 } // namespace storage

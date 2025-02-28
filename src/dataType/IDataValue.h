@@ -196,28 +196,25 @@ public:
   using MVector<IDataValue *>::MVector;
 
   VectorDataValue(VectorDataValue &&src) noexcept
-      : MVector<IDataValue *>(move(src)), _bDecrease(src._bDecrease) {}
+      : MVector<IDataValue *>(move(src)) {}
 
   ~VectorDataValue() { clear(); }
 
   VectorDataValue &operator=(VectorDataValue &&src) noexcept {
     clear();
     swap(src);
-    _bDecrease = src._bDecrease;
     return *this;
   }
 
   void clear() {
-    if (_bDecrease) {
-      for (auto iter = begin(); iter != end(); iter++) {
+    for (auto iter = begin(); iter != end(); iter++) {
+      if (*iter != nullptr) {
         (*iter)->DecRef();
       }
     }
 
     erase(begin(), end());
   }
-
-  bool _bDecrease{true}; // Decrease elements' refer count or not
 };
 
 class VectorRow : public MVector<VectorDataValue> {

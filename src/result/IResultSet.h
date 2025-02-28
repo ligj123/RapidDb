@@ -24,6 +24,8 @@ public:
     }
   }
 
+  virtual ~IResultSet() {}
+
   virtual void AddRow(VectorDataValue &&vctDv) { abort(); }
   virtual void AddRow(VectorDataValue &&vctDv, LeafRecord *lr) { abort(); }
   /**

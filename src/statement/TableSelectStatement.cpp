@@ -22,6 +22,7 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
       _threadErrorMsg.reset(new ErrorMsg(EXPR_MISMATCH_COLUMN_VALUE, {}));
       _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
       _stmtResult->_rowNum = 0;
+      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       SetStmtFailed(true);
       SetFinished(true);
       return StmtStatus::Finished;
@@ -45,8 +46,20 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
         ExprComp *ecmp = dynamic_cast<ExprComp *>((*vctCond)[i]);
         assert(ecmp->_compType == CompType::EQ);
         IDataValue *dv = ecmp->_exprRight->Calc(_vctPara, vEmpty);
-        vctDv[i]->Copy(*dv, true);
-        dv->DecRef();
+        if (dv == nullptr || !vctDv[i]->Copy(*dv, true)) {
+          if (dv != nullptr) {
+            dv->DecRef();
+          }
+
+          _stmtResult->_vctError.push_back(
+              move(_threadErrorMsg->GetErrorMsg()));
+          _stmtResult->_rowNum = 0;
+          SetStmtFailed(true);
+          SetFinished(true);
+          return StmtStatus::Finished;
+        } else {
+          dv->DecRef();
+        }
       }
 
       for (size_t i = vctCond->size(); i < vctDv.size(); i++) {
@@ -86,7 +99,7 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
       return _status;
     }
 
-    for (auto iter = _lstStmtRec.begin(); iter != _lstStmtRec.end(); iter++) {
+    for (auto iter = _lstStmtRec.begin(); iter != _lstStmtRec.end();) {
       ActionStatus s = (*iter)->_status.load(memory_order_acquire);
       if (s == ActionStatus::INIT) {
         iter++;
@@ -178,10 +191,14 @@ TriBool TableSelectStatement::HandleLeafRecord(LeafPage *page, int pagePos,
     TriBool tb = exprLogic->Calc(_vctPara, vdv);
     if (tb == TriBool::Error) {
       SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));
-      lr->SubmitStatement(*this, RecordStatus::FREEED);
+      if (res == ReadResult::OK_LOCK) {
+        lr->SubmitStatement(*this, RecordStatus::FREEED);
+      }
       return TriBool::Error;
     } else if (tb == TriBool::False) {
-      lr->SubmitStatement(*this, RecordStatus::FREEED);
+      if (res == ReadResult::OK_LOCK) {
+        lr->SubmitStatement(*this, RecordStatus::FREEED);
+      }
       return TriBool::False;
     }
   }
@@ -198,15 +215,19 @@ TriBool TableSelectStatement::HandleLeafRecord(LeafPage *page, int pagePos,
   }
 
   if (_midVar->_indexPos == 0) {
-    _stmtResult->_resultSet->AddRow(move(vctDv));
     if (res == ReadResult::OK_LOCK) {
       AddLeafRecord(lr);
     }
+
+    _totalRecNum++;
   } else {
     assert(vctLeafRec != nullptr);
-    vctLeafRec->push_back(lr);
+    if (res == ReadResult::OK_LOCK) {
+      vctLeafRec->push_back(lr);
+    }
   }
 
+  _stmtResult->_resultSet->AddRow(move(vctDv));
   return TriBool::True;
 }
 

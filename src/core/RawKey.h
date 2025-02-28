@@ -10,7 +10,7 @@ namespace storage {
 class RawKey {
 public:
   RawKey() : _bysVal(nullptr), _length(0), _bSole(false) {}
-  RawKey(VectorDataValue &vctKey) : _bSole(true) {
+  RawKey(const VectorDataValue &vctKey) : _bSole(true) {
     _length = 0;
     for (size_t i = 0; i < vctKey.size(); i++) {
       _length += vctKey[i]->GetPersistenceLength(SavePosition::KEY);

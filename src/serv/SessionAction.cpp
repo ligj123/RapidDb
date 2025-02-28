@@ -113,7 +113,7 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
     break;
   case ExprType::EXPR_UPDATE:
     stmt = new UpdateStatement(_stmtId, TXID_NULL,
-                               dynamic_cast<ExprUpdate *>(stmt),
+                               dynamic_cast<ExprUpdate *>(exprStmt),
                                move(_vctParas[0]), _stmtResult);
     break;
   case ExprType::EXPR_DELETE:
@@ -141,7 +141,6 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
   }
 
   session->_lstWaittingStmt.push_back(stmt);
-
   return TaskStatus::FINISHED;
 }
 } // namespace storage
