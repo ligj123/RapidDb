@@ -24,48 +24,43 @@ void help() {
 }
 
 int main(int argc, char *argv[]) {
-  // std::cout << "Initialize press test.\n";
-  // fs::path path(ROOT_PATH);
-  // if (!fs::exists(path))
-  //   fs::create_directories(path);
+  std::cout << "Initialize press test.\n";
+  fs::path path(ROOT_PATH);
+  if (!fs::exists(path))
+    fs::create_directories(path);
 
-  // Logger::init("./", ERROR, INFO);
+  Logger::init("./", ERROR, INFO);
 
-  // if (argc <= 1) {
-  //   help();
-  //   exit(0);
-  // }
-  // string str(argv[1]);
-  // transform(str.begin(), str.end(), str.begin(),
-  //           [](unsigned char c) -> unsigned char { return std::tolower(c);
-  //           });
+  if (argc <= 1) {
+    help();
+    exit(0);
+  }
+  string str(argv[1]);
+  transform(str.begin(), str.end(), str.begin(),
+            [](unsigned char c) -> unsigned char { return std::tolower(c); });
 
-  // if (str == "0") {
-  //   storage::ArrayTest();
-  // } else if (str == "1") {
-  //   storage::MutexTest();
-  // } else if (str == "2") {
-  //   storage::TestSingleQueue(argc >= 3 ? atol(argv[2]) : 1000000);
-  // } else if (str == "3") {
-  //   storage::TestSTQueue(argc >= 3 ? atol(argv[2]) : 1000000);
-  // } else if (str == "4") {
-  //   uint16_t threadNum = argc >= 3 ? atol(argv[2]) : 0;
-  //   uint64_t recordNum = argc >= 4 ? atoll(argv[3]) : 0;
-  //   storage::TestFastQueue(threadNum, recordNum);
-  // } else if (str == "11") {
-  //   storage::InsertSpeedPrimaryTest(argc >= 3 ? atol(argv[2]) : 0);
-  // } else if (str == "12") {
-  //   int threadNum = argc >= 3 ? atol(argv[2]) : 0;
-  //   storage::InsertSpeedUniqueTest(argc >= 3 ? atol(argv[2]) : 0);
-  // } else if (str == "13") {
-  //   storage::InsertSpeedNonUniqueTest(argc >= 3 ? atol(argv[2]) : 0);
-  // } else if (str == "21") {
-  //   int threadNum = argc >= 3 ? atol(argv[2]) : 0;
-  //   uint64_t recordNum = argc >= 4 ? atoll(argv[3]) : 0;
-  //   storage::MultiThreadInsertSpeedPrimaryTest(threadNum, recordNum);
-  // } else {
-  //   help();
-  // }
+  if (str == "0") {
+    storage::ArrayTest();
+  } else if (str == "1") {
+    storage::MutexTest();
+  } else if (str == "2") {
+  } else if (str == "3") {
+  } else if (str == "4") {
+
+  } else if (str == "11") {
+    storage::TablePointTest(1, 1, 1, 1, 2, 2000, 10000);
+  } else if (str == "12") {
+    // int threadNum = argc >= 3 ? atol(argv[2]) : 0;
+    // storage::InsertSpeedUniqueTest(argc >= 3 ? atol(argv[2]) : 0);
+  } else if (str == "13") {
+    // storage::InsertSpeedNonUniqueTest(argc >= 3 ? atol(argv[2]) : 0);
+  } else if (str == "21") {
+    // int threadNum = argc >= 3 ? atol(argv[2]) : 0;
+    // uint64_t recordNum = argc >= 4 ? atoll(argv[3]) : 0;
+    // storage::MultiThreadInsertSpeedPrimaryTest(threadNum, recordNum);
+  } else {
+    help();
+  }
 
   exit(0);
 }

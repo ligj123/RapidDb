@@ -20,6 +20,7 @@ target_link_libraries(PressTest
   Boost::locale
   Boost::stacktrace_backtrace
   backtrace
+  aio
   ${CMAKE_DL_LIBS}
   ${CMAKE_THREAD_LIBS_INIT}
 )

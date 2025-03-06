@@ -10,6 +10,7 @@ const uint16_t IndexPage::MAX_DATA_LENGTH_BRANCH =
                sizeof(uint32_t));
 
 void BranchPage::InitParameters() {
+  _score = 10000;
   _recordNum = ReadShort(NUM_RECORD_OFFSET);
   _committedDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
   _parentPageId = ReadInt(PARENT_PAGE_POINTER_OFFSET);

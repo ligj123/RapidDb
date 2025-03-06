@@ -12,12 +12,14 @@ const uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 12;
 const uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 16;
 const uint16_t LeafPage::DATA_BEGIN_OFFSET = 20;
 const uint16_t IndexPage::MAX_DATA_LENGTH_LEAF =
-    (uint16_t)(INDEX_PAGE_SIZE - LeafPage::DATA_BEGIN_OFFSET - UI32_LEN);
+    (uint16_t)(Configure::GetIndexPageSize() - LeafPage::DATA_BEGIN_OFFSET -
+               UI32_LEN);
 
 LeafPage::~LeafPage() { ClearRecords(); }
 
 void LeafPage::InitParameters() {
   assert(!_bDirty);
+  _score = 100;
   _recordNum = ReadShort(NUM_RECORD_OFFSET);
   _committedDataLength = _tempDataLength = ReadShort(TOTAL_DATA_LENGTH_OFFSET);
   _parentPageId = ReadInt(PARENT_PAGE_POINTER_OFFSET);

@@ -1,4 +1,5 @@
 #include "SessionPool.h"
+#include "../statement/StmtResult.h"
 
 #include <bit>
 
@@ -132,7 +133,7 @@ TaskStatus SessionAdjustTask::Run() {
 }
 
 bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,
-                           uint16_t restartNum, uint16_t outsiteThreadNum,
+                           uint16_t restartNum, uint16_t userThreadNum,
                            ThreadPool *threadPool) {
   // Make sure it is this method is only called one time
   assert(_vctGroup.size() == 0);
@@ -147,7 +148,7 @@ bool SessionPool::InitPool(uint16_t groupNum, uint16_t taskNum,
 
   for (uint64_t i = 0; i < groupNum; i++) {
     _vctGroup.emplace_back(i, 0, restartNum, threadPool->GetMaxThreads(),
-                           outsiteThreadNum);
+                           userThreadNum);
     SessionGroup &group = _vctGroup[i];
 
     if (i % num == 0) {
@@ -179,6 +180,8 @@ void SessionPool::CloseSession(uint16_t outerTid, uint32_t sid,
 void SessionPool::AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
                                uint32_t exprId, MString &&sql,
                                VectorRow &&paras, StmtResult *result) {
+  result->Reset();
+  result->_status.store(ResultStatus::FILLING, memory_order_relaxed);
   SessionStatementAction *action = new SessionStatementAction(
       sid, stmtId, exprId, move(sql), move(paras), result);
   _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outerTid, action);

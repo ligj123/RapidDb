@@ -103,7 +103,7 @@ protected:
 class SessionPool {
 public:
   static bool InitPool(uint16_t groupNum, uint16_t taskNum, uint16_t restartNum,
-                       uint16_t outsiteThreadNum, ThreadPool *threadPool);
+                       uint16_t userThreadNum, ThreadPool *threadPool);
 
   static uint32_t CreateSession(uint16_t outerTid, StmtResult *result);
   static void CloseSession(uint16_t outerTid, uint32_t sessionId,

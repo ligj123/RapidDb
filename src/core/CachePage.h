@@ -61,11 +61,17 @@ public:
   }
   // If need save the page into CachePagePool, implement this method in child
   // class. It will calculate the score to decide to release which pages.
-  virtual uint32_t CalcScore() {
-    assert(false);
+  uint32_t CalcScore() {
+    if (_bRefered) {
+      if (_score < 30000)
+        _score *= 1.5;
+    } else {
+      if (_score > 5) {
+        _score *= 0.66;
+      }
+    }
     return _score;
   }
-  inline uint32_t GetScore() const { return _score; }
 
   inline bool IsDirty() const { return _bDirty; }
   inline void SetDirty(bool b = true) { _bDirty = b; }

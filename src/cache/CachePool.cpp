@@ -28,7 +28,7 @@ CachePool *CachePool::_gCachePool = []() { return new CachePool; }();
 #ifdef CACHE_TRACE
 SpinMutex CachePool::_spinTrace;
 unordered_map<uint64_t, string> CachePool::_mapApply;
-bool CachePool::_bWriteLog{false};
+bool CachePool::_bWriteLog{true};
 
 fstream CreateStream() {
   if (!CachePool::_bWriteLog) {

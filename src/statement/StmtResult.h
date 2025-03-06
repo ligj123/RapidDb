@@ -56,6 +56,7 @@ public:
 
 public:
   atomic<ResultStatus> _status{ResultStatus::INIT};
+  bool _bFailed{false};
   // The id of session that result belong to
   uint32_t _sessionId;
   // The result id, start from 0, every time increase 1 in this session.

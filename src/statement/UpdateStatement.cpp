@@ -123,6 +123,7 @@ StmtStatus UpdateStatement::SessionExec(Session *sess) {
                                           memory_order_relaxed);
         }
 
+        _stmtResult->_bFailed = true;
         _stmtResult->_rowNum = 0;
         _stmtResult->SetResultStatus(ResultStatus::FINISHED);
         _status = StmtStatus::Finished;

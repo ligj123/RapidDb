@@ -12,10 +12,33 @@ uint64_t CachePagePool::_maxCacheSize =
 unordered_map<uint64_t, IndexPage *>
     CachePagePool::_mapCache(CachePagePool::_maxCacheSize);
 SpinMutex CachePagePool::_spinMutex;
-atomic_bool CachePagePool::_urgentTask{false};
-thread *CachePagePool::_thread{nullptr};
-bool CachePagePool::_bStoped{false};
-uint64_t CachePagePool::_countPool{0};
+uint64_t CachePagePool::_midPage{UINT64_MAX};
+CachePagePoolTask *CachePagePoolTask::_instance{nullptr};
+
+void CachePagePoolTask::Init(ThreadPool *tpool) {
+  _instance = new CachePagePoolTask();
+  _instance->_dtLastVisit = MicroSecTime();
+  tpool->AddTask(_instance);
+}
+
+TaskStatus CachePagePoolTask::Run() {
+  DT_MicroSec dt = MicroSecTime();
+  DT_MicroSec span = dt - _dtLastVisit;
+
+  MemoryStatus status = CachePool::GetMemoryStatus();
+  if (!_bStoped && span > 1000 + 1000 * pow(4, 4 - (int)status)) {
+    return TaskStatus::INTERVAL;
+  }
+  _taskStatus.store(TaskStatus::RUNNING, memory_order_relaxed);
+  CachePagePool::PoolManage(status);
+  if (_bStoped && CachePagePool::_mapCache.size() == 0) {
+    _taskStatus.store(TaskStatus::FINISHED, memory_order_relaxed);
+    return TaskStatus::FINISHED;
+  } else {
+    _taskStatus.store(TaskStatus::INTERVAL, memory_order_relaxed);
+    return TaskStatus::INTERVAL;
+  }
+}
 
 void CachePagePool::AddPage(IndexPage *page) {
   unique_lock<SpinMutex> lock(_spinMutex);
@@ -29,7 +52,7 @@ void CachePagePool::AddPages(MVector<IndexPage *> &vctPage) {
   }
 }
 
-IndexPage *CachePagePool::GetPage(IndexTree *idxTree, uint32_t pageId,
+IndexPage *CachePagePool::GetPage(IndexTree *idxTree, PageID pageId,
                                   PageType type) {
   unique_lock<SpinMutex> lock(_spinMutex);
   uint64_t hashId = CachePage::CalcHashCode(idxTree->GetFileId(), pageId);
@@ -53,23 +76,36 @@ IndexPage *CachePagePool::GetPage(IndexTree *idxTree, uint32_t pageId,
   }
 }
 
-void CachePagePool::InitPool() {
-  assert(_thread == nullptr);
-  _thread = new thread([]() {
-    while (!_bStoped) {
-      this_thread::sleep_for(1us);
-      PoolManage();
+MVector<IndexPage *> CachePagePool::GetPages(IndexTree *idxTree, PageType type,
+                                             MVector<PageID> &vctPageId) {
+  unique_lock<SpinMutex> lock(_spinMutex);
+  assert(vctPageId.size() > 0);
+  MVector<IndexPage *> vctPage;
+  vctPage.reserve(vctPageId.size());
+
+  for (PageID pid : vctPageId) {
+    uint64_t hashId = CachePage::CalcHashCode(idxTree->GetFileId(), pid);
+    auto iter = _mapCache.find(hashId);
+    if (iter == _mapCache.end()) {
+      IndexPage *page;
+      if (type == PageType::LEAF_PAGE) {
+        page = new LeafPage(idxTree, pid);
+      } else {
+        assert(type == PageType::BRANCH_PAGE);
+        page = new BranchPage(idxTree, pid);
+      }
+
+      idxTree->IncPages();
+      page->SetReferred(true);
+      _mapCache.emplace(hashId, page);
+      vctPage.push_back(page);
+    } else {
+      iter->second->SetReferred(true);
+      vctPage.push_back(iter->second);
     }
-  });
-}
+  }
 
-void CachePagePool::StopPool() {
-  assert(_thread != nullptr);
-  _bStoped = true;
-  _thread->join();
-  _thread = nullptr;
-
-  ClearPool();
+  return vctPage;
 }
 
 void CachePagePool::ClearPool() {
@@ -83,55 +119,34 @@ void CachePagePool::ClearPool() {
   _mapCache.clear();
 }
 
-void CachePagePool::PoolManage() {
-  _countPool++;
-  bool pass = false;
-  if (_urgentTask.load(memory_order_relaxed)) {
-    _urgentTask.store(false, memory_order_relaxed);
-    pass = true;
-  } else if (_countPool % 100000 != 0) {
-    return;
-  }
-
-  MemoryStatus status = CachePool::GetMemoryStatus();
-  if (!pass &&
-      (status == MemoryStatus::FATAL ||
-       (status == MemoryStatus::CRITICAL && _countPool % 1000000 == 0) ||
-       _countPool % 10000000 == 0)) {
-    pass = true;
-  }
-  if (!pass)
-    return;
-
+void CachePagePool::PoolManage(MemoryStatus status) {
   // The min score that a page can exist in CachePagePool
   uint32_t min_score;
   switch (status) {
   case MemoryStatus::AMPLE:
-    min_score = 1000;
+    min_score = 30;
     break;
   case MemoryStatus::SCARE:
-    min_score = 100000;
+    min_score = 1000;
     break;
   case MemoryStatus::CRITICAL:
-    min_score = 10000000;
+    min_score = 30000;
     break;
   case MemoryStatus::FATAL:
   default:
-    min_score = UINT32_MAX;
+    min_score = UINT16_MAX;
     break;
   }
 
-  int delCount = 0;
-  forward_list<CachePage *> flist;
-
-  for (auto iter = _mapCache.begin(); iter != _mapCache.end(); iter++) {
+  MList<CachePage *> lst;
+  unique_lock<SpinMutex> lock(_spinMutex);
+  auto iter =
+      (_midPage == UINT64_MAX ? _mapCache.begin() : _mapCache.find(_midPage));
+  uint64_t cnt = 0;
+  for (; iter != _mapCache.end() && cnt < 100000; iter++) {
+    cnt++;
     CachePage *page = iter->second;
-    uint32_t score;
-    if (_countPool % 10000000) {
-      score = page->GetScore();
-    } else {
-      score = page->CalcScore();
-    };
+    uint32_t score = page->CalcScore();
 
     if (!page->Releaseable()) {
       continue;
@@ -141,23 +156,27 @@ void CachePagePool::PoolManage() {
       continue;
     }
 
-    flist.push_front(page);
+    lst.push_back(page);
   }
 
-  if (flist.empty())
+  if (iter == _mapCache.end()) {
+    _midPage = iter->first;
+  } else {
+    _midPage = UINT64_MAX;
+  }
+
+  if (lst.empty())
     return;
 
-  {
-    unique_lock<SpinMutex> lock(_spinMutex);
-
-    for (CachePage *page : flist) {
-      page->GetIndexTree()->DecPages();
-      _mapCache.erase(page->HashCode());
-    }
+  for (CachePage *page : lst) {
+    page->GetIndexTree()->DecPages();
+    _mapCache.erase(page->HashCode());
   }
 
+  lock.unlock();
+
   LOG_INFO << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()
-           << "\tRemoved page:" << delCount;
+           << "\tRemoved page:" << lst.size();
 }
 
 } // namespace storage

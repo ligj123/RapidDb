@@ -120,7 +120,6 @@ public:
   }
   // Delete this task or not after this task has finished
   virtual bool IsNeedDelete() { return false; }
-  virtual bool IsCycleTask() { return true; }
   inline uint32_t GetTaskMask() { return _taskMask; }
 
 protected:
@@ -130,7 +129,7 @@ protected:
   bool _bExclusive{false}; // To occupy a thread entirely or not
   atomic<TaskStatus> _taskStatus{TaskStatus::UNINIT};
   // If the tasks has same mask, they will try to avoid to hand out them into
-  // one thread. If equal 0, means it does not to avoid it.
+  // one thread. If equal 0, means it does not to consider it.
   uint32_t _taskMask{0};
   // The count of current exclusive tasks,it must less than _maxThreads in
   // thread pool

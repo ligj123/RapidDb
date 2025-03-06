@@ -72,7 +72,6 @@ protected:
   CcProtocol _ccProtocol{CcProtocol::OCC};
   // The log has been wrote into log files or not
   atomic_bool _bLogged{false};
-  bool _bDdlStmt{false};
 };
 
 } // namespace storage
