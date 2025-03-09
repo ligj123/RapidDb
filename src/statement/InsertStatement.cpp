@@ -9,7 +9,7 @@ namespace storage {
 StmtStatus InsertStatement::SessionExec(Session *sess) {
   if (_status == StmtStatus::Created) {
     if (InitRecord())
-      return StmtStatus::Executing;
+      return StmtStatus::Finished;
   } else if (_status == StmtStatus::Executing) {
     if (_lstRecord.size() > 0) {
       for (auto iter = _lstRecord.begin(); iter != _lstRecord.end();) {

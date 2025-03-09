@@ -181,6 +181,9 @@ TriBool TableSelectStatement::HandleLeafRecord(LeafPage *page, int pagePos,
 
   VectorDataValue vdv;
   ReadResult res = lr->ReadListValue({}, vdv, vctProp[0]._tree, this, aType);
+  if (res == ReadResult::REC_DELETE) {
+    return TriBool::False;
+  }
 
   if (res != ReadResult::OK_NOLOCK && res != ReadResult::OK_LOCK) {
     _threadErrorMsg.reset(new ErrorMsg(STMT_LOCK_CONFLICT, {}));

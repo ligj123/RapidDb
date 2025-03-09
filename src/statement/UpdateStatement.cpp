@@ -176,6 +176,9 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
   VectorDataValue vdv;
   ReadResult res =
       lr->ReadListValue({}, vdv, vctProp[0]._tree, this, ActionType::UPDATE);
+  if (res == ReadResult::REC_DELETE) {
+    return TriBool::False;
+  }
 
   if (res != ReadResult::OK_NOLOCK) {
     assert(res != ReadResult::OK_LOCK);
@@ -193,6 +196,9 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
       return TriBool::False;
     }
   }
+
+  // LOG_INFO << "Upt: " << _id << "\t" << _stmtResult->_rowNum << "\t"
+  //          << vdv[0]->GetLong();
 
   VectorDataValue vdv2(vdv.size(), nullptr);
 
@@ -272,10 +278,11 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
 
   if (failed) {
     lrNew->GetLock()->_undoRec = nullptr;
+    lrNew->RleaseOverflowPage(vctProp[0]._tree, true);
     delete lrNew;
 
     for (auto &pair : vctPair) {
-      delete pair.second;
+      LeafRecord::FreeRecord(pair.second, true);
     }
 
     SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));

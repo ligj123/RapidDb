@@ -78,17 +78,6 @@ ThreadPool::~ThreadPool() {
 
   _threadMgr->join();
   delete _threadMgr;
-
-  for (int i = 0; i < _maxThreads; i++) {
-    ThreadPara &tpara = _vctThreadPara[i];
-    if (!tpara._bRunning.load(memory_order_relaxed)) {
-      continue;
-    }
-
-    tpara._thread->join();
-    delete tpara._thread;
-  }
-
   assert(_queueTask.size() == 0 && _rapidTaskQueue.IsEmpty());
 }
 
@@ -155,15 +144,25 @@ void ThreadPool::ManageProc() {
   int32_t stopTryTime = 10;
   while (true) {
     if (IsStoped()) {
-      stopTryTime--;
-      if (stopTryTime <= 0) {
+      if (stopTryTime == 10) {
         for (int32_t i = 0; i < _maxThreads; i++) {
           _vctThreadPara[i]._bStop = true;
         }
 
         _aliveThreads = 0;
-        break;
+      } else if (stopTryTime < 0) {
+        bool stoped = true;
+        for (int32_t i = 0; i < _maxThreads; i++) {
+          if (_vctThreadPara[i]._bRunning.load(memory_order_relaxed)) {
+            stoped = false;
+          }
+        }
+
+        if (stoped) {
+          break;
+        }
       }
+      stopTryTime--;
     }
 
     _nowMicroSec = chrono::duration_cast<chrono::microseconds>(
@@ -268,8 +267,10 @@ void ThreadPool::ManageProc() {
 
           if (_vctThreadPara[idx]._bStop ||
               _vctThreadPara[idx]._bExclusiveTask) {
-            idx++;
-            continue;
+            if (!_stopThreads.load(memory_order_relaxed)) {
+              idx++;
+              continue;
+            }
           }
 
           if (ring == 0 &&
@@ -293,7 +294,7 @@ void ThreadPool::ManageProc() {
       }
     }
 
-    this_thread::yield();
+    this_thread::sleep_for(10us);
   }
 }
 
@@ -427,12 +428,10 @@ void ThreadPool::WorkProc(uint16_t tid) {
     }
   }
 
-  if (!_stopThreads.load(memory_order_relaxed)) {
-    tpara._thread->detach();
-    delete tpara._thread;
-    tpara._thread = nullptr;
-    tpara._bRunning.store(false, memory_order_release);
-  }
+  tpara._bRunning.store(false, memory_order_release);
+  tpara._thread->detach();
+  delete tpara._thread;
+  tpara._thread = nullptr;
 
   LOG_INFO << "Stop thread in thread pool, Name = " << _threadName;
 }

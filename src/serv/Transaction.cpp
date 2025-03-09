@@ -13,9 +13,6 @@ void Transaction::StartTransaction(bool bAuto, IsoLevel isoLevel,
     _tranStatus = TranStatus::IN_TRAN;
   }
 
-  _isoLevel = isoLevel;
-  _ccProtocol = ccProtocol;
-
   vector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
   SessionGroup &sGroup = vctGroup[_session->_id % vctGroup.size()];
   _tid = sGroup._currTranId;
@@ -25,6 +22,9 @@ void Transaction::StartTransaction(bool bAuto, IsoLevel isoLevel,
     sGroup._currTranId++;
   }
 
+  _isoLevel = isoLevel;
+  _ccProtocol = ccProtocol;
+  _bLogged.store(false, memory_order_relaxed);
   _startTime = MicroSecTime();
 }
 

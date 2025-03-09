@@ -1,5 +1,6 @@
 #pragma once
 #include "../core/CachePage.h"
+#include "../utils/Log.h"
 #include "../utils/RapidQueue.h"
 #include "../utils/SpinMutex.h"
 #include <thread>
@@ -29,8 +30,8 @@ public:
     _pool->_readRapidQueue.Push(tid, page, submit);
   }
   static void AddWritePage(uint16_t tid, CachePage *page, bool submit = true) {
-    assert(page->GetPageStatus() == PageStatus::VALID ||
-           page->GetPageStatus() == PageStatus::WRITING);
+    PageStatus s = page->GetPageStatus();
+    assert(s == PageStatus::VALID || s == PageStatus::WRITING);
     page->SetPageStatus(PageStatus::WRITING);
     _pool->_writeRapidQueue.Push(tid, page, submit);
   }

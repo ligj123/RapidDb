@@ -502,7 +502,8 @@ bool Statement::SacnIndex(int rangePos) {
       } else {
         if (_midVar->_midPage == nullptr) {
           if (idxTree->GetVctRange().size() > 1) {
-            _midVar->_midPage = idxRange.GetTopPage(*keyRange->_startKey);
+            _midVar->_midPage = idxRange.GetTopPage(idxTree->GetIndexType(),
+                                                    *keyRange->_startKey);
           } else {
             _midVar->_midPage = idxTree->GetRootPage();
           }

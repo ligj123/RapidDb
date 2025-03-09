@@ -6,7 +6,8 @@
 
 namespace storage {
 const uint16_t IndexPage::LOAD_FACTOR = 90;
-const uint32_t IndexPage::LOAD_THRESHOLD = CachePage::INDEX_PAGE_SIZE * 5;
+const uint32_t IndexPage::LOAD_THRESHOLD =
+    (uint32_t)Configure::GetIndexPageSize() * 5;
 const uint16_t IndexPage::PAGE_LEVEL_OFFSET = 0;
 const uint16_t IndexPage::PAGE_BEGIN_END_OFFSET = 1;
 const uint16_t IndexPage::PAGE_TRAN_COUNT_OFFSET = 2;

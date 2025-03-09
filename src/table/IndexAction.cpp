@@ -79,7 +79,7 @@ TaskStatus RecordAction::Exec() {
   LeafPage *lp = (LeafPage *)_idxPage;
   lp->UpdateAction(_lr);
   if (_lr->GetLock()->_recResult == RecordResult::ERROR) {
-    _indexTree->GetVctRange()[_rangePos]._vctErrRecord.push_back(_lr);
+    _indexTree->GetVctRange()[_rangePos]._lstErrRecord.push_back(_lr);
   } else {
     lp->AddWriteQueue(_indexTree->GetVctRange()[_rangePos]._pageMap);
     if (lp->NeedForceSplit()) {
@@ -153,8 +153,10 @@ TaskStatus StmtInsertAction::Exec() {
   }
 
   if (failed) {
+    lrPri->RleaseOverflowPage(vctProp[0]._tree, true);
+
     for (LeafRecord *lr : vctLr) {
-      delete lr;
+      LeafRecord::FreeRecord(lr, true);
     }
 
     vctLr.clear();

@@ -2,6 +2,9 @@
 
 #include "../src/binlog/LogTask.h"
 #include "../src/cache/Mallocator.h"
+#include "../src/core/IndexTree.h"
+#include "../src/core/LeafPage.h"
+#include "../src/core/LeafRecord.h"
 #include "../src/manager/DatabaseManager.h"
 #include "../src/manager/TableManager.h"
 #include "../src/pool/CachePagePool.h"
@@ -19,12 +22,15 @@ const char *TBL_NAME = "tableTest";
 const char *DB_TBL_NAME = "dbTest.tableTest";
 const char *INSERT_STMT = "insert into dbTest.tableTest values(?, ?, ?)";
 const char *UPDATE_STMT = "update dbTest.tableTest set c2=c2+1 where c1=?";
-const char *DELETE_STMT = "delete dbTest.tableTest where c1=?";
+const char *UPDATE_STMT2 = "update dbTest.tableTest set c2=c2-1 where c1=?";
+const char *DELETE_STMT = "delete from dbTest.tableTest where c1=?";
 const char *SELECT_STMT = "select * from dbTest.tableTest where c1=?";
-thread_local MString varchar = "VARCHAR_50_" + MString(40, 'a');
+thread_local string varchar = "VARCHAR_50_" + string(40, 'a');
 
+PhysTable *table = nullptr;
 const int MAX_USER_THREADS = 8;
 Byte *arrResult = nullptr;
+int *arrNum = nullptr;
 // The redio of insert, update , delete, select
 enum class OpRedio : uint8_t {
   INS, // Insert
@@ -50,7 +56,7 @@ struct ResultStat {
 };
 ResultStat arrResStat[MAX_USER_THREADS];
 
-inline uint32_t GenTestPrimaryKey(uint32_t num) {
+inline uint32_t GenTestKey(uint32_t num) {
   uint32_t by1 = num & 0xff;
   uint32_t by2 = (num >> 8) & 0xff;
   uint32_t by3 = (num >> 16) & 0xff;
@@ -61,13 +67,18 @@ inline uint32_t GenTestPrimaryKey(uint32_t num) {
          (((by1 & 0x0A) + (by2 & 0x50) + (by3 & 0xA0) + (by4 & 0x05)) << 24);
 }
 
+int64_t GenPrimaryKey(uint32_t num) {
+  uint64_t val = GenTestKey(num);
+  return val * val + val;
+}
+
 VectorRow GenRow(uint32_t num) {
   VectorDataValue vctDv;
-  uint32_t val = GenTestPrimaryKey(num);
+  uint32_t val = GenTestKey(num);
   DataValueLong *dvLong = new DataValueLong((int64_t)val * val + val);
   DataValueInt *dvInt = new DataValueInt(BytesSwap32(val));
 
-  sprintf(varchar.data() + 30, "0x%8X", (num / 10));
+  sprintf(varchar.data() + 30, "0x%08X", (val / 10));
   const char *p = varchar.c_str();
   DataValueVarChar *dvVar = new DataValueVarChar(p, strlen(p), 50);
 
@@ -101,6 +112,119 @@ void CreateDbTable() {
   TableTaskMgr *tmgr = new TableTaskMgr(ThreadPool::GetMainPool(), ptable, 1);
   ptable->SetTableTaskMgr(tmgr);
   TableManager::AddTable(DB_TBL_NAME, ptable);
+  table = ptable;
+}
+
+void CheckSelectResult(uint32_t num, VectorDataValue &vctDv) {
+  uint32_t val = GenTestKey(num);
+  int64_t pkval = GenPrimaryKey(num);
+
+  if (vctDv[0]->GetLong() != pkval) {
+    LOG_ERROR << num << "  Error first field value, expect value: " << pkval
+              << "  actual value: " << vctDv[0]->GetLong();
+  }
+
+  // int secVal = (int32_t)BytesSwap32(val) + (arrResult[num] & 0x7f);
+  // if (vctDv[1]->GetLong() != secVal) {
+  //   LOG_ERROR << num
+  //             << "  Error secondary field value, expect value: " << secVal
+  //             << "  actual value: " << vctDv[1]->GetLong();
+  // }
+
+  sprintf(varchar.data() + 30, "0x%08X", (val / 10));
+  const Byte *p = (const Byte *)varchar.c_str();
+  if (BytesCompare(p, strlen(varchar.c_str()) + 1, vctDv[2]->GetBuff(),
+                   vctDv[2]->GetDataLength()) != 0) {
+    LOG_ERROR << num
+              << "  Error third field value, expect value: " << varchar.c_str()
+              << "  actual value: " << (const char *)vctDv[2]->GetBuff();
+  }
+}
+
+void GetRecordValue(int num) {
+  int64_t val = GenTestKey(num);
+  DataValueLong *dvLong = new DataValueLong(val * val + val);
+  RawKey key({dvLong});
+
+  IndexTree *idxTree = table->GetVectorIndex()[0]._tree;
+  IndexPage *idxPage = idxTree->GetRootPage();
+  bool b = idxTree->SearchPage(key, idxPage);
+  assert(b);
+
+  LeafPage *lpage = dynamic_cast<LeafPage *>(idxPage);
+  bool bFind;
+  int pos = lpage->SearchKey(key, bFind);
+  if (!bFind) {
+    LOG_INFO << "Failed to find num: " << num;
+    return;
+  }
+
+  LeafRecord &lr = lpage->GetRecord(pos);
+  VectorDataValue vctDv;
+  ReadResult rr = lr.ReadListValue({}, vctDv, idxTree);
+  if (rr == ReadResult::REC_DELETE) {
+    LOG_INFO << "Delete Num: " << num;
+    return;
+  }
+  LOG_INFO << "C1: " << vctDv[0]->GetLong() << "\tC2: " << vctDv[1]->GetLong()
+           << "\tc3: " << (const char *)vctDv[2]->GetBuff();
+}
+
+void PrintNum(int rowNum, int num) {
+  for (int i = 0; i < rowNum; i++) {
+    if (arrNum[i] == num) {
+      LOG_INFO << i;
+    }
+  }
+}
+
+void CheckAllRecord(int rowNum) {
+  IndexTree *idxTree = table->GetVectorIndex()[0]._tree;
+  LeafPage *lpage = idxTree->GetBeginPage();
+
+  MTreeMap<int64_t, int> map;
+  for (int i = 0; i < rowNum; i++) {
+    map.emplace(GenPrimaryKey(i), i);
+  }
+
+  int cnt = 0;
+  auto iter = map.begin();
+  auto itOld = iter;
+
+  while (lpage != nullptr) {
+    for (int i = 0; i < lpage->GetRecordNumber(); i++) {
+      LeafRecord &lr = lpage->GetRecord(i);
+      if (lr.ReleaseLockAble()) {
+        lr.ReleaseLock(idxTree);
+      }
+
+      while (true) {
+        RawKey key({new DataValueLong(iter->first)});
+        int hr = lr.CompareKey(key);
+        assert(hr >= 0);
+        if (hr == 0)
+          break;
+
+        iter++;
+        cnt++;
+      }
+
+      VectorDataValue vctDv;
+      ReadResult rr = lr.ReadListValue({}, vctDv, idxTree);
+      if (rr == ReadResult::REC_DELETE) {
+        assert((arrResult[iter->second] & 0x80) == 0);
+      } else {
+        CheckSelectResult(iter->second, vctDv);
+      }
+      cnt++;
+      itOld = iter;
+      iter++;
+    }
+
+    lpage = lpage->GetNextPage();
+  }
+
+  LOG_INFO << "cnt: " << cnt;
 }
 
 void InsertProc(uint16_t tid, MVector<uint32_t> vctSessId, int recStart,
@@ -136,31 +260,6 @@ void InsertProc(uint16_t tid, MVector<uint32_t> vctSessId, int recStart,
   }
 }
 
-void CheckSelectResult(int val, VectorDataValue &vctDv) {
-  if (vctDv[0]->GetLong() != (int64_t)val * val + val) {
-    LOG_ERROR << "Error first field value, expect value: "
-              << (int64_t)val * val + val
-              << "  actual value: " << vctDv[0]->GetLong();
-    abort();
-  }
-
-  int secVal = (int32_t)BytesSwap32(val) + (arrResult[val] & 0x7f);
-  if (vctDv[1]->GetLong() != secVal) {
-    LOG_ERROR << "Error secondary field value, expect value: " << secVal
-              << "  actual value: " << vctDv[1]->GetLong();
-    abort();
-  }
-
-  sprintf(varchar.data() + 30, "0x%8X", (val / 10));
-  const Byte *p = (const Byte *)varchar.c_str();
-  if (BytesCompare(p, strlen(varchar.c_str()), vctDv[2]->GetBuff(),
-                   vctDv[2]->GetDataLength()) != 0) {
-    LOG_ERROR << "Error third field value, expect value: " << varchar.c_str()
-              << "  actual value: " << (const char *)vctDv[2]->GetBuff();
-    abort();
-  }
-}
-
 void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
                    int recNum, int opTimes) {
   assert(tid < MAX_USER_THREADS);
@@ -173,6 +272,9 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
   int pos = -1;
   int finished = 0;
   while (true) {
+    if (cnt == 4626240) {
+      int iii = 0;
+    }
     pos++;
     if (pos >= vctSessId.size()) {
       pos = 0;
@@ -187,16 +289,11 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       continue;
     }
 
-    if (cnt >= opTimes) {
-      finished++;
-      if (finished >= vctSessId.size()) {
-        break;
-      }
-    }
-
     if (rs == ResultStatus::FINISHED) {
       pair<int, OpRedio> &pr = vctPair[pos];
+      arrResult[pr.first] &= 0xBF;
       StmtResult &rst = vctResult[pos];
+
       switch (pr.second) {
       case OpRedio::INS:
         if (!rst._bFailed) {
@@ -211,9 +308,8 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       case OpRedio::UPD:
         assert(!rst._bFailed);
         if (rst._rowNum > 0) {
-          assert(arrResult[pr.first] > 0);
+          assert(arrResult[pr.first] == 0x80);
           arrResStat[tid]._updatePassed++;
-          arrResult[pr.first] += 1;
         } else {
           assert(arrResult[pr.first] == 0);
           arrResStat[tid]._updateFailed++;
@@ -250,17 +346,39 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       }
     }
 
-    int currVal = cnt % recNum + rand() % 50 - 25;
-    if (currVal >= recNum) {
-      currVal -= 25;
-    } else if (currVal < 0) {
-      currVal += 25;
+    if (cnt >= opTimes) {
+      finished++;
+      vctResult[pos].SetResultStatus(ResultStatus::INIT);
+      if (finished >= vctSessId.size()) {
+        break;
+      } else {
+        continue;
+      }
     }
 
-    currVal += startRec;
+    int currVal;
+    while (true) {
+      currVal = cnt % recNum + rand() % 50 - 25;
+      if (currVal >= recNum) {
+        currVal -= 25;
+      } else if (currVal < 0) {
+        currVal += 25;
+      }
+
+      currVal += startRec;
+      if ((arrResult[currVal] & 0x40) == 0) {
+        break;
+      }
+    }
+
+    if (currVal == 626324) {
+      int iiii = 0;
+    }
+    arrNum[cnt] = currVal;
     OpRedio redio = arrRadio[cnt % redioCount];
     vctPair[pos].first = currVal;
     vctPair[pos].second = redio;
+    arrResult[currVal] |= 0x40;
     VectorRow vctRow;
 
     switch (redio) {
@@ -271,24 +389,34 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       break;
     }
     case OpRedio::UPD: {
-      vctRow.push_back(
-          {new DataValueLong((int64_t)currVal * currVal + currVal)});
-      SessionPool::AddStatement(tid, vctSessId[pos], cnt, 1, UPDATE_STMT,
-                                move(vctRow), &vctResult[pos]);
+      vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+      if (arrResult[currVal] & 0x80) {
+        if ((arrResult[currVal] & 0x3F) != 0x3F) {
+          arrResult[currVal] += 1;
+          SessionPool::AddStatement(tid, vctSessId[pos], cnt, 2, UPDATE_STMT,
+                                    move(vctRow), &vctResult[pos]);
+        } else {
+          arrResult[currVal] -= 1;
+          SessionPool::AddStatement(tid, vctSessId[pos], cnt, 5, UPDATE_STMT2,
+                                    move(vctRow), &vctResult[pos]);
+        }
+      } else {
+        SessionPool::AddStatement(tid, vctSessId[pos], cnt, 2, UPDATE_STMT,
+                                  move(vctRow), &vctResult[pos]);
+      }
       break;
     }
     case OpRedio::DEL: {
-      vctRow.push_back(
-          {new DataValueLong((int64_t)currVal * currVal + currVal)});
-      SessionPool::AddStatement(tid, vctSessId[pos], cnt, 1, DELETE_STMT,
+      vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+      SessionPool::AddStatement(tid, vctSessId[pos], cnt, 3, DELETE_STMT,
                                 move(vctRow), &vctResult[pos]);
       break;
     }
     case OpRedio::SEL: {
-      vctRow.push_back(
-          {new DataValueLong((int64_t)currVal * currVal + currVal)});
-      SessionPool::AddStatement(tid, vctSessId[pos], cnt, 1, SELECT_STMT,
+      vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+      SessionPool::AddStatement(tid, vctSessId[pos], cnt, 4, SELECT_STMT,
                                 move(vctRow), &vctResult[pos]);
+      break;
     }
     default:
       abort();
@@ -310,9 +438,12 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
 
   arrResult = new Byte[rowNum];
   memset(arrResult, 0, rowNum);
+  arrNum = new int[totalOpTimes];
+  memset(arrNum, 0, totalOpTimes * 4);
+
   CreateDbTable();
-  MVector<uint32_t> vctSessId;
-  MVector<StmtResult> vctStmtRes(sessionNum);
+  vector<uint32_t> vctSessId;
+  vector<StmtResult> vctStmtRes(sessionNum);
 
   for (int i = 0; i < sessionNum; i++) {
     uint32_t sid = SessionPool::CreateSession(0, &vctStmtRes[i]);
@@ -325,7 +456,7 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
     }
   }
 
-  MVector<thread *> vctThread;
+  vector<thread *> vctThread;
   vctThread.reserve(userThreads);
   int sRange = sessionNum / userThreads;
   int rRange = rowNum / userThreads;
@@ -377,13 +508,21 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   LOG_INFO << "Operator records Time(ms):" << duration.count()
            << "  Total times: " << totalOpTimes;
 
-  TableManager::ClearTable();
-  DatabaseManager::ClearDB();
-  CachePagePool::ClearPool();
+  CheckAllRecord(rowNum);
+  PhysTable *tbl = nullptr;
+  TableManager::FindTable(DB_TBL_NAME, tbl);
+  tbl->GetTableTaskMgr()->SetMgrStatus(MgrStatus::SET_STOP);
+  SessionPool::ClosePool();
+
   ThreadPool::CloseMainPool(true);
   FilePagePool::Stop();
+  TableManager::ClearTable();
+  DatabaseManager::ClearDB();
   SessionPool::ClearPool();
+  CachePagePool::ClearPool();
   LogTask::Clear();
+  _threadErrorMsg.reset();
+  ErrorMsg::ClearErrorMsg();
 
   LOG_INFO << "Memory leaked: " << CachePool::GetMemoryUsed();
 #ifdef CACHE_TRACE

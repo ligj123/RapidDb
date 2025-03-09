@@ -29,7 +29,7 @@ struct IndexRange {
   ~IndexRange();
 
   IndexPage *GetTopPage(IndexType type, RawRecord &rr);
-  IndexPage *GetTopPage(RawKey &key);
+  IndexPage *GetTopPage(IndexType type, RawKey &key);
   BranchRecord *GetLastRecord() {
     assert(_borderRecord != nullptr);
     return _borderRecord;
@@ -68,7 +68,7 @@ struct IndexRange {
 
   // To temp save the failed insert LeafRecord, it will delete when the
   // statement has been rollbacked
-  MList<LeafRecord *> _vctErrRecord;
+  MList<LeafRecord *> _lstErrRecord;
 };
 
 class IndexTree {
@@ -218,9 +218,11 @@ public:
   MVector<IndexRange> &GetVctRange() { return _vctRange; }
   int CalcIndexRange(const RawRecord &rr);
   int CalcIndexRange(const RawKey &key);
-  int CalcIndexRange(IndexPage *page);
-  bool IsMultiRange() { return _vctRange.size() > 1; }
+  inline int CalcIndexRange(IndexPage *page) {
+    return CalcIndexRange(*page->_vctRecord[0]);
+  }
 
+  bool IsMultiRange() { return _vctRange.size() > 1; }
   void UpdateRecordNumber(int iRange, int64_t recNum);
   VersionStamp ApplyStamp(int iRange);
 

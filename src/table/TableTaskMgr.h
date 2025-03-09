@@ -97,7 +97,7 @@ public:
 protected:
   TableTaskMgr *_taskMgr;
   uint16_t _indexPos;
-  // It use to sign which number IndexTask for this IndexTree.
+  // Which IndexRange that this IndexTask belong to.
   uint16_t _taskPos;
 
   friend class TableTaskMgr;

@@ -45,6 +45,7 @@ public:
 
   void Reset() {
     _rowNum = 0;
+    _bFailed = false;
     _vctError.clear();
     _vctWarning.clear();
     if (_resultSet != nullptr) {

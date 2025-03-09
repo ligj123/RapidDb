@@ -67,6 +67,7 @@ TaskStatus SessionCloseAction::Exec(SessionGroup &sGroup) {
 
 TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
   _stmtResult->_sessionId = _sessionId;
+  _stmtResult->_stmtId = _stmtId;
   auto iter = sGroup._mapSession.find(_sessionId);
   if (iter == sGroup._mapSession.end()) {
     _stmtResult->_vctError.push_back("Failed to find session " +
@@ -101,6 +102,8 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
     session->_mapIdExprStatement.emplace(_exprId, exprStmt);
   } else {
     exprStmt = itExpr->second;
+    assert(session->_mapSqlExprStatement.find(_sql) !=
+           session->_mapSqlExprStatement.end());
   }
 
   Statement *stmt = nullptr;

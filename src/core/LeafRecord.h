@@ -165,6 +165,25 @@ class LeafPage;
 class Statement;
 class LeafRecord : public RawRecord {
 public:
+  /**
+   * @brief Release the related and free the resource
+   * @param lr The LeafRecord to be released
+   * @param bFailed The LeafRecord has error and failed to insert into
+   * IndexTree.
+   */
+  static void FreeRecord(LeafRecord *lr, bool bFailed) {
+    if (lr->_recLock != nullptr) {
+      assert(lr->_recLock->_undoRec == nullptr);
+      assert(bFailed ||
+             lr->_recLock->GetRecordStatus() >= RecordStatus::COMMITED);
+      delete lr->_recLock;
+      lr->_recLock = nullptr;
+    }
+
+    delete lr;
+  }
+
+public:
   // Load LeafRecord from LeafPage
   LeafRecord(IndexType idxType, Byte *bys);
   // Constructor for secondary index LeafRecord
@@ -194,6 +213,8 @@ public:
   }
 
   LeafRecord &operator=(LeafRecord &&src) {
+    assert(_bysVal == nullptr && _recLock == nullptr &&
+           _overflowPage == nullptr);
     _bysVal = src._bysVal;
     src._bysVal = nullptr;
     _bSole = src._bSole;
@@ -204,6 +225,7 @@ public:
     src._overflowPage = nullptr;
     return *this;
   }
+
   LeafRecord &operator=(const LeafRecord &src) = delete;
 
   LeafRecord *UpdateRecord(IndexTree *idxTree, const VectorDataValue &newVal,
@@ -269,8 +291,7 @@ public:
   /**Only the bytes' length in IndexPage, key length + value length without
    * overflow page content*/
   inline uint16_t GetTotalLength() const override {
-    if (_bDelete ||
-        _recLock != nullptr && _recLock->_actType == ActionType::DELETE) {
+    if (_bDelete) {
       return 0;
     } else {
       return *((uint16_t *)_bysVal);
@@ -280,7 +301,7 @@ public:
   uint16_t GetActualLength() const { return *((uint16_t *)_bysVal); }
 
   inline uint16_t SaveData(Byte *bysPage) {
-    assert(_recLock == nullptr);
+    assert(_recLock == nullptr && !_bDelete);
     uint16_t len = GetTotalLength();
     BytesCopy(bysPage, _bysVal, len);
     return len;
@@ -352,8 +373,7 @@ public:
   }
 
   void GetLength(int32_t &tempLen, int32_t &commitLen) {
-    if (_bDelete ||
-        (_recLock != nullptr && _recLock->_actType == ActionType::DELETE)) {
+    if (_bDelete) {
       tempLen = 0;
     } else {
       tempLen = GetTotalLength() + UI16_LEN;
@@ -397,6 +417,8 @@ public:
    * @return
    */
   SecLockResult SecondaryReadLock(Statement *stmt, ActionType actType);
+
+  void RleaseOverflowPage(IndexTree *idxTree, bool recylePId);
 
 protected:
   // To calc a version's value length

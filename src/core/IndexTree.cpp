@@ -18,32 +18,67 @@ IndexRange::~IndexRange() {
 
 IndexPage *IndexRange::GetTopPage(IndexType type, RawRecord &rr) {
   assert(_vctRangePage.size() > 0);
-  for (size_t i = 0; i < _vctRangePage.size() - 1; i++) {
-    BranchRecord &br = _vctRangePage[i]->GetRecord(INT32_MAX, true);
-    if (type == IndexType::NON_UNIQUE) {
-      if (br.CompareTo(rr) >= 0) {
-        return _vctRangePage[i];
+  bool bUnique = (type != IndexType::NON_UNIQUE);
+  int32_t num = _vctRangePage.size();
+  int32_t start = 0;
+  int32_t end = num - 1;
+
+  while (true) {
+    if (start > end) {
+      if (start >= num) {
+        start = num - 1;
       }
+
+      return _vctRangePage[start];
+    }
+
+    int middle = (start + end) / 2;
+    BranchRecord &br = _vctRangePage[middle]->GetRecord(INT32_MAX, true);
+    int hr = bUnique ? br.CompareKey(rr) : br.CompareTo(rr);
+    if (hr < 0) {
+      start = middle + 1;
+    } else if (hr > 0) {
+      end = middle - 1;
     } else {
-      if (br.CompareKey(rr) >= 0) {
-        return _vctRangePage[i];
-      }
+      return _vctRangePage[middle];
     }
   }
-
-  return _vctRangePage[_vctRangePage.size() - 1];
 }
 
-IndexPage *IndexRange::GetTopPage(RawKey &key) {
+IndexPage *IndexRange::GetTopPage(IndexType type, RawKey &key) {
   assert(_vctRangePage.size() > 0);
-  for (size_t i = 0; i < _vctRangePage.size() - 1; i++) {
-    BranchRecord &br = _vctRangePage[i]->GetRecord(INT32_MAX, true);
-    if (br.CompareKey(key) >= 0) {
-      return _vctRangePage[i];
+  bool bUnique = (type != IndexType::NON_UNIQUE);
+  int32_t num = _vctRangePage.size();
+  int32_t start = 0;
+  int32_t end = num - 1;
+
+  while (true) {
+    if (start > end) {
+      if (start >= num) {
+        start = num - 1;
+      }
+
+      return _vctRangePage[start];
+    }
+
+    int32_t middle = (start + end) / 2;
+    BranchRecord &br = _vctRangePage[middle]->GetRecord(INT32_MAX, true);
+    int hr = br.CompareKey(key);
+    if (hr < 0) {
+      start = middle + 1;
+    } else if (hr > 0) {
+      end = middle - 1;
+    } else {
+      if (!bUnique && middle > start &&
+          _vctRangePage[middle - 1]
+                  ->GetRecord(INT32_MAX, true)
+                  .CompareKey(key) == 0) {
+        end = middle - 1;
+      } else {
+        return _vctRangePage[middle];
+      }
     }
   }
-
-  return _vctRangePage[_vctRangePage.size() - 1];
 }
 
 IndexTree::~IndexTree() {
@@ -373,7 +408,9 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap) {
 
       if (page->IsDirty()) {
         bool b = page->SaveRecords();
-        assert(b);
+        if (!b) {
+          move = false;
+        }
       }
       if (block) {
         iter->second->Unlock();
@@ -476,54 +513,65 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
 
 int IndexTree::CalcIndexRange(const RawRecord &rr) {
   assert(_vctRange.size() > 0);
+  bool bUnique = (GetIndexType() != IndexType::NON_UNIQUE);
+  int32_t num = _vctRange.size();
+  int32_t start = 0;
+  int32_t end = num - 1;
 
-  for (size_t i = 0; i < _vctRange.size() - 1; i++) {
-    IndexRange &range = _vctRange[i];
-    if (_indexType == IndexType::NON_UNIQUE) {
-      if (range.GetLastRecord()->CompareTo(rr) >= 0) {
-        return i;
+  while (true) {
+    if (start > end) {
+      if (start >= num) {
+        start = num - 1;
       }
+
+      return start;
+    }
+
+    int middle = (start + end) / 2;
+    BranchRecord *br = _vctRange[middle].GetLastRecord();
+    int hr = bUnique ? br->CompareKey(rr) : br->CompareTo(rr);
+    if (hr < 0) {
+      start = middle + 1;
+    } else if (hr > 0) {
+      end = middle - 1;
     } else {
-      if (range.GetLastRecord()->CompareKey(rr) >= 0) {
-        return i;
-      }
+      return middle;
     }
   }
-
-  return _vctRange.size() - 1;
 }
 
 int IndexTree::CalcIndexRange(const RawKey &key) {
-  assert(GetHeadPage()->GetIndexType() == IndexType::PRIMARY);
   assert(_vctRange.size() > 0);
+  bool bUnique = (GetIndexType() != IndexType::NON_UNIQUE);
+  int32_t num = _vctRange.size();
+  int32_t start = 0;
+  int32_t end = num - 1;
 
-  for (size_t i = 0; i < _vctRange.size() - 1; i++) {
-    IndexRange &range = _vctRange[i];
-    if (range.GetLastRecord()->CompareKey(key) >= 0) {
-      return i;
-    }
-  }
-
-  return _vctRange.size() - 1;
-}
-
-int IndexTree::CalcIndexRange(IndexPage *page) {
-  assert(_vctRange.size() > 1);
-  for (size_t i = 0; i < _vctRange.size() - 1; i++) {
-    IndexRange &range = _vctRange[i];
-    RawRecord *rr = page->_vctRecord[0];
-    if (_indexType == IndexType::NON_UNIQUE) {
-      if (range.GetLastRecord()->CompareTo(*rr) >= 0) {
-        return i;
+  while (true) {
+    if (start > end) {
+      if (start >= num) {
+        start = num - 1;
       }
+
+      return start;
+    }
+
+    int32_t middle = (start + end) / 2;
+    BranchRecord *br = _vctRange[middle].GetLastRecord();
+    int hr = br->CompareKey(key);
+    if (hr < 0) {
+      start = middle + 1;
+    } else if (hr > 0) {
+      end = middle - 1;
     } else {
-      if (range.GetLastRecord()->CompareKey(*rr) >= 0) {
-        return i;
+      if (!bUnique && middle > start &&
+          _vctRange[middle - 1].GetLastRecord()->CompareKey(key) == 0) {
+        end = middle - 1;
+      } else {
+        return middle;
       }
     }
   }
-
-  return _vctRange.size() - 1;
 }
 
 LeafRecord IndexTree::MakeMaxLeafRecord() {

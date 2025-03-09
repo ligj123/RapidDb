@@ -175,6 +175,9 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
   VectorDataValue vdv;
   ReadResult res =
       lr->ReadListValue({}, vdv, vctProp[0]._tree, this, ActionType::DELETE);
+  if (res == ReadResult::REC_DELETE) {
+    return TriBool::False;
+  }
 
   if (res != ReadResult::OK_NOLOCK) {
     _threadErrorMsg.reset(new ErrorMsg(STMT_LOCK_CONFLICT, {}));
@@ -222,9 +225,10 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
 
   if (failed) {
     lrNew->GetLock()->_undoRec = nullptr;
+    lrNew->RleaseOverflowPage(vctProp[0]._tree, true);
 
     for (LeafRecord *lr : vctLr) {
-      delete lr;
+      LeafRecord::FreeRecord(lr, true);
     }
 
     SendErrMsg(move(_threadErrorMsg->GetErrorMsg()));

@@ -19,7 +19,7 @@ const std::string StackTrace() {
 #ifdef _STACK_DEPTH
   static int depth = _STACK_DEPTH;
 #else
-  static int depth = 15;
+  static int depth = 25;
 #endif // STACK_DEPTH
 
   static int count = 0;

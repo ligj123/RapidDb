@@ -37,20 +37,35 @@ TaskStatus IndexTask::Run() {
     }
   }
 
-  if (TableTaskMgr::_dtLastWriteDisk > range._dtLastWriteDisk) {
-    idxTree->SettleUpdatedPages(range._pageMap);
-    range._dtLastWriteDisk = TableTaskMgr::_dtLastWriteDisk;
+  for (auto iter = range._lstErrRecord.begin();
+       iter != range._lstErrRecord.end();) {
+    if ((*iter)->GetLock()->GetRecordStatus() >= RecordStatus::COMMITED) {
+      (*iter)->ReleaseLock(idxTree);
+      delete (*iter);
+      iter = range._lstErrRecord.erase(iter);
+    } else {
+      iter++;
+    }
   }
 
-  if (range._queueAction.size() == 0 && range._pageMap.size() < 1) {
-    if (_taskMgr->GetMgrStatus() == MgrStatus::SET_STOP) {
+  if (TableTaskMgr::_dtLastWriteDisk > range._dtLastWriteDisk) {
+    idxTree->SettleUpdatedPages(range._pageMap);
+    range._dtLastWriteDisk = MicroSecTime();
+  } else if (_taskMgr->GetMgrStatus() == MgrStatus::SET_STOP) {
+    if (range._queueAction.size() == 0 &&
+        (_taskPos == 0 && range._pageMap.size() <= 1 ||
+         _taskPos > 0 && range._pageMap.size() == 0)) {
       if (range._dtTaskStop == 0) {
         range._dtTaskStop = MicroSecTime();
-      } else if (MicroSecTime() - range._dtTaskStop > 100000) {
+      } else if (MicroSecTime() - range._dtTaskStop > 100000 &&
+                 range._lstErrRecord.size() == 0) {
         _taskMgr->CheckMgrStatus();
         SetStatus(TaskStatus::FINISHED, true);
         return TaskStatus::FINISHED;
       }
+    } else if (MicroSecTime() - range._dtLastWriteDisk > 100000) {
+      idxTree->SettleUpdatedPages(range._pageMap);
+      range._dtLastWriteDisk = MicroSecTime();
     }
   }
 

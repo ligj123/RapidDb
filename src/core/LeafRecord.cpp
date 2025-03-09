@@ -351,8 +351,7 @@ ReadResult LeafRecord::ReadListValue(const MHashMap<uint32_t, uint32_t> &mapPos,
     }
   }
 
-  if ((lr->_recLock != nullptr &&
-       lr->_recLock->_actType == ActionType::DELETE)) {
+  if (lr->IsDelete()) {
     return ReadResult::REC_DELETE;
   }
 
@@ -548,7 +547,6 @@ bool LeafRecord::LoadOverflowPage(IndexTree *idxTree, bool bsync) {
  */
 ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree) {
   assert(ReleaseLockAble());
-
   if (_recLock->_actType == ActionType::READ_SHARE ||
       _recLock->_actType == ActionType::READ_UPDATE) {
     assert(_recLock->_undoRec == nullptr);
@@ -579,6 +577,7 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree) {
       LeafRecord *lr = _recLock->_undoRec;
       _recLock->_undoRec = nullptr;
       delete _recLock;
+      _recLock = nullptr;
       *this = move(*lr);
       delete lr;
       if (_recLock == nullptr) {
@@ -589,9 +588,10 @@ ReleaseResult LeafRecord::ReleaseLock(IndexTree *idxTree) {
         return ReleaseLock(idxTree);
       }
     } else {
+      _bDelete = true;
       delete _recLock;
       _recLock = nullptr;
-      _bDelete = true;
+
       return ReleaseResult::DELETED;
     }
   }
@@ -747,4 +747,17 @@ std::ostream &operator<<(std::ostream &os, const LeafRecord &lr) {
   return os;
 }
 
+void LeafRecord::RleaseOverflowPage(IndexTree *idxTree, bool recylePId) {
+  if (_overflowPage == nullptr) {
+    return;
+  }
+
+  if (recylePId) {
+    idxTree->RecyclePageId(_overflowPage->GetPageId(),
+                           _overflowPage->GetPageNum());
+  }
+
+  delete _overflowPage;
+  _overflowPage = nullptr;
+}
 } // namespace storage

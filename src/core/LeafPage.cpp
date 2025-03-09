@@ -86,6 +86,14 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap) {
       }
 
       if (lr->IsStable()) {
+        if (lr->IsDelete()) {
+          assert(lr->_overflowPage == nullptr);
+          delete lr;
+          _vctRecord.erase(_vctRecord.begin() + i);
+          i--;
+          continue;
+        }
+
         int n = lr->GetTotalLength() + UI16_LEN;
         _tempDataLength += n;
         _committedDataLength += n;
@@ -116,6 +124,7 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap) {
       }
     }
 
+    _recordNum = static_cast<uint32_t>(_vctRecord.size());
     if (_committedDataLength > MAX_DATA_LENGTH_LEAF) {
       return false;
     }
@@ -454,10 +463,17 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
       ReleaseResult res = lr->ReleaseLock(GetIndexTree());
       if (res == ReleaseResult::DELETED) {
         assert(lr->_overflowPage == nullptr);
+        delete lr;
         _vctRecord.erase(_vctRecord.begin() + pos);
         pos--;
         continue;
       }
+    } else if (lr->GetLock() == nullptr && lr->IsDelete()) {
+      assert(lr->_overflowPage == nullptr);
+      delete lr;
+      _vctRecord.erase(_vctRecord.begin() + pos);
+      pos--;
+      continue;
     }
 
     int len = 0;
@@ -505,6 +521,23 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
   _committedDataLength = vctCLen[0];
   _tempDataLength = vctTLen[0];
   _recordNum = vctPos[0];
+
+  if (vctPos.size() == 1) {
+    if (brParentOld == nullptr) {
+      RawRecord *last = _vctRecord[_vctRecord.size() - 1];
+      BranchRecord *rec = new BranchRecord(
+          _indexTree->GetHeadPage()->GetIndexType(), last, GetPageId(), this);
+      _parentPage->InsertRecord(rec, posInParent);
+
+      _parentPage->SetRecordUpdated();
+      _parentPage->AddWriteQueue(pageMap);
+      _indexTree->UpdateRootPage(_parentPage);
+    } else {
+      _parentPage->InsertRecord(brParentOld, posInParent);
+    }
+
+    return true;
+  }
 
   MVector<IndexPage *> vctPage =
       _indexTree->ApplyIndexPages(_parentPage, 0, vctPos.size() - 1);
