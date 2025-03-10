@@ -225,11 +225,9 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
   PhysTable *table = CreateTable(db, TABLE_NAME);
   TableManager::AddTable(DB_NAME + "." + TABLE_NAME, table);
 
-  ThreadPool *tpool = ThreadPool::CreateMainPool("test", 1, 8);
+  ThreadPool *tpool = ThreadPool::CreateMainPool("test", 1, 1);
   tpool->SetStop();
-  while (tpool->GetAliveThreadCount() != 0) {
-    this_thread::yield();
-  }
+  tpool->WaitStoped();
   LogTask::InitLogTask(tpool, "./binlog/");
 
   SessionPool::ClearPool();

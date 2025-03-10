@@ -15,9 +15,7 @@ BOOST_AUTO_TEST_CASE(SessionBasic_test) {
 
   ThreadPool *tpool = new ThreadPool("sess", 1, 8);
   tpool->SetStop();
-  while (tpool->GetAliveThreadCount() != 0) {
-    this_thread::yield();
-  }
+  tpool->WaitStoped();
 
   SessionPool::InitPool(4, 2, 1, 2, tpool);
   vector<SessionGroup> &vctSessGroup = SessionPool::GetVctSessionGroup();

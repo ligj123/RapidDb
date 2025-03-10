@@ -75,9 +75,10 @@ void ThreadPool::CreateWorkThread(int id) {
 
 ThreadPool::~ThreadPool() {
   assert(_stopThreads.load(memory_order_relaxed));
-
-  _threadMgr->join();
-  delete _threadMgr;
+  if (_threadMgr != nullptr) {
+    _threadMgr->join();
+    delete _threadMgr;
+  }
   assert(_queueTask.size() == 0 && _rapidTaskQueue.IsEmpty());
 }
 
@@ -144,7 +145,7 @@ void ThreadPool::ManageProc() {
   int32_t stopTryTime = 10;
   while (true) {
     if (IsStoped()) {
-      if (stopTryTime == 10) {
+      if (stopTryTime > 0) {
         for (int32_t i = 0; i < _maxThreads; i++) {
           _vctThreadPara[i]._bStop = true;
         }

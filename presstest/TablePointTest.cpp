@@ -124,12 +124,12 @@ void CheckSelectResult(uint32_t num, VectorDataValue &vctDv) {
               << "  actual value: " << vctDv[0]->GetLong();
   }
 
-  // int secVal = (int32_t)BytesSwap32(val) + (arrResult[num] & 0x7f);
-  // if (vctDv[1]->GetLong() != secVal) {
-  //   LOG_ERROR << num
-  //             << "  Error secondary field value, expect value: " << secVal
-  //             << "  actual value: " << vctDv[1]->GetLong();
-  // }
+  int secVal = (int32_t)BytesSwap32(val) + (arrResult[num] & 0x7f);
+  if (vctDv[1]->GetLong() != secVal) {
+    LOG_ERROR << num
+              << "  Error secondary field value, expect value: " << secVal
+              << "  actual value: " << vctDv[1]->GetLong();
+  }
 
   sprintf(varchar.data() + 30, "0x%08X", (val / 10));
   const Byte *p = (const Byte *)varchar.c_str();
@@ -308,7 +308,7 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       case OpRedio::UPD:
         assert(!rst._bFailed);
         if (rst._rowNum > 0) {
-          assert(arrResult[pr.first] == 0x80);
+          assert(arrResult[pr.first] >= 0x80);
           arrResStat[tid]._updatePassed++;
         } else {
           assert(arrResult[pr.first] == 0);

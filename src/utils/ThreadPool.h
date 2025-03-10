@@ -267,6 +267,16 @@ public:
     _queueTask.clear();
   }
 
+  void WaitStoped() {
+    if (_threadMgr == nullptr) {
+      return;
+    }
+
+    _threadMgr->join();
+    delete _threadMgr;
+    _threadMgr = nullptr;
+  }
+
 protected:
   void CreateWorkThread(int id = -1);
   // Check if the thread pool is busy or not, it will create new threads if
