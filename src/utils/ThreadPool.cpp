@@ -40,6 +40,9 @@ ThreadPool::ThreadPool(const MString &threadPrefix, int minThreads,
   assert(_minThreads >= 1 && _minThreads <= _maxThreads);
   _stopThreads.store(false, memory_order_relaxed);
   _vctThreadPara.resize(maxThreads);
+  _nowMicroSec = chrono::duration_cast<chrono::microseconds>(
+                     chrono::system_clock::now().time_since_epoch())
+                     .count();
 
   for (int i = 0; i < maxThreads; ++i) {
     _vctThreadPara[i]._id = i;
@@ -66,10 +69,14 @@ void ThreadPool::CreateWorkThread(int id) {
     }
   }
 
+  _aliveThreads++;
+  assert(_vctThreadPara[id]._vctTask.size() == 0);
+  assert(_vctThreadPara[id]._lineQueueTask.IsEmpty());
   _vctThreadPara[id]._bStop = false;
   _vctThreadPara[id]._bRunning.store(true, memory_order_relaxed);
-
-  _aliveThreads++;
+  _vctThreadPara[id].ClearMask();
+  _vctThreadPara[id]._bExclusiveTask = false;
+  _vctThreadPara[id]._dtUsed = 0;
   _vctThreadPara[id]._thread = new thread([this, id]() { WorkProc(id); });
 }
 
@@ -86,48 +93,64 @@ void ThreadPool::CheckBusyStatus() {
   if (_nowMicroSec - _checkBusyTime < 10000)
     return;
 
-  int alive = 0;
+  int normal = 0;
   int exclusive = 0;
   int busy = 0;
   int free = 0;
+  int posMax = -1;
+  double dtMax = -1;
+  double dtMin = UINT64_MAX;
 
   for (size_t i = 0; i < _vctThreadPara.size(); i++) {
     ThreadPara &tpara = _vctThreadPara[i];
     if (tpara._bStop)
       continue;
 
-    alive++;
     if (tpara._bExclusiveTask) {
       exclusive++;
       continue;
     }
 
-    if (tpara._busyDegree == BusyDegree::BUSY && tpara._repeatTime > 1 ||
-        tpara._busyDegree == BusyDegree::BLOCKED) {
+    normal++;
+    BusyDegree bd = CalcBusyDegree(tpara._dtUsed);
+    // LOG_INFO << "CheckBusyStatus: " << tpara._dtUsed
+    //          << "  BusyDegree: " << (int)bd;
+    if (bd >= BusyDegree::BUSY) {
       busy++;
-    } else if (tpara._busyDegree <= BusyDegree::FREE && tpara._repeatTime > 3 &&
-               !tpara._bExclusiveTask) {
+    } else if (bd <= BusyDegree::FREE) {
       free++;
+    }
+
+    if (tpara._dtUsed > dtMax) {
+      dtMax = tpara._dtUsed;
+      posMax = i;
+    } else if (tpara._dtUsed < dtMin) {
+      dtMin = tpara._dtUsed;
     }
   }
 
-  if (free >= 2) {
-    if (alive == _minThreads) {
-      _poolBusyDegree = BusyDegree::RELAXED;
-    } else {
+  if (free == normal) {
+    _poolBusyDegree = BusyDegree::EMPTY;
+  } else if (free > 0) {
+    if (free > normal / 2) {
       _poolBusyDegree = BusyDegree::FREE;
+    } else {
+      _poolBusyDegree = BusyDegree::RELAXED;
     }
   } else if (busy > 0) {
-    if (free > 0) {
-      _poolBusyDegree == BusyDegree::RELAXED;
+    if (busy == normal) {
+      _poolBusyDegree = BusyDegree::BLOCKED;
+    } else if (busy < normal / 3) {
+      _poolBusyDegree = BusyDegree::RELAXED;
     } else {
       _poolBusyDegree = BusyDegree::BUSY;
     }
-  } else if (exclusive == alive) {
-    _poolBusyDegree = BusyDegree::BUSY;
-    assert(alive <= _maxThreads);
   } else {
     _poolBusyDegree = BusyDegree::RELAXED;
+  }
+
+  if (dtMin > 0 && dtMax / dtMin > 10) {
+    _vctThreadPara[posMax]._bSelRmTask = true;
   }
 
   _checkBusyTime = _nowMicroSec;
@@ -142,41 +165,36 @@ void ThreadPool::ManageProc() {
   pthread_setname_np(pthread_self(), _threadName.c_str());
 #endif
 
-  int32_t stopTryTime = 10;
   while (true) {
-    if (IsStoped()) {
-      if (stopTryTime > 0) {
-        for (int32_t i = 0; i < _maxThreads; i++) {
-          _vctThreadPara[i]._bStop = true;
-        }
-
-        _aliveThreads = 0;
-      } else if (stopTryTime < 0) {
-        bool stoped = true;
-        for (int32_t i = 0; i < _maxThreads; i++) {
-          if (_vctThreadPara[i]._bRunning.load(memory_order_relaxed)) {
-            stoped = false;
-          }
-        }
-
-        if (stoped) {
-          break;
-        }
-      }
-      stopTryTime--;
-    }
-
     _nowMicroSec = chrono::duration_cast<chrono::microseconds>(
                        chrono::system_clock::now().time_since_epoch())
                        .count();
 
-    MList<ThreadTask *> queue;
-    _rapidTaskQueue.Pop(queue);
+    if (IsStoped()) {
+      for (int32_t i = 0; i < _maxThreads; i++) {
+        _vctThreadPara[i]._bStop = true;
+      }
 
+      int alive = 0;
+      bool stoped = true;
+      for (int32_t i = 0; i < _maxThreads; i++) {
+        if (_vctThreadPara[i]._bRunning.load(memory_order_relaxed)) {
+          alive++;
+        }
+      }
+
+      _aliveThreads = alive;
+      if (alive == 0) {
+        break;
+      }
+    }
+
+    MList<ThreadTask *> queue;
     if (_queueTask.size() > 0) {
       unique_lock<SpinMutex> lock(_taskMutex);
       queue.swap(_queueTask);
     }
+    _rapidTaskQueue.Pop(queue);
 
     if (_nowMicroSec - _checkBusyTime >= 10000) {
       CheckBusyStatus();
@@ -184,6 +202,8 @@ void ThreadPool::ManageProc() {
 
       if (_poolBusyDegree >= BusyDegree::BUSY && _aliveThreads < _maxThreads &&
           queue.size() > 0) {
+        // If working threads are busy and new tasks coming and there still has
+        // stoped threads, restart the stoped threads.
         int num = (int)queue.size() / 3;
         if (num > _maxThreads - _aliveThreads) {
           num = _maxThreads - _aliveThreads;
@@ -195,13 +215,16 @@ void ThreadPool::ManageProc() {
           CreateWorkThread();
         }
       } else if (_poolBusyDegree <= BusyDegree::FREE &&
-                 _aliveThreads > _minThreads) {
-        BusyDegree degree = BusyDegree::RELAXED;
+                 _aliveThreads - ThreadTask::GetExclusiveTaskCount() >
+                     _minThreads) {
+        // If the working threads are freed and its number is large than
+        // _minThreads, select ont of freed thread to stop.
+        double span = UINT64_MAX;
         int pos = -1;
         for (int32_t i = 0; i < _maxThreads; i++) {
-          if (!_vctThreadPara[i]._bStop &&
-              _vctThreadPara[i]._busyDegree <= degree) {
-            degree = _vctThreadPara[i]._busyDegree;
+          if (!_vctThreadPara[i]._bStop && !_vctThreadPara[i]._bExclusiveTask &&
+              _vctThreadPara[i]._dtUsed < span) {
+            span = _vctThreadPara[i]._dtUsed;
             pos = i;
           }
         }
@@ -213,9 +236,10 @@ void ThreadPool::ManageProc() {
       }
     }
 
-    int32_t idx = 0;
+    // If there have a lot of waitting tasks and stoped threads, restart some of
+    // free threads.
     if ((queue.size() >
-             (_aliveThreads - ThreadTask::GetExclusiveTaskCount()) * 3 &&
+             (_aliveThreads - ThreadTask::GetExclusiveTaskCount()) * 5 &&
          _aliveThreads < _maxThreads)) {
       int num = (int)queue.size() / 3;
       if (num > _maxThreads - _aliveThreads) {
@@ -234,21 +258,20 @@ void ThreadPool::ManageProc() {
       queue.pop_front();
 
       if (task->IsExclusiveTask()) {
-        if (_aliveThreads < ThreadTask::GetExclusiveTaskCount()) {
+        if (_aliveThreads < _maxThreads &&
+            (_poolBusyDegree >= BusyDegree::BUSY ||
+             _aliveThreads < ThreadTask::GetExclusiveTaskCount())) {
           assert(ThreadTask::GetExclusiveTaskCount() < _maxThreads);
-          int num = ThreadTask::GetExclusiveTaskCount() - _aliveThreads + 1;
-          for (int i = 0; i < num; i++) {
-            CreateWorkThread();
-          }
+          CreateWorkThread();
         }
 
         int32_t pos = -1;
-        BusyDegree degree = BusyDegree::BLOCKED;
+        double span = UINT64_MAX;
         for (int32_t i = 0; i < _maxThreads; i++) {
           if (!_vctThreadPara[i]._bStop && !_vctThreadPara[i]._bExclusiveTask) {
-            if (degree > _vctThreadPara[i]._busyDegree) {
+            if (span > _vctThreadPara[i]._dtUsed) {
               pos = i;
-              degree = _vctThreadPara[i]._busyDegree;
+              span = _vctThreadPara[i]._dtUsed;
             }
           }
         }
@@ -256,47 +279,69 @@ void ThreadPool::ManageProc() {
         assert(pos >= 0);
         _vctThreadPara[pos]._bExclusiveTask = true;
         _vctThreadPara[pos]._lineQueueTask.Push(task);
+        // LOG_INFO << "Add 1 exclusive task into thread " << pos;
         _vctThreadPara[pos].ClearMask();
       } else {
-        int32_t ring = 0;
+        int32_t idx = 0;
+        int posNorm = -1;
+        int posConf = -1;
+        int cnt = 0;
+        double minNormSpan = UINT64_MAX;
+        double minConfSpan = UINT64_MAX;
+        double dtAvg = 0;
 
-        while (true) {
-          if (idx == _maxThreads) {
-            idx = 0;
-            ring++;
-          }
-
-          if (_vctThreadPara[idx]._bStop ||
+        while (idx < _maxThreads) {
+          if (_vctThreadPara[idx]._bStop &&
+                  !_stopThreads.load(memory_order_relaxed) ||
               _vctThreadPara[idx]._bExclusiveTask) {
-            if (!_stopThreads.load(memory_order_relaxed)) {
-              idx++;
-              continue;
-            }
-          }
-
-          if (ring == 0 &&
-              _vctThreadPara[idx].IsMaskConflict(task->GetTaskMask())) {
             idx++;
             continue;
           }
 
-          if (_vctThreadPara[idx]._busyDegree < BusyDegree::RELAXED ||
-              (_vctThreadPara[idx]._busyDegree < BusyDegree::RELAXED &&
-               ring > 0) ||
-              (ring > 1)) {
-            _vctThreadPara[idx]._lineQueueTask.Push(task);
-            _vctThreadPara[idx].SetMask(task->GetTaskMask());
+          dtAvg += _vctThreadPara[idx]._dtUsed;
+          cnt++;
+          if (_vctThreadPara[idx].IsMaskConflict(task->GetTaskMask())) {
+            if (_vctThreadPara[idx]._dtUsed < minConfSpan) {
+              minConfSpan = _vctThreadPara[idx]._dtUsed;
+              posConf = idx;
+            }
             idx++;
-            break;
+            continue;
+          }
+
+          if (_vctThreadPara[idx]._dtUsed < minNormSpan) {
+            minNormSpan = _vctThreadPara[idx]._dtUsed;
+            posNorm = idx;
           }
 
           idx++;
         }
+
+        dtAvg /= cnt;
+        if (dtAvg == 0) {
+          dtAvg = 10;
+        }
+        if (posNorm >= 0) {
+          _vctThreadPara[posNorm]._lineQueueTask.Push(task);
+          _vctThreadPara[posNorm].AddMask(task->GetTaskMask());
+          _vctThreadPara[posNorm]._dtUsed += dtAvg;
+          LOG_INFO << "Add normal task " + task->GetTaskName() + " into thread "
+                   << posNorm;
+        } else {
+          assert(posConf >= 0);
+          _vctThreadPara[posConf]._lineQueueTask.Push(task);
+          _vctThreadPara[posConf].AddMask(task->GetTaskMask());
+          _vctThreadPara[posConf]._dtUsed += dtAvg;
+          LOG_INFO << "Add normal task " + task->GetTaskName() + " into thread "
+                   << posConf;
+        }
       }
     }
 
-    this_thread::sleep_for(10us);
+    this_thread::sleep_for(2us);
   }
+
+  _nowMicroSec = 0;
 }
 
 void ThreadPool::WorkProc(uint16_t tid) {
@@ -311,121 +356,114 @@ void ThreadPool::WorkProc(uint16_t tid) {
   assert(tpara._id == tid);
 
   while (true) {
-    MList<ThreadTask *> q;
-    tpara._lineQueueTask.Pop(q);
-    if (q.size() > 0) {
-      tpara._vctTask.insert(tpara._vctTask.end(), q.begin(), q.end());
+    MList<ThreadTask *> lst;
+    tpara._lineQueueTask.Pop(lst);
+    if (lst.size() > 0) {
+      if (lst.size() == 1 && lst.back()->IsExclusiveTask()) {
+        AddTasks(GetThreadId(), tpara._vctTask);
+      }
+
+      tpara._vctTask.insert(tpara._vctTask.end(), lst.begin(), lst.end());
     }
 
-    if (tpara._vctTask.size() == 0) {
-      if (tpara._busyDegree == BusyDegree::EMPTY) {
-        tpara._repeatTime++;
-      } else {
-        tpara._busyDegree = BusyDegree::EMPTY;
-        tpara._repeatTime = 1;
-      }
-    } else {
-      DT_MicroSec dtStart = _nowMicroSec;
+    DT_MicroSec dtStart = _nowMicroSec;
+    if (tpara._vctTask.size() > 0) {
       if (tpara._bExclusiveTask) {
-        if (tpara._vctTask.size() > 1) {
-          ThreadTask *task = nullptr;
-          for (auto iter = tpara._vctTask.begin(); iter != tpara._vctTask.end();
-               iter++) {
-            if ((*iter)->IsExclusiveTask()) {
-              assert(task == nullptr);
-              task = *iter;
-            } else {
-              AddTask(GetThreadId(), *iter);
-            }
-          }
-
-          tpara._vctTask.clear();
-          assert(task != nullptr && task->IsExclusiveTask());
-          tpara._vctTask.push_back(task);
-        }
-
         TaskStatus ts = tpara._vctTask[0]->Run();
         if (ts == TaskStatus::FINISHED) {
+          LOG_INFO << "Remove the finished exclusive task " +
+                          tpara._vctTask[0]->GetTaskName() + " from thread "
+                   << tid;
           if (tpara._vctTask[0]->IsNeedDelete()) {
             delete tpara._vctTask[0];
           }
 
           tpara._vctTask.clear();
           tpara._bExclusiveTask = false;
-          tpara._busyDegree = BusyDegree::EMPTY;
-          tpara._repeatTime = 1;
-        } else {
-          BusyDegree bd = CalcBusyDegree(MicroSecTime() - dtStart);
-          if (bd == tpara._busyDegree) {
-            tpara._repeatTime++;
-          } else {
-            if (bd >= BusyDegree::BUSY) {
-              tpara._repeatTime++;
-            } else {
-              tpara._repeatTime = 1;
-            }
+          tpara._dtUsed = 0;
 
-            tpara._busyDegree = bd;
+        } else {
+          DT_MicroSec us = _nowMicroSec - dtStart;
+          tpara._vctTask[0]->SetAvgUsedTime(
+              (tpara._vctTask[0]->GetAvgUsedTime() * 49 + us) / 50);
+          tpara._dtUsed = (tpara._dtUsed * 49 + us) / 50;
+
+          if (tpara._bStop) {
+            AddTask(GetThreadId(), tpara._vctTask[0]);
+            tpara._bExclusiveTask = false;
+            tpara._vctTask.clear();
+
+            LOG_INFO << "Remove the exclusive task " +
+                            tpara._vctTask[0]->GetTaskName() +
+                            " from stoped thread "
+                     << tid;
+            break;
+          } else {
+            continue;
           }
-          continue;
         }
       } else {
         for (auto iter = tpara._vctTask.begin();
              iter != tpara._vctTask.end();) {
           assert(!(*iter)->IsExclusiveTask());
+          DT_MicroSec dtS = _nowMicroSec;
           TaskStatus ts = (*iter)->Run();
           if (ts == TaskStatus::FINISHED) {
+            LOG_INFO << "Remove the finished normal task " +
+                            (*iter)->GetTaskName() + " from thread "
+                     << tid;
             if ((*iter)->IsNeedDelete()) {
               delete (*iter);
             }
 
             iter = tpara._vctTask.erase(iter);
+
           } else {
+            (*iter)->SetAvgUsedTime(
+                ((*iter)->GetAvgUsedTime() * 49 + _nowMicroSec - dtS) / 50);
             iter++;
           }
-        }
-
-        BusyDegree bd = CalcBusyDegree(MicroSecTime() - dtStart);
-        if (bd == tpara._busyDegree) {
-          tpara._repeatTime++;
-        } else {
-          if (bd >= BusyDegree::BUSY) {
-            tpara._repeatTime++;
-          } else {
-            tpara._repeatTime = 1;
-          }
-
-          tpara._busyDegree = bd;
         }
       }
     }
 
-    if ((tpara._busyDegree == BusyDegree::BLOCKED && tpara._repeatTime >= 3 ||
-         tpara._busyDegree == BusyDegree::BUSY && tpara._repeatTime >= 5) &&
-        tpara._vctTask.size() > 1 && !tpara._bExclusiveTask &&
-        _poolBusyDegree <= BusyDegree::RELAXED &&
-        tpara._dtRemoveTask < _checkBusyTime) {
-      // This thread is busy and other threads is relax, move one of small
-      // tasks to other thread.
+    tpara._dtUsed = (tpara._dtUsed * 49 + _nowMicroSec - dtStart) / 50;
+    BusyDegree bd = CalcBusyDegree(tpara._dtUsed);
+
+    if (tpara._bSelRmTask && bd >= BusyDegree::BUSY &&
+        tpara._vctTask.size() > 1 && _aliveThreads < _maxThreads) {
+      // This thread is busy and other threads is relax, move the smallest task
+      // to other thread.
       auto iter = tpara._vctTask.begin();
       auto itSel = iter;
       iter++;
 
       for (; iter != tpara._vctTask.end(); iter++) {
-        if ((*iter)->GetBusyDegree() < (*itSel)->GetBusyDegree()) {
+        if ((*iter)->GetAvgUsedTime() < (*itSel)->GetAvgUsedTime()) {
           itSel = iter;
         }
       }
 
       AddTask(GetThreadId(), *itSel);
       tpara._vctTask.erase(itSel);
-      tpara._dtRemoveTask = _checkBusyTime;
+      tpara._bSelRmTask = false;
+      LOG_INFO << "Remove a normal task " + (*itSel)->GetTaskName() +
+                      " from busy thread "
+               << tid << "  BusyDegree: " << (int)bd
+               << "   Time: " << tpara._dtUsed
+               << "  taskNum: " << tpara._vctTask.size();
     } else if (tpara._bStop) {
-      if (tpara._vctTask.size()) {
-        continue;
-      } else {
-        break;
+      if (tpara._vctTask.size() > 0) {
+        if (IsStoped()) {
+          continue;
+        }
+
+        LOG_INFO << "Remove " << tpara._vctTask.size()
+                 << " normal tasks from stoped thread " << tid;
+        AddTasks(GetThreadId(), tpara._vctTask);
       }
+
+      break;
     }
   }
 

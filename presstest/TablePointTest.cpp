@@ -91,7 +91,7 @@ VectorRow GenRow(uint32_t num) {
   return vctRow;
 }
 
-void CreateDbTable() {
+void CreateDbTable(bool bExclusive) {
   Database *db =
       new Database(1, ROOT_PATH, DB_NAME, MilliSecTime(), MicroSecTime());
   DatabaseManager::AddDb(db);
@@ -109,7 +109,8 @@ void CreateDbTable() {
   bool b = ptable->OpenIndex(0, true);
   assert(b);
 
-  TableTaskMgr *tmgr = new TableTaskMgr(ThreadPool::GetMainPool(), ptable, 1);
+  TableTaskMgr *tmgr =
+      new TableTaskMgr(ThreadPool::GetMainPool(), ptable, 1, bExclusive);
   ptable->SetTableTaskMgr(tmgr);
   TableManager::AddTable(DB_TBL_NAME, ptable);
   table = ptable;
@@ -384,15 +385,16 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
     switch (redio) {
     case OpRedio::INS: {
       vctRow = GenRow(currVal);
-      SessionPool::AddStatement(tid, vctSessId[pos], cnt, 1, INSERT_STMT,
-                                move(vctRow), &vctResult[pos]);
+      vctResult[pos]._rowNum =
+          SessionPool::AddStatement(tid, vctSessId[pos], cnt, 1, INSERT_STMT,
+                                    move(vctRow), &vctResult[pos]);
       break;
     }
     case OpRedio::UPD: {
       vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
       if (arrResult[currVal] & 0x80) {
         if ((arrResult[currVal] & 0x3F) != 0x3F) {
-          arrResult[currVal] += 1;
+          arrResult[currVal] = arrResult[currVal] & 0xBF;
           SessionPool::AddStatement(tid, vctSessId[pos], cnt, 2, UPDATE_STMT,
                                     move(vctRow), &vctResult[pos]);
         } else {
@@ -428,12 +430,14 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
 
 void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
                     uint16_t sessGroupNum, uint16_t sessTaskNum, int sessionNum,
-                    int rowNum, int totalOpTimes) {
+                    int rowNum, int totalOpTimes, bool bExclusive) {
   assert(sessionNum % userThreads == 0);
   ThreadPool *tpool = ThreadPool::CreateMainPool("press", 1, poolThreads);
+  ThreadPool::SetThreadId(0);
   FilePagePool::Start(poolThreads);
-  LogTask::InitLogTask(tpool, "./binlog/");
-  SessionPool::InitPool(sessGroupNum, sessTaskNum, 0, userThreads, tpool);
+  LogTask::InitLogTask(tpool, "./binlog/", bExclusive);
+  SessionPool::InitPool(sessGroupNum, sessTaskNum, 0, userThreads, tpool,
+                        bExclusive);
   // CachePagePoolTask::Init(tpool);
 
   arrResult = new Byte[rowNum];
@@ -441,7 +445,7 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   arrNum = new int[totalOpTimes];
   memset(arrNum, 0, totalOpTimes * 4);
 
-  CreateDbTable();
+  CreateDbTable(bExclusive);
   vector<uint32_t> vctSessId;
   vector<StmtResult> vctStmtRes(sessionNum);
 
@@ -484,6 +488,9 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   LOG_INFO << "Insert records Time(ms):" << duration.count()
            << "  Total Records: " << rowNum;
 
+  LOG_INFO
+      << "Root RecordNumber: "
+      << table->GetVectorIndex()[0]._tree->GetRootPage()->GetRecordNumber();
   st = chrono::system_clock::now();
   int opTimes = totalOpTimes / userThreads;
   for (int i = 0; i < userThreads; i++) {

@@ -23,7 +23,8 @@ public:
     CachePool::Release((Byte *)ptr, (uint32_t)size);
   }
 
-  static bool InitLogTask(ThreadPool *threadPool, const MString &logPath);
+  static bool InitLogTask(ThreadPool *threadPool, const MString &logPath,
+                          bool bExclusive = false);
 
   static void CloseTask() {
     assert(_logTask->GetStatus(false) == TaskStatus::FINISHED);

@@ -8,6 +8,15 @@
 namespace storage {
 DT_MicroSec TableTaskMgr::_dtLastWriteDisk{0};
 
+IndexTask::IndexTask(ThreadPool *pool, TableTaskMgr *taskMgr, uint16_t indexPos,
+                     uint16_t taskPos)
+    : ThreadTask(pool), _taskMgr(taskMgr), _indexPos(indexPos),
+      _taskPos(taskPos) {
+  _taskName = "IndexTask_" + _taskMgr->_table->GetFullName() + "_" +
+              ToMString(indexPos) + "_" + ToMString(taskPos);
+  _taskMask = _taskMgr->_table->TableID();
+}
+
 TaskStatus IndexTask::Run() {
   SetStatus(TaskStatus::RUNNING, false);
 
@@ -50,7 +59,7 @@ TaskStatus IndexTask::Run() {
 
   if (TableTaskMgr::_dtLastWriteDisk > range._dtLastWriteDisk) {
     idxTree->SettleUpdatedPages(range._pageMap);
-    range._dtLastWriteDisk = MicroSecTime();
+    range._dtLastWriteDisk = TableTaskMgr::_dtLastWriteDisk + 1;
   } else if (_taskMgr->GetMgrStatus() == MgrStatus::SET_STOP) {
     if (range._queueAction.size() == 0 &&
         (_taskPos == 0 && range._pageMap.size() <= 1 ||
@@ -280,13 +289,14 @@ TaskStatus IndexAdjustTask::Run() {
 
   for (int64_t i = 0; i < _exptTaskNum; i++) {
     IndexTask *task = new IndexTask(_threadPool, _tableTaskMgr, _indexPos, i);
+    task->SetExclusiveTask(_bExclusive);
     vctTask.push_back(task);
     vct.push_back(task);
   }
 
   idxTree->SetReRanging(false);
 
-  _threadPool->AddTasks(vct);
+  _threadPool->AddTasks(ThreadPool::GetThreadId(), vct);
   return TaskStatus::FINISHED;
 }
 

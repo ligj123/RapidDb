@@ -11,17 +11,20 @@ namespace fs = std::filesystem;
 RapidQueue<Transaction> *LogTask::_queueTran{nullptr};
 LogTask *LogTask::_logTask{nullptr};
 
-bool LogTask::InitLogTask(ThreadPool *threadPool, const MString &logPath) {
+bool LogTask::InitLogTask(ThreadPool *threadPool, const MString &logPath,
+                          bool bExclusive) {
   assert(_queueTran == nullptr && _logTask == nullptr);
   _queueTran = new RapidQueue<Transaction>(threadPool->GetMaxThreads(),
                                            threadPool->GetAliveThreadCount());
   _logTask = new LogTask(threadPool, logPath);
+  _logTask->SetExclusiveTask(bExclusive);
   threadPool->AddTask(_logTask);
   return true;
 }
 
 LogTask::LogTask(ThreadPool *threadPool, const MString &logPath)
     : ThreadTask(threadPool), _logPath(logPath) {
+  _taskName = "LogTask";
   fs::path path(logPath.c_str());
   if (!fs::exists(path)) {
     fs::create_directories(path);
@@ -47,11 +50,11 @@ TaskStatus LogTask::Run() {
   SetStatus(TaskStatus::RUNNING, false);
   MList<Transaction *> lstTran;
   _queueTran->Pop(lstTran);
-  for (Transaction *tran : lstTran) {
-    tran->WriteLog(this);
-  }
+  // for (Transaction *tran : lstTran) {
+  //   tran->WriteLog(this);
+  // }
 
-  _logStream.flush();
+  // _logStream.flush();
 
   for (Transaction *tran : lstTran) {
     tran->SetLogged();

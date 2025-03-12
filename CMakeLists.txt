@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
+project(RapidDB VERSION 1.0.0 DESCRIPTION "The fast database in the world")
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_definitions(-DLINUX_OS)
@@ -10,12 +11,16 @@ if(CACHE_TRACE STREQUAL "on")
   add_definitions(-DCACHE_TRACE)
 endif()
 
+if(NOT LOG_WITH_FILE STREQUAL "off")
+  add_definitions(-DLOG_WITH_FILE)
+endif()
+
 #add_definitions(-DCACHE_TRACE -DDEBUG_WITHOUT_BIN_LOG)
 set(CMAKE_EXPORT_COMPILECOMMANDS ON)
 project(RapidDB)
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Release")
+  set(CMAKE_BUILD_TYPE "Release")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
@@ -24,7 +29,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "-O2 -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 set(_STACK_DEPTH 15)
 

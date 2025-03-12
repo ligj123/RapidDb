@@ -19,27 +19,27 @@
 #include <sstream>
 #include <string>
 
-#ifdef CACHE_TRACE
+#ifdef LOG_WITH_FILE
 #define LOG_DEBUG                                                              \
   BOOST_LOG_SEV(Logger::slg_, DEBUG)                                           \
-      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
-      << __LINE__ << "] "
+      << "<" << ThreadPool::GetThreadName() << ">  ["                          \
+      << TrunFileName(__FILE__) << " : " << __LINE__ << "] "
 #define LOG_INFO                                                               \
   BOOST_LOG_SEV(Logger::slg_, INFO)                                            \
-      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
-      << __LINE__ << "] "
+      << "<" << ThreadPool::GetThreadName() << ">  ["                          \
+      << TrunFileName(__FILE__) << " : " << __LINE__ << "] "
 #define LOG_WARN                                                               \
   BOOST_LOG_SEV(Logger::slg_, WARN)                                            \
-      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
-      << __LINE__ << "] "
+      << "<" << ThreadPool::GetThreadName() << ">  ["                          \
+      << TrunFileName(__FILE__) << " : " << __LINE__ << "] "
 #define LOG_ERROR                                                              \
   BOOST_LOG_SEV(Logger::slg_, ERROR)                                           \
-      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
-      << __LINE__ << "] "
+      << "<" << ThreadPool::GetThreadName() << ">  ["                          \
+      << TrunFileName(__FILE__) << " : " << __LINE__ << "] "
 #define LOG_FATAL                                                              \
   BOOST_LOG_SEV(Logger::slg_, FATAL)                                           \
-      << "<" << ThreadPool::GetThreadName() << ">  [" << __FILE__ << " : "     \
-      << __LINE__ << "] "
+      << "<" << ThreadPool::GetThreadName() << ">  ["                          \
+      << TrunFileName(__FILE__) << " : " << __LINE__ << "] "
 #else
 #define LOG_DEBUG                                                              \
   BOOST_LOG_SEV(Logger::slg_, DEBUG)                                           \
@@ -67,6 +67,11 @@ namespace attrs = boost::log::attributes;
 namespace keywords = boost::log::keywords;
 
 enum severity_level : uint8_t { DEBUG = 0, INFO, WARN, ERROR, FATAL };
+
+inline const char *TrunFileName(const char *fpath) {
+  const char *last = strrchr(fpath, '/');
+  return last == nullptr ? fpath : last + 1;
+}
 
 class Logger {
 public:

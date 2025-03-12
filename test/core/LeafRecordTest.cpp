@@ -106,14 +106,13 @@ BOOST_AUTO_TEST_CASE(LeafRecordBig_test) {
   const string INDEX_NAME = "test";
 
   DataValueInt dvInt(100);
-  const char *p1 = "abcdefghijklmnopqrst";
-  DataValueVarChar dvVar(p1, (uint32_t)strlen(p1), 100);
+  string p1 = "abcdefghijklmnopqrst";
+  DataValueVarChar dvVar(p1.c_str(), (uint32_t)p1.size(), 100);
   DataValueLong dvLong(200);
-  const char *p2 = "abcdefghijklmnopqrst1234567890";
-  DataValueFixChar dvFix(p2, (uint32_t)strlen(p2), 100);
-  const char *p3 =
-      "abcdefghijklmnopqrst1234567890abcdefghijklmnopqrst1234567890";
-  DataValueBlob dvBlob(p3, (uint32_t)strlen(p3), 20000);
+  string p2 = "abcdefghijklmnopqrst1234567890";
+  DataValueFixChar dvFix(p2.c_str(), (uint32_t)p2.size(), 100);
+  string p3 = "abcdefghijklmnopqrst1234567890abcdefghijklmnopqrst1234567890";
+  DataValueBlob dvBlob(p3.c_str(), (uint32_t)p3.size(), 20000);
 
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};
@@ -259,14 +258,13 @@ BOOST_AUTO_TEST_CASE(LeafRecord_Update_Read_test) {
   const string INDEX_NAME = "test";
 
   DataValueInt dvInt(100);
-  const char *p1 = "abcdefghijklmnopqrst";
-  DataValueVarChar dvVar(p1, (uint32_t)strlen(p1), 100);
+  string p1 = "abcdefghijklmnopqrst";
+  DataValueVarChar dvVar(p1.c_str(), (uint32_t)p1.size(), 100);
   DataValueLong dvLong(200);
-  const char *p2 = "abcdefghijklmnopqrst1234567890";
-  DataValueFixChar dvFix(p2, (uint32_t)strlen(p2), 100);
-  const char *p3 =
-      "abcdefghijklmnopqrst1234567890abcdefghijklmnopqrst1234567890";
-  DataValueBlob dvBlob(p3, (uint32_t)strlen(p3), 1000);
+  string p2 = "abcdefghijklmnopqrst1234567890";
+  DataValueFixChar dvFix(p2.c_str(), (uint32_t)p2.size(), 100);
+  string p3 = "abcdefghijklmnopqrst1234567890abcdefghijklmnopqrst1234567890";
+  DataValueBlob dvBlob(p3.c_str(), (uint32_t)p3.size(), 1000);
 
   VectorDataValue vctKey = {dvInt.Clone(), dvVar.Clone()};
   VectorDataValue vctVal = {dvLong.Clone(), dvFix.Clone(), dvBlob.Clone()};

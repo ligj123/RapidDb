@@ -86,9 +86,7 @@ public:
    * @param taskPos The task position in task array of the index
    */
   IndexTask(ThreadPool *pool, TableTaskMgr *taskMgr, uint16_t indexPos,
-            uint16_t taskPos)
-      : ThreadTask(pool), _taskMgr(taskMgr), _indexPos(indexPos),
-        _taskPos(taskPos) {}
+            uint16_t taskPos);
 
   TaskStatus Run() override;
 
@@ -125,7 +123,8 @@ public:
   /**
    * @brief Constructor
    */
-  TableTaskMgr(ThreadPool *pool, PhysTable *table, uint16_t sessionGroupNum)
+  TableTaskMgr(ThreadPool *pool, PhysTable *table, uint16_t sessionGroupNum,
+               bool bExclusive = false)
       : _threadPool(pool), _table(table), _sessionGroupNum(sessionGroupNum) {
     MVector<IndexProp> &vctIndex = table->GetVectorIndex();
     _vctIndexTaskQueue.reserve(vctIndex.size());
@@ -149,12 +148,13 @@ public:
 
       MVector<IndexTask *> vct;
       IndexTask *task = new IndexTask(pool, this, i, 0);
+      task->SetExclusiveTask(bExclusive);
       vct.push_back(task);
       vctTask.push_back(task);
       _vctIndexTasks.push_back(move(vct));
     }
 
-    pool->AddTasks(vctTask);
+    pool->AddTasks(ThreadPool::GetThreadId(), vctTask);
   }
 
   ~TableTaskMgr() {
@@ -259,9 +259,12 @@ protected:
 class IndexAdjustTask : public ThreadTask {
 public:
   IndexAdjustTask(ThreadPool *pool, TableTaskMgr *tableTaskMgr,
-                  uint16_t indexPos, uint16_t exptTaskNum)
+                  uint16_t indexPos, uint16_t exptTaskNum,
+                  bool bExclusive = false)
       : ThreadTask(pool), _tableTaskMgr(tableTaskMgr), _indexPos(indexPos),
-        _exptTaskNum(exptTaskNum) {
+        _exptTaskNum(exptTaskNum), _bExclusive(bExclusive) {
+    _taskName = "IndexAdjustTask" + _tableTaskMgr->_table->GetFullName() + "_" +
+                ToMString(indexPos);
     assert(_exptTaskNum > 0);
     IndexTree *idxTree =
         _tableTaskMgr->_table->GetVectorIndex().at(_indexPos)._tree;
@@ -269,12 +272,13 @@ public:
   }
 
   TaskStatus Run() override;
-  bool IsNeedDelete() { return true; }
+  bool IsNeedDelete() const override { return true; }
 
 protected:
   TableTaskMgr *_tableTaskMgr;
   uint16_t _indexPos;
   uint16_t _exptTaskNum;
+  bool _bExclusive;
 };
 
 } // namespace storage

@@ -104,28 +104,35 @@ public:
     _taskStatus.store(s, release ? memory_order_release : memory_order_relaxed);
   }
   // inline void SetStatus(TaskStatus s) { _status = s; }
-  inline BusyDegree GetBusyDegree() { return _busyDegree; }
-  inline uint8_t GetRepeatTime() { return _repeatTime; }
+  inline double GetAvgUsedTime() { return _dtUsed; }
+  inline void SetAvgUsedTime(double us) { _dtUsed = us; }
 
   // To occupy a thread entirely or not
   bool IsExclusiveTask() { return _bExclusive; };
   void SetExclusiveTask(bool b) {
-    if (b && !_bExclusive) {
+    if (b == _bExclusive) {
+      return;
+    }
+
+    if (b) {
       _exclusiveTasksCount.fetch_add(1, memory_order_relaxed);
-    } else if (!b && _bExclusive) {
+    } else {
       _exclusiveTasksCount.fetch_sub(1, memory_order_relaxed);
     }
 
     _bExclusive = b;
   }
   // Delete this task or not after this task has finished
-  virtual bool IsNeedDelete() { return false; }
-  inline uint32_t GetTaskMask() { return _taskMask; }
+  virtual bool IsNeedDelete() const { return false; }
+  inline uint32_t GetTaskMask() const { return _taskMask; }
+  inline const MString &GetTaskName() const { return _taskName; }
+  inline void SetTaskName(MString &&name) { _taskName = move(name); }
 
 protected:
   ThreadPool *_threadPool;
-  BusyDegree _busyDegree = BusyDegree::FREE;
-  uint8_t _repeatTime{0};  // The same busy degree repeat time
+  // The average used time to run this task one time.
+  // Equation = (current used us + previous used us * 99) / 100
+  double _dtUsed{0};
   bool _bExclusive{false}; // To occupy a thread entirely or not
   atomic<TaskStatus> _taskStatus{TaskStatus::UNINIT};
   // If the tasks has same mask, they will try to avoid to hand out them into
@@ -133,6 +140,8 @@ protected:
   uint32_t _taskMask{0};
   // The count of current exclusive tasks,it must less than _maxThreads in
   // thread pool
+
+  MString _taskName;
   static atomic_uint32_t _exclusiveTasksCount;
 };
 
@@ -141,56 +150,48 @@ struct ThreadPara {
   ThreadPara(ThreadPara &&src) {}
 
   bool IsMaskConflict(uint32_t mask) {
-    if (mask == 0) {
-      return false;
-    }
-
-    for (int i = 0; i < MASK_SIZE; i++) {
-      if (_arrTaskMask[i] == mask) {
-        return true;
-      }
-    }
-    return false;
+    return _mapTaskMask.find(mask) != _mapTaskMask.end();
   }
 
-  void SetMask(uint32_t mask) {
+  void AddMask(uint32_t mask) {
     if (mask == 0) {
       return;
     }
 
-    int pos = -1;
-    for (int i = 0; i < MASK_SIZE; i++) {
-      if (_arrTaskMask[i] == mask) {
-        return;
-      } else if (_arrTaskMask[i] == 0) {
-        pos = i;
-      }
-    }
-    if (pos >= 0) {
-      _arrTaskMask[pos] = mask;
+    auto iter = _mapTaskMask.emplace(mask, 1);
+    if (iter.second) {
+      iter.first->second++;
     }
   }
 
-  void ClearMask() {
-    for (int i = 0; i < MASK_SIZE; i++) {
-      _arrTaskMask[i] = 0;
+  void RemoveMask(uint32_t mask) {
+    auto iter = _mapTaskMask.find(mask);
+    if (iter == _mapTaskMask.end()) {
+      return;
+    }
+
+    iter->second--;
+    if (iter->second == 0) {
+      _mapTaskMask.erase(iter);
     }
   }
+
+  void ClearMask() { _mapTaskMask.clear(); }
 
   thread *_thread{nullptr};
   // The periodic tasks are run in this thread
   MVector<ThreadTask *> _vctTask;
   // To receive task from manage thread of Pool
   LineQueue<ThreadTask> _lineQueueTask;
-  uint16_t _repeatTime{0}; // The same busy degree repeat time
-  uint16_t _id;            // Thread id
-  BusyDegree _busyDegree = BusyDegree::FREE;
+  // The average used time to run those task in this thread.
+  // Equation = (current used us + previous used us * 99) / 100
+  double _dtUsed{0};
+  uint16_t _id; // Thread id in ThreadPool
   atomic_bool _bRunning{false};
   bool _bStop{true};
   bool _bExclusiveTask{false}; // The running task is exclusive
-  // The last time to remove task from busy queue
-  DT_MicroSec _dtRemoveTask{0};
-  uint32_t _arrTaskMask[MASK_SIZE]{};
+  bool _bSelRmTask{false};     // Selected to remove a task due to busy
+  MHashMap<uint32_t, int> _mapTaskMask;
 };
 
 class ThreadPool {
@@ -247,6 +248,8 @@ public:
     for (auto task : vct) {
       _queueTask.push_back(task);
     }
+
+    vct.clear();
   }
 
   uint32_t GetTaskCount() { return (uint32_t)(_queueTask.size()); }

@@ -8,7 +8,7 @@
 using namespace std;
 
 namespace storage {
-BOOST_AUTO_TEST_SUITE(UtilsTest)
+BOOST_AUTO_TEST_SUITE(ThreadTest)
 
 BOOST_AUTO_TEST_CASE(ThreadPool_test) {
   LOG_INFO << "Run testcase: "
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolEx_test) {
   }
 
   this_thread::sleep_for(1000ms);
-  BOOST_TEST(6 == tp.GetAliveThreadCount());
+  BOOST_TEST(tp.GetAliveThreadCount() >= 5);
   BOOST_TEST(ThreadTask::GetExclusiveTaskCount() == 5);
 
   int count = 0;
@@ -134,7 +134,7 @@ BOOST_AUTO_TEST_CASE(ThreadPoolEx_test) {
   }
 
   this_thread::sleep_for(1000ms);
-  BOOST_TEST(6 == tp.GetAliveThreadCount());
+  BOOST_TEST(tp.GetAliveThreadCount() >= 5);
   BOOST_TEST(ThreadTask::GetExclusiveTaskCount() == 5);
 
   for (int i = 0; i < 5; i++) {

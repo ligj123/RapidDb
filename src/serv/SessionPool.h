@@ -72,9 +72,15 @@ struct SessionGroup {
 
 class SessionTask : public ThreadTask {
 public:
-  SessionTask(ThreadPool *threadPool) : ThreadTask(threadPool) {}
-  SessionTask(ThreadPool *threadPool, MVector<SessionGroup *> &&vct)
-      : ThreadTask(threadPool), _vctGroup(move(vct)) {}
+  SessionTask(ThreadPool *threadPool, int sn) : ThreadTask(threadPool) {
+    _taskName = "SessionTask" + ToMString(sn);
+    _taskMask = UINT32_MAX;
+  }
+  SessionTask(ThreadPool *threadPool, int sn, MVector<SessionGroup *> &&vct)
+      : ThreadTask(threadPool), _vctGroup(move(vct)) {
+    _taskName = "SessionTask" + ToMString(sn);
+    _taskMask = UINT32_MAX;
+  }
   TaskStatus Run() override;
   void SetStop() { _bStop = true; }
 
@@ -91,9 +97,11 @@ protected:
 class SessionAdjustTask : public ThreadTask {
 public:
   SessionAdjustTask(ThreadPool *threadPool, uint16_t newTaskNum)
-      : ThreadTask(threadPool), _newTaskNum(newTaskNum) {}
+      : ThreadTask(threadPool), _newTaskNum(newTaskNum) {
+    _taskName = "SessionAdjustTask";
+  }
   TaskStatus Run() override;
-  bool IsNeedDelete() override { return true; }
+  bool IsNeedDelete() const override { return true; }
 
 protected:
   uint16_t _newTaskNum;
@@ -103,7 +111,8 @@ protected:
 class SessionPool {
 public:
   static bool InitPool(uint16_t groupNum, uint16_t taskNum, uint16_t restartNum,
-                       uint16_t userThreadNum, ThreadPool *threadPool);
+                       uint16_t userThreadNum, ThreadPool *threadPool,
+                       bool bExclusive = false);
 
   static uint32_t CreateSession(uint16_t outerTid, StmtResult *result);
   static void CloseSession(uint16_t outerTid, uint32_t sessionId,

@@ -44,7 +44,7 @@ protected:
 
 class CachePagePoolTask : public ThreadTask {
 public:
-  CachePagePoolTask() : ThreadTask(nullptr) {}
+  CachePagePoolTask() : ThreadTask(nullptr) { _taskName = "CachePagePoolTask"; }
   static void SetStop() { _instance->_bStoped = true; }
   static CachePagePoolTask *GetInstance() {
     assert(_instance != nullptr);

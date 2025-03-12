@@ -57,22 +57,22 @@ BOOST_AUTO_TEST_CASE(PhyColumn_test) {
 BOOST_AUTO_TEST_CASE(PhysTable_test) {
   LOG_INFO << "Run testcase: "
            << boost::unit_test::framework::current_test_case().p_name;
-  const char *var_default = "this is default value for the varchr column";
-  const char *fix_default = "this is default value for the fixchar column";
+  string var_default = "this is default value for the varchr column";
+  string fix_default = "this is default value for the fixchar column";
   Database *db = new Database(1, ROOT_PATH.c_str(), "testdb", MilliSecTime(),
                               MicroSecTime());
   DatabaseManager::AddDb(db);
 
   PhysTable ptable(db, "testtable", 0x100, MilliSecTime(), MilliSecTime());
   ptable.AddColumn("c1", DataType::LONG, "primary key", 100, 2);
-  ptable.AddColumn("c2", DataType::VARCHAR, false, 100, "varchar test",
-                   Charsets::UTF8,
-                   new DataValueVarChar(var_default, strlen(var_default), 100));
+  ptable.AddColumn(
+      "c2", DataType::VARCHAR, false, 100, "varchar test", Charsets::UTF8,
+      new DataValueVarChar(var_default.c_str(), var_default.size(), 100));
   ptable.AddColumn("c3", DataType::DOUBLE, true, -1, "double column test",
                    Charsets::UTF8, new DataValueDouble(1.23456));
-  ptable.AddColumn("c4", DataType::FIXCHAR, true, 50, "Fixchar test",
-                   Charsets::UTF8,
-                   new DataValueFixChar(fix_default, strlen(var_default), 100));
+  ptable.AddColumn(
+      "c4", DataType::FIXCHAR, true, 50, "Fixchar test", Charsets::UTF8,
+      new DataValueFixChar(fix_default.c_str(), fix_default.size(), 100));
   ptable.AddIndex(IndexType::PRIMARY, PRIMARY_KEY, {"c1"});
   ptable.AddIndex(IndexType::UNIQUE, "c2_unique", {"c2"});
   ptable.AddIndex(IndexType::NON_UNIQUE, "c3_c4_non_unique", {"c3", "c4"});
@@ -132,7 +132,7 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
   BOOST_TEST(vct_col[1].GetCharset() == Charsets::UTF8);
   BOOST_TEST(vct_col[1].GetComments() == "varchar test");
   BOOST_TEST(*(const DataValueVarChar *)vct_col[1].GetDefaultVal() ==
-             DataValueVarChar(var_default, (uint32_t)strlen(var_default)));
+             DataValueVarChar(var_default.c_str(), var_default.size()));
 
   BOOST_TEST(vct_col[2].GetName() == "c3");
   BOOST_TEST(vct_col[2].GetIndex() == 2);
@@ -193,7 +193,7 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
   BOOST_TEST(col->GetCharset() == Charsets::UTF8);
   BOOST_TEST(col->GetComments() == "varchar test");
   BOOST_TEST(*(const DataValueVarChar *)col->GetDefaultVal() ==
-             DataValueVarChar(var_default, (uint32_t)strlen(var_default)));
+             DataValueVarChar(var_default.c_str(), var_default.size()));
 
   col = ptable2.GetColumn("c3");
   BOOST_TEST(col == ptable2.GetColumn(2));
