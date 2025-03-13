@@ -60,7 +60,7 @@ TaskStatus LogTask::Run() {
     tran->SetLogged();
   }
 
-  if (_threadPool->IsStoped() && lstTran.size() == 0) {
+  if (ThreadPool::IsStoped() && lstTran.size() == 0) {
     _tryStopTime--;
     if (_tryStopTime == 0) {
       return TaskStatus::FINISHED;

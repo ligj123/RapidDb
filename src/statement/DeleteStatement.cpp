@@ -109,7 +109,14 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
 
     if (_lstWaitRecord.size() > 0) {
       for (auto iter = _lstWaitRecord.begin(); iter != _lstWaitRecord.end();) {
-        if ((*iter)->GetLock()->GetRecordResult() != RecordResult::INIT) {
+        RecordResult res = (*iter)->GetLock()->GetRecordResult();
+        if (res != RecordResult::INIT) {
+          if (res == RecordResult::ERROR) {
+            _stmtResult->_vctError.push_back(
+                move((*iter)->GetLock()->_errMsg->GetErrorMsg()));
+            _stmtFailed.store(true, memory_order_relaxed);
+          }
+
           _lstFinishRecord.push_back(*iter);
           iter = _lstWaitRecord.erase(iter);
         } else {

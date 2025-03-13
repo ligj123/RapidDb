@@ -113,8 +113,7 @@ void ThreadPool::CheckBusyStatus() {
 
     normal++;
     BusyDegree bd = CalcBusyDegree(tpara._dtUsed);
-    // LOG_INFO << "CheckBusyStatus: " << tpara._dtUsed
-    //          << "  BusyDegree: " << (int)bd;
+    // LOG_INFO << i << ": " << tpara._dtUsed << "  BusyDegree: " << (int)bd;
     if (bd >= BusyDegree::BUSY) {
       busy++;
     } else if (bd <= BusyDegree::FREE) {
@@ -279,7 +278,9 @@ void ThreadPool::ManageProc() {
         assert(pos >= 0);
         _vctThreadPara[pos]._bExclusiveTask = true;
         _vctThreadPara[pos]._lineQueueTask.Push(task);
-        // LOG_INFO << "Add 1 exclusive task into thread " << pos;
+        LOG_INFO << "Add 1 exclusive " + task->GetTaskName() +
+                        " task into thread "
+                 << pos;
         _vctThreadPara[pos].ClearMask();
       } else {
         int32_t idx = 0;
@@ -388,7 +389,7 @@ void ThreadPool::WorkProc(uint16_t tid) {
               (tpara._vctTask[0]->GetAvgUsedTime() * 49 + us) / 50);
           tpara._dtUsed = (tpara._dtUsed * 49 + us) / 50;
 
-          if (tpara._bStop) {
+          if (tpara._bStop && !IsStoped()) {
             AddTask(GetThreadId(), tpara._vctTask[0]);
             tpara._bExclusiveTask = false;
             tpara._vctTask.clear();
@@ -452,7 +453,7 @@ void ThreadPool::WorkProc(uint16_t tid) {
                << tid << "  BusyDegree: " << (int)bd
                << "   Time: " << tpara._dtUsed
                << "  taskNum: " << tpara._vctTask.size();
-    } else if (tpara._bStop) {
+    } else if (tpara._bStop && !IsStoped()) {
       if (tpara._vctTask.size() > 0) {
         if (IsStoped()) {
           continue;

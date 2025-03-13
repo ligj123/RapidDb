@@ -7,6 +7,8 @@
 namespace storage {
 void Transaction::StartTransaction(bool bAuto, IsoLevel isoLevel,
                                    CcProtocol ccProtocol) {
+  assert(_tranStatus == TranStatus::FINISHED ||
+         _tranStatus == TranStatus::INIT);
   if (bAuto) {
     _tranStatus = TranStatus::AUTO_TRAN;
   } else {
@@ -40,6 +42,7 @@ void Transaction::WriteLog(LogTask *logTask) {
   TreeSetRecord setRec;
   for (auto iter = _lstStatement.rbegin(); iter != _lstStatement.rend();
        iter++) {
+    assert(_tid == (*iter)->GetTxId());
     (*iter)->CollectLogRecords(setRec);
   }
 
@@ -71,7 +74,6 @@ void Transaction::WriteLog(LogTask *logTask) {
   }
 
   logTask->WriteBuff(cBuff - sBuff, bStart);
-  SetLogged();
 }
 
 void Transaction::CloseTransaction() {

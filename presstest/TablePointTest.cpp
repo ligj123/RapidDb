@@ -231,6 +231,7 @@ void CheckAllRecord(int rowNum) {
 void InsertProc(uint16_t tid, MVector<uint32_t> vctSessId, int recStart,
                 int recNum) {
   MVector<StmtResult> vctResult(vctSessId.size());
+  MVector<int> vctStmtId(vctSessId.size());
 
   int cnt = 0;
   while (true) {
@@ -242,14 +243,17 @@ void InsertProc(uint16_t tid, MVector<uint32_t> vctSessId, int recStart,
         continue;
       }
 
-      assert(rs != ResultStatus::FINISHED ||
-             (vctResult[i]._rowNum == 1 && vctResult[i]._vctError.size() == 0));
+      if (rs == ResultStatus::FINISHED) {
+        assert(vctResult[i]._rowNum == 1 && vctResult[i]._vctError.size() == 0);
+        assert(vctResult[i]._stmtId == vctStmtId[i]);
+      }
 
       if (cnt < recNum) {
         arrResult[recStart + cnt] = 0x80;
         VectorRow vctRow = GenRow(recStart + cnt);
         SessionPool::AddStatement(tid, vctSessId[i], cnt, 1, INSERT_STMT,
                                   move(vctRow), &vctResult[i]);
+        vctStmtId[i] = cnt;
         unfinished++;
         cnt++;
       }
@@ -267,33 +271,29 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
   MVector<StmtResult> vctResult(vctSessId.size());
   // Response for vctResult one by one, pair<the int value, which operation>
   MVector<pair<int, OpRedio>> vctPair(vctSessId.size());
+  for (size_t i = 0; i < vctPair.size(); i++) {
+    vctPair[i].first = -1;
+  }
+
   srand(tid);
-
   int cnt = 0;
-  int pos = -1;
-  int finished = 0;
-  while (true) {
-    if (cnt == 4626240) {
-      int iii = 0;
-    }
-    pos++;
-    if (pos >= vctSessId.size()) {
-      pos = 0;
-    }
 
-    ResultStatus rs = vctResult[pos].GetResultStatus();
-    if (rs == ResultStatus::FILLING) {
-      if (cnt >= opTimes) {
-        finished = 0;
+  while (true) {
+    int empty = 0;
+    for (size_t i = 0; i < vctSessId.size(); i++) {
+      ResultStatus rs = vctResult[i].GetResultStatus();
+      if (rs != ResultStatus::FINISHED) {
+        continue;
       }
 
-      continue;
-    }
+      pair<int, OpRedio> &pr = vctPair[i];
+      if (pr.first < 0) {
+        empty++;
+        continue;
+      }
 
-    if (rs == ResultStatus::FINISHED) {
-      pair<int, OpRedio> &pr = vctPair[pos];
       arrResult[pr.first] &= 0xBF;
-      StmtResult &rst = vctResult[pos];
+      StmtResult &rst = vctResult[i];
 
       switch (pr.second) {
       case OpRedio::INS:
@@ -332,10 +332,10 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
         if (rst._rowNum > 0) {
           assert(arrResult[pr.first] > 0);
           arrResStat[tid]._selectPassed++;
-          vctResult[pos]._resultSet->First();
+          rst._resultSet->First();
 
           VectorDataValue vctDv;
-          vctResult[pos]._resultSet->GetCurrDataValueRow(vctDv);
+          rst._resultSet->GetCurrDataValueRow(vctDv);
           CheckSelectResult(pr.first, vctDv);
         } else {
           assert(arrResult[pr.first] == 0);
@@ -345,86 +345,95 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       default:
         abort();
       }
+
+      pr.first = -1;
     }
 
     if (cnt >= opTimes) {
-      finished++;
-      vctResult[pos].SetResultStatus(ResultStatus::INIT);
-      if (finished >= vctSessId.size()) {
+      if (empty == vctSessId.size()) {
         break;
-      } else {
+      }
+
+      continue;
+    }
+
+    for (size_t i = 0; i < vctSessId.size(); i++) {
+      pair<int, OpRedio> &pr = vctPair[i];
+      if (pr.first >= 0) {
         continue;
       }
-    }
 
-    int currVal;
-    while (true) {
-      currVal = cnt % recNum + rand() % 50 - 25;
-      if (currVal >= recNum) {
-        currVal -= 25;
-      } else if (currVal < 0) {
-        currVal += 25;
+      int currVal;
+      int tryTime = 0;
+      while (true) {
+        currVal = cnt % recNum + rand() % 100 - 50;
+        if (currVal >= recNum) {
+          currVal -= 50;
+        } else if (currVal < 0) {
+          currVal += 50;
+        }
+
+        currVal += startRec;
+        if ((arrResult[currVal] & 0x40) == 0) {
+          break;
+        }
+        if (++tryTime > 50) {
+          cnt--;
+          continue;
+        }
       }
 
-      currVal += startRec;
-      if ((arrResult[currVal] & 0x40) == 0) {
+      arrNum[cnt] = currVal;
+      OpRedio redio = arrRadio[cnt % redioCount];
+      pr.first = currVal;
+      pr.second = redio;
+      arrResult[currVal] |= 0x40;
+      VectorRow vctRow;
+
+      switch (redio) {
+      case OpRedio::INS: {
+        vctRow = GenRow(currVal);
+        vctResult[i]._rowNum = arrResult[currVal] & 0xBF;
+        SessionPool::AddStatement(tid, vctSessId[i], cnt, 1, INSERT_STMT,
+                                  move(vctRow), &vctResult[i]);
         break;
       }
-    }
-
-    if (currVal == 626324) {
-      int iiii = 0;
-    }
-    arrNum[cnt] = currVal;
-    OpRedio redio = arrRadio[cnt % redioCount];
-    vctPair[pos].first = currVal;
-    vctPair[pos].second = redio;
-    arrResult[currVal] |= 0x40;
-    VectorRow vctRow;
-
-    switch (redio) {
-    case OpRedio::INS: {
-      vctRow = GenRow(currVal);
-      vctResult[pos]._rowNum =
-          SessionPool::AddStatement(tid, vctSessId[pos], cnt, 1, INSERT_STMT,
-                                    move(vctRow), &vctResult[pos]);
-      break;
-    }
-    case OpRedio::UPD: {
-      vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
-      if (arrResult[currVal] & 0x80) {
-        if ((arrResult[currVal] & 0x3F) != 0x3F) {
-          arrResult[currVal] = arrResult[currVal] & 0xBF;
-          SessionPool::AddStatement(tid, vctSessId[pos], cnt, 2, UPDATE_STMT,
-                                    move(vctRow), &vctResult[pos]);
+      case OpRedio::UPD: {
+        vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+        if (arrResult[currVal] & 0x80) {
+          if ((arrResult[currVal] & 0x3F) != 0x3F) {
+            arrResult[currVal] += 1;
+            SessionPool::AddStatement(tid, vctSessId[i], cnt, 2, UPDATE_STMT,
+                                      move(vctRow), &vctResult[i]);
+          } else {
+            arrResult[currVal] -= 1;
+            SessionPool::AddStatement(tid, vctSessId[i], cnt, 5, UPDATE_STMT2,
+                                      move(vctRow), &vctResult[i]);
+          }
         } else {
-          arrResult[currVal] -= 1;
-          SessionPool::AddStatement(tid, vctSessId[pos], cnt, 5, UPDATE_STMT2,
-                                    move(vctRow), &vctResult[pos]);
+          SessionPool::AddStatement(tid, vctSessId[i], cnt, 2, UPDATE_STMT,
+                                    move(vctRow), &vctResult[i]);
         }
-      } else {
-        SessionPool::AddStatement(tid, vctSessId[pos], cnt, 2, UPDATE_STMT,
-                                  move(vctRow), &vctResult[pos]);
+        break;
       }
-      break;
-    }
-    case OpRedio::DEL: {
-      vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
-      SessionPool::AddStatement(tid, vctSessId[pos], cnt, 3, DELETE_STMT,
-                                move(vctRow), &vctResult[pos]);
-      break;
-    }
-    case OpRedio::SEL: {
-      vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
-      SessionPool::AddStatement(tid, vctSessId[pos], cnt, 4, SELECT_STMT,
-                                move(vctRow), &vctResult[pos]);
-      break;
-    }
-    default:
-      abort();
-    }
+      case OpRedio::DEL: {
+        vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+        SessionPool::AddStatement(tid, vctSessId[i], cnt, 3, DELETE_STMT,
+                                  move(vctRow), &vctResult[i]);
+        break;
+      }
+      case OpRedio::SEL: {
+        vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+        SessionPool::AddStatement(tid, vctSessId[i], cnt, 4, SELECT_STMT,
+                                  move(vctRow), &vctResult[i]);
+        break;
+      }
+      default:
+        abort();
+      }
 
-    cnt++;
+      cnt++;
+    }
   }
 }
 

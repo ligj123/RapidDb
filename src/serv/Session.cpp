@@ -39,8 +39,8 @@ void Session::Exec() {
       _transaction.StartTransaction(_bAutoCommit);
     }
 
-    _transaction.AddStatement(_currStatement);
     _currStatement->SetTxID(_transaction.GetTranID());
+    _transaction.AddStatement(_currStatement);
   }
 
   StmtStatus s = _currStatement->SessionExec(this);

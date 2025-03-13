@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
   } else if (str == "4") {
 
   } else if (str == "11") {
-    storage::TablePointTest(1, 4, 1, 1, 20, 1000000, 5000000, true);
+    storage::TablePointTest(1, 4, 1, 1, 100, 2000000, 10000000, true);
   } else if (str == "12") {
     // int threadNum = argc >= 3 ? atol(argv[2]) : 0;
     // storage::InsertSpeedUniqueTest(argc >= 3 ? atol(argv[2]) : 0);

@@ -375,9 +375,6 @@ protected:
   atomic_bool _bFinished{false};
   // Meet error when executing
   atomic_bool _stmtFailed{false};
-  // KeyExec start from the begin of range or search the position by index
-  // condition
-  bool _bFromBegin{false};
 
   // The create time for this statement
   DT_MicroSec _createTime;

@@ -3,6 +3,7 @@
 #include "BufferPool.h"
 
 #include <array>
+#include <cstring>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -135,6 +136,9 @@ public:
     if (pos == UINT32_MAX) {
       FreeLargeBlock(pBuf, bufSize);
     } else {
+#ifndef NDEBUG
+      memset(pBuf, 0, bufSize);
+#endif
       _localMap.Push(pBuf, pos);
     }
   }
