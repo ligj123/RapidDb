@@ -389,7 +389,11 @@ void ThreadPool::WorkProc(uint16_t tid) {
               (tpara._vctTask[0]->GetAvgUsedTime() * 49 + us) / 50);
           tpara._dtUsed = (tpara._dtUsed * 49 + us) / 50;
 
-          if (tpara._bStop && !IsStoped()) {
+          if (tpara._bStop) {
+            if (IsStoped()) {
+              continue;
+            }
+
             AddTask(GetThreadId(), tpara._vctTask[0]);
             tpara._bExclusiveTask = false;
             tpara._vctTask.clear();
@@ -453,7 +457,7 @@ void ThreadPool::WorkProc(uint16_t tid) {
                << tid << "  BusyDegree: " << (int)bd
                << "   Time: " << tpara._dtUsed
                << "  taskNum: " << tpara._vctTask.size();
-    } else if (tpara._bStop && !IsStoped()) {
+    } else if (tpara._bStop) {
       if (tpara._vctTask.size() > 0) {
         if (IsStoped()) {
           continue;
