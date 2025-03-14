@@ -192,6 +192,9 @@ struct ThreadPara {
   bool _bExclusiveTask{false}; // The running task is exclusive
   bool _bSelRmTask{false};     // Selected to remove a task due to busy
   MHashMap<uint32_t, int> _mapTaskMask;
+
+  double _dtUsedTotal{0}; // Total microSec used to run tasks.
+  int64_t _runTimes{0};
 };
 
 class ThreadPool {
@@ -214,6 +217,8 @@ public:
   static void CloseMainPool(bool ignoreTasks = false);
 
   static DT_MicroSec GetNow() { return _nowMicroSec; }
+
+  static void PrintThreadTime();
 
 public:
   ThreadPool(const MString &threadPrefix, int minThreads = 1,

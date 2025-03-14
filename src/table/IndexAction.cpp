@@ -93,7 +93,7 @@ TaskStatus RecordAction::Exec() {
 
 int RecordAction::JudgeRange() {
   _rangePos = _indexTree->CalcIndexRange(*_lr);
-  return {_rangePos};
+  return _rangePos;
 }
 
 TaskStatus StatementAction::Exec() {
@@ -101,7 +101,10 @@ TaskStatus StatementAction::Exec() {
   return b ? TaskStatus::FINISHED : TaskStatus::INTERVAL;
 }
 
-int StatementAction::JudgeRange() { return _stmt->CalcIndexRanges(_indexTree); }
+int StatementAction::JudgeRange() {
+  _rangePos = _stmt->CalcIndexRanges(_indexTree);
+  return _rangePos;
+}
 
 TaskStatus StmtInsertAction::Exec() {
   if (_stmtRecord->_stmt->IsStmtFailed()) {

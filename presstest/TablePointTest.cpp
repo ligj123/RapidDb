@@ -2,6 +2,7 @@
 
 #include "../src/binlog/LogTask.h"
 #include "../src/cache/Mallocator.h"
+#include "../src/core/BranchPage.h"
 #include "../src/core/IndexTree.h"
 #include "../src/core/LeafPage.h"
 #include "../src/core/LeafRecord.h"
@@ -473,6 +474,7 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   vctThread.reserve(userThreads);
   int sRange = sessionNum / userThreads;
   int rRange = rowNum / userThreads;
+  ThreadPool::PrintThreadTime();
   chrono::system_clock::time_point st = chrono::system_clock::now();
 
   for (int i = 0; i < userThreads; i++) {
@@ -492,14 +494,29 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
 
   vctThread.clear();
   chrono::system_clock::time_point et = chrono::system_clock::now();
+  ThreadPool::PrintThreadTime();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(et - st);
   LOG_INFO << "Insert records Time(ms):" << duration.count()
            << "  Total Records: " << rowNum;
 
-  LOG_INFO
-      << "Root RecordNumber: "
-      << table->GetVectorIndex()[0]._tree->GetRootPage()->GetRecordNumber();
+  IndexPage *rootPage = table->GetVectorIndex()[0]._tree->GetRootPage();
+  LOG_INFO << "Root RecordNumber: " << rootPage->GetRecordNumber()
+           << "  PageLevel: " << (int)rootPage->GetPageLevel();
+
+  TableTaskMgr::_dtLastWriteDisk = MicroSecTime();
+  IndexRange &range = table->GetVectorIndex()[0]._tree->GetVctRange()[0];
+  while (range._pageMap.size() > 1 || FilePagePool::IsBusy()) {
+    this_thread::sleep_for(1us);
+  }
+  rootPage = table->GetVectorIndex()[0]._tree->GetRootPage();
+  LOG_INFO << "Root RecordNumber: " << rootPage->GetRecordNumber()
+           << "  PageLevel: " << (int)rootPage->GetPageLevel();
+
+  // IndexAdjustTask *adjustTask =
+  //     new IndexAdjustTask(tpool, table->GetTableTaskMgr(), 0, 2, true);
+  // tpool->AddTask(adjustTask);
+  ThreadPool::PrintThreadTime();
   st = chrono::system_clock::now();
   int opTimes = totalOpTimes / userThreads;
   for (int i = 0; i < userThreads; i++) {
@@ -523,11 +540,29 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   duration = std::chrono::duration_cast<std::chrono::milliseconds>(et - st);
   LOG_INFO << "Operator records Time(ms):" << duration.count()
            << "  Total times: " << totalOpTimes;
-
+  ThreadPool::PrintThreadTime();
   CheckAllRecord(rowNum);
   PhysTable *tbl = nullptr;
   TableManager::FindTable(DB_TBL_NAME, tbl);
   tbl->GetTableTaskMgr()->SetMgrStatus(MgrStatus::SET_STOP);
+  MVector<storage::IndexRange> &vctRange =
+      table->GetVectorIndex()[0]._tree->GetVctRange();
+  while (true) {
+    bool bEmpty = true;
+    for (size_t i = 0; i < vctRange.size(); i++) {
+      IndexRange &range = vctRange[i];
+      if (i == 0 && range._pageMap.size() > 1 ||
+          i > 0 && range._pageMap.size() > 0) {
+        bEmpty = false;
+      }
+    }
+
+    if (bEmpty) {
+      break;
+    }
+
+    this_thread::sleep_for(1us);
+  }
   SessionPool::ClosePool();
 
   ThreadPool::CloseMainPool(true);

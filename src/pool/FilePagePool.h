@@ -41,6 +41,11 @@ public:
 
   static bool SyncReadPage(CachePage *page);
   static bool SyncWritePage(CachePage *page);
+  static bool IsBusy() {
+    return !_pool->_readRapidQueue.IsEmpty() ||
+           !_pool->_writeRapidQueue.IsEmpty() ||
+           _pool->_readMQueue.size() > 0 || _pool->_writeMQueue.size() > 0;
+  }
 
   FilePagePool(uint16_t lineNum);
 

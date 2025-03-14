@@ -536,6 +536,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
       _parentPage->InsertRecord(brParentOld, posInParent);
     }
 
+    _parentPage->AddWriteQueue(pageMap);
     return true;
   }
 

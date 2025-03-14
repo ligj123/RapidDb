@@ -215,10 +215,12 @@ bool IndexTree::LoadIndexTree(const MString &tableName,
 }
 
 void IndexTree ::Close() {
-  for (IndexRange &idxRange : _vctRange) {
-    assert(idxRange._pageMap.size() <= 1 &&
-           idxRange._pageMap.begin()->second->GetPageType() ==
-               PageType::HEAD_PAGE);
+  for (size_t i = 0; i < _vctRange.size(); i++) {
+    IndexRange &range = _vctRange[i];
+    assert((i == 0 && range._pageMap.size() == 1 &&
+            range._pageMap.begin()->second->GetPageType() ==
+                PageType::HEAD_PAGE) ||
+           (i > 0 && range._pageMap.size() == 0));
   }
 
   if (_rootPage != nullptr) {

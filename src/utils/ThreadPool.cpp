@@ -113,7 +113,7 @@ void ThreadPool::CheckBusyStatus() {
 
     normal++;
     BusyDegree bd = CalcBusyDegree(tpara._dtUsed);
-    // LOG_INFO << i << ": " << tpara._dtUsed << "  BusyDegree: " << (int)bd;
+
     if (bd >= BusyDegree::BUSY) {
       busy++;
     } else if (bd <= BusyDegree::FREE) {
@@ -371,6 +371,10 @@ void ThreadPool::WorkProc(uint16_t tid) {
     if (tpara._vctTask.size() > 0) {
       if (tpara._bExclusiveTask) {
         TaskStatus ts = tpara._vctTask[0]->Run();
+        DT_MicroSec us = _nowMicroSec - dtStart;
+        tpara._dtUsedTotal += us;
+        tpara._runTimes++;
+
         if (ts == TaskStatus::FINISHED) {
           LOG_INFO << "Remove the finished exclusive task " +
                           tpara._vctTask[0]->GetTaskName() + " from thread "
@@ -384,7 +388,6 @@ void ThreadPool::WorkProc(uint16_t tid) {
           tpara._dtUsed = 0;
 
         } else {
-          DT_MicroSec us = _nowMicroSec - dtStart;
           tpara._vctTask[0]->SetAvgUsedTime(
               (tpara._vctTask[0]->GetAvgUsedTime() * 49 + us) / 50);
           tpara._dtUsed = (tpara._dtUsed * 49 + us) / 50;
@@ -432,7 +435,10 @@ void ThreadPool::WorkProc(uint16_t tid) {
       }
     }
 
-    tpara._dtUsed = (tpara._dtUsed * 49 + _nowMicroSec - dtStart) / 50;
+    DT_MicroSec us = _nowMicroSec - dtStart;
+    tpara._dtUsedTotal += us;
+    tpara._runTimes++;
+    tpara._dtUsed = (tpara._dtUsed * 49 + us) / 50;
     BusyDegree bd = CalcBusyDegree(tpara._dtUsed);
 
     if (tpara._bSelRmTask && bd >= BusyDegree::BUSY &&
@@ -478,5 +484,14 @@ void ThreadPool::WorkProc(uint16_t tid) {
   tpara._thread = nullptr;
 
   LOG_INFO << "Stop thread in thread pool, Name = " << _threadName;
+}
+
+void ThreadPool::PrintThreadTime() {
+  for (size_t i = 0; i < _instMain->_vctThreadPara.size(); i++) {
+    ThreadPara &para = _instMain->_vctThreadPara[i];
+    LOG_INFO << i << ": " << para._runTimes << "\t" << para._dtUsedTotal;
+    para._dtUsedTotal = 0;
+    para._runTimes = 0;
+  }
 }
 } // namespace storage
