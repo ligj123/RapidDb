@@ -15,6 +15,7 @@
 #include "../src/statement/StmtResult.h"
 #include "../src/table/Table.h"
 #include "../src/table/TableTaskMgr.h"
+#include "TableTestLib.h"
 
 namespace storage {
 const char *ROOT_PATH = "./TestPress";
@@ -33,66 +34,15 @@ const int MAX_USER_THREADS = 8;
 Byte *arrResult = nullptr;
 int *arrNum = nullptr;
 // The redio of insert, update , delete, select
-enum class OpRedio : uint8_t {
-  INS, // Insert
-  UPD, // Update
-  DEL, // Delete
-  SEL  // Select
-};
 
 OpRedio arrRadio[] = {OpRedio::INS, OpRedio::UPD, OpRedio::DEL, OpRedio::SEL,
                       OpRedio::SEL, OpRedio::SEL, OpRedio::SEL, OpRedio::SEL,
                       OpRedio::SEL, OpRedio::SEL};
 int redioCount = sizeof(arrRadio);
 
-struct ResultStat {
-  int _insertPassed{0};
-  int _insertFailed{0};
-  int _deletePassed{0};
-  int _deleteFailed{0};
-  int _updatePassed{0};
-  int _updateFailed{0};
-  int _selectPassed{0};
-  int _selectFailed{0};
-};
 ResultStat arrResStat[MAX_USER_THREADS];
 
-inline uint32_t GenTestKey(uint32_t num) {
-  uint32_t by1 = num & 0xff;
-  uint32_t by2 = (num >> 8) & 0xff;
-  uint32_t by3 = (num >> 16) & 0xff;
-  uint32_t by4 = (num >> 24) & 0xff;
-  return ((by1 & 0x05) + (by2 & 0x0A) + (by3 & 0x50) + (by4 & 0xA0)) +
-         (((by1 & 0xA0) + (by2 & 0x05) + (by3 & 0x0A) + (by4 & 0x50)) << 8) +
-         (((by1 & 0x50) + (by2 & 0xA0) + (by3 & 0x05) + (by4 & 0x0A)) << 16) +
-         (((by1 & 0x0A) + (by2 & 0x50) + (by3 & 0xA0) + (by4 & 0x05)) << 24);
-}
-
-int64_t GenPrimaryKey(uint32_t num) {
-  uint64_t val = GenTestKey(num);
-  return val * val + val;
-}
-
-VectorRow GenRow(uint32_t num) {
-  VectorDataValue vctDv;
-  uint32_t val = GenTestKey(num);
-  DataValueLong *dvLong = new DataValueLong((int64_t)val * val + val);
-  DataValueInt *dvInt = new DataValueInt(BytesSwap32(val));
-
-  sprintf(varchar.data() + 30, "0x%08X", (val / 10));
-  const char *p = varchar.c_str();
-  DataValueVarChar *dvVar = new DataValueVarChar(p, strlen(p), 50);
-
-  vctDv.push_back(dvLong);
-  vctDv.push_back(dvInt);
-  vctDv.push_back(dvVar);
-  VectorRow vctRow;
-  vctRow.push_back(move(vctDv));
-
-  return vctRow;
-}
-
-void CreateDbTable(bool bExclusive) {
+void CreateDbTable(bool bExclusive, int sessionGroup) {
   Database *db =
       new Database(1, ROOT_PATH, DB_NAME, MilliSecTime(), MicroSecTime());
   DatabaseManager::AddDb(db);
@@ -110,8 +60,8 @@ void CreateDbTable(bool bExclusive) {
   bool b = ptable->OpenIndex(0, true);
   assert(b);
 
-  TableTaskMgr *tmgr =
-      new TableTaskMgr(ThreadPool::GetMainPool(), ptable, 1, bExclusive);
+  TableTaskMgr *tmgr = new TableTaskMgr(ThreadPool::GetMainPool(), ptable,
+                                        sessionGroup, bExclusive);
   ptable->SetTableTaskMgr(tmgr);
   TableManager::AddTable(DB_TBL_NAME, ptable);
   table = ptable;
@@ -235,8 +185,10 @@ void InsertProc(uint16_t tid, MVector<uint32_t> vctSessId, int recStart,
   MVector<int> vctStmtId(vctSessId.size());
 
   int cnt = 0;
+  int times = 0;
   while (true) {
     int unfinished = 0;
+    times++;
     for (size_t i = 0; i < vctResult.size(); i++) {
       ResultStatus rs = vctResult[i].GetResultStatus();
       if (rs == ResultStatus::FILLING) {
@@ -264,6 +216,8 @@ void InsertProc(uint16_t tid, MVector<uint32_t> vctSessId, int recStart,
       break;
     }
   }
+
+  LOG_INFO << "Times: " << times;
 }
 
 void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
@@ -278,9 +232,11 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
 
   srand(tid);
   int cnt = 0;
+  int times = 0;
 
   while (true) {
     int empty = 0;
+    times++;
     for (size_t i = 0; i < vctSessId.size(); i++) {
       ResultStatus rs = vctResult[i].GetResultStatus();
       if (rs != ResultStatus::FINISHED) {
@@ -436,6 +392,8 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       cnt++;
     }
   }
+
+  LOG_INFO << "Times: " << times;
 }
 
 void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
@@ -455,7 +413,7 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   arrNum = new int[totalOpTimes];
   memset(arrNum, 0, totalOpTimes * 4);
 
-  CreateDbTable(bExclusive);
+  CreateDbTable(bExclusive, sessGroupNum);
   vector<uint32_t> vctSessId;
   vector<StmtResult> vctStmtRes(sessionNum);
 
@@ -513,9 +471,13 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   LOG_INFO << "Root RecordNumber: " << rootPage->GetRecordNumber()
            << "  PageLevel: " << (int)rootPage->GetPageLevel();
 
-  // IndexAdjustTask *adjustTask =
-  //     new IndexAdjustTask(tpool, table->GetTableTaskMgr(), 0, 2, true);
-  // tpool->AddTask(adjustTask);
+  IndexAdjustTask *adjustTask =
+      new IndexAdjustTask(tpool, table->GetTableTaskMgr(), 0, 2, true);
+  tpool->AddTask(adjustTask);
+  while (table->GetTableTaskMgr()->GetVctIndexTasks()[0].size() != 2) {
+    this_thread::yield();
+  }
+
   ThreadPool::PrintThreadTime();
   st = chrono::system_clock::now();
   int opTimes = totalOpTimes / userThreads;

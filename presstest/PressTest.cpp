@@ -48,10 +48,17 @@ int main(int argc, char *argv[]) {
   } else if (str == "4") {
 
   } else if (str == "11") {
-    storage::TablePointTest(1, 4, 1, 1, 100, 2000000, 10000000, true);
+    storage::TablePointTest(1, 6, 2, 2, 100, 2000000, 10000000, true);
   } else if (str == "12") {
-    // int threadNum = argc >= 3 ? atol(argv[2]) : 0;
-    // storage::InsertSpeedUniqueTest(argc >= 3 ? atol(argv[2]) : 0);
+    int tNum = (argc >= 3 ? atoi(argv[2]) : 1);
+    if (tNum < 1 || tNum > 10) {
+      tNum = 1;
+    }
+    int rowNum = (argc >= 4 ? atoi(argv[3]) : 1000000);
+    if (rowNum < 10000 || rowNum > 1000000000) {
+      rowNum = 1000000;
+    }
+    storage::MultiThreadInsertTest(tNum, rowNum);
   } else if (str == "13") {
     // storage::InsertSpeedNonUniqueTest(argc >= 3 ? atol(argv[2]) : 0);
   } else if (str == "21") {
