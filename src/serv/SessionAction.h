@@ -112,4 +112,17 @@ protected:
   VectorRow _vctParas;
   StmtResult *_stmtResult;
 };
+
+class SessionUseDB : public SessionAction {
+public:
+  SessionUseDB(uint32_t sid, StmtResult *result, const MString &dbName)
+      : _sessionId(sid), _result(result), _dbName(dbName) {}
+
+  TaskStatus Exec(SessionGroup &sGroup) override;
+
+protected:
+  uint32_t _sessionId;
+  StmtResult *_result;
+  MString _dbName;
+};
 } // namespace storage

@@ -1,12 +1,13 @@
 #include "SessionAction.h"
 
-#include "../../src/expr/ExprAggr.h"
-#include "../../src/expr/ExprData.h"
-#include "../../src/expr/ExprDdl.h"
-#include "../../src/expr/ExprFunc.h"
-#include "../../src/expr/ExprLogic.h"
-#include "../../src/expr/ExprStatement.h"
-#include "../../src/sql/Parser.h"
+#include "../expr/ExprAggr.h"
+#include "../expr/ExprData.h"
+#include "../expr/ExprDdl.h"
+#include "../expr/ExprFunc.h"
+#include "../expr/ExprLogic.h"
+#include "../expr/ExprStatement.h"
+#include "../manager/DatabaseManager.h"
+#include "../sql/Parser.h"
 #include "../statement/DeleteStatement.h"
 #include "../statement/InsertStatement.h"
 #include "../statement/StmtResult.h"
@@ -144,6 +145,23 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
   }
 
   session->_lstWaittingStmt.push_back(stmt);
+  return TaskStatus::FINISHED;
+}
+
+TaskStatus SessionUseDB::Exec(SessionGroup &sGroup) {
+  auto iter = sGroup._mapSession.find(_sessionId);
+  if (iter != sGroup._mapSession.end()) {
+    Session *sess = iter->second;
+    sess->_currDb = DatabaseManager::FindDb(_dbName);
+    assert(sess->_currDb != nullptr);
+  } else {
+    _result->_vctError.push_back("Failed to find session " +
+                                 ToMString(_sessionId));
+  }
+
+  _result->_sessionId = _sessionId;
+  _result->_status.store(ResultStatus::FINISHED, memory_order_release);
+
   return TaskStatus::FINISHED;
 }
 } // namespace storage

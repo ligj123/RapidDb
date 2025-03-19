@@ -60,7 +60,13 @@ int main(int argc, char *argv[]) {
     }
     storage::MultiThreadInsertTest(tNum, rowNum);
   } else if (str == "13") {
-    // storage::InsertSpeedNonUniqueTest(argc >= 3 ? atol(argv[2]) : 0);
+    int tblNum = argc >= 3 ? atoi(argv[2]) : 1;
+    int sessGroupNum = argc >= 4 ? atoi(argv[3]) : 1;
+    int sessNum = argc >= 5 ? atoi(argv[4]) : 10;
+    int rowNum = argc >= 6 ? atoi(argv[5]) : 1000000;
+    int opTimes = argc >= 7 ? atoi(argv[6]) : 1000000;
+
+    storage::TestMultiTable(tblNum, sessGroupNum, sessNum, rowNum, opTimes);
   } else if (str == "21") {
     // int threadNum = argc >= 3 ? atol(argv[2]) : 0;
     // uint64_t recordNum = argc >= 4 ? atoll(argv[3]) : 0;

@@ -176,6 +176,15 @@ public:
     _vctGroup[gid]._threaPoolQueue.Push(threadId, action);
   }
 
+  /**
+   * @brief Add action into SessionPool from user threads.
+   * @param outId Thread id that start from 0, it is NOT pool thread.
+   * @param sid session id
+   * @param action The action to add
+   * @param result To save the result of executing the statement
+   */
+  static void AddAction(uint16_t outId, uint32_t sid, SessionAction *action,
+                        StmtResult *result);
   static bool IsPoolStop() { return _bStop.load(memory_order_relaxed); }
   static vector<SessionTask *> &GetVctSessionTask() { return _vctTask; }
   // Generate a session id, only for testcase

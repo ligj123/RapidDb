@@ -16,7 +16,7 @@ public:
     if (_dbPath.size() == 0)
       _dbPath = Configure::GetDbRootPath();
   }
-  const MString GetDbPath() const { return _dbPath; }
+  const MString GetDbPath() const { return _dbPath + "/" + _dbName; }
   const MString &GetDbName() const { return _dbName; }
   void SetResStatus(ResStatus sts) { _dbStatus = sts; }
   ResStatus GetResStatus() const { return _dbStatus; }

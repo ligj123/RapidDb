@@ -17,9 +17,9 @@ public:
    */
   static bool InitDb(PhysTable *dbTable);
   static bool AddDb(Database *db);
-  static bool DelDb(MString &dbName);
+  static bool DelDb(const MString &dbName);
   static bool ListDb(MVector<MString> &vctDb);
-  static Database *FindDb(MString &db);
+  static Database *FindDb(const MString &db);
   static bool LockDb(bool bWait = true) {
     if (bWait) {
       _spinMutex.lock();

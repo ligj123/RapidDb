@@ -187,4 +187,11 @@ void SessionPool::AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
       sid, stmtId, exprId, move(sql), move(paras), result);
   _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outerTid, action);
 }
+
+void SessionPool::AddAction(uint16_t outId, uint32_t sid, SessionAction *action,
+                            StmtResult *result) {
+  result->Reset();
+  result->_status.store(ResultStatus::FILLING, memory_order_relaxed);
+  _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outId, action);
+}
 } // namespace storage

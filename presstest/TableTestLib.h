@@ -27,8 +27,20 @@ struct ResultStat {
   int _selectFailed{0};
 };
 
-extern PhysTable *table;
+extern const char *ROOT_PATH;
+extern const char *DB_NAME;
+extern const char *TBL_NAME;
+extern const char *DB_TBL_NAME;
+extern const char *INSERT_STMT;
+extern const char *UPDATE_STMT;
+extern const char *UPDATE_STMT2;
+extern const char *DELETE_STMT;
+extern const char *SELECT_STMT;
 extern thread_local string varchar;
+
+extern OpRedio arrRadio[];
+extern int redioCount;
+extern Byte *arrResult;
 
 inline uint32_t GenTestKey(uint32_t num) {
   uint32_t by1 = num & 0xff;
@@ -65,7 +77,18 @@ inline VectorRow GenRow(uint32_t num) {
   return vctRow;
 }
 
-void InsertProc(uint16_t tid, MVector<uint32_t> vctSessId, int recStart,
+inline string FulleTblName(const string &dbPrefix, int sn,
+                           const string &tblName) {
+  return dbPrefix + to_string(sn) + "." + tblName;
+}
+
+void CreateDbTable(const string &dbName, bool bExclusive, int sessionGroup);
+
+void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
                 int recNum);
 void CheckSelectResult(uint32_t num, VectorDataValue &vctDv);
+
+void CheckAllRecord(const string &fullTblName, int rowNum);
+
+void GetRecordValue(const string &fullTblName, int num);
 } // namespace storage
