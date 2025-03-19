@@ -64,6 +64,19 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
       _stmtResult->_rowNum = 0;
       _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Finished;
+#ifdef WITHOUT_BIN_LOG
+    } else {
+      for (auto lr : _lstFinishRecord) {
+        lr->GetLock()->_recStatus.store(RecordStatus::COMMITED,
+                                        memory_order_relaxed);
+      }
+
+      _stmtResult->_rowNum = _recordNum;
+      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+      _status = StmtStatus::Finished;
+    }
+  }
+#else
     } else if (sess->_transaction.IsAutoCommit()) { // Add log write queue
       _status = StmtStatus::Logging;
       LogTask::AddTransaction(ThreadPool::GetThreadId(), &(sess->_transaction));
@@ -84,6 +97,7 @@ StmtStatus InsertStatement::SessionExec(Session *sess) {
       _status = StmtStatus::Finished;
     }
   }
+#endif
 
   return _status;
 }

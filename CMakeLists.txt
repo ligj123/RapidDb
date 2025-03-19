@@ -15,6 +15,10 @@ if(NOT LOG_WITH_FILE STREQUAL "off")
   add_definitions(-DLOG_WITH_FILE)
 endif()
 
+if(WITHOUT_BIN_LOG STREQUAL "on")
+  add_definitions(-DWITHOUT_BIN_LOG)
+endif()
+
 #add_definitions(-DCACHE_TRACE -DDEBUG_WITHOUT_BIN_LOG)
 set(CMAKE_EXPORT_COMPILECOMMANDS ON)
 project(RapidDB)

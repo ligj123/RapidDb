@@ -85,7 +85,7 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   arrResult = new Byte[rowNum];
   memset(arrResult, 0, rowNum);
 
-  for (int i = 0; i < tblNum; i++) {
+  for (int i = 0; i < sessGroupNum; i++) {
     MString dbName = DB_NAME + ToMString(i);
     CreateDbTable(dbName.c_str(), true, sessGroupNum);
 
