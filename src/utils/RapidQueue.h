@@ -61,13 +61,6 @@ public:
   }
 
   bool Push(T *ele, bool submit = true) {
-    if (_tid != gettid()) {
-      if (_tid != 0) {
-        cout << "\nold: " << _tid << "   new: " << gettid();
-      }
-      _tid = gettid();
-    }
-
     uint64_t pos = _head % ELE_SIZE;
     if (pos == 0) [[unlikely]] {
       assert(_startNode->_next == nullptr);
@@ -155,9 +148,6 @@ protected:
   atomic_uint64_t _submited{0};
   // The tail of queue that obtain inserted elements.
   atomic_uint64_t _tail{0};
-
-  // Test
-  pid_t _tid{0};
 };
 
 template <class T> class RapidQueue {

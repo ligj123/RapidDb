@@ -280,7 +280,7 @@ void ThreadPool::ManageProc() {
         _vctThreadPara[pos]._lineQueueTask.Push(task);
         LOG_INFO << "Add 1 exclusive " + task->GetTaskName() +
                         " task into thread "
-                 << pos;
+                 << _threadName;
         _vctThreadPara[pos].ClearMask();
       } else {
         int32_t idx = 0;

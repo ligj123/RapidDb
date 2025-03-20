@@ -335,7 +335,7 @@ public:
 
   bool IsStmtFailed() { return _stmtFailed.load(memory_order_relaxed); }
 
-  uint16_t GetSessionGroupId() { return (uint16_t)((_txid >> 40) && 0xFF); }
+  uint16_t GetSessionGroupId() { return (uint16_t)((_txid >> 40) & 0xFF); }
 
   void SetStmtStatus(StmtStatus s) { _status = s; }
   StmtStatus GetStmtStatus() { return _status; }

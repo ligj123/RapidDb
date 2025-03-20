@@ -22,6 +22,7 @@ OpRedio arrRadio[] = {OpRedio::INS, OpRedio::UPD, OpRedio::DEL, OpRedio::SEL,
                       OpRedio::SEL, OpRedio::SEL};
 int redioCount = sizeof(arrRadio);
 
+uint32_t tableId = 0;
 void CheckSelectResult(uint32_t num, VectorDataValue &vctDv) {
   uint32_t val = GenTestKey(num);
   int64_t pkval = GenPrimaryKey(num);
@@ -138,8 +139,9 @@ void CreateDbTable(const string &dbName, bool bExclusive, int sessionGroup) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
 
+  tableId += 0x100;
   PhysTable *ptable =
-      new PhysTable(db, TBL_NAME, 0x100, MilliSecTime(), MilliSecTime());
+      new PhysTable(db, TBL_NAME, tableId, MilliSecTime(), MilliSecTime());
   ptable->AddColumn("c1", DataType::LONG, false, -1, "primary key",
                     Charsets::UNKNOWN, nullptr);
   ptable->AddColumn("c2", DataType::INT, false, -1, "Unique Key",

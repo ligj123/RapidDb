@@ -85,7 +85,7 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   arrResult = new Byte[rowNum];
   memset(arrResult, 0, rowNum);
 
-  for (int i = 0; i < sessGroupNum; i++) {
+  for (int i = 0; i < tblNum; i++) {
     MString dbName = DB_NAME + ToMString(i);
     CreateDbTable(dbName.c_str(), true, sessGroupNum);
 
@@ -121,8 +121,8 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
 
   for (int i = 0; i < tblNum; i++) {
     int recStart = i * rRange;
-    thread *t = new thread([i, vctArrSessId, recStart, rowNum]() {
-      InsertProc(i, vctArrSessId[i], recStart, rowNum);
+    thread *t = new thread([i, vctArrSessId, recStart, rRange]() {
+      InsertProc(i, vctArrSessId[i], recStart, rRange);
     });
     vctThread.push_back(t);
   }
@@ -144,8 +144,8 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   int opTimes = totalOpTimes / tblNum;
   for (int i = 0; i < tblNum; i++) {
     int recStart = i * rRange;
-    thread *t = new thread([i, vctArrSessId, recStart, rowNum, totalOpTimes]() {
-      OperateProc(i, vctArrSessId[i], recStart, rowNum, totalOpTimes);
+    thread *t = new thread([i, vctArrSessId, recStart, rRange, totalOpTimes]() {
+      OperateProc(i, vctArrSessId[i], recStart, rRange, totalOpTimes);
     });
     vctThread.push_back(t);
   }

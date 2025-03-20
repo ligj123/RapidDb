@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
   } else if (str == "4") {
 
   } else if (str == "11") {
-    storage::TablePointTest(1, 6, 2, 2, 100, 2000000, 10000000, true);
+    storage::TablePointTest(1, 8, 1, 2, 10, 5000000, 10000000, true);
   } else if (str == "12") {
     int tNum = (argc >= 3 ? atoi(argv[2]) : 1);
     if (tNum < 1 || tNum > 10) {

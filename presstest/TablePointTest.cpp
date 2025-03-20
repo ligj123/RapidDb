@@ -210,14 +210,14 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
 }
 
 void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
-                    uint16_t sessGroupNum, uint16_t sessTaskNum, int sessionNum,
+                    uint16_t tblThreads, uint16_t sessGroupNum, int sessionNum,
                     int rowNum, int totalOpTimes, bool bExclusive) {
   assert(sessionNum % userThreads == 0);
   ThreadPool *tpool = ThreadPool::CreateMainPool("press", 1, poolThreads);
   ThreadPool::SetThreadId(0);
   FilePagePool::Start(poolThreads);
   LogTask::InitLogTask(tpool, "./binlog/", bExclusive);
-  SessionPool::InitPool(sessGroupNum, sessTaskNum, 0, userThreads, tpool,
+  SessionPool::InitPool(sessGroupNum, sessGroupNum, 0, userThreads, tpool,
                         bExclusive);
   // CachePagePoolTask::Init(tpool);
 
@@ -241,9 +241,16 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
       this_thread::yield();
     }
 
-    SessionPool::GetSession(vctSessId[i])->_currDb = db;
+    SessionUseDB *action =
+        new SessionUseDB(vctSessId[i], &vctStmtRes[i], DB_NAME);
+    SessionPool::AddAction(0, vctSessId[i], action, &vctStmtRes[i]);
   }
 
+  for (int i = 0; i < sessionNum; i++) {
+    while (vctStmtRes[i].GetResultStatus() != ResultStatus::FINISHED) {
+      this_thread::yield();
+    }
+  }
   vector<thread *> vctThread;
   vctThread.reserve(userThreads);
   int sRange = sessionNum / userThreads;
@@ -291,11 +298,13 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   LOG_INFO << "Root RecordNumber: " << rootPage->GetRecordNumber()
            << "  PageLevel: " << (int)rootPage->GetPageLevel();
 
-  IndexAdjustTask *adjustTask =
-      new IndexAdjustTask(tpool, table->GetTableTaskMgr(), 0, 2, true);
-  tpool->AddTask(adjustTask);
-  while (table->GetTableTaskMgr()->GetVctIndexTasks()[0].size() != 2) {
-    this_thread::yield();
+  if (tblThreads > 1) {
+    IndexAdjustTask *adjustTask =
+        new IndexAdjustTask(tpool, table->GetTableTaskMgr(), 0, 2, true);
+    tpool->AddTask(adjustTask);
+    while (table->GetTableTaskMgr()->GetVctIndexTasks()[0].size() != 2) {
+      this_thread::yield();
+    }
   }
 
   ThreadPool::PrintThreadTime();
