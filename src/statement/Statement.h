@@ -362,9 +362,8 @@ protected:
   KeyRange GenIndexSearchKey(IndexTree *idxTree, ExprField *field,
                              QueryRange *qRange);
 
-  void SendStmtRecord(int idxPos, int rangePos, PhysTable *table,
-                      Statement *stmt, LeafRecord *lr, IndexTree *idxTree,
-                      bool bRelRec);
+  void SendStmtRecord(int rangePos, PhysTable *table, Statement *stmt,
+                      LeafRecord *lr, IndexTree *idxTree, bool bRelRec);
 
 protected:
   // Id will auto increment 1 every time in self session.

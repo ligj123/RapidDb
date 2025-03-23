@@ -245,7 +245,7 @@ public:
    * accurate, it is just rough result
    */
   bool IsEmpty() {
-    for (uint16_t i = 0; i < _currAlivedThreads; i++) {
+    for (uint16_t i = 0; i < _maxThreadNum; i++) {
       if (!_vctLine[i].IsEmpty())
         return false;
     }
@@ -264,6 +264,19 @@ public:
     }
 
     return sz;
+  }
+
+  void Resize(uint16_t newSize) {
+    assert(IsEmpty());
+    if (_maxThreadNum == newSize) {
+      return;
+    }
+
+    _vctLine.resize(newSize);
+    _maxThreadNum = newSize;
+    _currAlivedThreads = newSize;
+    _lastSetThreads = newSize;
+    _popNum = 0;
   }
 
 protected:

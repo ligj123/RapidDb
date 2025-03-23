@@ -89,11 +89,16 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
             GenIndexSearchKey(prop._tree, field, &range));
       }
     }
-
-    StatementAction *action = new StatementAction(prop._tree, this);
-    TableTaskMgr *mgr = table->GetTableTaskMgr();
-    _status = StmtStatus::Executing;
-    mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
+    SetStmtFailed(true);
+    SetFinished(true);
+    _stmtResult->_bFailed = true;
+    _stmtResult->_rowNum = 0;
+    _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+    _status = StmtStatus::Finished;
+    // StatementAction *action = new StatementAction(prop._tree, this);
+    // TableTaskMgr *mgr = table->GetTableTaskMgr();
+    // _status = StmtStatus::Executing;
+    // mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
   } else if (_status == StmtStatus::Executing) {
     if (!_bFinished.load(memory_order_acquire)) {
       return _status;

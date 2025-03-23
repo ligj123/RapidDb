@@ -2,6 +2,7 @@
 #include "../../src/binlog/LogTask.h"
 #include "../../src/core/BranchPage.h"
 #include "../../src/core/BranchRecord.h"
+#include "../../src/core/IndexTree.h"
 #include "../../src/core/LeafPage.h"
 #include "../../src/dataType/DataValueFactory.h"
 #include "../../src/expr/ExprStatement.h"
@@ -163,11 +164,15 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   session->_lstWaittingStmt.push_back(stmt);
   session->Exec();
 
-  MVector<IndexTaskQueue *> &vctTaskQueue = tmgr->GetIndexTaskQueue();
-  BOOST_TEST(vctTaskQueue.size() == 3);
-  BOOST_TEST(vctTaskQueue[0]->_queueSessionAction.RoughSize() == 500);
-  BOOST_TEST(vctTaskQueue[1]->_queueSessionAction.RoughSize() == 0);
-  BOOST_TEST(vctTaskQueue[2]->_queueSessionAction.RoughSize() == 0);
+  BOOST_TEST(table->GetVectorIndex()[0]
+                 ._tree->GetVctRange()[0]
+                 ._actionQueue->_queueSessionAction.RoughSize() == 500);
+  BOOST_TEST(table->GetVectorIndex()[1]
+                 ._tree->GetVctRange()[0]
+                 ._actionQueue->_queueSessionAction.RoughSize() == 0);
+  BOOST_TEST(table->GetVectorIndex()[2]
+                 ._tree->GetVctRange()[0]
+                 ._actionQueue->_queueSessionAction.RoughSize() == 0);
 
   MVector<MVector<IndexTask *>> &vctTasks = tmgr->GetVctIndexTasks();
   BOOST_TEST(vctTasks.size() == 3);
@@ -177,11 +182,12 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
 
   TaskStatus s = vctTasks[0][0]->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-
-  BOOST_TEST(((SecondaryIndexTaskQueue *)vctTaskQueue[1])
-                 ->_fromPrimaryQueue.RoughSize() == 500);
-  BOOST_TEST(((SecondaryIndexTaskQueue *)vctTaskQueue[2])
-                 ->_fromPrimaryQueue.RoughSize() == 500);
+  SecIndexActionQueue *secQueue = dynamic_cast<SecIndexActionQueue *>(
+      table->GetVectorIndex()[1]._tree->GetVctRange()[0]._actionQueue);
+  BOOST_TEST(secQueue->_fromPrimaryQueue.RoughSize() == 500);
+  secQueue = dynamic_cast<SecIndexActionQueue *>(
+      table->GetVectorIndex()[2]._tree->GetVctRange()[0]._actionQueue);
+  BOOST_TEST(secQueue->_fromPrimaryQueue.RoughSize() == 500);
 
   s = vctTasks[1][0]->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
@@ -201,9 +207,11 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   assert(lst.size() == 0);
 
   session->Exec();
+#ifndef WITHOUT_BIN_LOG
   BOOST_TEST(stmt->GetStmtStatus() == StmtStatus::Logging);
   session->_transaction.SetLogged();
   session->Exec();
+#endif
   BOOST_TEST(session->_currStatement == nullptr);
 
   TableTaskMgr::_dtLastWriteDisk += 10000;
@@ -215,7 +223,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
     IndexTree *tree = vctProp[i]._tree;
     BOOST_TEST(!tree->IsMultiRange());
     IndexRange &range = tree->GetVctRange()[0];
-    BOOST_TEST(range._queueAction.size() == 0);
+    BOOST_TEST(range._actionQueue->_lstAction.size() == 0);
     BOOST_TEST(range._pageMap.size() == 1);
   }
 
@@ -232,13 +240,11 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
 
   session->_lstWaittingStmt.push_back(stmt);
   session->Exec();
-  tmgr->CollectTaskData(0);
-
-  for (IndexTask *task : vctTasks[0]) {
-    task->SetStatus(TaskStatus::FINISHED, false);
-  }
+  tmgr->CollectTaskData(0, 0);
+  vctTasks[0][0]->SetStatus(TaskStatus::FINISHED, false);
 
   IndexAdjustTask *adjustTask = new IndexAdjustTask(tpool, tmgr, 0, 5);
+  adjustTask->Run();
   adjustTask->Run();
   delete adjustTask;
 
@@ -247,7 +253,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
 
   size_t count = 0;
   for (IndexRange &range : vctRange) {
-    count += range._queueAction.size();
+    count += range._actionQueue->_lstAction.size();
   }
   BOOST_TEST(count == 500);
 
@@ -256,10 +262,12 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
     BOOST_TEST(s == TaskStatus::INTERVAL);
   }
 
-  BOOST_TEST(((SecondaryIndexTaskQueue *)vctTaskQueue[1])
-                 ->_fromPrimaryQueue.RoughSize() == 500);
-  BOOST_TEST(((SecondaryIndexTaskQueue *)vctTaskQueue[2])
-                 ->_fromPrimaryQueue.RoughSize() == 500);
+  secQueue = dynamic_cast<SecIndexActionQueue *>(
+      table->GetVectorIndex()[1]._tree->GetVctRange()[0]._actionQueue);
+  BOOST_TEST(secQueue->_fromPrimaryQueue.RoughSize() == 500);
+  secQueue = dynamic_cast<SecIndexActionQueue *>(
+      table->GetVectorIndex()[2]._tree->GetVctRange()[0]._actionQueue);
+  BOOST_TEST(secQueue->_fromPrimaryQueue.RoughSize() == 500);
 
   s = vctTasks[1][0]->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
@@ -278,9 +286,11 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   BOOST_TEST(lst.size() == 0);
 
   session->Exec();
+#ifndef WITHOUT_BIN_LOG
   BOOST_TEST(stmt->GetStmtStatus() == StmtStatus::Logging);
   session->_transaction.SetLogged();
   session->Exec();
+#endif
   BOOST_TEST(session->_currStatement == nullptr);
 
   TableTaskMgr::_dtLastWriteDisk += 10000;
@@ -293,7 +303,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
 
     IndexRange &range = tree->GetVctRange()[i];
 
-    BOOST_TEST(range._queueAction.size() == 0);
+    BOOST_TEST(range._actionQueue->_lstAction.size() == 0);
     BOOST_TEST(range._pageMap.size() == (i == 0 ? 1 : 0));
   }
 
@@ -304,7 +314,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
 
     IndexTree *tree = vctProp[i]._tree;
     IndexRange &range = tree->GetVctRange()[0];
-    BOOST_TEST(range._queueAction.size() == 0);
+    BOOST_TEST(range._actionQueue->_lstAction.size() == 0);
     BOOST_TEST(range._pageMap.size() == 1);
   }
 
@@ -322,26 +332,31 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
 
   session->_lstWaittingStmt.push_back(stmt);
   session->Exec();
-  tmgr->CollectTaskData(0);
 
-  for (IndexTask *task : vctTasks[0]) {
-    task->SetStatus(TaskStatus::FINISHED, false);
+  for (size_t i = 0; i < vctTasks[0].size(); i++) {
+    tmgr->CollectTaskData(0, i);
+    vctTasks[0][i]->SetStatus(TaskStatus::FINISHED, false);
   }
 
   adjustTask = new IndexAdjustTask(tpool, tmgr, 0, 1);
   adjustTask->Run();
+  adjustTask->Run();
   delete adjustTask;
 
   BOOST_TEST(vctTasks[0].size() == 1);
-  BOOST_TEST(vctProp[0]._tree->GetVctRange()[0]._queueAction.size() == 500);
+  BOOST_TEST(
+      vctProp[0]._tree->GetVctRange()[0]._actionQueue->_lstAction.size() ==
+      500);
 
   s = vctTasks[0][0]->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
 
-  BOOST_TEST(((SecondaryIndexTaskQueue *)vctTaskQueue[1])
-                 ->_fromPrimaryQueue.RoughSize() == 500);
-  BOOST_TEST(((SecondaryIndexTaskQueue *)vctTaskQueue[2])
-                 ->_fromPrimaryQueue.RoughSize() == 500);
+  secQueue = dynamic_cast<SecIndexActionQueue *>(
+      table->GetVectorIndex()[1]._tree->GetVctRange()[0]._actionQueue);
+  BOOST_TEST(secQueue->_fromPrimaryQueue.RoughSize() == 500);
+  secQueue = dynamic_cast<SecIndexActionQueue *>(
+      table->GetVectorIndex()[2]._tree->GetVctRange()[0]._actionQueue);
+  BOOST_TEST(secQueue->_fromPrimaryQueue.RoughSize() == 500);
 
   s = vctTasks[1][0]->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
@@ -362,9 +377,11 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   assert(lst.size() == 0);
 
   session->Exec();
+#ifndef WITHOUT_BIN_LOG
   BOOST_TEST(stmt->GetStmtStatus() == StmtStatus::Logging);
   session->_transaction.SetLogged();
   session->Exec();
+#endif
   BOOST_TEST(session->_currStatement == nullptr);
 
   TableTaskMgr::_dtLastWriteDisk += 10000;
@@ -378,7 +395,7 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
 
     IndexTree *tree = vctProp[i]._tree;
     IndexRange &range = tree->GetVctRange()[0];
-    BOOST_TEST(range._queueAction.size() == 0);
+    BOOST_TEST(range._actionQueue->_lstAction.size() == 0);
     BOOST_TEST(range._pageMap.size() == 1);
   }
 

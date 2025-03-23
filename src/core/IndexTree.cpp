@@ -9,11 +9,31 @@
 #include <shared_mutex>
 
 namespace storage {
+IndexRange::IndexRange(IndexRange &&src) {
+  _borderRecord = src._borderRecord;
+  src._borderRecord = nullptr;
+  _vctRangePage = std::move(src._vctRangePage);
+  _startPage = src._startPage;
+  src._startPage = nullptr;
+  _endPage = src._endPage;
+  src._endPage = nullptr;
+
+  _recordNumber = src._recordNumber;
+  _recordStampStart = src._recordStampStart;
+  _recordStampEnd = src._recordStampStart;
+  _pageMap = std::move(src._pageMap);
+  _dtLastWriteDisk = src._dtLastWriteDisk;
+  _dtTaskStop = src._dtTaskStop;
+  _lstErrRecord = move(src._lstErrRecord);
+
+  _actionQueue = src._actionQueue;
+  src._actionQueue = nullptr;
+}
+
 IndexRange::~IndexRange() {
-  assert(_queueAction.size() == 0);
-  assert(_queueActionFromCollect.RoughSize() == 0);
-  assert(_queueActionFromPrev.RoughSize() == 0);
+  assert(_actionQueue == nullptr || _actionQueue->IsQueueEmpty());
   delete _borderRecord;
+  delete _actionQueue;
 }
 
 IndexPage *IndexRange::GetTopPage(IndexType type, RawRecord &rr) {

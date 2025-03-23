@@ -78,7 +78,7 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
       ThreadPool::CreateMainPool("press", 1, tblNum * 2 + sessGroupNum + 2);
   FilePagePool::Start(tblNum * 2 + sessGroupNum + 2);
   ThreadPool::SetThreadId(0);
-  LogTask::InitLogTask(tpool, "./binlog/", true);
+  // LogTask::InitLogTask(tpool, "./binlog/", true);
   SessionPool::InitPool(sessGroupNum, sessGroupNum, 0, tblNum, tpool, true);
   vector<MVector<uint32_t>> vctArrSessId;
   vector<StmtResult> vctStmtRes(sessNum);
@@ -175,7 +175,7 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   DatabaseManager::ClearDB();
   SessionPool::ClearPool();
   CachePagePool::ClearPool();
-  LogTask::Clear();
+  // LogTask::Clear();
   _threadErrorMsg.reset();
   ErrorMsg::ClearErrorMsg();
   vctArrSessId.clear();

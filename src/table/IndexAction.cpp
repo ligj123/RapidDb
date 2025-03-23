@@ -14,6 +14,10 @@
 
 namespace storage {
 int PrevPageAction::JudgeRange() {
+  if (_indexTree->GetVctRange().size() == 1) {
+    _rangePos = 0;
+    return 0;
+  }
   if (_page == nullptr) {
     _page = (LeafPage *)_indexTree->GetPage(_pageId, PageType::LEAF_PAGE,
                                             nullptr, true);
@@ -92,6 +96,10 @@ TaskStatus RecordAction::Exec() {
 }
 
 int RecordAction::JudgeRange() {
+  if (_indexTree->GetVctRange().size() == 1) {
+    _rangePos = 0;
+    return 0;
+  }
   _rangePos = _indexTree->CalcIndexRange(*_lr);
   return _rangePos;
 }
@@ -102,6 +110,10 @@ TaskStatus StatementAction::Exec() {
 }
 
 int StatementAction::JudgeRange() {
+  if (_indexTree->GetVctRange().size() == 1) {
+    _rangePos = 0;
+    return 0;
+  }
   _rangePos = _stmt->CalcIndexRanges(_indexTree);
   return _rangePos;
 }
@@ -178,7 +190,7 @@ TaskStatus StmtInsertAction::Exec() {
     for (size_t i = 1; i < vctProp.size(); i++) {
       IndexTree *secTree = vctProp[i]._tree;
       RecordAction *rAction = new RecordAction(secTree, vctLr[i]);
-      mgr->AddFromPrimaryAction(i, _rangePos, rAction);
+      secTree->AddFromPrimaryAction(_rangePos, rAction);
     }
 
     _stmtRecord->_numLeafRecord = vctLr.size();
@@ -193,6 +205,10 @@ TaskStatus StmtInsertAction::Exec() {
 }
 
 int StmtInsertAction::JudgeRange() {
+  if (_indexTree->GetVctRange().size() == 1) {
+    _rangePos = 0;
+    return 0;
+  }
   _rangePos = _indexTree->CalcIndexRange(_stmtRecord->_priKey);
   return _rangePos;
 }
@@ -258,6 +274,10 @@ TaskStatus StmtSecRecordAction::Exec() {
 }
 
 int StmtSecRecordAction::JudgeRange() {
+  if (_indexTree->GetVctRange().size() == 1) {
+    _rangePos = 0;
+    return 0;
+  }
   _rangePos = _indexTree->CalcIndexRange(_stmtSecRec->_secLr->GetPrimayKey());
   return _rangePos;
 }

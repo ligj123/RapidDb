@@ -36,7 +36,7 @@ TaskStatus SessionCreateAction::Exec(SessionGroup &sGroup) {
   Session *session = new Session(_sessionId);
   sGroup._mapSession.emplace(_sessionId, session);
   _result->_sessionId = _sessionId;
-  _result->_status.store(ResultStatus::FINISHED, memory_order_release);
+  _result->SetResultStatus(ResultStatus::FINISHED);
 
   return TaskStatus::FINISHED;
 }
@@ -61,7 +61,7 @@ TaskStatus SessionCloseAction::Exec(SessionGroup &sGroup) {
   }
 
   _result->_sessionId = _sessionId;
-  _result->_status.store(ResultStatus::FINISHED, memory_order_release);
+  _result->SetResultStatus(ResultStatus::FINISHED);
 
   return TaskStatus::FINISHED;
 }
@@ -73,6 +73,7 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
   if (iter == sGroup._mapSession.end()) {
     _stmtResult->_vctError.push_back("Failed to find session " +
                                      ToMString(_sessionId));
+    _stmtResult->SetResultStatus(ResultStatus::FINISHED);
     return TaskStatus::FINISHED;
   }
 
@@ -84,7 +85,7 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
     bool b = Parser::Parse(_sql, result);
     if (!b) {
       _stmtResult->_vctError.push_back(move(result.ErrorMsg()));
-      _stmtResult->_status.store(ResultStatus::FINISHED, memory_order_release);
+      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       return TaskStatus::FINISHED;
     }
 
@@ -95,7 +96,7 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
     vctPtr->clear();
     if (!exprStmt->Preprocess(session->_currDb)) {
       _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
-      _stmtResult->_status.store(ResultStatus::FINISHED, memory_order_release);
+      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       return TaskStatus::FINISHED;
     }
 
@@ -160,7 +161,7 @@ TaskStatus SessionUseDB::Exec(SessionGroup &sGroup) {
   }
 
   _result->_sessionId = _sessionId;
-  _result->_status.store(ResultStatus::FINISHED, memory_order_release);
+  _result->SetResultStatus(ResultStatus::FINISHED);
 
   return TaskStatus::FINISHED;
 }

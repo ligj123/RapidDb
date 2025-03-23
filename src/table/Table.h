@@ -231,6 +231,10 @@ public:
   inline void SetTableStatus(ResStatus sts) { _tableStatus = sts; }
   inline void SetTableTaskMgr(TableTaskMgr *mgr) { _tableTaskMgr = mgr; }
   inline TableTaskMgr *GetTableTaskMgr() { return _tableTaskMgr; }
+  inline IndexTree *GetIndexTree(uint16_t indexPos) {
+    assert(indexPos >= 0 && indexPos < _vctIndex.size());
+    return _vctIndex[indexPos]._tree;
+  }
 
 protected:
   inline bool IsExistedColumn(MString &name) {

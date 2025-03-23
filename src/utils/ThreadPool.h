@@ -88,6 +88,10 @@ public:
   ThreadTask(const ThreadTask &src) = delete;
   ThreadTask(ThreadTask &&src) = delete;
   virtual ~ThreadTask() {
+    while (!_bRemovedPool.load(memory_order_relaxed)) {
+      this_thread::yield();
+    }
+
     if (_bExclusive) {
       SetExclusiveTask(false);
     }
@@ -127,6 +131,9 @@ public:
   inline uint32_t GetTaskMask() const { return _taskMask; }
   inline const MString &GetTaskName() const { return _taskName; }
   inline void SetTaskName(MString &&name) { _taskName = move(name); }
+  inline void SetRemovedPool(bool b) {
+    _bRemovedPool.store(b, memory_order_relaxed);
+  }
 
 protected:
   ThreadPool *_threadPool;
@@ -141,7 +148,11 @@ protected:
   // The count of current exclusive tasks,it must less than _maxThreads in
   // thread pool
 
+  // Removed from ThreadPool or not
+  atomic_bool _bRemovedPool{false};
+  // Task name
   MString _taskName;
+
   static atomic_uint32_t _exclusiveTasksCount;
 };
 
@@ -234,9 +245,10 @@ public:
 
   void AddTasks(uint16_t tid, MVector<ThreadTask *> &vct) {
     for (auto task : vct) {
-      _rapidTaskQueue.Push(tid, task);
+      _rapidTaskQueue.Push(tid, task, false);
     }
 
+    _rapidTaskQueue.Submit(tid);
     vct.clear();
   }
 

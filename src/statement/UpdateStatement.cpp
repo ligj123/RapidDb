@@ -134,6 +134,21 @@ StmtStatus UpdateStatement::SessionExec(Session *sess) {
         _stmtResult->_rowNum = 0;
         _stmtResult->SetResultStatus(ResultStatus::FINISHED);
         _status = StmtStatus::Finished;
+
+#ifdef WITHOUT_BIN_LOG
+      } else {
+        for (auto lr : _lstFinishRecord) {
+          lr->GetLock()->_recStatus.store(RecordStatus::COMMITED,
+                                          memory_order_relaxed);
+        }
+
+        _stmtResult->_rowNum = _totalRecNum;
+        _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+        _status = StmtStatus::Finished;
+      }
+    }
+  }
+#else
       } else if (sess->_transaction.IsAutoCommit()) {
         _status = StmtStatus::Logging;
         LogTask::AddTransaction(ThreadPool::GetThreadId(),
@@ -152,14 +167,12 @@ StmtStatus UpdateStatement::SessionExec(Session *sess) {
                                         memory_order_relaxed);
       }
 
-      size_t idxNum =
-          GetExprUpdate()->_exprTable->_physTable->GetVectorIndex().size();
       _stmtResult->_rowNum = _totalRecNum;
       _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       _status = StmtStatus::Finished;
     }
   }
-
+#endif
   return _status;
 }
 
@@ -203,9 +216,6 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
       return TriBool::False;
     }
   }
-
-  // LOG_INFO << "Upt: " << _id << "\t" << _stmtResult->_rowNum << "\t"
-  //          << vdv[0]->GetLong();
 
   VectorDataValue vdv2(vdv.size(), nullptr);
 
@@ -304,7 +314,7 @@ TriBool UpdateStatement::HandleLeafRecord(LeafPage *page, int pagePos,
     for (auto &pair : vctPair) {
       IndexTree *secTree = vctProp[pair.first]._tree;
       RecordAction *rAction = new RecordAction(secTree, pair.second);
-      mgr->AddFromPrimaryAction(pair.first, rangePos, rAction);
+      secTree->AddFromPrimaryAction(rangePos, rAction);
       vctLr.push_back(pair.second);
     }
 

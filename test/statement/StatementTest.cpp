@@ -255,9 +255,10 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
   session->_lstWaittingStmt.push_back(stmt);
   session->Exec();
 
-  MVector<IndexTaskQueue *> &vctTaskQueue = tmgr->GetIndexTaskQueue();
-  BOOST_TEST(vctTaskQueue.size() == 3);
-  BOOST_TEST(vctTaskQueue[0]->_queueSessionAction.RoughSize() == 100);
+  MVector<IndexRange> &vctRange =
+      table->GetVectorIndex()[0]._tree->GetVctRange();
+  BOOST_TEST(vctRange.size() == 1);
+  BOOST_TEST(vctRange[0]._actionQueue->_queueSessionAction.RoughSize() == 100);
 
   MVector<MVector<IndexTask *>> &vctTasks = tmgr->GetVctIndexTasks();
   BOOST_TEST(vctTasks.size() == 3);
@@ -276,14 +277,16 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
   MList<SessionAction *> lst;
   sGroup._threaPoolQueue.Pop(lst);
   assert(lst.size() == 0);
-  BOOST_TEST(stmt->GetStmtStatus() == StmtStatus::Logging);
 
+#ifndef WITHOUT_BIN_LOG
+  BOOST_TEST(stmt->GetStmtStatus() == StmtStatus::Logging);
   LogTask *logTask = LogTask::GetTask();
   s = logTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
+#endif
+
   BOOST_TEST(session->_currStatement == nullptr);
   delete exprInst;
 
@@ -398,16 +401,18 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
 
+#ifndef WITHOUT_BIN_LOG
+  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
   logTask = LogTask::GetTask();
   s = logTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement == nullptr);
+#endif
 
+  BOOST_TEST(session->_currStatement == nullptr);
   BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
              ResultStatus::FINISHED);
   CheckDeleteRecord(table, vctInt[5], 100);
@@ -436,14 +441,17 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
 
+#ifndef WITHOUT_BIN_LOG
+  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
   logTask = LogTask::GetTask();
   s = logTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
+#endif
+
   BOOST_TEST(session->_currStatement == nullptr);
 
   BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
@@ -475,14 +483,17 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
 
+#ifndef WITHOUT_BIN_LOG
+  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
   logTask = LogTask::GetTask();
   s = logTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
+#endif
+
   BOOST_TEST(session->_currStatement == nullptr);
 
   BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
@@ -515,14 +526,17 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
 
+#ifndef WITHOUT_BIN_LOG
+  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
   logTask = LogTask::GetTask();
   s = logTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
+#endif
+
   BOOST_TEST(session->_currStatement == nullptr);
 
   BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
@@ -555,16 +569,18 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
 
+#ifndef WITHOUT_BIN_LOG
+  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
   logTask = LogTask::GetTask();
   s = logTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement == nullptr);
+#endif
 
+  BOOST_TEST(session->_currStatement == nullptr);
   BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
              ResultStatus::FINISHED);
   CheckUpdateRecord(table, vctInt[25], vctInt[25], v4[2]);
@@ -595,16 +611,18 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
 
+#ifndef WITHOUT_BIN_LOG
+  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
   logTask = LogTask::GetTask();
   s = logTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement == nullptr);
+#endif
 
+  BOOST_TEST(session->_currStatement == nullptr);
   BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
              ResultStatus::FINISHED);
   CheckUpdateRecord(table, vctInt[30], v4[3], vctInt[30]);
@@ -679,9 +697,9 @@ BOOST_AUTO_TEST_CASE(Statement_Range_test) {
   session->_lstWaittingStmt.push_back(stmt);
   session->Exec();
 
-  MVector<IndexTaskQueue *> &vctTaskQueue = tmgr->GetIndexTaskQueue();
-  BOOST_TEST(vctTaskQueue.size() == 3);
-  BOOST_TEST(vctTaskQueue[0]->_queueSessionAction.RoughSize() == 1000);
+  IndexActionQueue *iaQueue =
+      table->GetVectorIndex()[0]._tree->GetVctRange()[0]._actionQueue;
+  BOOST_TEST(iaQueue->_queueSessionAction.RoughSize() == 1000);
 
   MVector<MVector<IndexTask *>> &vctTasks = tmgr->GetVctIndexTasks();
   BOOST_TEST(vctTasks.size() == 3);
@@ -700,14 +718,16 @@ BOOST_AUTO_TEST_CASE(Statement_Range_test) {
   MList<SessionAction *> lst;
   sGroup._threaPoolQueue.Pop(lst);
   assert(lst.size() == 0);
-  BOOST_TEST(stmt->GetStmtStatus() == StmtStatus::Logging);
 
+#ifndef WITHOUT_BIN_LOG
+  BOOST_TEST(stmt->GetStmtStatus() == StmtStatus::Logging);
   LogTask *logTask = LogTask::GetTask();
   s = logTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
+#endif
+
   BOOST_TEST(session->_currStatement == nullptr);
   delete exprInst;
 
@@ -874,16 +894,18 @@ BOOST_AUTO_TEST_CASE(Statement_Range_test) {
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
 
+#ifndef WITHOUT_BIN_LOG
+  BOOST_TEST(session->_currStatement->GetStmtStatus() == StmtStatus::Logging);
   logTask = LogTask::GetTask();
   s = logTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
-  BOOST_TEST(session->_currStatement == nullptr);
+#endif
 
+  BOOST_TEST(session->_currStatement == nullptr);
   BOOST_TEST(stmtResult._status.load(memory_order_relaxed) ==
              ResultStatus::FINISHED);
 

@@ -221,6 +221,7 @@ BOOST_AUTO_TEST_CASE(ConditionConvert_test) {
   BOOST_TEST(vctQR.size() == 1);
   CompareQueryResult(vctQR[0], DataValueLong(INT64_MIN), DataValueLong(500),
                      true, true, true);
+  vctQR.clear();
 }
 
 BOOST_AUTO_TEST_CASE(IndexScan_test) {

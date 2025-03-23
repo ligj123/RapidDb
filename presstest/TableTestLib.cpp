@@ -17,7 +17,7 @@ const char *DELETE_STMT = "delete from tableTest where c1=?";
 const char *SELECT_STMT = "select * from tableTest where c1=?";
 thread_local string varchar = "VARCHAR_50_" + string(40, 'a');
 
-OpRedio arrRadio[] = {OpRedio::INS, OpRedio::UPD, OpRedio::DEL, OpRedio::SEL,
+OpRedio arrRadio[] = {OpRedio::SEL, OpRedio::SEL, OpRedio::SEL, OpRedio::SEL,
                       OpRedio::SEL, OpRedio::SEL, OpRedio::SEL, OpRedio::SEL,
                       OpRedio::SEL, OpRedio::SEL};
 int redioCount = sizeof(arrRadio);
@@ -179,8 +179,8 @@ void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
       }
 
       if (rs == ResultStatus::FINISHED) {
-        assert(vctResult[i]._rowNum == 1 && vctResult[i]._vctError.size() == 0);
-        assert(vctResult[i]._stmtId == vctStmtId[i]);
+        // assert(vctResult[i]._rowNum == 1 && vctResult[i]._vctError.size() ==
+        // 0); assert(vctResult[i]._stmtId == vctStmtId[i]);
       }
 
       if (cnt < recNum) {

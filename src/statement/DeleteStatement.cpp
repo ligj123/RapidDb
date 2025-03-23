@@ -136,6 +136,20 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
         _stmtResult->_rowNum = 0;
         _stmtResult->SetResultStatus(ResultStatus::FINISHED);
         _status = StmtStatus::Finished;
+#ifdef WITHOUT_BIN_LOG
+      } else {
+        for (auto lr : _lstFinishRecord) {
+          lr->GetLock()->_recStatus.store(RecordStatus::COMMITED,
+                                          memory_order_relaxed);
+        }
+
+        _stmtResult->_rowNum = _totalRecNum;
+        _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+        _status = StmtStatus::Finished;
+      }
+    }
+  }
+#else
       } else if (sess->_transaction.IsAutoCommit()) {
         _status = StmtStatus::Logging;
         LogTask::AddTransaction(ThreadPool::GetThreadId(),
@@ -158,6 +172,7 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
       _status = StmtStatus::Finished;
     }
   }
+#endif
 
   return _status;
 }
@@ -253,7 +268,7 @@ TriBool DeleteStatement::HandleLeafRecord(LeafPage *page, int pagePos,
     for (size_t i = 1; i < vctProp.size(); i++) {
       IndexTree *secTree = vctProp[i]._tree;
       RecordAction *rAction = new RecordAction(secTree, vctLr[i]);
-      mgr->AddFromPrimaryAction(i, rangePos, rAction);
+      secTree->AddFromPrimaryAction(rangePos, rAction);
     }
 
     if (_midVar->_indexPos == 0) {

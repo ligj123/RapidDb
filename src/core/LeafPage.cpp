@@ -630,7 +630,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
     if (lastId != PAGE_NULL_POINTER) {
       PrevPageAction *act = new PrevPageAction(
           _indexTree, pos, lastId, (vctPage[vctPage.size() - 1])->GetPageId());
-      _indexTree->AddActionFromPrev(pos + 1, act);
+      _indexTree->AddActionWithLock(pos + 1, act);
     }
   }
 

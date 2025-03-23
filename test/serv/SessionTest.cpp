@@ -64,9 +64,9 @@ BOOST_AUTO_TEST_CASE(SessionBasic_test) {
     }
   }
   ThreadPool::SetThreadId(tidOld);
-  SessionPool::ClearPool();
   tpool->ClearTasks();
   delete tpool;
+  SessionPool::ClearPool();
 }
 BOOST_AUTO_TEST_SUITE_END()
 } // namespace storage

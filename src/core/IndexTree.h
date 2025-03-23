@@ -23,9 +23,88 @@ class LeafPage;
 class BranchPage;
 class BranchRecord;
 
+/**
+ * @brief To manage the actions of this range for a primary index or as parent
+ * claas of secondary index.
+ */
+struct IndexActionQueue {
+public:
+  static void *operator new(size_t size) {
+    return CachePool::Apply((uint32_t)size);
+  }
+  static void operator delete(void *ptr, size_t size) {
+    CachePool::Release((Byte *)ptr, (uint32_t)size);
+  }
+
+public:
+  /**
+   * Construct for primary index tasks queues
+   * @param sessionGroupCount The session groups number.
+   * @param idxTree The primary index tree
+   */
+  IndexActionQueue(uint16_t sessionGroupNum)
+      : _queueSessionAction(sessionGroupNum, sessionGroupNum) {}
+  virtual ~IndexActionQueue() { assert(IsQueueEmpty()); }
+
+  virtual bool IsQueueEmpty() {
+    return _queueSessionAction.RoughSize() == 0 &&
+           _lstRangeAction.size() == 0 && _lstAction.size() == 0;
+  }
+
+  // To receive IndexAction from sessions. Its lines equal session groups number
+  RapidQueue<IndexAction> _queueSessionAction;
+  // The list to temp save IndexActions that send from other range. Need to add
+  // lock before push or pop elements.
+  MList<IndexAction *> _lstRangeAction;
+  // The list to save running IndexActions in this range
+  MList<IndexAction *> _lstAction;
+};
+
+/**
+ * @brief To manage the actions of this range for a secondary index
+ */
+struct SecIndexActionQueue : public IndexActionQueue {
+public:
+  /**
+   * Construct for secondary index tasks queues
+   * @param sessionGroupCount The session groups number.
+   * @param secTaskNum The secondary index task number.
+   * @param priTaskNum The primary index task number.
+   */
+  SecIndexActionQueue(uint16_t sessionGroupNum, uint16_t priRangeNum)
+      : IndexActionQueue(sessionGroupNum),
+        _fromPrimaryQueue(priRangeNum, priRangeNum),
+        _toPrimaryQueue(priRangeNum) {}
+
+  ~SecIndexActionQueue() { assert(IsQueueEmpty()); }
+  bool IsQueueEmpty() override {
+    if (!IndexActionQueue::IsQueueEmpty()) {
+      return false;
+    }
+    if (_fromPrimaryQueue.RoughSize() != 0) {
+      return false;
+    }
+
+    for (auto &line : _toPrimaryQueue) {
+      if (!line.IsEmpty()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // To receive the IndexAction from primary index tasks. Its lines equal to the
+  // primary index tasks number.
+  RapidQueue<IndexAction> _fromPrimaryQueue;
+  // To send the IndexAction to primary index tasks. Its lines equal to current
+  // index tasks number.
+  MVector<LineQueue<IndexAction>> _toPrimaryQueue;
+};
+
 struct IndexRange {
   IndexRange() {}
-  IndexRange(IndexRange &&src) {}
+
+  IndexRange(IndexRange &&src);
   ~IndexRange();
 
   IndexPage *GetTopPage(IndexType type, RawRecord &rr);
@@ -43,13 +122,7 @@ struct IndexRange {
   LeafPage *_startPage{nullptr};
   // The end LeafPage of this range
   LeafPage *_endPage{nullptr};
-  // The queue to save running IndexActions
-  MList<IndexAction *> _queueAction;
-  // The queue to temp save IndexActions that collected from session and other
-  // IndexTree.
-  LineQueue<IndexAction> _queueActionFromCollect;
-  // The queue to temp save IndexActions that send from previous range.
-  LineQueue<IndexAction> _queueActionFromPrev;
+
   // To save the increase-decrease of records in current range, it will be added
   // into the total record number in the HeadPage when write disk.
   int64_t _recordNumber{0};
@@ -57,18 +130,21 @@ struct IndexRange {
   // time. Only used when multi ranges.
   VersionStamp _recordStampStart{0};
   VersionStamp _recordStampEnd{0};
-  // The updated CachePages in this range that need to write into disk
+  // The updated CachePages in this range that need to write into disk or need
+  // to release lock.
   MTreeMap<uint64_t, CachePage *> _pageMap;
   // The last time to write updated CachePages into disk.
   DT_MicroSec _dtLastWriteDisk{1};
   // The datetime that the task has received stop signal and all actions has
   // been finished. After 100 milliseconds the task will stop if no more actions
-  // com.
+  // come.
   DT_MicroSec _dtTaskStop{0};
 
   // To temp save the failed insert LeafRecord, it will delete when the
   // statement has been rollbacked
   MList<LeafRecord *> _lstErrRecord;
+  // Task quque for this range.
+  IndexActionQueue *_actionQueue{nullptr};
 };
 
 class IndexTree {
@@ -226,20 +302,56 @@ public:
   void UpdateRecordNumber(int iRange, int64_t recNum);
   VersionStamp ApplyStamp(int iRange);
 
-  void AddActionFromPrev(int iRange, IndexAction *act) {
-    assert(iRange >= 0 && iRange < _vctRange.size());
-    IndexRange &range = _vctRange[iRange];
-    range._queueActionFromPrev.Push(act);
-  }
-
   // Add IndexAction that generate from current range. The producer and consumer
   // are in same thread.
   void AddActionFromLocal(int iRange, IndexAction *act) {
-    _vctRange[iRange]._queueAction.push_back(act);
+    _vctRange[iRange]._actionQueue->_lstAction.push_back(act);
   }
 
-  bool IsReranging() { return _bReranging; }
-  void SetReRanging(bool b) { _bReranging = b; }
+  /**
+   * @brief The session group generate IndexActions and add them into action
+   * queues of related index.
+   * @param sessionId session group id
+   * @param action The IndexAction will be inserted
+   */
+  void AddSessionAction(uint16_t sessionGroupId, IndexAction *action) {
+    int range = action->JudgeRange();
+    _vctRange[range]._actionQueue->_queueSessionAction.Push(sessionGroupId,
+                                                            action);
+  }
+
+  void AddActionWithLock(uint16_t rangePos, IndexAction *action) {
+    unique_lock<SpinMutex> lock(_rangMutex);
+    _vctRange[rangePos]._actionQueue->_lstRangeAction.push_back(action);
+  }
+
+  /**
+   * @brief The IndexActions that generate by primary index and will insert into
+   * the action queue of secondary index.
+   * @param priRange Which range to generate this action from primary index.
+   * @param action The IndexAction that will be inserted
+   */
+  void AddFromPrimaryAction(uint16_t priRange, IndexAction *action) {
+    int range = action->JudgeRange();
+    SecIndexActionQueue *secQueue =
+        dynamic_cast<SecIndexActionQueue *>(_vctRange[range]._actionQueue);
+    secQueue->_fromPrimaryQueue.Push(priRange, action);
+  }
+  /**
+   *@brief The IndexActions that generate by secondary index and will insert
+   * into action queue of primary index.
+   * @param rangeId Which range to generate this action from secondary index.
+   * @param action The IndexAction will be inserted
+   */
+  void AddToPrimaryAction(uint16_t secRange, IndexAction *action) {
+    int range = action->JudgeRange();
+    SecIndexActionQueue *secQueue =
+        dynamic_cast<SecIndexActionQueue *>(_vctRange[secRange]._actionQueue);
+    secQueue->_toPrimaryQueue[range].Push(action);
+  }
+
+  bool IsReranging() { return _bReranging.load(memory_order_relaxed); }
+  void SetReRanging(bool b) { _bReranging.store(b, memory_order_relaxed); }
   Byte GetSplitPageLevel() { return _splitPageLevel; }
   void SetSplitPageLevel(Byte n) { _splitPageLevel = n; }
   SpinMutex &GetRangeMutex() { return _rangMutex; }

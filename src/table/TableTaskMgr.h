@@ -1,6 +1,7 @@
 #include "../config/Configure.h"
 #include "../core/IndexTree.h"
 #include "../table/Table.h"
+#include "../utils/Log.h"
 #include "../utils/RapidQueue.h"
 #include "../utils/ThreadPool.h"
 #include "../utils/Utilitys.h"
@@ -9,72 +10,6 @@
 #include <vector>
 
 namespace storage {
-
-/**Response for a primary index in the table */
-struct IndexTaskQueue {
-public:
-  static void *operator new(size_t size) {
-    return CachePool::Apply((uint32_t)size);
-  }
-  static void operator delete(void *ptr, size_t size) {
-    CachePool::Release((Byte *)ptr, (uint32_t)size);
-  }
-
-public:
-  /**
-   * Construct for primary index tasks queues
-   * @param sessionGroupCount The session groups number.
-   * @param idxTree The primary index tree
-   */
-  IndexTaskQueue(uint16_t sessionGroupNum, uint16_t currTaskNum)
-      : _queueSessionAction(sessionGroupNum, sessionGroupNum),
-        _queueRangeAction(Configure::GetMaxIndexTaskNum(), currTaskNum),
-        _createTime(MilliSecTime()) {}
-  virtual ~IndexTaskQueue() {}
-
-  virtual bool IsQueueEmpty() {
-    return _queueSessionAction.RoughSize() == 0 &&
-           _queueRangeAction.RoughSize() == 0;
-  }
-
-  // To receive IndexAction from sessions. Its lines equal session groups number
-  RapidQueue<IndexAction> _queueSessionAction;
-  // To receive IndexAction from other range in same IndexTree. Its lines equal
-  // to current index tasks number.
-  RapidQueue<IndexAction> _queueRangeAction;
-  // The time of this IndexTaskQueue created
-  DT_MilliSec _createTime;
-};
-
-/**Response for a secondary index in the table */
-struct SecondaryIndexTaskQueue : public IndexTaskQueue {
-public:
-  /**
-   * Construct for secondary index tasks queues
-   * @param sessionGroupCount The session groups number.
-   * @param secTaskNum The secondary index task number.
-   * @param priTaskNum The primary index task number.
-   */
-  SecondaryIndexTaskQueue(uint16_t sessionGroupNum, uint16_t secTaskNum,
-                          uint16_t priTaskNum)
-      : IndexTaskQueue(sessionGroupNum, secTaskNum),
-        _fromPrimaryQueue(Configure::GetMaxIndexTaskNum(), priTaskNum),
-        _toPrimaryQueue(Configure::GetMaxIndexTaskNum(), secTaskNum) {}
-
-  bool IsQueueEmpty() override {
-    return _queueSessionAction.RoughSize() == 0 &&
-           _queueRangeAction.RoughSize() == 0 &&
-           _fromPrimaryQueue.RoughSize() == 0 &&
-           _toPrimaryQueue.RoughSize() == 0;
-  }
-
-  // To receive the IndexAction from primary index tasks. Its lines equal to the
-  // primary index tasks number.
-  RapidQueue<IndexAction> _fromPrimaryQueue;
-  // To send the IndexAction to primary index tasks. Its lines equal to current
-  // index tasks number.
-  RapidQueue<IndexAction> _toPrimaryQueue;
-};
 
 class TableTaskMgr;
 class IndexTask : public ThreadTask {
@@ -92,12 +27,19 @@ public:
 
   uint16_t GetTaskPos() { return _taskPos; }
 
+  uint64_t GetActionCount() {
+    uint64_t tmp = _actionCount;
+    _actionCount = 0;
+    return tmp;
+  }
+
 protected:
   TableTaskMgr *_taskMgr;
   uint16_t _indexPos;
   // Which IndexRange that this IndexTask belong to.
   uint16_t _taskPos;
 
+  uint64_t _actionCount{0};
   friend class TableTaskMgr;
 };
 
@@ -105,7 +47,8 @@ enum class MgrStatus {
   INIT = 0, // Just create and not start TableTaskMgr tasks
   RUNNING,  // The tasks of this TableTaskMgr are running.
   SET_STOP, // The TableTaskMgr has been set to stop.
-  STOPED    // The TableTaskMgr has stoped
+  STOPED,   // The TableTaskMgr has stoped
+  ADJUSTING // One of IndexTree is adjust the IndexRanges
 };
 
 class TableTaskMgr {
@@ -127,24 +70,22 @@ public:
                bool bExclusive = false)
       : _threadPool(pool), _table(table), _sessionGroupNum(sessionGroupNum) {
     MVector<IndexProp> &vctIndex = table->GetVectorIndex();
-    _vctIndexTaskQueue.reserve(vctIndex.size());
     MVector<ThreadTask *> vctTask;
     vctTask.reserve(vctIndex.size());
 
     for (size_t i = 0; i < vctIndex.size(); i++) {
-      auto &prop = vctIndex[i];
-      if (i == 0) {
-        _vctIndexTaskQueue.push_back(new IndexTaskQueue(sessionGroupNum, 1));
-      } else {
-        _vctIndexTaskQueue.push_back(
-            new SecondaryIndexTaskQueue(sessionGroupNum, 1, 1));
-      }
-
       MVector<IndexRange> &vctRange =
           _table->GetVectorIndex()[i]._tree->GetVctRange();
+      vctRange.clear();
       vctRange.resize(1);
+
       vctRange[0]._pageMap.emplace(UINT64_MAX,
                                    vctIndex[i]._tree->GetHeadPage());
+      if (i == 0) {
+        vctRange[0]._actionQueue = new IndexActionQueue(sessionGroupNum);
+      } else {
+        vctRange[0]._actionQueue = new SecIndexActionQueue(sessionGroupNum, 1);
+      }
 
       MVector<IndexTask *> vct;
       IndexTask *task = new IndexTask(pool, this, i, 0);
@@ -155,6 +96,7 @@ public:
     }
 
     pool->AddTasks(ThreadPool::GetThreadId(), vctTask);
+    SetMgrStatus(MgrStatus::RUNNING);
   }
 
   ~TableTaskMgr() {
@@ -164,14 +106,9 @@ public:
         delete task;
       }
     }
-
-    for (auto queue : _vctIndexTaskQueue) {
-      assert(queue->IsQueueEmpty());
-      delete queue;
-    }
   }
 
-  void CollectTaskData(uint16_t idxPos);
+  void CollectTaskData(uint16_t idxPos, int iRange);
 
   /**
    * @brief The session group generate IndexActions and add them into action
@@ -182,52 +119,31 @@ public:
    */
   void AddSessionAction(uint16_t indexPos, uint16_t sessionGroupId,
                         IndexAction *action) {
-    assert(indexPos < _vctIndexTaskQueue.size());
-    _vctIndexTaskQueue[indexPos]->_queueSessionAction.Push(sessionGroupId,
-                                                           action);
+    IndexTree *idxTree = _table->GetIndexTree(indexPos);
+    if (idxTree->IsReranging()) [[unlikely]] {
+      unique_lock<SpinMutex> lock(_spinMutex);
+      if (idxTree->IsReranging()) {
+        _lstTmpAction.push_back(action);
+        return;
+      }
+    }
+
+    idxTree->AddSessionAction(sessionGroupId, action);
   }
 
-  void AddIndexRangeAction(uint16_t indexPos, uint16_t rangePos,
-                           IndexAction *action) {
-    assert(indexPos < _vctIndexTaskQueue.size());
-    _vctIndexTaskQueue[indexPos]->_queueRangeAction.Push(rangePos, action);
+  MgrStatus GetMgrStatus() { return _mgrStatus.load(memory_order_relaxed); }
+  void SetMgrStatus(MgrStatus s) {
+    if (_mgrStatus.load(memory_order_relaxed) == MgrStatus::ADJUSTING) {
+      LOG_WARN << "Failed to change table " << _table->GetFullName()
+               << " MgrStatus, due to it is adjust IndexTask.";
+      return;
+    }
+    _mgrStatus.store(s, memory_order_relaxed);
   }
-  /**
-   *@brief The IndexActions that generate by primary index and will insert into
-   *the action queue of secondary index.
-   * @param indexPos The position of IndexTree in table that will accept the
-   *action
-   * @param rangeId Which range to generate this action from primary index.
-   * @param action The IndexAction that will be inserted
-   */
-  void AddFromPrimaryAction(uint16_t indexPos, uint16_t rangeId,
-                            IndexAction *action) {
-    assert(indexPos > 0 && indexPos < _vctIndexTaskQueue.size());
-    SecondaryIndexTaskQueue *sitq =
-        (SecondaryIndexTaskQueue *)_vctIndexTaskQueue[indexPos];
-    sitq->_fromPrimaryQueue.Push(rangeId, action);
-  }
-  /**
-   *@brief The IndexActions that generate by secondary index and will insert
-   * into action queue of primary index.
-   * @param indexPos The position of IndexTree in table that generate the action
-   * @param rangeId Which range to generate this action from secondary index.
-   * @param action The IndexAction will be inserted
-   */
-  void AddToPrimaryAction(uint16_t indexPos, uint16_t rangeId,
-                          IndexAction *action) {
-    assert(indexPos > 0 && indexPos < _vctIndexTaskQueue.size());
-    SecondaryIndexTaskQueue *sitq =
-        (SecondaryIndexTaskQueue *)_vctIndexTaskQueue[indexPos];
-    sitq->_toPrimaryQueue.Push(rangeId, action);
-  }
-
-  MgrStatus GetMgrStatus() { return _mgrStatus; }
-  void SetMgrStatus(MgrStatus s) { _mgrStatus = s; }
 
   // To check if all IndexTasks have finished
   void CheckMgrStatus() {
-    assert(_mgrStatus == MgrStatus::SET_STOP);
+    assert(_mgrStatus.load(memory_order_relaxed) == MgrStatus::SET_STOP);
 
     for (auto &vct : _vctIndexTasks) {
       for (auto task : vct) {
@@ -237,20 +153,23 @@ public:
       }
     }
 
-    _mgrStatus = MgrStatus::STOPED;
+    _mgrStatus.store(MgrStatus::STOPED, memory_order_relaxed);
   }
 
   // Only used for testcase
-  MVector<IndexTaskQueue *> &GetIndexTaskQueue() { return _vctIndexTaskQueue; }
+
   MVector<MVector<IndexTask *>> &GetVctIndexTasks() { return _vctIndexTasks; }
 
 protected:
   ThreadPool *_threadPool;
   PhysTable *_table;
   uint16_t _sessionGroupNum;
-  MgrStatus _mgrStatus{MgrStatus::INIT};
-  MVector<IndexTaskQueue *> _vctIndexTaskQueue;
+  atomic<MgrStatus> _mgrStatus{MgrStatus::INIT};
   MVector<MVector<IndexTask *>> _vctIndexTasks;
+
+  SpinMutex _spinMutex;
+  // Temporarily to save the actions when adjust current
+  MList<IndexAction *> _lstTmpAction;
 
   friend class IndexTask;
   friend class IndexAdjustTask;
@@ -266,9 +185,6 @@ public:
     _taskName = "IndexAdjustTask" + _tableTaskMgr->_table->GetFullName() + "_" +
                 ToMString(indexPos);
     assert(_exptTaskNum > 0);
-    IndexTree *idxTree =
-        _tableTaskMgr->_table->GetVectorIndex().at(_indexPos)._tree;
-    idxTree->SetReRanging(true);
   }
 
   TaskStatus Run() override;

@@ -339,7 +339,7 @@ void ThreadPool::ManageProc() {
       }
     }
 
-    this_thread::sleep_for(2us);
+    this_thread::sleep_for(1us);
   }
 
   _nowMicroSec = 0;
@@ -380,7 +380,10 @@ void ThreadPool::WorkProc(uint16_t tid) {
                           tpara._vctTask[0]->GetTaskName() + " from thread "
                    << tid;
           if (tpara._vctTask[0]->IsNeedDelete()) {
+            tpara._vctTask[0]->SetRemovedPool(true);
             delete tpara._vctTask[0];
+          } else {
+            tpara._vctTask[0]->SetRemovedPool(true);
           }
 
           tpara._vctTask.clear();
@@ -421,7 +424,10 @@ void ThreadPool::WorkProc(uint16_t tid) {
                             (*iter)->GetTaskName() + " from thread "
                      << tid;
             if ((*iter)->IsNeedDelete()) {
+              (*iter)->SetRemovedPool(true);
               delete (*iter);
+            } else {
+              (*iter)->SetRemovedPool(true);
             }
 
             iter = tpara._vctTask.erase(iter);
