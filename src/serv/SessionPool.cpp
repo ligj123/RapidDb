@@ -48,7 +48,7 @@ TaskStatus SessionTask::Run() {
     }
   }
 
-  if (_bStop) {
+  if (_bStop) [[unlikely]] {
     if (SessionPool::IsPoolStop()) {
       bool empty = true;
       for (SessionGroup *group : _vctGroup) {
@@ -182,7 +182,7 @@ void SessionPool::AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
                                uint32_t exprId, MString &&sql,
                                VectorRow &&paras, StmtResult *result) {
   result->Reset();
-  result->_status.store(ResultStatus::FILLING, memory_order_relaxed);
+  result->SetResultStatus(ResultStatus::FILLING);
   SessionStatementAction *action = new SessionStatementAction(
       sid, stmtId, exprId, move(sql), move(paras), result);
   _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outerTid, action);

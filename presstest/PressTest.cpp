@@ -51,16 +51,17 @@ int main(int argc, char *argv[]) {
     int userNum = (argc >= 3 ? atoi(argv[2]) : 1);
     int sgNum = (argc >= 4 ? atoi(argv[3]) : 1);
     int tblNumm = (argc >= 5 ? atoi(argv[4]) : 1);
-    storage::TablePointTest(1, 8, tblNumm, sgNum, 2000, 5000000, 10000000,
+    int sessNum(argc >= 6 ? atoi(argv[5]) : 50);
+    storage::TablePointTest(userNum, tblNumm, sgNum, sessNum, 5000000, 10000000,
                             true);
   } else if (str == "12") {
     int tNum = (argc >= 3 ? atoi(argv[2]) : 1);
     if (tNum < 1 || tNum > 10) {
       tNum = 1;
     }
-    int rowNum = (argc >= 4 ? atoi(argv[3]) : 1000000);
+    int rowNum = (argc >= 4 ? atoi(argv[3]) : 10000000);
     if (rowNum < 10000 || rowNum > 1000000000) {
-      rowNum = 1000000;
+      rowNum = 10000000;
     }
     storage::MultiThreadInsertTest(tNum, rowNum);
   } else if (str == "13") {

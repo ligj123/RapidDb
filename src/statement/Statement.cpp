@@ -526,19 +526,20 @@ bool Statement::SacnIndex(int rangePos) {
       }
     }
 
-    bool bend = false;
+    bool bEnd = false;
     if (!keyRange->_bRange &&
         idxTree->GetIndexType() != IndexType::NON_UNIQUE) {
-      bend = true;
+      bEnd = true;
       if (bFind) {
-        LeafRecord *lr = &lpage->GetRecord(pos);
         if (_midVar->_indexPos == 0) {
           TriBool tb = HandleLeafRecord(lpage, pos, rangePos);
           if (tb == TriBool::Error) {
+            SetStmtFailed(true);
             SetFinished(true);
             return true;
           }
         } else {
+          LeafRecord *lr = &lpage->GetRecord(pos);
           if (lr->ReleaseLockAble()) {
             int32_t commLen1, commLen2, tempLen1, tempLen2;
             lr->GetLength(tempLen1, commLen1);
@@ -565,7 +566,7 @@ bool Statement::SacnIndex(int rangePos) {
         LeafRecord *lr = &lpage->GetRecord(pos);
         int res = lr->CompareKey(*keyRange->_endKey);
         if ((res == 0 && !keyRange->_bIncRight) || res > 0) {
-          bend = true;
+          bEnd = true;
           break;
         }
         if (_midVar->_indexPos == 0) {
@@ -601,7 +602,7 @@ bool Statement::SacnIndex(int rangePos) {
     lpage->AddWriteQueue(idxRange._pageMap);
     assert(!IsStmtFailed());
 
-    if (bend) {
+    if (bEnd) {
       _midVar->_keyPos++;
       if (_midVar->_keyPos < _midVar->_vctKeyRange.size()) {
         _midVar->_midPage = nullptr;

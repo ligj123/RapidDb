@@ -32,8 +32,13 @@ public:
   static void AddWritePage(uint16_t tid, CachePage *page, bool submit = true) {
     PageStatus s = page->GetPageStatus();
     assert(s == PageStatus::VALID || s == PageStatus::WRITING);
+#ifdef NO_WRITE_DISK
+    page->AfterWrite();
+#else
     page->SetPageStatus(PageStatus::WRITING);
     _pool->_writeRapidQueue.Push(tid, page, submit);
+  }
+#endif
   }
   static void SubmitWritePage(uint16_t tid) {
     _pool->_writeRapidQueue.Submit(tid);

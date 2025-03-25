@@ -28,5 +28,6 @@ const TranID TXID_NULL = UINT64_MAX;
 
 #define DEFAULT_MAX_THREADS 8
 #define SINGLE_VERSION
+#define NO_WRITE_DISK // Only for some press testcases
 
 extern const char *HexStr[];

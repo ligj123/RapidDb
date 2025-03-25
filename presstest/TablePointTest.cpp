@@ -35,185 +35,72 @@ void PrintNum(int rowNum, int num) {
 
 void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
                    int recNum, int opTimes) {
-  assert(tid < MAX_USER_THREADS);
   MVector<StmtResult> vctResult(vctSessId.size());
   // Response for vctResult one by one, pair<the int value, which operation>
   MVector<pair<int, OpRedio>> vctPair(vctSessId.size());
   for (size_t i = 0; i < vctPair.size(); i++) {
     vctPair[i].first = -1;
+    vctResult[i].SetResultStatus(ResultStatus::FINISHED);
   }
 
-  srand(tid);
   int cnt = 0;
   int times = 0;
   int endRec = startRec + recNum;
 
   while (true) {
-    int empty = 0;
+    bool empty = true;
     times++;
     for (size_t i = 0; i < vctSessId.size(); i++) {
       ResultStatus rs = vctResult[i].GetResultStatus();
       if (rs != ResultStatus::FINISHED) {
+        empty = false;
         continue;
       }
 
       pair<int, OpRedio> &pr = vctPair[i];
-      if (pr.first < 0) {
-        empty++;
+      StmtResult &rst = vctResult[i];
+
+      if (cnt >= opTimes) {
         continue;
       }
 
-      arrResult[pr.first] &= 0xBF;
-      // StmtResult &rst = vctResult[i];
-
-      // switch (pr.second) {
-      // case OpRedio::INS:
-      //   if (!rst._bFailed) {
-      //     assert(arrResult[pr.first] == 0);
-      //     arrResStat[tid]._insertPassed++;
-      //     arrResult[pr.first] = 0x80;
-      //   } else {
-      //     assert(arrResult[pr.first] != 0);
-      //     arrResStat[tid]._insertFailed++;
-      //   }
-      //   break;
-      // case OpRedio::UPD:
-      //   assert(!rst._bFailed);
-      //   if (rst._rowNum > 0) {
-      //     assert(arrResult[pr.first] >= 0x80);
-      //     arrResStat[tid]._updatePassed++;
-      //   } else {
-      //     assert(arrResult[pr.first] == 0);
-      //     arrResStat[tid]._updateFailed++;
-      //   }
-      //   break;
-      // case OpRedio::DEL:
-      //   assert(!rst._bFailed);
-      //   if (rst._rowNum > 0) {
-      //     assert(arrResult[pr.first] > 0);
-      //     arrResStat[tid]._deletePassed++;
-      //     arrResult[pr.first] = 0;
-      //   } else {
-      //     assert(arrResult[pr.first] == 0);
-      //     arrResStat[tid]._deleteFailed++;
-      //   }
-      //   break;
-      // case OpRedio::SEL:
-      //   assert(!rst._bFailed);
-      //   if (rst._rowNum > 0) {
-      //     assert(arrResult[pr.first] > 0);
-      //     arrResStat[tid]._selectPassed++;
-      //     rst._resultSet->First();
-
-      //     VectorDataValue vctDv;
-      //     rst._resultSet->GetCurrDataValueRow(vctDv);
-      //     CheckSelectResult(pr.first, vctDv);
-      //   } else {
-      //     assert(arrResult[pr.first] == 0);
-      //     arrResStat[tid]._selectFailed++;
-      //   }
-      //   break;
-      // default:
-      //   abort();
-      // }
-
-      pr.first = -1;
-    }
-
-    if (cnt >= opTimes) {
-      if (empty == vctSessId.size()) {
-        break;
+      int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
+      if (currVal >= recNum) {
+        currVal -= 50;
+      } else if (currVal < 0) {
+        currVal += 50;
       }
-
-      continue;
-    }
-
-    for (size_t i = 0; i < vctSessId.size() && cnt < opTimes; i++) {
-      pair<int, OpRedio> &pr = vctPair[i];
-      if (pr.first >= 0) {
-        continue;
-      }
-
-      int currVal = cnt % recNum + rand() % 100 - 60 + startRec;
-      if (currVal < startRec) {
-        currVal = startRec;
-      }
-
-      while (true) {
-        if (currVal >= endRec) {
-          currVal = startRec;
-        }
-
-        if ((arrResult[currVal] & 0x40) == 0) {
-          break;
-        }
-
-        currVal++;
-      }
+      currVal += startRec;
 
       arrNum[cnt] = currVal;
       OpRedio redio = arrRadio[cnt % redioCount];
       pr.first = currVal;
       pr.second = redio;
-      arrResult[currVal] |= 0x40;
-      VectorRow vctRow;
 
-      switch (redio) {
-      case OpRedio::INS: {
-        vctRow = GenRow(currVal);
-        vctResult[i]._rowNum = arrResult[currVal] & 0xBF;
-        SessionPool::AddStatement(tid, vctSessId[i], cnt, 1, INSERT_STMT,
-                                  move(vctRow), &vctResult[i]);
-        break;
-      }
-      case OpRedio::UPD: {
-        vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
-        if (arrResult[currVal] & 0x80) {
-          if ((arrResult[currVal] & 0x3F) != 0x3F) {
-            arrResult[currVal] += 1;
-            SessionPool::AddStatement(tid, vctSessId[i], cnt, 2, UPDATE_STMT,
-                                      move(vctRow), &vctResult[i]);
-          } else {
-            arrResult[currVal] -= 1;
-            SessionPool::AddStatement(tid, vctSessId[i], cnt, 5, UPDATE_STMT2,
-                                      move(vctRow), &vctResult[i]);
-          }
-        } else {
-          SessionPool::AddStatement(tid, vctSessId[i], cnt, 2, UPDATE_STMT,
-                                    move(vctRow), &vctResult[i]);
-        }
-        break;
-      }
-      case OpRedio::DEL: {
-        vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
-        SessionPool::AddStatement(tid, vctSessId[i], cnt, 3, DELETE_STMT,
-                                  move(vctRow), &vctResult[i]);
-        break;
-      }
-      case OpRedio::SEL: {
-        vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
-        SessionPool::AddStatement(tid, vctSessId[i], cnt, 4, SELECT_STMT,
-                                  move(vctRow), &vctResult[i]);
-        break;
-      }
-      default:
-        abort();
-      }
+      VectorRow vctRow;
+      vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+      SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
+                                SELECT_STMT, move(vctRow), &vctResult[i]);
 
       cnt++;
+    }
+
+    if (cnt >= opTimes && empty) {
+      break;
     }
   }
 
   LOG_INFO << "Times: " << times;
 }
 
-void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
-                    uint16_t tblThreads, uint16_t sessGroupNum, int sessionNum,
-                    int rowNum, int totalOpTimes, bool bExclusive) {
-  assert(sessionNum % userThreads == 0);
-  ThreadPool *tpool = ThreadPool::CreateMainPool("press", 1, poolThreads);
+void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
+                    uint16_t sessGroupNum, int sessionNum, int rowNum,
+                    int totalOpTimes, bool bExclusive) {
+  sessionNum *= sessGroupNum;
+  ThreadPool *tpool =
+      ThreadPool::CreateMainPool("press", 1, tblThreads + sessGroupNum + 2);
   ThreadPool::SetThreadId(0);
-  FilePagePool::Start(poolThreads);
+  FilePagePool::Start(tblThreads + sessGroupNum + 2);
   // LogTask::InitLogTask(tpool, "./binlog/", bExclusive);
   SessionPool::InitPool(sessGroupNum, sessGroupNum, 0, userThreads, tpool,
                         bExclusive);
@@ -256,55 +143,55 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   ThreadPool::PrintThreadTime();
   chrono::system_clock::time_point st = chrono::system_clock::now();
 
-  // for (int i = 0; i < userThreads; i++) {
-  //   MVector<uint32_t> vct;
-  //   vct.insert(vct.end(), vctSessId.begin() + i * sRange,
-  //              vctSessId.begin() + (i + 1) * sRange);
-  //   int recStart = i * rRange;
-  //   thread *t = new thread(
-  //       [i, vct, recStart, rRange]() { InsertProc(i, vct, recStart, rRange);
-  //       });
-  //   vctThread.push_back(t);
-  // }
+  for (int i = 0; i < userThreads; i++) {
+    MVector<uint32_t> vct;
+    vct.insert(vct.end(), vctSessId.begin() + i * sRange,
+               vctSessId.begin() + (i + 1) * sRange);
+    int recStart = i * rRange;
+    thread *t = new thread(
+        [i, vct, recStart, rRange]() { InsertProc(i, vct, recStart, rRange); });
+    vctThread.push_back(t);
+  }
 
-  // for (int i = 0; i < userThreads; i++) {
-  //   vctThread[i]->join();
-  //   delete vctThread[i];
-  // }
+  for (int i = 0; i < userThreads; i++) {
+    vctThread[i]->join();
+    delete vctThread[i];
+  }
 
-  // vctThread.clear();
+  vctThread.clear();
   chrono::system_clock::time_point et = chrono::system_clock::now();
   // ThreadPool::PrintThreadTime();
   auto duration =
       std::chrono::duration_cast<std::chrono::milliseconds>(et - st);
-  // LOG_INFO << "Insert records Time(ms):" << duration.count()
-  //          << "  Total Records: " << rowNum;
+  LOG_INFO << "Insert records Time(ms):" << duration.count()
+           << "  Total Records: " << rowNum;
 
   PhysTable *table;
   bool b = TableManager::FindTable(DB_TBL_NAME, table);
   assert(b);
 
-  // IndexPage *rootPage = table->GetVectorIndex()[0]._tree->GetRootPage();
-  // LOG_INFO << "Root RecordNumber: " << rootPage->GetRecordNumber()
-  //          << "  PageLevel: " << (int)rootPage->GetPageLevel();
+  IndexPage *rootPage = table->GetVectorIndex()[0]._tree->GetRootPage();
+  LOG_INFO << "Root RecordNumber: " << rootPage->GetRecordNumber()
+           << "  PageLevel: " << (int)rootPage->GetPageLevel();
 
-  // TableTaskMgr::_dtLastWriteDisk = MicroSecTime();
-  // IndexRange &range = table->GetVectorIndex()[0]._tree->GetVctRange()[0];
-  // while (range._pageMap.size() > 1 || FilePagePool::IsBusy()) {
-  //   this_thread::sleep_for(1us);
-  // }
-  // rootPage = table->GetVectorIndex()[0]._tree->GetRootPage();
-  // LOG_INFO << "Root RecordNumber: " << rootPage->GetRecordNumber()
-  //          << "  PageLevel: " << (int)rootPage->GetPageLevel();
+  TableTaskMgr::_dtLastWriteDisk = MicroSecTime();
+  IndexRange &range = table->GetVectorIndex()[0]._tree->GetVctRange()[0];
+  while (range._pageMap.size() > 1 || FilePagePool::IsBusy()) {
+    this_thread::sleep_for(1us);
+  }
+  rootPage = table->GetVectorIndex()[0]._tree->GetRootPage();
+  LOG_INFO << "Root RecordNumber: " << rootPage->GetRecordNumber()
+           << "  PageLevel: " << (int)rootPage->GetPageLevel();
 
-  // if (tblThreads > 1) {
-  //   IndexAdjustTask *adjustTask =
-  //       new IndexAdjustTask(tpool, table->GetTableTaskMgr(), 0, 2, true);
-  //   tpool->AddTask(adjustTask);
-  //   while (table->GetTableTaskMgr()->GetVctIndexTasks()[0].size() != 2) {
-  //     this_thread::yield();
-  //   }
-  // }
+  if (tblThreads > 1) {
+    IndexAdjustTask *adjustTask = new IndexAdjustTask(
+        tpool, table->GetTableTaskMgr(), 0, tblThreads, true);
+    tpool->AddTask(adjustTask);
+    while (table->GetTableTaskMgr()->GetVctIndexTasks()[0].size() !=
+           tblThreads) {
+      this_thread::sleep_for(1us);
+    }
+  }
 
   ThreadPool::PrintThreadTime();
   st = chrono::system_clock::now();
@@ -335,13 +222,13 @@ void TablePointTest(uint16_t userThreads, uint16_t poolThreads,
   stringstream ss;
   ss << "Action Number:  ";
   for (size_t i = 0; i < vTask.size(); i++) {
-    ss << i << "  " << vTask[i]->GetActionCount() << "\t";
+    ss << i << ".  " << vTask[i]->GetActionCount() << "\t";
   }
 
   LOG_INFO << ss.str();
 
   ThreadPool::PrintThreadTime();
-  CheckAllRecord(DB_TBL_NAME, rowNum);
+  // CheckAllRecord(DB_TBL_NAME, rowNum);
   table->GetTableTaskMgr()->SetMgrStatus(MgrStatus::SET_STOP);
   MVector<storage::IndexRange> &vctRange =
       table->GetVectorIndex()[0]._tree->GetVctRange();

@@ -87,8 +87,11 @@ public:
   }
 
   void Pop(MList<T *> &lst) {
-    uint64_t tail = _tail.load(memory_order_relaxed);
-    uint64_t head = _submited.load(memory_order_acquire);
+    uint64_t head = _submited.load(memory_order_relaxed);
+    uint64_t tail = _tail.load(memory_order_acquire);
+    if (head == tail) {
+      return;
+    }
 
     while (tail > head) [[unlikely]] {
       if (tail % ELE_SIZE == 0) {

@@ -20,7 +20,6 @@ namespace storage {
 
 void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
                  int recNum, int opTimes) {
-  srand(tid);
   int cnt = 0;
   int times = 0;
   MVector<StmtResult> vctResult(vctSessId.size());
@@ -35,7 +34,7 @@ void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
         continue;
       }
 
-      if (cnt >= recNum) {
+      if (cnt >= opTimes) {
         empty++;
         continue;
       }
@@ -50,11 +49,11 @@ void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
         CheckSelectResult(vctVal[i], vctDv);
       }
 
-      int currVal = cnt % recNum + rand() % 1000 - 500;
+      int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
       if (currVal >= recNum) {
-        currVal -= 500;
+        currVal -= 50;
       } else if (currVal < 0) {
-        currVal += 500;
+        currVal += 50;
       }
 
       currVal += startRec;
@@ -140,12 +139,15 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   LOG_INFO << "Insert records Time(ms):" << duration.count()
            << "  Total Records: " << rowNum;
 
+  TableTaskMgr::_dtLastWriteDisk = MicroSecTime();
+  this_thread::sleep_for(3s);
+
   st = chrono::system_clock::now();
   int opTimes = totalOpTimes / tblNum;
   for (int i = 0; i < tblNum; i++) {
     int recStart = i * rRange;
-    thread *t = new thread([i, vctArrSessId, recStart, rRange, totalOpTimes]() {
-      OperateProc(i, vctArrSessId[i], recStart, rRange, totalOpTimes);
+    thread *t = new thread([i, vctArrSessId, recStart, rRange, opTimes]() {
+      OperateProc(i, vctArrSessId[i], recStart, rRange, opTimes);
     });
     vctThread.push_back(t);
   }

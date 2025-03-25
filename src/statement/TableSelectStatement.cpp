@@ -89,16 +89,11 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
             GenIndexSearchKey(prop._tree, field, &range));
       }
     }
-    SetStmtFailed(true);
-    SetFinished(true);
-    _stmtResult->_bFailed = true;
-    _stmtResult->_rowNum = 0;
-    _stmtResult->SetResultStatus(ResultStatus::FINISHED);
-    _status = StmtStatus::Finished;
-    // StatementAction *action = new StatementAction(prop._tree, this);
-    // TableTaskMgr *mgr = table->GetTableTaskMgr();
-    // _status = StmtStatus::Executing;
-    // mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
+
+    StatementAction *action = new StatementAction(prop._tree, this);
+    TableTaskMgr *mgr = table->GetTableTaskMgr();
+    mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
+    _status = StmtStatus::Executing;
   } else if (_status == StmtStatus::Executing) {
     if (!_bFinished.load(memory_order_acquire)) {
       return _status;
@@ -149,19 +144,21 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
         _stmtResult->_rowNum = 0;
         _stmtResult->SetResultStatus(ResultStatus::FINISHED);
         _status = StmtStatus::Finished;
-      } else if (sess->_transaction.IsAutoCommit()) {
-        for (auto lr : _lstFinishRecord) {
-          lr->GetLock()->_recStatus.store(RecordStatus::FREEED,
-                                          memory_order_relaxed);
+      } else {
+        if (sess->_transaction.IsAutoCommit()) {
+          for (auto lr : _lstFinishRecord) {
+            lr->GetLock()->_recStatus.store(RecordStatus::FREEED,
+                                            memory_order_relaxed);
+          }
+
+          _status = StmtStatus::Finished;
+        } else {
+          _status = StmtStatus::Executed;
         }
 
-        _status = StmtStatus::Finished;
-      } else {
-        _status = StmtStatus::Executed;
+        _stmtResult->_rowNum = _stmtResult->_resultSet->GetRowCount();
+        _stmtResult->SetResultStatus(ResultStatus::FINISHED);
       }
-
-      _stmtResult->_rowNum = _stmtResult->_resultSet->GetRowCount();
-      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
     }
   }
 

@@ -339,7 +339,7 @@ void ThreadPool::ManageProc() {
       }
     }
 
-    this_thread::sleep_for(1us);
+    this_thread::sleep_for(5us);
   }
 
   _nowMicroSec = 0;
