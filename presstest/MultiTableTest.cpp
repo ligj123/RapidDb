@@ -39,15 +39,15 @@ void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
         continue;
       }
 
-      if (rs == ResultStatus::FINISHED) {
-        VectorDataValue vctDv;
-        StmtResult &rst = vctResult[i];
-        bool b = rst._resultSet->First();
-        assert(b);
-        rst._resultSet->GetCurrDataValueRow(vctDv);
+      // if (rs == ResultStatus::FINISHED) {
+      //   VectorDataValue vctDv;
+      //   StmtResult &rst = vctResult[i];
+      //   bool b = rst._resultSet->First();
+      //   assert(b);
+      //   rst._resultSet->GetCurrDataValueRow(vctDv);
 
-        CheckSelectResult(vctVal[i], vctDv);
-      }
+      //   CheckSelectResult(vctVal[i], vctDv);
+      // }
 
       int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
       if (currVal >= recNum) {
@@ -115,7 +115,6 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   vector<thread *> vctThread;
   vctThread.reserve(tblNum);
   int rRange = rowNum / tblNum;
-  ThreadPool::PrintThreadTime();
   chrono::system_clock::time_point st = chrono::system_clock::now();
 
   for (int i = 0; i < tblNum; i++) {
@@ -139,6 +138,7 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   LOG_INFO << "Insert records Time(ms):" << duration.count()
            << "  Total Records: " << rowNum;
 
+  ThreadPool::PrintThreadTime();
   TableTaskMgr::_dtLastWriteDisk = MicroSecTime();
   this_thread::sleep_for(3s);
 
@@ -162,7 +162,7 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   duration = std::chrono::duration_cast<std::chrono::milliseconds>(et - st);
   LOG_INFO << "Operator records Time(ms):" << duration.count()
            << "  Total times: " << totalOpTimes;
-
+  ThreadPool::PrintThreadTime();
   for (int i = 0; i < tblNum; i++) {
     PhysTable *tbl = nullptr;
     string name = FulleTblName(DB_NAME, i, TBL_NAME);

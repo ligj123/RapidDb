@@ -143,20 +143,15 @@ void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
   ThreadPool::PrintThreadTime();
   chrono::system_clock::time_point st = chrono::system_clock::now();
 
-  for (int i = 0; i < userThreads; i++) {
+  {
     MVector<uint32_t> vct;
-    vct.insert(vct.end(), vctSessId.begin() + i * sRange,
-               vctSessId.begin() + (i + 1) * sRange);
-    int recStart = i * rRange;
-    thread *t = new thread(
-        [i, vct, recStart, rRange]() { InsertProc(i, vct, recStart, rRange); });
-    vctThread.push_back(t);
+    vct.insert(vct.end(), vctSessId.begin(), vctSessId.end());
+    vctThread[0] =
+        new thread([vct, rowNum]() { InsertProc(0, vct, 0, rowNum); });
   }
 
-  for (int i = 0; i < userThreads; i++) {
-    vctThread[i]->join();
-    delete vctThread[i];
-  }
+  vctThread[0]->join();
+  delete vctThread[0];
 
   vctThread.clear();
   chrono::system_clock::time_point et = chrono::system_clock::now();
@@ -193,6 +188,7 @@ void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
     }
   }
 
+  this_thread::sleep_for(3s);
   ThreadPool::PrintThreadTime();
   st = chrono::system_clock::now();
   int opTimes = totalOpTimes / userThreads;
