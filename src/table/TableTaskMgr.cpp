@@ -79,6 +79,10 @@ TaskStatus IndexTask::Run() {
     }
   }
 
+  if (lstAction.size() == 0 && IsExclusiveTask()) {
+    this_thread::yield();
+  }
+
   SetStatus(TaskStatus::INTERVAL, true);
   return TaskStatus::INTERVAL;
 }
