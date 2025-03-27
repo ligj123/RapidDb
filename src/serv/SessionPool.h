@@ -42,6 +42,14 @@ struct SessionGroup {
     }
 
     _mapSession.clear();
+
+    for (auto iter = _mapSqlExprStatement.begin();
+         iter != _mapSqlExprStatement.end(); iter++) {
+      delete iter->second;
+    }
+
+    _mapSqlExprStatement.clear();
+    _mapIdExprStatement.clear();
   }
 
   // The session map that the sessions are alive.
@@ -68,6 +76,12 @@ struct SessionGroup {
   // How many times this group has run. It only used for some actions do not run
   // too frequencly.
   uint64_t _runTimes{0};
+
+  // The map of <Sql, parsed ExprStatement> in this session
+  MStrHashMap<ExprStatement *> _mapSqlExprStatement;
+  // The map of <exprstatement id, parsed ExprStatement> in this session,
+  // duplicate of _mapSqlExprStatement.
+  MHashMap<uint64_t, ExprStatement *> _mapIdExprStatement;
 };
 
 class SessionTask : public ThreadTask {
@@ -161,7 +175,12 @@ public:
   static void AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
                            uint32_t exprId, MString &&sql, VectorRow &&paras,
                            StmtResult *result);
-
+  /**
+   * @brief Add a group of statements into SessionPool
+   * @param mapAct key=16 bits SessionGroupId + 16 bits out thread id
+   */
+  static void
+  AddStatements(MTreeMap<uint32_t, MVector<SessionStatementAction *>> &mapAct);
   /**
    * @brief Add action into SessionPool that the action come from this thread
    * pool
@@ -185,6 +204,7 @@ public:
    */
   static void AddAction(uint16_t outId, uint32_t sid, SessionAction *action,
                         StmtResult *result);
+
   static bool IsPoolStop() { return _bStop.load(memory_order_relaxed); }
   static vector<SessionTask *> &GetVctSessionTask() { return _vctTask; }
   // Generate a session id, only for testcase

@@ -51,8 +51,10 @@ int main(int argc, char *argv[]) {
     int userNum = (argc >= 3 ? atoi(argv[2]) : 1);
     int sgNum = (argc >= 4 ? atoi(argv[3]) : 1);
     int tblNumm = (argc >= 5 ? atoi(argv[4]) : 1);
-    int sessNum(argc >= 6 ? atoi(argv[5]) : 50);
-    storage::TablePointTest(userNum, tblNumm, sgNum, sessNum, 5000000, 10000000,
+    int sessNum(argc >= 6 ? atoi(argv[5]) : 100);
+    int rowNum = argc >= 7 ? atoi(argv[6]) : 5000000;
+    int opTimes = argc >= 8 ? atoi(argv[7]) : 10000000;
+    storage::TablePointTest(userNum, tblNumm, sgNum, sessNum, rowNum, opTimes,
                             true);
   } else if (str == "12") {
     int tNum = (argc >= 3 ? atoi(argv[2]) : 1);

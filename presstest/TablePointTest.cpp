@@ -46,10 +46,13 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
   int cnt = 0;
   int times = 0;
   int endRec = startRec + recNum;
+  int32_t poolSz = SessionPool::GetVctSessionGroup().size();
 
   while (true) {
     bool empty = true;
     times++;
+    MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
+
     for (size_t i = 0; i < vctSessId.size(); i++) {
       ResultStatus rs = vctResult[i].GetResultStatus();
       if (rs != ResultStatus::FINISHED) {
@@ -79,11 +82,20 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
 
       VectorRow vctRow;
       vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
-      SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
-                                SELECT_STMT, move(vctRow), &vctResult[i]);
+      // SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
+      //                           SELECT_STMT, move(vctRow), &vctResult[i]);
+
+      SessionStatementAction *action =
+          new SessionStatementAction(vctSessId[i], cnt + startRec, 4,
+                                     SELECT_STMT, move(vctRow), &vctResult[i]);
+      uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
+      auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction *>());
+      iter.first->second.push_back(action);
 
       cnt++;
     }
+
+    SessionPool::AddStatements(mapAct);
 
     if (cnt >= opTimes && empty) {
       break;
@@ -182,13 +194,11 @@ void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
     IndexAdjustTask *adjustTask = new IndexAdjustTask(
         tpool, table->GetTableTaskMgr(), 0, tblThreads, true);
     tpool->AddTask(adjustTask);
-    while (table->GetTableTaskMgr()->GetVctIndexTasks()[0].size() !=
-           tblThreads) {
-      this_thread::sleep_for(1us);
-    }
+    this_thread::sleep_for(3s);
+  } else {
+    this_thread::sleep_for(3s);
   }
 
-  this_thread::sleep_for(3s);
   ThreadPool::PrintThreadTime();
   st = chrono::system_clock::now();
   int opTimes = totalOpTimes / userThreads;
@@ -214,7 +224,7 @@ void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
   LOG_INFO << "Operator records Time(ms):" << duration.count()
            << "  Total times: " << totalOpTimes;
 
-  MVector<IndexTask *> vTask = table->GetTableTaskMgr()->GetVctIndexTasks()[0];
+  MVector<IndexTask *> &vTask = table->GetTableTaskMgr()->GetVctIndexTasks()[0];
   stringstream ss;
   ss << "Action Number:  ";
   for (size_t i = 0; i < vTask.size(); i++) {

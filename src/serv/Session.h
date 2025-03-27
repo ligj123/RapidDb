@@ -52,11 +52,7 @@ public:
   Database *_currDb{nullptr};
   // The running statement in this session, or nullptr if not exist.
   Statement *_currStatement{nullptr};
-  // The map of <Sql, parsed ExprStatement> in this session
-  MStrHashMap<ExprStatement *> _mapSqlExprStatement;
-  // The map of <exprstatement id, parsed ExprStatement> in this session,
-  // duplicate of _mapSqlExprStatement.
-  MHashMap<uint32_t, ExprStatement *> _mapIdExprStatement;
+
   // The create time for this session
   DT_MicroSec _createTime;
   // The last time to visit this session

@@ -152,6 +152,8 @@ bool IndexTree::CreateIndexTree(const MString &tableName,
   _rootPage->SetBeginPage(true);
   _rootPage->SetEndPage(true);
   _rootPage->SetDirty();
+  FilePagePool::SyncWritePage(_headPage);
+  FilePagePool::SyncWritePage(_rootPage);
 
   _vctKey.swap(vctKey);
   _vctValue.swap(vctVal);

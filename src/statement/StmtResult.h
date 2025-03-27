@@ -52,7 +52,7 @@ public:
       delete _resultSet;
       _resultSet = nullptr;
     }
-    _status.store(ResultStatus::INIT, memory_order_release);
+    _status.store(ResultStatus::FILLING, memory_order_release);
   }
 
 public:

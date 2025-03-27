@@ -24,10 +24,13 @@ void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
   int times = 0;
   MVector<StmtResult> vctResult(vctSessId.size());
   MVector<int> vctVal(vctSessId.size());
+  // int32_t poolSz = SessionPool::GetVctSessionGroup().size();
 
   while (true) {
     int empty = 0;
     times++;
+    // MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
+
     for (size_t i = 0; i < vctSessId.size(); i++) {
       ResultStatus rs = vctResult[i].GetResultStatus();
       if (rs == ResultStatus::FILLING) {
@@ -62,8 +65,19 @@ void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
       SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
                                 SELECT_STMT, move(vctRow), &vctResult[i]);
+
+      // SessionStatementAction *action =
+      //     new SessionStatementAction(vctSessId[i], cnt + startRec, 4,
+      //                                SELECT_STMT, move(vctRow),
+      //                                &vctResult[i]);
+      // uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
+      // auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction
+      // *>()); iter.first->second.push_back(action);
+
       cnt++;
     }
+
+    // SessionPool::AddStatements(mapAct);
 
     if (empty >= vctSessId.size()) {
       break;
@@ -170,6 +184,7 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
     tbl->GetTableTaskMgr()->SetMgrStatus(MgrStatus::SET_STOP);
   }
 
+  this_thread::sleep_for(1s);
   SessionPool::ClosePool();
   ThreadPool::CloseMainPool(true);
   FilePagePool::Stop();

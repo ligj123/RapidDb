@@ -191,7 +191,20 @@ void SessionPool::AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
 void SessionPool::AddAction(uint16_t outId, uint32_t sid, SessionAction *action,
                             StmtResult *result) {
   result->Reset();
-  result->_status.store(ResultStatus::FILLING, memory_order_relaxed);
   _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outId, action);
+}
+
+void SessionPool::AddStatements(
+    MTreeMap<uint32_t, MVector<SessionStatementAction *>> &mapAct) {
+  for (auto iter = mapAct.begin(); iter != mapAct.end(); iter++) {
+    uint32_t fst = iter->first;
+    for (auto itVct = iter->second.begin(); itVct != iter->second.end();
+         itVct++) {
+      (*itVct)->ResetStmtResult();
+      _vctGroup[fst >> 16]._outerQueue.Push(fst & 0xffff, *itVct, false);
+    }
+
+    _vctGroup[fst >> 16]._outerQueue.Submit(fst & 0xffff);
+  }
 }
 } // namespace storage

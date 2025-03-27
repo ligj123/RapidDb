@@ -79,33 +79,49 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
 
   Session *session = iter->second;
   ExprStatement *exprStmt = nullptr;
-  auto itExpr = session->_mapIdExprStatement.find(_exprId);
-  if (itExpr == session->_mapIdExprStatement.end()) {
-    ParserResult result;
-    bool b = Parser::Parse(_sql, result);
-    if (!b) {
-      _stmtResult->_vctError.push_back(move(result.ErrorMsg()));
-      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
-      return TaskStatus::FINISHED;
+  uint64_t exprId = (static_cast<uint64_t>(_sessionId) << 32) + _exprId;
+  auto itExpr = sGroup._mapIdExprStatement.find(exprId);
+  if (itExpr == sGroup._mapIdExprStatement.end()) {
+    MString dbSql =
+        (session->_currDb == nullptr ? "" : session->_currDb->GetDbName()) +
+        _sql;
+    auto itSql = sGroup._mapSqlExprStatement.find(dbSql);
+    if (itSql == sGroup._mapSqlExprStatement.end()) {
+      ParserResult result;
+      bool b = Parser::Parse(_sql, result);
+      if (!b) {
+        _stmtResult->_vctError.push_back(move(result.ErrorMsg()));
+        _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+        return TaskStatus::FINISHED;
+      }
+
+      MVectorPtr<ExprStatement *> *vctPtr = result.GetStatements();
+      assert(vctPtr->size() == 1);
+
+      exprStmt = vctPtr->at(0);
+      vctPtr->clear();
+      if (!exprStmt->Preprocess(session->_currDb)) {
+        _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
+        _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+        return TaskStatus::FINISHED;
+      }
+
+      sGroup._mapSqlExprStatement.emplace(dbSql, exprStmt);
+      sGroup._mapIdExprStatement.emplace(exprId, exprStmt);
+    } else {
+      exprStmt = itSql->second;
+      sGroup._mapIdExprStatement.emplace(exprId, exprStmt);
     }
-
-    MVectorPtr<ExprStatement *> *vctPtr = result.GetStatements();
-    assert(vctPtr->size() == 1);
-
-    exprStmt = vctPtr->at(0);
-    vctPtr->clear();
-    if (!exprStmt->Preprocess(session->_currDb)) {
-      _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
-      _stmtResult->SetResultStatus(ResultStatus::FINISHED);
-      return TaskStatus::FINISHED;
-    }
-
-    session->_mapSqlExprStatement.emplace(_sql, exprStmt);
-    session->_mapIdExprStatement.emplace(_exprId, exprStmt);
   } else {
     exprStmt = itExpr->second;
-    assert(session->_mapSqlExprStatement.find(_sql) !=
-           session->_mapSqlExprStatement.end());
+#ifndef DNDEBUG
+    MString dbSql =
+        (session->_currDb == nullptr ? "" : session->_currDb->GetDbName()) +
+        _sql;
+    auto iter = sGroup._mapSqlExprStatement.find(dbSql);
+    assert(iter != sGroup._mapSqlExprStatement.end() &&
+           iter->second == exprStmt);
+#endif
   }
 
   Statement *stmt = nullptr;

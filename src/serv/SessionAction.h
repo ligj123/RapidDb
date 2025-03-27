@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/LeafRecord.h"
+#include "../statement/StmtResult.h"
 
 namespace storage {
 struct StmtResult;
@@ -103,6 +104,7 @@ public:
         _sql(move(sql)), _vctParas(move(vctParas)), _stmtResult(result) {}
 
   TaskStatus Exec(SessionGroup &sGroup) override;
+  void ResetStmtResult() { _stmtResult->Reset(); }
 
 protected:
   uint32_t _sessionId;
