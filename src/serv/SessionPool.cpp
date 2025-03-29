@@ -28,9 +28,15 @@ TaskStatus SessionTask::Run() {
       }
     }
 
-    for (auto iter = group->_mapSession.begin();
-         iter != group->_mapSession.end(); iter++) {
-      iter->second->Exec();
+    for (auto iter = group->_lstBusySession.begin();
+         iter != group->_lstBusySession.end();) {
+      bool b = (*iter)->Exec();
+      if (b) {
+        iter++;
+      } else {
+        (*iter)->_bBusyQueue = false;
+        iter = group->_lstBusySession.erase(iter);
+      }
     }
 
     for (auto iter = group->_obsoleteSession.begin();
@@ -182,7 +188,6 @@ void SessionPool::AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
                                uint32_t exprId, MString &&sql,
                                VectorRow &&paras, StmtResult *result) {
   result->Reset();
-  result->SetResultStatus(ResultStatus::FILLING);
   SessionStatementAction *action = new SessionStatementAction(
       sid, stmtId, exprId, move(sql), move(paras), result);
   _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outerTid, action);

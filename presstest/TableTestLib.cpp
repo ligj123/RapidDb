@@ -162,7 +162,6 @@ void CreateDbTable(const string &dbName, bool bExclusive, int sessionGroup) {
 
 void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
                 int recNum) {
-
   MVector<StmtResult> vctResult(vctSessId.size());
   MVector<int> vctStmtId(vctSessId.size());
 
@@ -179,8 +178,9 @@ void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
       }
 
       if (rs == ResultStatus::FINISHED) {
-        // assert(vctResult[i]._rowNum == 1 && vctResult[i]._vctError.size() ==
-        // 0); assert(vctResult[i]._stmtId == vctStmtId[i]);
+        // assert(vctResult[i]._rowNum == 1 && vctResult[i]._vctError.size()
+        //== 0);
+        // assert(vctResult[i]._stmtId == vctStmtId[i]);
       }
 
       if (cnt < recNum) {
@@ -201,5 +201,83 @@ void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
 
   LOG_INFO << "Times: " << times;
 }
+
+// void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int
+// recStart,
+//                 int recNum) {
+//   LOG_INFO << "tid: " << tid << "  SessNum: " << vctSessId.size()
+//            << "   recStart: " << recStart << "   recNum: " << recNum;
+//   MVector<StmtResultEx> vctResult(vctSessId.size() * 10);
+//   int currRst = -1;
+//   int waitRst = recNum > vctResult.size() ? vctResult.size() : recNum;
+//   // int32_t poolSz = SessionPool::GetVctSessionGroup().size();
+//   int cnt = 0;
+//   int times = 0;
+
+//   while (true) {
+//     // MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
+//     times++;
+
+//     for (size_t i = 0; i < vctSessId.size(); i++) {
+//       while (true) {
+//         currRst++;
+//         if (currRst >= vctResult.size()) {
+//           currRst = 0;
+//         }
+
+//         ResultStatus rs = vctResult[currRst].GetResultStatus();
+//         if (rs == ResultStatus::FILLING) {
+//           continue;
+//         }
+
+//         if (rs == ResultStatus::FINISHED) {
+//           // if (vctResult[currRst]._rowNum != 1 ||
+//           //     vctResult[currRst]._vctError.size() != 0) {
+//           //   LOG_INFO << "_rowNum: " << vctResult[currRst]._rowNum
+//           //            << "\tError: " <<
+//           vctResult[currRst]._vctError.size();
+//           // }
+//         }
+
+//         break;
+//       }
+
+//       if (cnt >= recNum) {
+//         if (vctResult[currRst]._currVal >= 0) {
+//           waitRst--;
+//           vctResult[currRst]._currVal = -1;
+//         }
+
+//         if (waitRst == 0) {
+//           break;
+//         } else {
+//           continue;
+//         }
+//       }
+
+//       arrResult[recStart + cnt] = 0x80;
+//       vctResult[currRst]._currVal = recStart + cnt;
+//       VectorRow vctRow = GenRow(recStart + cnt);
+//       SessionPool::AddStatement(tid, vctSessId[i], cnt, 1, INSERT_STMT,
+//                                 move(vctRow), &vctResult[currRst]);
+
+//       // SessionStatementAction *action = new SessionStatementAction(
+//       //     vctSessId[i], cnt + recStart, 1, INSERT_STMT, move(vctRow),
+//       //     &vctResult[currRst]);
+//       // uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
+//       // auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction
+//       // *>()); iter.first->second.push_back(action);
+//       cnt++;
+//     }
+
+//     // SessionPool::AddStatements(mapAct);
+
+//     if (waitRst == 0) {
+//       break;
+//     }
+//   }
+
+//   LOG_INFO << "Times: " << times;
+// }
 
 } // namespace storage

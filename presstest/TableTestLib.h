@@ -6,6 +6,7 @@
 #include "../src/core/LeafRecord.h"
 #include "../src/dataType/DataValueDigit.h"
 #include "../src/dataType/DataValueVarChar.h"
+#include "../src/statement/StmtResult.h"
 #include "../src/table/Table.h"
 
 namespace storage {
@@ -25,6 +26,12 @@ struct ResultStat {
   int _updateFailed{0};
   int _selectPassed{0};
   int _selectFailed{0};
+};
+
+struct StmtResultEx : public StmtResult {
+public:
+  int _currVal;
+  OpRedio _opRedio;
 };
 
 extern const char *ROOT_PATH;

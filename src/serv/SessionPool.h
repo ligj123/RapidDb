@@ -54,6 +54,8 @@ struct SessionGroup {
 
   // The session map that the sessions are alive.
   MHashMap<uint32_t, Session *> _mapSession;
+  // The sessions that have running or waitting tasks.
+  MList<Session *> _lstBusySession;
   // To temp save the closed session, Until all its statement finished
   MVector<Session *> _obsoleteSession;
 

@@ -162,6 +162,11 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
   }
 
   session->_lstWaittingStmt.push_back(stmt);
+  if (!session->_bBusyQueue) {
+    sGroup._lstBusySession.push_back(session);
+    session->_bBusyQueue = true;
+  }
+
   return TaskStatus::FINISHED;
 }
 

@@ -41,7 +41,7 @@ public:
     _status.store(s, memory_order_release);
   }
 
-  ResultStatus GetResultStatus() { return _status.load(memory_order_relaxed); }
+  ResultStatus GetResultStatus() { return _status.load(memory_order_acquire); }
 
   void Reset() {
     _rowNum = 0;

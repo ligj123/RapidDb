@@ -30,8 +30,11 @@ public:
 public:
   Session(uint32_t id);
   ~Session();
-
-  void Exec();
+  /**
+   * @brief Execute the tasks in this session.
+   * @return True: It still has tasks to exec; False: Here has not tasks to run.
+   */
+  bool Exec();
 
   bool IsEmpty() {
     return _currStatement == nullptr && _lstWaittingStmt.size() == 0;
@@ -45,6 +48,8 @@ public:
   bool _bAutoCommit{true};
   // The session has been closed or not
   bool _bObsolete{false};
+  // If this session is in busy queue of SessionGroup or not
+  bool _bBusyQueue{false};
   // The transaction information.
   Transaction _transaction;
 

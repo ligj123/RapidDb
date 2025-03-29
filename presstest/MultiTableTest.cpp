@@ -18,39 +18,126 @@
 
 namespace storage {
 
+// void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
+//                  int recNum, int opTimes) {
+//   int cnt = 0;
+//   int times = 0;
+//   MVector<StmtResult> vctResult(vctSessId.size());
+//   MVector<int> vctVal(vctSessId.size());
+//   // int32_t poolSz = SessionPool::GetVctSessionGroup().size();
+
+//   while (true) {
+//     int empty = 0;
+//     times++;
+//     // MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
+
+//     for (size_t i = 0; i < vctSessId.size(); i++) {
+//       ResultStatus rs = vctResult[i].GetResultStatus();
+//       if (rs == ResultStatus::FILLING) {
+//         continue;
+//       }
+
+//       if (cnt >= opTimes) {
+//         empty++;
+//         continue;
+//       }
+
+//       // if (rs == ResultStatus::FINISHED) {
+//       //   VectorDataValue vctDv;
+//       //   StmtResult &rst = vctResult[i];
+//       //   bool b = rst._resultSet->First();
+//       //   assert(b);
+//       //   rst._resultSet->GetCurrDataValueRow(vctDv);
+
+//       //   CheckSelectResult(vctVal[i], vctDv);
+//       // }
+
+//       int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
+//       if (currVal >= recNum) {
+//         currVal -= 50;
+//       } else if (currVal < 0) {
+//         currVal += 50;
+//       }
+
+//       currVal += startRec;
+//       vctVal[i] = currVal;
+//       VectorRow vctRow;
+//       vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+//       SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
+//                                 SELECT_STMT, move(vctRow), &vctResult[i]);
+
+//       // SessionStatementAction *action =
+//       //     new SessionStatementAction(vctSessId[i], cnt + startRec, 4,
+//       //                                SELECT_STMT, move(vctRow),
+//       //                                &vctResult[i]);
+//       // uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
+//       // auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction
+//       // *>()); iter.first->second.push_back(action);
+
+//       cnt++;
+//     }
+
+//     // SessionPool::AddStatements(mapAct);
+
+//     if (empty >= vctSessId.size()) {
+//       break;
+//     }
+//   }
+// }
+
 void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
                  int recNum, int opTimes) {
+  // LOG_INFO << "tid: " << tid << "  SessNum: " << vctSessId.size()
+  //          << "   startRec: " << startRec << "   recNum: " << recNum
+  //          << "  opTimes: " << opTimes;
   int cnt = 0;
   int times = 0;
-  MVector<StmtResult> vctResult(vctSessId.size());
-  MVector<int> vctVal(vctSessId.size());
+  MVector<StmtResultEx> vctResult(vctSessId.size() * 10);
+  int currRst = -1;
+  int waitRst = recNum > vctResult.size() ? vctResult.size() : recNum;
   // int32_t poolSz = SessionPool::GetVctSessionGroup().size();
 
   while (true) {
-    int empty = 0;
     times++;
     // MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
 
     for (size_t i = 0; i < vctSessId.size(); i++) {
-      ResultStatus rs = vctResult[i].GetResultStatus();
-      if (rs == ResultStatus::FILLING) {
-        continue;
+      while (true) {
+        currRst++;
+        if (currRst >= vctResult.size()) {
+          currRst = 0;
+        }
+
+        ResultStatus rs = vctResult[currRst].GetResultStatus();
+        if (rs == ResultStatus::FILLING) {
+          continue;
+        }
+
+        // if (rs == ResultStatus::FINISHED) {
+        //   VectorDataValue vctDv;
+        //   StmtResult &rst = vctResult[i];
+        //   bool b = rst._resultSet->First();
+        //   assert(b);
+        //   rst._resultSet->GetCurrDataValueRow(vctDv);
+
+        //   CheckSelectResult(vctVal[i], vctDv);
+        // }
+
+        break;
       }
 
-      if (cnt >= opTimes) {
-        empty++;
-        continue;
+      if (cnt >= recNum) {
+        if (vctResult[currRst]._currVal >= 0) {
+          waitRst--;
+          vctResult[currRst]._currVal = -1;
+        }
+
+        if (waitRst == 0) {
+          break;
+        } else {
+          continue;
+        }
       }
-
-      // if (rs == ResultStatus::FINISHED) {
-      //   VectorDataValue vctDv;
-      //   StmtResult &rst = vctResult[i];
-      //   bool b = rst._resultSet->First();
-      //   assert(b);
-      //   rst._resultSet->GetCurrDataValueRow(vctDv);
-
-      //   CheckSelectResult(vctVal[i], vctDv);
-      // }
 
       int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
       if (currVal >= recNum) {
@@ -60,11 +147,11 @@ void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       }
 
       currVal += startRec;
-      vctVal[i] = currVal;
+      vctResult[currRst]._currVal = currVal;
       VectorRow vctRow;
       vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
       SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
-                                SELECT_STMT, move(vctRow), &vctResult[i]);
+                                SELECT_STMT, move(vctRow), &vctResult[currRst]);
 
       // SessionStatementAction *action =
       //     new SessionStatementAction(vctSessId[i], cnt + startRec, 4,
@@ -79,7 +166,7 @@ void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
 
     // SessionPool::AddStatements(mapAct);
 
-    if (empty >= vctSessId.size()) {
+    if (waitRst == 0) {
       break;
     }
   }
