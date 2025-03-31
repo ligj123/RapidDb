@@ -12,6 +12,8 @@ atomic_uint32_t SessionPool::_currSessionId{0};
 
 TaskStatus SessionTask::Run() {
   SetStatus(TaskStatus::RUNNING, false);
+  bool sessEmpty = true;
+
   for (SessionGroup *group : _vctGroup) {
     group->_runTimes++;
     MList<SessionAction *> &lst = group->_lstAction;
@@ -51,6 +53,10 @@ TaskStatus SessionTask::Run() {
       } else {
         iter++;
       }
+    }
+
+    if (group->_lstBusySession.size() > 0) {
+      sessEmpty = false;
     }
   }
 
@@ -93,6 +99,10 @@ TaskStatus SessionTask::Run() {
       SetStatus(TaskStatus::FINISHED, false);
       return TaskStatus::FINISHED;
     }
+  }
+
+  if (sessEmpty && IsExclusiveTask()) {
+    this_thread::yield();
   }
 
   SetStatus(TaskStatus::INTERVAL, false);

@@ -18,125 +18,38 @@
 
 namespace storage {
 
-// void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
-//                  int recNum, int opTimes) {
-//   int cnt = 0;
-//   int times = 0;
-//   MVector<StmtResult> vctResult(vctSessId.size());
-//   MVector<int> vctVal(vctSessId.size());
-//   // int32_t poolSz = SessionPool::GetVctSessionGroup().size();
-
-//   while (true) {
-//     int empty = 0;
-//     times++;
-//     // MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
-
-//     for (size_t i = 0; i < vctSessId.size(); i++) {
-//       ResultStatus rs = vctResult[i].GetResultStatus();
-//       if (rs == ResultStatus::FILLING) {
-//         continue;
-//       }
-
-//       if (cnt >= opTimes) {
-//         empty++;
-//         continue;
-//       }
-
-//       // if (rs == ResultStatus::FINISHED) {
-//       //   VectorDataValue vctDv;
-//       //   StmtResult &rst = vctResult[i];
-//       //   bool b = rst._resultSet->First();
-//       //   assert(b);
-//       //   rst._resultSet->GetCurrDataValueRow(vctDv);
-
-//       //   CheckSelectResult(vctVal[i], vctDv);
-//       // }
-
-//       int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
-//       if (currVal >= recNum) {
-//         currVal -= 50;
-//       } else if (currVal < 0) {
-//         currVal += 50;
-//       }
-
-//       currVal += startRec;
-//       vctVal[i] = currVal;
-//       VectorRow vctRow;
-//       vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
-//       SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
-//                                 SELECT_STMT, move(vctRow), &vctResult[i]);
-
-//       // SessionStatementAction *action =
-//       //     new SessionStatementAction(vctSessId[i], cnt + startRec, 4,
-//       //                                SELECT_STMT, move(vctRow),
-//       //                                &vctResult[i]);
-//       // uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
-//       // auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction
-//       // *>()); iter.first->second.push_back(action);
-
-//       cnt++;
-//     }
-
-//     // SessionPool::AddStatements(mapAct);
-
-//     if (empty >= vctSessId.size()) {
-//       break;
-//     }
-//   }
-// }
-
-void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
-                 int recNum, int opTimes) {
-  // LOG_INFO << "tid: " << tid << "  SessNum: " << vctSessId.size()
-  //          << "   startRec: " << startRec << "   recNum: " << recNum
-  //          << "  opTimes: " << opTimes;
+void OperateProc1(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
+                  int recNum, int opTimes, int multi) {
   int cnt = 0;
   int times = 0;
-  MVector<StmtResultEx> vctResult(vctSessId.size() * 10);
-  int currRst = -1;
-  int waitRst = recNum > vctResult.size() ? vctResult.size() : recNum;
+  MVector<StmtResult> vctResult(vctSessId.size());
+  MVector<int> vctVal(vctSessId.size());
   // int32_t poolSz = SessionPool::GetVctSessionGroup().size();
 
   while (true) {
+    int empty = 0;
     times++;
     // MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
 
     for (size_t i = 0; i < vctSessId.size(); i++) {
-      while (true) {
-        currRst++;
-        if (currRst >= vctResult.size()) {
-          currRst = 0;
-        }
-
-        ResultStatus rs = vctResult[currRst].GetResultStatus();
-        if (rs == ResultStatus::FILLING) {
-          continue;
-        }
-
-        // if (rs == ResultStatus::FINISHED) {
-        //   VectorDataValue vctDv;
-        //   StmtResult &rst = vctResult[i];
-        //   bool b = rst._resultSet->First();
-        //   assert(b);
-        //   rst._resultSet->GetCurrDataValueRow(vctDv);
-
-        //   CheckSelectResult(vctVal[i], vctDv);
-        // }
-
-        break;
+      ResultStatus rs = vctResult[i].GetResultStatus();
+      if (rs == ResultStatus::FILLING) {
+        continue;
       }
 
-      if (cnt >= recNum) {
-        if (vctResult[currRst]._currVal >= 0) {
-          waitRst--;
-          vctResult[currRst]._currVal = -1;
-        }
+      if (cnt >= opTimes) {
+        empty++;
+        continue;
+      }
 
-        if (waitRst == 0) {
-          break;
-        } else {
-          continue;
-        }
+      if (rs == ResultStatus::FINISHED) {
+        VectorDataValue vctDv;
+        StmtResult &rst = vctResult[i];
+        bool b = rst._resultSet->First();
+        assert(b);
+        rst._resultSet->GetCurrDataValueRow(vctDv);
+
+        CheckSelectResult(vctVal[i], vctDv);
       }
 
       int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
@@ -147,11 +60,11 @@ void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       }
 
       currVal += startRec;
-      vctResult[currRst]._currVal = currVal;
+      vctVal[i] = currVal;
       VectorRow vctRow;
       vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
       SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
-                                SELECT_STMT, move(vctRow), &vctResult[currRst]);
+                                SELECT_STMT, move(vctRow), &vctResult[i]);
 
       // SessionStatementAction *action =
       //     new SessionStatementAction(vctSessId[i], cnt + startRec, 4,
@@ -166,14 +79,98 @@ void OperateProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
 
     // SessionPool::AddStatements(mapAct);
 
-    if (waitRst == 0) {
+    if (empty >= vctSessId.size()) {
       break;
     }
   }
+
+  LOG_INFO << "Times: " << times;
+}
+
+void OperateProc2(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
+                  int recNum, int opTimes, int multi) {
+  // LOG_INFO << "tid: " << tid << "  SessNum: " << vctSessId.size()
+  //          << "   startRec: " << startRec << "   recNum: " << recNum
+  //          << "  opTimes: " << opTimes;
+  int cnt = -1;
+  int times = 0;
+  MVector<StmtResultEx> vctResult(vctSessId.size() * multi);
+  int currSess = -1;
+  int waitRst = recNum > vctResult.size() ? vctResult.size() : recNum;
+  int32_t poolSz = SessionPool::GetVctSessionGroup().size();
+  MVector<StmtResultEx *> vctRes;
+  vctRes.reserve(vctResult.size());
+
+  while (true) {
+    times++;
+    vctRes.clear();
+
+    for (StmtResultEx &res : vctResult) {
+      ResultStatus s = res.GetResultRelax();
+      if (s == ResultStatus::FILLING) {
+        continue;
+      }
+
+      if (s == ResultStatus::FINISHED && res._currVal >= 0) {
+        VectorDataValue vctDv;
+
+        bool b = res._resultSet->First();
+        assert(b);
+        res._resultSet->GetCurrDataValueRow(vctDv);
+        CheckSelectResult(res._currVal, vctDv);
+      }
+
+      vctRes.push_back(&res);
+    }
+
+    if (vctRes.size() == 0) {
+      this_thread::yield();
+      continue;
+    }
+
+    if (vctRes.size() == vctResult.size() && cnt >= opTimes) {
+      break;
+    }
+
+    vctRes[0]->GetResultStatus();
+    //  MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
+
+    for (StmtResultEx *res : vctRes) {
+      cnt++;
+      currSess++;
+      if (currSess >= vctSessId.size()) {
+        currSess = 0;
+      }
+
+      int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
+      if (currVal >= recNum) {
+        currVal -= 50;
+      } else if (currVal < 0) {
+        currVal += 50;
+      }
+
+      currVal += startRec;
+      res->_currVal = currVal;
+      VectorRow vctRow;
+      vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+      SessionPool::AddStatement(tid, vctSessId[currSess], currVal, 4,
+                                SELECT_STMT, move(vctRow), res);
+
+      // SessionStatementAction *action = new SessionStatementAction(
+      //     vctSessId[currSess], currVal, 4, SELECT_STMT, move(vctRow), res);
+      // uint32_t key = ((vctSessId[currSess] % poolSz) << 16) + tid;
+      // auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction
+      // *>()); iter.first->second.push_back(action);
+    }
+
+    // SessionPool::AddStatements(mapAct);
+  }
+
+  LOG_INFO << "Times: " << times;
 }
 
 void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
-                    int totalOpTimes) {
+                    int totalOpTimes, int multi) {
   ThreadPool *tpool =
       ThreadPool::CreateMainPool("press", 1, tblNum * 2 + sessGroupNum + 2);
   FilePagePool::Start(tblNum * 2 + sessGroupNum + 2);
@@ -220,8 +217,8 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
 
   for (int i = 0; i < tblNum; i++) {
     int recStart = i * rRange;
-    thread *t = new thread([i, vctArrSessId, recStart, rRange]() {
-      InsertProc(i, vctArrSessId[i], recStart, rRange);
+    thread *t = new thread([i, vctArrSessId, recStart, rRange, multi]() {
+      InsertProc1(i, vctArrSessId[i], recStart, rRange, multi);
     });
     vctThread.push_back(t);
   }
@@ -247,9 +244,10 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   int opTimes = totalOpTimes / tblNum;
   for (int i = 0; i < tblNum; i++) {
     int recStart = i * rRange;
-    thread *t = new thread([i, vctArrSessId, recStart, rRange, opTimes]() {
-      OperateProc(i, vctArrSessId[i], recStart, rRange, opTimes);
-    });
+    thread *t =
+        new thread([i, vctArrSessId, recStart, rRange, opTimes, multi]() {
+          OperateProc1(i, vctArrSessId[i], recStart, rRange, opTimes, multi);
+        });
     vctThread.push_back(t);
   }
 

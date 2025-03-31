@@ -97,8 +97,10 @@ void CheckAllRecord(const string &fullTblName, int rowNum) {
   int cnt = 0;
   auto iter = map.begin();
   auto itOld = iter;
+  int recCount = 0;
 
   while (lpage != nullptr) {
+    recCount += lpage->GetRecordNumber();
     for (int i = 0; i < lpage->GetRecordNumber(); i++) {
       LeafRecord &lr = lpage->GetRecord(i);
       if (lr.ReleaseLockAble()) {
@@ -131,7 +133,7 @@ void CheckAllRecord(const string &fullTblName, int rowNum) {
     lpage = lpage->GetNextPage();
   }
 
-  LOG_INFO << "cnt: " << cnt;
+  LOG_INFO << "cnt: " << cnt << "   recCount: " << recCount;
 }
 
 void CreateDbTable(const string &dbName, bool bExclusive, int sessionGroup) {
@@ -160,8 +162,8 @@ void CreateDbTable(const string &dbName, bool bExclusive, int sessionGroup) {
   TableManager::AddTable(fullName.c_str(), ptable);
 }
 
-void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
-                int recNum) {
+void InsertProc1(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
+                 int recNum, int multi) {
   MVector<StmtResult> vctResult(vctSessId.size());
   MVector<int> vctStmtId(vctSessId.size());
 
@@ -177,11 +179,11 @@ void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
         continue;
       }
 
-      if (rs == ResultStatus::FINISHED) {
-        // assert(vctResult[i]._rowNum == 1 && vctResult[i]._vctError.size()
-        //== 0);
-        // assert(vctResult[i]._stmtId == vctStmtId[i]);
-      }
+      // if (rs == ResultStatus::FINISHED) {
+      // assert(vctResult[i]._rowNum == 1 && vctResult[i]._vctError.size()
+      //== 0);
+      // assert(vctResult[i]._stmtId == vctStmtId[i]);
+      // }
 
       if (cnt < recNum) {
         arrResult[recStart + cnt] = 0x80;
@@ -202,82 +204,143 @@ void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
   LOG_INFO << "Times: " << times;
 }
 
-// void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int
-// recStart,
-//                 int recNum) {
-//   LOG_INFO << "tid: " << tid << "  SessNum: " << vctSessId.size()
-//            << "   recStart: " << recStart << "   recNum: " << recNum;
-//   MVector<StmtResultEx> vctResult(vctSessId.size() * 10);
-//   int currRst = -1;
-//   int waitRst = recNum > vctResult.size() ? vctResult.size() : recNum;
-//   // int32_t poolSz = SessionPool::GetVctSessionGroup().size();
-//   int cnt = 0;
-//   int times = 0;
+void InsertProc2(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
+                 int recNum, int multi) {
+  // LOG_INFO << "tid: " << tid << "  SessNum: " << vctSessId.size()
+  //          << "   recStart: " << recStart << "   recNum: " << recNum;
+  MVector<StmtResultEx> vctResult(vctSessId.size() * multi);
+  int currRst = -1;
+  int waitRst = recNum > vctResult.size() ? vctResult.size() : recNum;
+  // int32_t poolSz = SessionPool::GetVctSessionGroup().size();
+  int cnt = 0;
+  int times = 0;
 
-//   while (true) {
-//     // MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
-//     times++;
+  while (true) {
+    // MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
+    times++;
 
-//     for (size_t i = 0; i < vctSessId.size(); i++) {
-//       while (true) {
-//         currRst++;
-//         if (currRst >= vctResult.size()) {
-//           currRst = 0;
-//         }
+    for (size_t i = 0; i < vctSessId.size(); i++) {
+      while (true) {
+        currRst++;
+        if (currRst >= vctResult.size()) {
+          currRst = 0;
+        }
 
-//         ResultStatus rs = vctResult[currRst].GetResultStatus();
-//         if (rs == ResultStatus::FILLING) {
-//           continue;
-//         }
+        ResultStatus rs = vctResult[currRst].GetResultStatus();
+        if (rs == ResultStatus::FILLING) {
+          continue;
+        }
 
-//         if (rs == ResultStatus::FINISHED) {
-//           // if (vctResult[currRst]._rowNum != 1 ||
-//           //     vctResult[currRst]._vctError.size() != 0) {
-//           //   LOG_INFO << "_rowNum: " << vctResult[currRst]._rowNum
-//           //            << "\tError: " <<
-//           vctResult[currRst]._vctError.size();
-//           // }
-//         }
+        // if (rs == ResultStatus::FINISHED) {
+        //   if (vctResult[currRst]._rowNum != 1 ||
+        //       vctResult[currRst]._vctError.size() != 0) {
+        //     LOG_INFO << "_rowNum: " << vctResult[currRst]._rowNum
+        //              << "\tError: " <<
+        // vctResult[currRst]._vctError.size();
+        //   }
+        // }
 
-//         break;
-//       }
+        break;
+      }
 
-//       if (cnt >= recNum) {
-//         if (vctResult[currRst]._currVal >= 0) {
-//           waitRst--;
-//           vctResult[currRst]._currVal = -1;
-//         }
+      if (cnt >= recNum) {
+        if (vctResult[currRst]._currVal >= 0) {
+          waitRst--;
+          vctResult[currRst]._currVal = -1;
+        }
 
-//         if (waitRst == 0) {
-//           break;
-//         } else {
-//           continue;
-//         }
-//       }
+        if (waitRst == 0) {
+          break;
+        } else {
+          continue;
+        }
+      }
 
-//       arrResult[recStart + cnt] = 0x80;
-//       vctResult[currRst]._currVal = recStart + cnt;
-//       VectorRow vctRow = GenRow(recStart + cnt);
-//       SessionPool::AddStatement(tid, vctSessId[i], cnt, 1, INSERT_STMT,
-//                                 move(vctRow), &vctResult[currRst]);
+      int currVal = recStart + cnt;
+      arrResult[currVal] = 0x80;
+      vctResult[currRst]._currVal = currVal;
+      VectorRow vctRow = GenRow(currVal);
+      SessionPool::AddStatement(tid, vctSessId[i], cnt, 1, INSERT_STMT,
+                                move(vctRow), &vctResult[currRst]);
 
-//       // SessionStatementAction *action = new SessionStatementAction(
-//       //     vctSessId[i], cnt + recStart, 1, INSERT_STMT, move(vctRow),
-//       //     &vctResult[currRst]);
-//       // uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
-//       // auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction
-//       // *>()); iter.first->second.push_back(action);
-//       cnt++;
-//     }
+      // SessionStatementAction *action = new SessionStatementAction(
+      //     vctSessId[i], cnt + recStart, 1, INSERT_STMT, move(vctRow),
+      //     &vctResult[currRst]);
+      // uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
+      // auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction
+      // *>()); iter.first->second.push_back(action);
+      cnt++;
+    }
 
-//     // SessionPool::AddStatements(mapAct);
+    // SessionPool::AddStatements(mapAct);
 
-//     if (waitRst == 0) {
-//       break;
-//     }
-//   }
+    if (waitRst == 0) {
+      break;
+    }
+  }
 
-//   LOG_INFO << "Times: " << times;
-// }
+  LOG_INFO << tid << ": Times: " << times;
+}
+
+void InsertProc3(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
+                 int recNum, int multi) {
+  MList<StmtResultEx *> lstResult;
+  int cnt = -1;
+  int times = 0;
+
+  while (true) {
+    times++;
+    while (lstResult.size() > 0) {
+      StmtResultEx *res = lstResult.front();
+      ResultStatus s = res->GetResultStatus();
+      if (s == ResultStatus::FILLING) {
+        break;
+      }
+
+      delete res;
+      lstResult.pop_front();
+      assert(s == ResultStatus::FINISHED);
+      //   if (vctResult[currRst]._rowNum != 1 ||
+      //       vctResult[currRst]._vctError.size() != 0) {
+      //     LOG_INFO << "_rowNum: " << vctResult[currRst]._rowNum
+      //              << "\tError: " <<
+      //  vctResult[currRst]._vctError.size();
+      //   }
+    }
+
+    if (cnt >= recNum) {
+      if (lstResult.size() == 0) {
+        break;
+      } else {
+        this_thread::sleep_for(1us);
+        continue;
+      }
+    }
+
+    if (lstResult.size() > 100000) {
+      this_thread::sleep_for(1us);
+      continue;
+    }
+
+    for (size_t i = 0; i < 100; i++) {
+      cnt++;
+
+      if (cnt >= recNum) {
+        break;
+      }
+
+      int currVal = recStart + cnt;
+      arrResult[currVal] = 0x80;
+      StmtResultEx *rst = new StmtResultEx();
+      rst->_currVal = currVal;
+      lstResult.push_back(rst);
+      VectorRow vctRow = GenRow(currVal);
+      SessionPool::AddStatement(tid, vctSessId[cnt % vctSessId.size()], cnt, 1,
+                                INSERT_STMT, move(vctRow), rst);
+    }
+  }
+
+  LOG_INFO << tid << ": Times: " << times;
+}
 
 } // namespace storage

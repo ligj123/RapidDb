@@ -70,8 +70,13 @@ TaskStatus RecordAction::Exec() {
     return TaskStatus::FINISHED;
   }
 
+  IndexRange &idxRange = _indexTree->GetVctRange()[_rangePos];
   if (_idxPage == nullptr) {
-    _idxPage = _indexTree->GetRootPage();
+    if (_indexTree->GetVctRange().size() > 1) {
+      idxRange.GetTopPage(_indexTree->GetIndexType(), *_lr);
+    } else {
+      _idxPage = _indexTree->GetRootPage();
+    }
   }
   if (_idxPage->GetPageType() != PageType::LEAF_PAGE) {
     bool b = _indexTree->SearchPage(*_lr, _idxPage);
@@ -83,11 +88,11 @@ TaskStatus RecordAction::Exec() {
   LeafPage *lp = (LeafPage *)_idxPage;
   lp->UpdateAction(_lr);
   if (_lr->GetLock()->_recResult == RecordResult::ERROR) {
-    _indexTree->GetVctRange()[_rangePos]._lstErrRecord.push_back(_lr);
+    idxRange._lstErrRecord.push_back(_lr);
   } else {
-    lp->AddWriteQueue(_indexTree->GetVctRange()[_rangePos]._pageMap);
+    lp->AddWriteQueue(idxRange._pageMap);
     if (lp->NeedForceSplit()) {
-      lp->SplitPage(_indexTree->GetVctRange()[_rangePos]._pageMap);
+      lp->SplitPage(idxRange._pageMap);
     }
   }
 

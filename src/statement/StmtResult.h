@@ -42,6 +42,7 @@ public:
   }
 
   ResultStatus GetResultStatus() { return _status.load(memory_order_acquire); }
+  ResultStatus GetResultRelax() { return _status.load(memory_order_relaxed); }
 
   void Reset() {
     _rowNum = 0;

@@ -33,38 +33,125 @@ void PrintNum(int rowNum, int num) {
   }
 }
 
+// void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
+//                    int recNum, int opTimes, int multi) {
+//   MVector<StmtResult> vctResult(vctSessId.size());
+//   // Response for vctResult one by one, pair<the int value, which operation>
+//   MVector<pair<int, OpRedio>> vctPair(vctSessId.size());
+//   for (size_t i = 0; i < vctPair.size(); i++) {
+//     vctPair[i].first = -1;
+//     vctResult[i].SetResultStatus(ResultStatus::FINISHED);
+//   }
+
+//   int cnt = 0;
+//   int times = 0;
+//   int endRec = startRec + recNum;
+//   int32_t poolSz = SessionPool::GetVctSessionGroup().size();
+
+//   while (true) {
+//     bool empty = true;
+//     times++;
+//     MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
+
+//     for (size_t i = 0; i < vctSessId.size(); i++) {
+//       ResultStatus rs = vctResult[i].GetResultStatus();
+//       if (rs != ResultStatus::FINISHED) {
+//         empty = false;
+//         continue;
+//       }
+
+//       pair<int, OpRedio> &pr = vctPair[i];
+//       StmtResult &rst = vctResult[i];
+
+//       if (cnt >= opTimes) {
+//         continue;
+//       }
+
+//       int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
+//       if (currVal >= recNum) {
+//         currVal -= 50;
+//       } else if (currVal < 0) {
+//         currVal += 50;
+//       }
+//       currVal += startRec;
+
+//       arrNum[cnt] = currVal;
+//       OpRedio redio = arrRadio[cnt % redioCount];
+//       pr.first = currVal;
+//       pr.second = redio;
+
+//       VectorRow vctRow;
+//       vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
+//       // SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
+//       //                           SELECT_STMT, move(vctRow), &vctResult[i]);
+
+//       SessionStatementAction *action =
+//           new SessionStatementAction(vctSessId[i], cnt + startRec, 4,
+//                                      SELECT_STMT, move(vctRow),
+//                                      &vctResult[i]);
+//       uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
+//       auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction
+//       *>()); iter.first->second.push_back(action);
+
+//       cnt++;
+//     }
+
+//     SessionPool::AddStatements(mapAct);
+
+//     if (cnt >= opTimes && empty) {
+//       break;
+//     }
+//   }
+
+//   LOG_INFO << "Times: " << times;
+// }
+
 void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
-                   int recNum, int opTimes) {
-  MVector<StmtResult> vctResult(vctSessId.size());
-  // Response for vctResult one by one, pair<the int value, which operation>
-  MVector<pair<int, OpRedio>> vctPair(vctSessId.size());
-  for (size_t i = 0; i < vctPair.size(); i++) {
-    vctPair[i].first = -1;
-    vctResult[i].SetResultStatus(ResultStatus::FINISHED);
-  }
+                   int recNum, int opTimes, int multi) {
+  MVector<StmtResultEx> vctResult(vctSessId.size() * multi);
+  int currRst = -1;
+  int waitRst = recNum > vctResult.size() ? vctResult.size() : recNum;
 
   int cnt = 0;
   int times = 0;
   int endRec = startRec + recNum;
-  int32_t poolSz = SessionPool::GetVctSessionGroup().size();
+  // int32_t poolSz = SessionPool::GetVctSessionGroup().size();
 
   while (true) {
-    bool empty = true;
     times++;
-    MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
+    //  MTreeMap<uint32_t, MVector<SessionStatementAction *>> mapAct;
 
     for (size_t i = 0; i < vctSessId.size(); i++) {
-      ResultStatus rs = vctResult[i].GetResultStatus();
-      if (rs != ResultStatus::FINISHED) {
-        empty = false;
-        continue;
+      while (true) {
+        currRst++;
+        if (currRst >= vctResult.size()) {
+          currRst = 0;
+        }
+
+        StmtResultEx &rst = vctResult[currRst];
+        ResultStatus rs = rst.GetResultStatus();
+        if (rs == ResultStatus::FILLING) {
+          continue;
+        }
+
+        if (rs == ResultStatus::FINISHED && rst._currVal >= 0) {
+          // Check results
+        }
+
+        break;
       }
 
-      pair<int, OpRedio> &pr = vctPair[i];
-      StmtResult &rst = vctResult[i];
-
       if (cnt >= opTimes) {
-        continue;
+        if (vctResult[currRst]._currVal >= 0) {
+          waitRst--;
+          vctResult[currRst]._currVal = -1;
+        }
+
+        if (waitRst == 0) {
+          break;
+        } else {
+          continue;
+        }
       }
 
       int currVal = cnt % recNum + MicroSecTime() % 100 - 50;
@@ -73,49 +160,48 @@ void StatementProc(uint16_t tid, MVector<uint32_t> vctSessId, int startRec,
       } else if (currVal < 0) {
         currVal += 50;
       }
-      currVal += startRec;
 
-      arrNum[cnt] = currVal;
-      OpRedio redio = arrRadio[cnt % redioCount];
-      pr.first = currVal;
-      pr.second = redio;
+      currVal += startRec;
+      vctResult[currRst]._currVal = currVal;
+      vctResult[currRst]._opRedio = arrRadio[cnt % redioCount];
 
       VectorRow vctRow;
       vctRow.push_back({new DataValueLong(GenPrimaryKey(currVal))});
-      // SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
-      //                           SELECT_STMT, move(vctRow), &vctResult[i]);
+      SessionPool::AddStatement(tid, vctSessId[i], cnt + startRec, 4,
+                                SELECT_STMT, move(vctRow), &vctResult[currRst]);
 
-      SessionStatementAction *action =
-          new SessionStatementAction(vctSessId[i], cnt + startRec, 4,
-                                     SELECT_STMT, move(vctRow), &vctResult[i]);
-      uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
-      auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction *>());
-      iter.first->second.push_back(action);
+      // SessionStatementAction *action =
+      //     new SessionStatementAction(vctSessId[i], cnt + startRec, 4,
+      //                                SELECT_STMT, move(vctRow),
+      //                                &vctResult[i]);
+      // uint32_t key = ((vctSessId[i] % poolSz) << 16) + tid;
+      // auto iter = mapAct.try_emplace(key, MVector<SessionStatementAction
+      // *>()); iter.first->second.push_back(action);
 
       cnt++;
     }
 
-    SessionPool::AddStatements(mapAct);
+    //  SessionPool::AddStatements(mapAct);
 
-    if (cnt >= opTimes && empty) {
+    if (waitRst == 0) {
       break;
     }
   }
 
-  LOG_INFO << "Times: " << times;
+  LOG_INFO << "Times: " << times << "   Count: " << cnt;
 }
 
 void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
                     uint16_t sessGroupNum, int sessionNum, int rowNum,
-                    int totalOpTimes, bool bExclusive) {
+                    int totalOpTimes, int multi) {
   sessionNum *= sessGroupNum;
   ThreadPool *tpool =
       ThreadPool::CreateMainPool("press", 1, tblThreads + sessGroupNum + 2);
   ThreadPool::SetThreadId(0);
   FilePagePool::Start(tblThreads + sessGroupNum + 2);
-  // LogTask::InitLogTask(tpool, "./binlog/", bExclusive);
+  // LogTask::InitLogTask(tpool, "./binlog/", true);
   SessionPool::InitPool(sessGroupNum, sessGroupNum, 0, userThreads, tpool,
-                        bExclusive);
+                        true);
   // CachePagePoolTask::Init(tpool);
 
   arrResult = new Byte[rowNum];
@@ -123,7 +209,7 @@ void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
   arrNum = new int[totalOpTimes];
   memset(arrNum, 0, totalOpTimes * 4);
 
-  CreateDbTable(DB_NAME, bExclusive, sessGroupNum);
+  CreateDbTable(DB_NAME, true, sessGroupNum);
   vector<uint32_t> vctSessId;
   vector<StmtResult> vctStmtRes(sessionNum);
   Database *db = DatabaseManager::FindDb(DB_NAME);
@@ -158,8 +244,8 @@ void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
   {
     MVector<uint32_t> vct;
     vct.insert(vct.end(), vctSessId.begin(), vctSessId.end());
-    vctThread[0] =
-        new thread([vct, rowNum]() { InsertProc(0, vct, 0, rowNum); });
+    vctThread[0] = new thread(
+        [vct, rowNum, multi]() { InsertProc1(0, vct, 0, rowNum, multi); });
   }
 
   vctThread[0]->join();
@@ -207,8 +293,8 @@ void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
     vct.insert(vct.end(), vctSessId.begin() + i * sRange,
                vctSessId.begin() + (i + 1) * sRange);
     int recStart = i * rRange;
-    thread *t = new thread([i, vct, recStart, rRange, opTimes]() {
-      StatementProc(i, vct, recStart, rRange, opTimes);
+    thread *t = new thread([i, vct, recStart, rRange, opTimes, multi]() {
+      StatementProc(i, vct, recStart, rRange, opTimes, multi);
     });
     vctThread.push_back(t);
   }

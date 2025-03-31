@@ -91,8 +91,13 @@ inline string FulleTblName(const string &dbPrefix, int sn,
 
 void CreateDbTable(const string &dbName, bool bExclusive, int sessionGroup);
 
-void InsertProc(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
-                int recNum);
+void InsertProc1(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
+                 int recNum, int multi);
+void InsertProc2(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
+                 int recNum, int multi);
+void InsertProc3(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
+                 int recNum, int multi);
+
 void CheckSelectResult(uint32_t num, VectorDataValue &vctDv);
 
 void CheckAllRecord(const string &fullTblName, int rowNum);
