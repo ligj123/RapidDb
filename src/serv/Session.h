@@ -34,7 +34,7 @@ public:
    * @brief Execute the tasks in this session.
    * @return True: It still has tasks to exec; False: Here has not tasks to run.
    */
-  bool Exec();
+  void Exec();
 
   bool IsEmpty() {
     return _currStatement == nullptr && _lstWaittingStmt.size() == 0;

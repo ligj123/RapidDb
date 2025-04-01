@@ -67,6 +67,9 @@ TaskStatus SessionCloseAction::Exec(SessionGroup &sGroup) {
 }
 
 TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
+  // _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+  // return TaskStatus::FINISHED;
+
   _stmtResult->_sessionId = _sessionId;
   _stmtResult->_stmtId = _stmtId;
   auto iter = sGroup._mapSession.find(_sessionId);
@@ -81,10 +84,11 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
   ExprStatement *exprStmt = nullptr;
   uint64_t exprId = (static_cast<uint64_t>(_sessionId) << 32) + _exprId;
   auto itExpr = sGroup._mapIdExprStatement.find(exprId);
+
   if (itExpr == sGroup._mapIdExprStatement.end()) {
     MString dbSql =
-        (session->_currDb == nullptr ? "" : session->_currDb->GetDbName()) +
-        _sql;
+        (session->_currDb == nullptr ? "" : session->_currDb->GetDbName());
+    dbSql += _sql;
     auto itSql = sGroup._mapSqlExprStatement.find(dbSql);
     if (itSql == sGroup._mapSqlExprStatement.end()) {
       ParserResult result;
@@ -114,18 +118,21 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
     }
   } else {
     exprStmt = itExpr->second;
-#ifndef DNDEBUG
-    MString dbSql =
-        (session->_currDb == nullptr ? "" : session->_currDb->GetDbName()) +
-        _sql;
-    auto iter = sGroup._mapSqlExprStatement.find(dbSql);
-    assert(iter != sGroup._mapSqlExprStatement.end() &&
-           iter->second == exprStmt);
-#endif
+    // #ifndef DNDEBUG
+    //     LOG_INFO << "test";
+    //     MString dbSql =
+    //         (session->_currDb == nullptr ? "" :
+    //         session->_currDb->GetDbName()) + _sql;
+    //     auto iter = sGroup._mapSqlExprStatement.find(dbSql);
+    //     assert(iter != sGroup._mapSqlExprStatement.end() &&
+    //            iter->second == exprStmt);
+    // #endif
   }
 
-  Statement *stmt = nullptr;
+  // _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+  // return TaskStatus::FINISHED;
 
+  Statement *stmt = nullptr;
   switch (exprStmt->GetType()) {
   case ExprType::EXPR_INSERT:
     stmt = new InsertStatement(_stmtId, TXID_NULL,
@@ -161,11 +168,15 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
     break;
   }
 
+  // delete stmt;
+  // _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+  // return TaskStatus::FINISHED;
+
   session->_lstWaittingStmt.push_back(stmt);
-  if (!session->_bBusyQueue) {
-    sGroup._lstBusySession.push_back(session);
-    session->_bBusyQueue = true;
-  }
+  // if (!session->_bBusyQueue) {
+  //   sGroup._lstBusySession.push_back(session);
+  //   session->_bBusyQueue = true;
+  // }
 
   return TaskStatus::FINISHED;
 }

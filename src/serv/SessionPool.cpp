@@ -30,15 +30,9 @@ TaskStatus SessionTask::Run() {
       }
     }
 
-    for (auto iter = group->_lstBusySession.begin();
-         iter != group->_lstBusySession.end();) {
-      bool b = (*iter)->Exec();
-      if (b) {
-        iter++;
-      } else {
-        (*iter)->_bBusyQueue = false;
-        iter = group->_lstBusySession.erase(iter);
-      }
+    for (auto iter = group->_mapSession.begin();
+         iter != group->_mapSession.end(); iter++) {
+      iter->second->Exec();
     }
 
     for (auto iter = group->_obsoleteSession.begin();
@@ -55,9 +49,9 @@ TaskStatus SessionTask::Run() {
       }
     }
 
-    if (group->_lstBusySession.size() > 0) {
-      sessEmpty = false;
-    }
+    // if (group->_lstBusySession.size() > 0) {
+    //   sessEmpty = false;
+    // }
   }
 
   if (_bStop) [[unlikely]] {
@@ -101,9 +95,9 @@ TaskStatus SessionTask::Run() {
     }
   }
 
-  if (sessEmpty && IsExclusiveTask()) {
-    this_thread::yield();
-  }
+  // if (sessEmpty && IsExclusiveTask()) {
+  //   this_thread::yield();
+  // }
 
   SetStatus(TaskStatus::INTERVAL, false);
   return TaskStatus::INTERVAL;
@@ -197,6 +191,9 @@ void SessionPool::CloseSession(uint16_t outerTid, uint32_t sid,
 void SessionPool::AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
                                uint32_t exprId, MString &&sql,
                                VectorRow &&paras, StmtResult *result) {
+  // result->SetResultStatus(ResultStatus::FINISHED);
+  // return;
+
   result->Reset();
   SessionStatementAction *action = new SessionStatementAction(
       sid, stmtId, exprId, move(sql), move(paras), result);

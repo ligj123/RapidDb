@@ -11,12 +11,19 @@ Session::~Session() {
   assert(_lstWaittingStmt.size() == 0 && _currStatement == nullptr);
 }
 
-bool Session::Exec() {
+void Session::Exec() {
   if (_currStatement == nullptr) {
-    assert(_lstWaittingStmt.size() != 0);
+    if (_lstWaittingStmt.size() == 0) {
+      return;
+    }
 
     _currStatement = _lstWaittingStmt.front();
     _lstWaittingStmt.pop_front();
+
+    // _currStatement->GetStmtResult()->SetResultStatus(ResultStatus::FINISHED);
+    // delete _currStatement;
+    // _currStatement = nullptr;
+    // return;
 
     if (_currStatement->GetType() == ExprType::EXPR_TRANSACTION) {
       StmtStatus s = _currStatement->SessionExec(this);
@@ -25,7 +32,7 @@ bool Session::Exec() {
         _currStatement = nullptr;
       }
 
-      return _lstWaittingStmt.size() != 0;
+      return;
     }
 
     TranStatus ts = _transaction.GetTranStatus();
@@ -41,13 +48,9 @@ bool Session::Exec() {
   if (s == StmtStatus::Finished) {
     _transaction.CloseTransaction();
     _currStatement = nullptr;
-    return _lstWaittingStmt.size() > 0;
   } else if (s == StmtStatus::Executed) {
     assert(!_transaction.IsAutoCommit());
     _currStatement = nullptr;
-    return _lstWaittingStmt.size() > 0;
   }
-
-  return true;
 }
 } // namespace storage

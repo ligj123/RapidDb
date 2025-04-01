@@ -7,6 +7,10 @@
 
 namespace storage {
 StmtStatus InsertStatement::SessionExec(Session *sess) {
+  // _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+  // _status = StmtStatus::Finished;
+  // return _status;
+
   if (_status == StmtStatus::Created) {
     if (InitRecord())
       return StmtStatus::Finished;

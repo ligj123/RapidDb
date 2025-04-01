@@ -312,13 +312,13 @@ void InsertProc3(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,
       if (lstResult.size() == 0) {
         break;
       } else {
-        this_thread::sleep_for(1us);
+        this_thread::yield();
         continue;
       }
     }
 
-    if (lstResult.size() > 100000) {
-      this_thread::sleep_for(1us);
+    if (lstResult.size() > 200) {
+      this_thread::yield();
       continue;
     }
 

@@ -12,6 +12,7 @@
 #include "../src/pool/FilePagePool.h"
 #include "../src/serv/Session.h"
 #include "../src/serv/SessionPool.h"
+#include "../src/sql/Parser.h"
 #include "../src/statement/StmtResult.h"
 #include "../src/table/Table.h"
 #include "../src/table/TableTaskMgr.h"
@@ -181,10 +182,22 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
   vector<StmtResult> vctStmtRes(sessNum);
   arrResult = new Byte[rowNum];
   memset(arrResult, 0, rowNum);
-
+  vector<SessionGroup> &vctGroup = SessionPool::GetVctSessionGroup();
   for (int i = 0; i < tblNum; i++) {
     MString dbName = DB_NAME + ToMString(i);
     CreateDbTable(dbName.c_str(), true, sessGroupNum);
+
+    for (SessionGroup &group : vctGroup) {
+      ParserResult result;
+      bool b = Parser::Parse(INSERT_STMT, result);
+      assert(b);
+      MVectorPtr<ExprStatement *> *vctPtr = result.GetStatements();
+      ExprStatement *exprStmt = vctPtr->at(0);
+      vctPtr->clear();
+      b = exprStmt->Preprocess(DatabaseManager::FindDb(dbName));
+      assert(b);
+      group._mapSqlExprStatement.emplace(dbName + INSERT_STMT, exprStmt);
+    }
 
     MVector<uint32_t> vct;
     vct.reserve(sessNum);
