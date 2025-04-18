@@ -35,11 +35,14 @@ public:
   static void ClearDB();
 
 protected:
-  static MStrTreeMap<Database *> _mapDb;
+  static void AddFastDB(Database *db);
+
+protected:
+  static MTreeMap<MString, Database *> _mapDb;
   static SpinMutex _spinMutex;
   // Allocate fixed spaces when program initialization and save database pointer
   // into it according db name' hash remainder if the position is nullptr.
-  static Database *_fastDbCache[];
+  static Database *_fastDbCache[][4];
   // To temporary save the dropped database.
   static vector<Database *> _discardDb;
 };

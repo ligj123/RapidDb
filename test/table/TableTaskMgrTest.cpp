@@ -242,10 +242,12 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   session->Exec();
   tmgr->CollectTaskData(0, 0);
   vctTasks[0][0]->SetStatus(TaskStatus::FINISHED, false);
+  vctTasks[0][0]->SetRemovedPool(true);
 
   IndexAdjustTask *adjustTask = new IndexAdjustTask(tpool, tmgr, 0, 5);
   adjustTask->Run();
   adjustTask->Run();
+  adjustTask->SetRemovedPool(true);
   delete adjustTask;
 
   BOOST_TEST(vctTasks[0].size() == 5);
@@ -336,11 +338,13 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   for (size_t i = 0; i < vctTasks[0].size(); i++) {
     tmgr->CollectTaskData(0, i);
     vctTasks[0][i]->SetStatus(TaskStatus::FINISHED, false);
+    vctTasks[0][i]->SetRemovedPool(true);
   }
 
   adjustTask = new IndexAdjustTask(tpool, tmgr, 0, 1);
   adjustTask->Run();
   adjustTask->Run();
+  adjustTask->SetRemovedPool(true);
   delete adjustTask;
 
   BOOST_TEST(vctTasks[0].size() == 1);
@@ -445,18 +449,21 @@ BOOST_AUTO_TEST_CASE(TableTaskMgr_test) {
   for (MVector<IndexTask *> &vctTask : vctTasks) {
     for (IndexTask *task : vctTask) {
       task->SetStatus(TaskStatus::FINISHED, false);
+      task->SetRemovedPool(true);
     }
   }
 
   vector<SessionTask *> &vctSessTask = SessionPool::GetVctSessionTask();
   for (SessionTask *task : vctSessTask) {
     task->SetStatus(TaskStatus::FINISHED, false);
+    task->SetRemovedPool(true);
   }
 
   table->CloseIndex();
   delete table;
   delete exprInsert;
 
+  LogTask::GetTask()->SetRemovedPool(true);
   CachePagePool::ClearPool();
   DatabaseManager::ClearDB();
   ThreadPool::SetThreadId(tidOld);

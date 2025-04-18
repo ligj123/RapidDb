@@ -5,60 +5,74 @@
 #include "../core/LeafPage.h"
 #include "../core/LeafRecord.h"
 #include "../dataType/DataValueBlob.h"
+#include "../dataType/DataValueVarChar.h"
 #include "../utils/Log.h"
+#include "DatabaseManager.h"
 
 namespace storage {
-const uint32_t TableManager::FAST_SIZE = 1023;
-MStrTreeMap<PhysTable *> TableManager::_mapTable;
+const uint32_t TableManager::FAST_SIZE = 255;
+MTreeMap<MString, PhysTable *> TableManager::_mapTable;
 SpinMutex TableManager::_spinMutex;
-vector<PhysTable *> TableManager::_fastTableCache(FAST_SIZE, nullptr);
+PhysTable *TableManager::_fastTableCache[FAST_SIZE][4] = {};
 vector<PhysTable *> TableManager::_discardTable;
 bool TableManager::_bAllInMemory{true};
 
 bool TableManager::InitTable(PhysTable *sysTable) {
-  if (!_bAllInMemory)
-    return true;
-
   IndexTree *ptree = sysTable->GetPrimaryKey()._tree;
-  LeafPage *lp = ptree->GetBeginPage();
+  BranchPage *bp = dynamic_cast<BranchPage *>(ptree->GetRootPage());
+  LeafPage *lp = bp->GetLeftLeafChild();
 
   while (lp != nullptr) {
     uint32_t num = lp->GetRecordNumber();
     for (uint32_t i = 0; i < num; i++) {
-      // const LeafRecord &lr = lp->GetRecord(i);
-      // VectorDataValue vdv;
-      // ReadResult rst = lr.ReadListValue({}, vdv, lp);
-      // if (rst != ReadResult::OK) {
-      //   LOG_FATAL << "Failed to read list value for table information!";
-      //   return false;
-      // }
+      LeafRecord &lr = lp->GetRecord(i);
+      VectorDataValue vdv;
+      ReadResult rst = lr.ReadListValue({}, vdv, ptree);
+      if (rst != ReadResult::OK_NOLOCK) {
+        LOG_FATAL << "Failed to read list value for table information!";
+        abort();
+        return false;
+      }
 
-      // PhysTable *tbl = new PhysTable();
-      // Byte *bys = ((DataValueBlob *)vdv[2])->GetBuff();
-      // if (!tbl->LoadData(bys)) {
-      //   delete tbl;
-      //   LOG_FATAL << "Failed to load data for table information!";
-      //   return false;
-      // }
-      // _mapTable.insert({tbl->GetFullName(), tbl});
-      // size_t hash = MStrHash{}(tbl->GetFullName());
-      // _fastTableCache[hash % FAST_SIZE] = tbl;
+      PhysTable *tbl;
+      if (_bAllInMemory) {
+        tbl = new PhysTable();
+        Byte *bys = ((DataValueBlob *)vdv[3])->GetBuff();
+        if (!tbl->LoadData(bys)) {
+          delete tbl;
+          LOG_FATAL << "Failed to load data for table information!";
+          return false;
+        }
+      } else {
+        MString dbName = (MString)(*dynamic_cast<DataValueVarChar *>(vdv[1]));
+        MString tblName = (MString)(*dynamic_cast<DataValueVarChar *>(vdv[2]));
+        Database *db = DatabaseManager::FindDb(db_name);
+        assert(db != nullptr);
+
+        tbl = new PhysTable(db, tblName, vdv[0]->GetLong(), 0, 0,
+                            ResStatus::Uninit);
+      }
+
+      _mapTable.insert({tbl->GetFullName(), tbl});
+      AddFastTable(tbl);
     }
 
-    PageID pid = lp->GetNextPageId();
-    // lp->DecRef();
-    if (pid == PAGE_NULL_POINTER)
+    lp = lp->GetNextPage();
+    if (lp == nullptr) {
       break;
+    }
 
-    lp = (LeafPage *)ptree->GetPage(pid, PageType::LEAF_PAGE);
+    while (lp->GetPageStatus() != PageStatus::VALID) {
+      this_thread::yield();
+    }
   }
 
   return true;
 }
 
-bool TableManager::AddTable(const MString &tblName, PhysTable *table) {
+bool TableManager::AddTable(PhysTable *table) {
   unique_lock<SpinMutex> lock(_spinMutex);
-  auto iter = _mapTable.find(tblName);
+  auto iter = _mapTable.find(table->GetFullName());
 
   if (iter != _mapTable.end()) {
     LOG_ERROR << "The table has exist, name = " << tblName;
@@ -148,5 +162,25 @@ void TableManager::ClearTable() {
   }
 
   _discardTable.clear();
+}
+
+void TableManager::AddFastTable(PhysTable *table) {
+  DT_MicroSec lv = UINT64_MAX;
+  size_t lvPos = 0;
+  PhysTable **pArrTbl = _fastTableCache[table->Hash() % FAST_SIZE];
+  for (int i = 0; i < 4; i++) {
+    if (pArrTbl[i] == nullptr) {
+      pArrTbl[i] = table;
+      return;
+    } else if (lv > pArrTbl[i]->GetLastVisitTime()) {
+      lvPos = i;
+      lv = pArrTbl[i]->GetLastVisitTime();
+    }
+  }
+
+  assert(lv != UINT64_MAX);
+  LOG_WARN << "Replace fast table cache " << pArrTbl[lvPos]->GetFullName()
+           << " by " << table->GetFullName();
+  pArrDb[lvPos] = db;
 }
 } // namespace storage

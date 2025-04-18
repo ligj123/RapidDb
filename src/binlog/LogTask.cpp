@@ -50,11 +50,11 @@ TaskStatus LogTask::Run() {
   SetStatus(TaskStatus::RUNNING, false);
   MList<Transaction *> lstTran;
   _queueTran->Pop(lstTran);
-  // for (Transaction *tran : lstTran) {
-  //   tran->WriteLog(this);
-  // }
+  for (Transaction *tran : lstTran) {
+    tran->WriteLog(this);
+  }
 
-  // _logStream.flush();
+  _logStream.flush();
 
   for (Transaction *tran : lstTran) {
     tran->SetLogged();

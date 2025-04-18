@@ -18,10 +18,12 @@ static string CREATE_DB_SQL = "create table rapid.schemas("
                               "update_time datetime)";
 static string CREATE_TABLE_SQL = "create table rapid.tables("
                                  "id int auto_increment(25600,256) primary key,"
-                                 "table_name varchar(50) not null unique key,"
+                                 "db_name varchar(50) not null,"
+                                 "table_name varchar(50) not null,"
                                  "table_info blob(65536),"
                                  "create_time datetime,"
-                                 "update_time datetime)";
+                                 "update_time datetime,"
+                                 "unique key db_tbl(db_name, table_name))";
 static string CREATE_VARS_SQL = "create table rapid.variables("
                                 "var_name varchar(50) primary key,"
                                 "system_var bool,"

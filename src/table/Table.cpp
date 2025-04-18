@@ -348,6 +348,8 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     }
   }
 
+  _hash = MStrHash{}(_dbName);
+  _tableStatus = ResStatus::Valid;
   return (uint32_t)(buf - bys);
 }
 

@@ -476,6 +476,7 @@ IndexPage *BranchPage::GetNextPage(IndexPage *currPage) {
       ip = _indexTree->GetPage(bp->GetRecord(0, false).GetChildPageId(),
                                currPage->GetPageType(), bp,
                                currPage->GetPageLevel() != 0);
+      bp->SetChild(0, ip);
     }
 
     return ip;
@@ -485,11 +486,20 @@ IndexPage *BranchPage::GetNextPage(IndexPage *currPage) {
   for (; iter != _vctRecord.rend(); iter++) {
     if (dynamic_cast<BranchRecord *>(*iter)->GetChildPage() == currPage) {
       iter--;
-      return dynamic_cast<BranchRecord *>(*iter)->GetChildPage();
+
+      BranchRecord *br = dynamic_cast<BranchRecord *>(*iter);
+      IndexPage *ip = br->GetChildPage();
+      if (ip == nullptr) {
+        ip = _indexTree->GetPage(br->GetChildPageId(), currPage->GetPageType(),
+                                 this, currPage->GetPageLevel() != 0);
+        br->SetChildPage(ip);
+      }
+
+      return ip;
     }
   }
 
-  assert(false);
+  abort();
   return nullptr;
 }
 
@@ -509,6 +519,7 @@ void BranchPage::FillNextPage(IndexPage *currPage, bool bAll) {
     lpNext == dynamic_cast<LeafPage *>(_indexTree->GetPage(
                   dynamic_cast<BranchRecord *>(*iter)->GetChildPageId(),
                   PageType::LEAF_PAGE, this));
+    dynamic_cast<BranchRecord *>(*iter)->SetChildPage(lpNext);
   }
 
   iter++;
@@ -519,11 +530,14 @@ void BranchPage::FillNextPage(IndexPage *currPage, bool bAll) {
       lpCurr = dynamic_cast<LeafPage *>(_indexTree->GetPage(
           dynamic_cast<BranchRecord *>(*iter)->GetChildPageId(),
           PageType::LEAF_PAGE, this));
+      dynamic_cast<BranchRecord *>(*iter)->SetChildPage(lpCurr);
     }
+
     if (lpCurr->GetNextPage() == nullptr) {
       lpCurr->SetNextPage(lpNext);
     }
 
+    assert(lpCurr->GetNextPage() == lpNext);
     if (!bAll && lpCurr == currPage) {
       break;
     }

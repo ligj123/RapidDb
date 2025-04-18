@@ -80,9 +80,10 @@ public:
 
   IndexPage *GetNextPage(IndexPage *currPage);
   /**
-   * @brief Fill _nextPage for following pages with same parent page. If this
-   * page is the last page in parent page, it will fill the next page for
-   * current page.
+   * @brief Fill _nextPage for following brother pages of currPage. If this
+   * page is the last page in this parent page, it will fill the children pages
+   * in the next page of this page.
+   * @param currPage The LeafPage that need to fill next page
    * @param bAll True: Fill all next page with same parent page
    *             False: Only fill the pages follow current pages in same parent
    *                    page.

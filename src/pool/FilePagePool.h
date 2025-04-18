@@ -37,9 +37,9 @@ public:
 #else
     page->SetPageStatus(PageStatus::WRITING);
     _pool->_writeRapidQueue.Push(tid, page, submit);
-  }
 #endif
   }
+
   static void SubmitWritePage(uint16_t tid) {
     _pool->_writeRapidQueue.Submit(tid);
   }

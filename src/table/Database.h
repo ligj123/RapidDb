@@ -13,13 +13,20 @@ public:
            DT_MilliSec dtCreate, DT_MilliSec dtLastUpdate)
       : _id(id), _dbPath(dbPath), _dbName(dbName), _dtCreate(dtCreate),
         _dtLastUpdate(dtLastUpdate) {
-    if (_dbPath.size() == 0)
+    _hash = MStrHash{}(_dbName);
+    _dtLastVisit = MilliSecTime();
+    if (_dbPath.size() == 0) {
       _dbPath = Configure::GetDbRootPath();
+    }
   }
+
   const MString GetDbPath() const { return _dbPath + "/" + _dbName; }
   const MString &GetDbName() const { return _dbName; }
   void SetResStatus(ResStatus sts) { _dbStatus = sts; }
   ResStatus GetResStatus() const { return _dbStatus; }
+  DT_MilliSec GetLastVisitTime() const { return _dtLastVisit; }
+  void SetLastVisitTime() { _dtLastVisit = MilliSecTime(); }
+  size_t Hash() const { return _hash; }
 
 public:
   static void *operator new(size_t size) {
@@ -38,13 +45,15 @@ protected:
   MString _dbName;
   // The create time for this database
   DT_MilliSec _dtCreate;
-  // The last update time this database
+  // The last update time for this database
   DT_MilliSec _dtLastUpdate;
-  // The time of this db was deleted.
-  DT_MilliSec _dtDeleted{0};
+  // The last visit time this database
+  DT_MilliSec _dtLastVisit;
   // If this database is valid and not be droped
   bool _bValid{true};
   // Database status
   ResStatus _dbStatus{ResStatus::Valid};
+  // string hash of db name
+  size_t _hash;
 };
 } // namespace storage

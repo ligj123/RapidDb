@@ -661,6 +661,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
 }
 
 LeafPage *LeafPage::GetPrevPage() {
+  abort();
   if (_prevPage != nullptr) {
     return _prevPage;
   }
@@ -681,8 +682,8 @@ LeafPage *LeafPage::GetNextPage() {
     return nullptr;
   }
 
-  _nextPage = (LeafPage *)_indexTree->GetPage(_nextPageId, PageType::LEAF_PAGE);
-  _nextPage->SetPrevPage(this);
+  assert(_parentPage != nullptr);
+  _parentPage->FillNextPage(this, false);
   return _nextPage;
 }
 

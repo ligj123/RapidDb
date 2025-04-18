@@ -73,10 +73,12 @@ TaskStatus RecordAction::Exec() {
   IndexRange &idxRange = _indexTree->GetVctRange()[_rangePos];
   if (_idxPage == nullptr) {
     if (_indexTree->GetVctRange().size() > 1) {
-      idxRange.GetTopPage(_indexTree->GetIndexType(), *_lr);
+      _idxPage = idxRange.GetTopPage(_indexTree->GetIndexType(), *_lr);
     } else {
       _idxPage = _indexTree->GetRootPage();
     }
+
+    assert(_idxPage != nullptr);
   }
   if (_idxPage->GetPageType() != PageType::LEAF_PAGE) {
     bool b = _indexTree->SearchPage(*_lr, _idxPage);

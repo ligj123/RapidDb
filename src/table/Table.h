@@ -104,11 +104,18 @@ public:
 
 public:
   PhysTable(Database *db, const MString &tableName, uint32_t tid,
-            DT_MilliSec dtCreate, DT_MilliSec dtLastUpdate)
+            DT_MilliSec dtCreate, DT_MilliSec dtLastUpdate,
+            tblStatus = ResStatus::Valid)
       : _db(db), _name(tableName),
         _fullName(_db->GetDbName() + "." + tableName), _tid(tid),
-        _dtCreate(dtCreate), _dtLastUpdate(dtLastUpdate){};
-  PhysTable() : _db(nullptr), _name(), _fullName(), _tid(0), _dtCreate(0){};
+        _dtCreate(dtCreate), _dtLastUpdate(dtLastUpdate),
+        _dtLastVisit(MilliSecTime()), _tableStatus(tblStatus) {
+    _hash = MStrHash{}(_fullName);
+  }
+
+  PhysTable()
+      : _db(nullptr), _name(), _fullName(), _tid(0), _dtCreate(0),
+        _dtLastUpdate(0), _dtLastVisit(0){};
   ~PhysTable() { Clear(); }
 
   const MString &GetTableName() const { return _name; }
@@ -211,6 +218,8 @@ public:
 
   DT_MilliSec GetCreateTime() { return _dtCreate; }
   DT_MilliSec GetLastUpdateTime() { return _dtLastUpdate; }
+  DT_MilliSec GetLastVisitTime() { return _dtLastVisit; }
+  void SetLastVisitTime() { _dtLastVisit = MilliSecTime(); }
 
   int32_t GetRefCount() { return _refCount.load(memory_order_relaxed); }
   int32_t IncRef(int32_t i = 1) {
@@ -235,6 +244,8 @@ public:
     assert(indexPos >= 0 && indexPos < _vctIndex.size());
     return _vctIndex[indexPos]._tree;
   }
+
+  size_t Hash() { return _hash; }
 
 protected:
   inline bool IsExistedColumn(MString &name) {
@@ -281,6 +292,8 @@ protected:
   Transaction *_lockTran{nullptr};
   // The mutex for table lock
   SpinMutex _spinMutex;
+
+  size_t _hash{0};
 
   TableTaskMgr *_tableTaskMgr{nullptr};
 };

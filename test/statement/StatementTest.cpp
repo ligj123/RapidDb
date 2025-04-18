@@ -631,16 +631,21 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
   TableTaskMgr::_dtLastWriteDisk += 10000;
   vctTasks[0][0]->Run();
   vctTasks[0][0]->SetStatus(TaskStatus::FINISHED, false);
+  vctTasks[0][0]->SetRemovedPool(true);
   vctTasks[1][0]->Run();
   vctTasks[1][0]->SetStatus(TaskStatus::FINISHED, false);
+  vctTasks[1][0]->SetRemovedPool(true);
   vctTasks[2][0]->Run();
   vctTasks[2][0]->SetStatus(TaskStatus::FINISHED, false);
+  vctTasks[2][0]->SetRemovedPool(true);
 
   vector<SessionTask *> &vctSessTask = SessionPool::GetVctSessionTask();
   for (SessionTask *task : vctSessTask) {
     task->SetStatus(TaskStatus::FINISHED, false);
+    task->SetRemovedPool(true);
   }
 
+  logTask->SetRemovedPool(true);
   stmtResult.Reset();
   table->CloseIndex();
   TableManager::ClearTable();
@@ -972,16 +977,21 @@ BOOST_AUTO_TEST_CASE(Statement_Range_test) {
   TableTaskMgr::_dtLastWriteDisk += 10000;
   vctTasks[0][0]->Run();
   vctTasks[0][0]->SetStatus(TaskStatus::FINISHED, false);
+  vctTasks[0][0]->SetRemovedPool(true);
   vctTasks[1][0]->Run();
   vctTasks[1][0]->SetStatus(TaskStatus::FINISHED, false);
+  vctTasks[1][0]->SetRemovedPool(true);
   vctTasks[2][0]->Run();
   vctTasks[2][0]->SetStatus(TaskStatus::FINISHED, false);
+  vctTasks[2][0]->SetRemovedPool(true);
 
   vector<SessionTask *> &vctSessTask = SessionPool::GetVctSessionTask();
   for (SessionTask *task : vctSessTask) {
     task->SetStatus(TaskStatus::FINISHED, false);
+    task->SetRemovedPool(true);
   }
 
+  logTask->SetRemovedPool(true);
   stmtResult.Reset();
   table->CloseIndex();
   TableManager::ClearTable();

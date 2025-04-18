@@ -16,8 +16,8 @@ enum class ResStatus : uint8_t {
   Valid,     // This resource is in working status and can supply service
   Obsolete,  // This resource is obsolete and will be free in following time. It
              // can not offer service again.
-  Invalid // The resource is invalid and need to fix. In this period, it can not
-          // supply service.
+  Invalid // The resource is invalid and need to fix. The function of fix will
+          // be realized in future.
 };
 
 inline std::ostream &operator<<(std::ostream &os, const ResStatus status) {

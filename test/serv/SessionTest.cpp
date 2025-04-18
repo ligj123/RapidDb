@@ -56,7 +56,9 @@ BOOST_AUTO_TEST_CASE(SessionBasic_test) {
 
   for (SessionTask *task : vctTask) {
     task->SetStatus(TaskStatus::FINISHED, false);
+    task->SetRemovedPool(true);
   }
+
   for (SessionGroup &sg : vctSessGroup) {
     for (auto iter = sg._mapSession.begin(); iter != sg._mapSession.end();
          iter++) {
