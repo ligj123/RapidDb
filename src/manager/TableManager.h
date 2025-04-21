@@ -11,13 +11,14 @@ public:
 public:
   static bool InitTable(PhysTable *sysTable);
   static bool AddTable(PhysTable *table);
-  static bool RemoveTable(const MString &tblName);
-  static bool FindTable(const MString &tblName, PhysTable *&tbl);
+  static bool RemoveTable(const MString &tblFullName);
+  static bool FindTable(const MString &tblFullName, PhysTable *&tbl);
   static bool ListTables(const MString &dbName, MVector<MString> &vctTbl);
   static void ClearTable();
 
 protected:
   static void AddFastTable(PhysTable *table);
+  static void LoadTable(PhysTable *table);
 
 protected:
   static MTreeMap<MString, PhysTable *> _mapTable;

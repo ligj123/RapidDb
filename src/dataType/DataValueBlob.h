@@ -93,10 +93,10 @@ public:
   bool PutValue(std::any val) override;
   bool Copy(IDataValue &dv, bool bMove = true) override;
   uint32_t WriteData(Byte *buf, SavePosition dtPos) const override;
-  uint32_t ReadData(Byte *buf, uint32_t len, SavePosition dtPos,
+  uint32_t ReadData(const Byte *buf, uint32_t len, SavePosition dtPos,
                     bool bSole = false) override;
   uint32_t WriteData(Byte *buf) const override;
-  uint32_t ReadData(Byte *buf) override;
+  uint32_t ReadData(const Byte *buf) override;
 
   void SetMinValue() override;
   void SetMaxValue() override;

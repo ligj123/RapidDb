@@ -176,8 +176,8 @@ uint32_t DataValueFixChar::WriteData(Byte *buf, SavePosition svPos) const {
   }
 }
 
-uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
-                                    bool bSole) {
+uint32_t DataValueFixChar::ReadData(const Byte *buf, uint32_t len,
+                                    SavePosition svPos, bool bSole) {
   assert(len == 0 || len == maxLength_);
   if (svPos == SavePosition::KEY) {
     assert(len > 0);
@@ -192,7 +192,7 @@ uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
         CachePool::Release(bysValue_, maxLength_);
       }
       valType_ = ValueType::BYTES_VALUE;
-      bysValue_ = buf;
+      bysValue_ = const_cast<Byte *>(buf);
     }
     return maxLength_;
   } else {
@@ -213,7 +213,7 @@ uint32_t DataValueFixChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
       if (valType_ == ValueType::SOLE_VALUE)
         CachePool::Release(bysValue_, maxLength_);
       valType_ = ValueType::BYTES_VALUE;
-      bysValue_ = buf;
+      bysValue_ = const_cast<Byte *>(buf);
     }
 
     return maxLength_;
@@ -232,7 +232,7 @@ uint32_t DataValueFixChar::WriteData(Byte *buf) const {
   }
 }
 
-uint32_t DataValueFixChar::ReadData(Byte *buf) {
+uint32_t DataValueFixChar::ReadData(const Byte *buf) {
   if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, maxLength_);
   }

@@ -127,7 +127,7 @@ public:
 template <> class Case_F<DataType::BOOL> {
 public:
   static inline auto Run() {
-    return [](Byte *pArr, bool bKey) { return *pArr; };
+    return [](const Byte *pArr, bool bKey) { return *pArr; };
   }
 };
 
@@ -147,7 +147,7 @@ public:
 };
 
 template <class T, DataType DT>
-inline T DigitalFromBytes(Byte *pArr, bool bkey = false) {
+inline T DigitalFromBytes(const Byte *pArr, bool bkey = false) {
   auto f = Case_F<DT>::Run();
   return f(pArr, bkey);
 }

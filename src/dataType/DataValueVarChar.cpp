@@ -195,8 +195,8 @@ uint32_t DataValueVarChar::WriteData(Byte *buf, SavePosition svPos) const {
   }
 }
 
-uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
-                                    bool bSole) {
+uint32_t DataValueVarChar::ReadData(const Byte *buf, uint32_t len,
+                                    SavePosition svPos, bool bSole) {
   if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, soleLength_);
   }
@@ -210,7 +210,7 @@ uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
       BytesCopy(bysValue_, buf, len);
     } else {
       valType_ = ValueType::BYTES_VALUE;
-      bysValue_ = buf;
+      bysValue_ = const_cast<Byte *>(buf);
     }
 
     return len;
@@ -228,7 +228,7 @@ uint32_t DataValueVarChar::ReadData(Byte *buf, uint32_t len, SavePosition svPos,
       BytesCopy(bysValue_, buf, soleLength_);
       valType_ = ValueType::SOLE_VALUE;
     } else {
-      bysValue_ = buf;
+      bysValue_ = const_cast<Byte *>(buf);
       valType_ = ValueType::BYTES_VALUE;
     }
     return soleLength_;
@@ -247,7 +247,7 @@ uint32_t DataValueVarChar::WriteData(Byte *buf) const {
   }
 }
 
-uint32_t DataValueVarChar::ReadData(Byte *buf) {
+uint32_t DataValueVarChar::ReadData(const Byte *buf) {
   if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, soleLength_);
   }

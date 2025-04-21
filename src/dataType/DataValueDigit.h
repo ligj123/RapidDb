@@ -138,7 +138,7 @@ public:
       }
     }
   }
-  uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
+  uint32_t ReadData(const Byte *buf, uint32_t len, SavePosition svPos,
                     bool bSole = true) override {
     assert(svPos != SavePosition::UNKNOWN);
     if (svPos == SavePosition::KEY) {
@@ -164,7 +164,7 @@ public:
       return sizeof(T) + 1;
     }
   }
-  uint32_t ReadData(Byte *buf) override {
+  uint32_t ReadData(const Byte *buf) override {
     valType_ =
         ((buf[0] & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
     if (valType_ == ValueType::NULL_VALUE)

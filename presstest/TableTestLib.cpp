@@ -158,8 +158,7 @@ void CreateDbTable(const string &dbName, bool bExclusive, int sessionGroup) {
   TableTaskMgr *tmgr = new TableTaskMgr(ThreadPool::GetMainPool(), ptable,
                                         sessionGroup, bExclusive);
   ptable->SetTableTaskMgr(tmgr);
-  string fullName = dbName + "." + TBL_NAME;
-  TableManager::AddTable(fullName.c_str(), ptable);
+  TableManager::AddTable(ptable);
 }
 
 void InsertProc1(uint16_t tid, const MVector<uint32_t> &vctSessId, int recStart,

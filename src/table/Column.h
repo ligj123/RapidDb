@@ -66,7 +66,7 @@ public:
   const IDataValue *GetDefaultVal() const { return _pDefaultVal; }
   const MString &GetComments() const { return _comments; }
 
-  uint32_t ReadData(Byte *pBuf);
+  uint32_t ReadData(const Byte *pBuf);
   uint32_t WriteData(Byte *pBuf);
   /**
    * @brief To calucate the length of byte arrray to save this column

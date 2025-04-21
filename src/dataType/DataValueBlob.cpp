@@ -137,8 +137,8 @@ uint32_t DataValueBlob::WriteData(Byte *buf, SavePosition dtPos) const {
   }
 }
 
-uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len, SavePosition dtPos,
-                                 bool bSole) {
+uint32_t DataValueBlob::ReadData(const Byte *buf, uint32_t len,
+                                 SavePosition dtPos, bool bSole) {
   assert(dtPos == SavePosition::VALUE);
   if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, soleLength_);
@@ -160,7 +160,7 @@ uint32_t DataValueBlob::ReadData(Byte *buf, uint32_t len, SavePosition dtPos,
     valType_ = ValueType::SOLE_VALUE;
   } else {
     valType_ = ValueType::BYTES_VALUE;
-    bysValue_ = buf;
+    bysValue_ = const_cast<Byte *>(buf);
   }
 
   return soleLength_;
@@ -178,7 +178,7 @@ uint32_t DataValueBlob::WriteData(Byte *buf) const {
   }
 }
 
-uint32_t DataValueBlob::ReadData(Byte *buf) {
+uint32_t DataValueBlob::ReadData(const Byte *buf) {
   if (valType_ == ValueType::SOLE_VALUE) {
     CachePool::Release(bysValue_, soleLength_);
   }

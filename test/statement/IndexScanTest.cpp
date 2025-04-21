@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(IndexScan_test) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
   PhysTable *ptable = CreateTestTable(db, TABLE_NAME);
-  TableManager::AddTable(DB_NAME + "." + TABLE_NAME, ptable);
+  TableManager::AddTable(ptable);
 
   ExprDelete exprDel;
   exprDel._exprTable =

@@ -223,7 +223,7 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
   PhysTable *table = CreateTable(db, TABLE_NAME);
-  TableManager::AddTable(DB_NAME + "." + TABLE_NAME, table);
+  TableManager::AddTable(table);
 
   ThreadPool *tpool = ThreadPool::CreateMainPool("test", 1, 1);
   tpool->SetStop();
@@ -668,7 +668,7 @@ BOOST_AUTO_TEST_CASE(Statement_Range_test) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
   PhysTable *table = CreateTable(db, TABLE_NAME);
-  TableManager::AddTable(DB_NAME + "." + TABLE_NAME, table);
+  TableManager::AddTable(table);
 
   ThreadPool *tpool = ThreadPool::CreateMainPool("test", 1, 8);
   tpool->SetStop();

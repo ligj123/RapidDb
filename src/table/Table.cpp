@@ -47,10 +47,10 @@ uint32_t IndexProp::Write(Byte *bys) {
   return (uint32_t)(tmp - bys);
 }
 
-uint32_t IndexProp::Read(Byte *bys, uint32_t pos,
+uint32_t IndexProp::Read(const Byte *bys, uint32_t pos,
                          const MStrHashMap<uint32_t> &mapColumnPos) {
   _position = pos;
-  Byte *tmp = bys;
+  const Byte *tmp = bys;
   uint16_t sz = *(uint16_t *)bys;
   bys += UI16_LEN;
   _name = MString((char *)bys, sz);
@@ -276,8 +276,8 @@ uint32_t PhysTable::SaveData(Byte *bys) {
   return sz;
 }
 
-uint32_t PhysTable::LoadData(Byte *bys) {
-  Byte *buf = bys;
+uint32_t PhysTable::LoadData(const Byte *bys) {
+  const Byte *buf = bys;
   uint32_t sz = *(uint32_t *)buf;
   buf += UI32_LEN;
 
@@ -348,7 +348,7 @@ uint32_t PhysTable::LoadData(Byte *bys) {
     }
   }
 
-  _hash = MStrHash{}(_dbName);
+  _hash = MStrHash{}(_fullName);
   _tableStatus = ResStatus::Valid;
   return (uint32_t)(buf - bys);
 }

@@ -60,13 +60,13 @@ uint32_t PhysColumn::WriteData(Byte *pBuf) {
   return (int32_t)(p - pBuf);
 }
 
-uint32_t PhysColumn::ReadData(Byte *pBuf) {
+uint32_t PhysColumn::ReadData(const Byte *pBuf) {
   if (_pDefaultVal != nullptr) {
     _pDefaultVal->DecRef();
     _pDefaultVal = nullptr;
   }
 
-  Byte *p = pBuf;
+  const Byte *p = pBuf;
   uint16_t len = *((uint16_t *)p);
   p += UI16_LEN;
   _name = MString((char *)p, len);

@@ -61,7 +61,7 @@ struct IndexProp {
   }
 
   uint32_t Write(Byte *bys);
-  uint32_t Read(Byte *bys, uint32_t pos,
+  uint32_t Read(const Byte *bys, uint32_t pos,
                 const MStrHashMap<uint32_t> &mapColumnPos);
   /** @brief To calculate the length to save this index
    * 1) 2 + n bytes: index name length + contents
@@ -105,7 +105,7 @@ public:
 public:
   PhysTable(Database *db, const MString &tableName, uint32_t tid,
             DT_MilliSec dtCreate, DT_MilliSec dtLastUpdate,
-            tblStatus = ResStatus::Valid)
+            ResStatus tblStatus = ResStatus::Valid)
       : _db(db), _name(tableName),
         _fullName(_db->GetDbName() + "." + tableName), _tid(tid),
         _dtCreate(dtCreate), _dtLastUpdate(dtLastUpdate),
@@ -169,7 +169,7 @@ public:
    * @return The length of byte array to load, If error, return UINT32_MAX, the
    * detail information saved in _threadErrorMsg.
    */
-  uint32_t LoadData(Byte *bys);
+  uint32_t LoadData(const Byte *bys);
   /**
    * @brief Save this table information into the byte array.
    * @param bys The byte array used to save the table information.

@@ -23,7 +23,7 @@
 #endif // BIGENDIAN
 
 namespace storage {
-inline int64_t Int64FromBytes(Byte *pArr, bool bkey = false) {
+inline int64_t Int64FromBytes(const Byte *pArr, bool bkey = false) {
   int64_t val = 0;
 #ifdef BIGENDIAN
   val = *((int64_t *)pArr);
@@ -56,7 +56,7 @@ inline void Int64ToBytes(int64_t val, Byte *pArr, bool bkey = false) {
 #endif
 }
 
-inline uint64_t UInt64FromBytes(Byte *pArr, bool bkey = false) {
+inline uint64_t UInt64FromBytes(const Byte *pArr, bool bkey = false) {
   uint64_t val = 0;
 #ifdef BIGENDIAN
   val = *((uint64_t *)pArr);
@@ -82,7 +82,7 @@ inline void UInt64ToBytes(uint64_t val, Byte *pArr, bool bkey = false) {
 #endif
 }
 
-inline int32_t Int32FromBytes(Byte *pArr, bool bkey = false) {
+inline int32_t Int32FromBytes(const Byte *pArr, bool bkey = false) {
   int32_t val = 0;
 #ifdef BIGENDIAN
   val = *((int32_t *)pArr);
@@ -115,7 +115,7 @@ inline void Int32ToBytes(int32_t val, Byte *pArr, bool bkey = false) {
 #endif
 }
 
-inline uint32_t UInt32FromBytes(Byte *pArr, bool bkey = false) {
+inline uint32_t UInt32FromBytes(const Byte *pArr, bool bkey = false) {
   uint32_t val = 0;
 #ifdef BIGENDIAN
   val = *((uint32_t *)pArr);
@@ -141,7 +141,7 @@ inline void UInt32ToBytes(uint32_t val, Byte *pArr, bool bkey = false) {
 #endif
 }
 
-inline int16_t Int16FromBytes(Byte *pArr, bool bkey = false) {
+inline int16_t Int16FromBytes(const Byte *pArr, bool bkey = false) {
   int16_t val = 0;
 #ifdef BIGENDIAN
   val = *((int16_t *)pArr);
@@ -173,7 +173,7 @@ inline void Int16ToBytes(int16_t val, Byte *pArr, bool bkey = false) {
 #endif
 }
 
-inline uint16_t UInt16FromBytes(Byte *pArr, bool bkey = false) {
+inline uint16_t UInt16FromBytes(const Byte *pArr, bool bkey = false) {
   uint16_t val = 0;
 #ifdef BIGENDIAN
   val = *((uint16_t *)pArr);
@@ -199,7 +199,7 @@ inline void UInt16ToBytes(uint16_t val, Byte *pArr, bool bkey = false) {
 #endif
 }
 
-inline int8_t Int8FromBytes(Byte *pArr, bool bkey = false) {
+inline int8_t Int8FromBytes(const Byte *pArr, bool bkey = false) {
   int8_t val = *pArr;
   if (bkey)
     val ^= 0x80;
@@ -212,13 +212,15 @@ inline void Int8ToBytes(int8_t val, Byte *pArr, bool bkey = false) {
   pArr[0] = val;
 }
 
-inline uint8_t UInt8FromBytes(Byte *pArr, bool bkey = false) { return *pArr; }
+inline uint8_t UInt8FromBytes(const Byte *pArr, bool bkey = false) {
+  return *pArr;
+}
 
 inline void UInt8ToBytes(uint8_t val, Byte *pArr, bool bkey = false) {
   *pArr = val;
 }
 
-inline double DoubleFromBytes(Byte *pArr, bool bkey = false) {
+inline double DoubleFromBytes(const Byte *pArr, bool bkey = false) {
   uint64_t val = 0;
 #ifdef BIGENDIAN
   val = *((uint64_t *)pArr);
@@ -270,7 +272,7 @@ inline void DoubleToBytes(double dval, Byte *pArr, bool bkey = false) {
 #endif
 }
 
-inline float FloatFromBytes(Byte *pArr, bool bkey = false) {
+inline float FloatFromBytes(const Byte *pArr, bool bkey = false) {
   uint32_t val = 0;
 #ifdef BIGENDIAN
   val = *((uint32_t *)pArr);

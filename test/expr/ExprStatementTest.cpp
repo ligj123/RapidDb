@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(ExprInsert_test) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
   PhysTable *table = CreateTable(*db, "testTable");
-  TableManager::AddTable("testDb.testTable", table);
+  TableManager::AddTable(table);
 
   ExprTable *exprTable =
       new ExprTable(new MString("testDb"), new MString("testTable"));
@@ -265,7 +265,7 @@ BOOST_AUTO_TEST_CASE(ExprUpdate_test) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
   PhysTable *table = CreateTable(*db, "testTable");
-  TableManager::AddTable("testDb.testTable", table);
+  TableManager::AddTable(table);
 
   ExprTable *exprTable =
       new ExprTable(new MString("testDb"), new MString("testTable"));
@@ -333,7 +333,7 @@ BOOST_AUTO_TEST_CASE(ExprDelete_test) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
   PhysTable *table = CreateTable(*db, "testTable");
-  TableManager::AddTable("testDb.testTable", table);
+  TableManager::AddTable(table);
 
   ExprTable *exprTable =
       new ExprTable(new MString("testDb"), new MString("testTable"));
@@ -376,7 +376,7 @@ BOOST_AUTO_TEST_CASE(ExprSelect_test) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
   PhysTable *table = CreateTable(*db, "testTable");
-  TableManager::AddTable("testDb.testTable", table);
+  TableManager::AddTable(table);
 
   ExprTable *exprTable =
       new ExprTable(new MString("testDb"), new MString("testTable"));

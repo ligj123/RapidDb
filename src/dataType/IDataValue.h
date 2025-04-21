@@ -112,14 +112,14 @@ public:
   virtual uint32_t WriteData(Byte *buf, SavePosition svPos) const = 0;
   // if bSole == true, the value will copy to new buffer for Array data type.
   // else, it will read as BYTES_VALUE value type for array data type.
-  virtual uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
+  virtual uint32_t ReadData(const Byte *buf, uint32_t len, SavePosition svPos,
                             bool bSole = true) = 0;
   // Only support to save over length fileds to overflow page. So savePos_
   // can only be VALUE.
   virtual uint32_t WriteData(Byte *buf) const = 0;
   // Only support to load over length fileds from overflow page. So savePos_ can
   // only be VALUE.
-  virtual uint32_t ReadData(Byte *buf) = 0;
+  virtual uint32_t ReadData(const Byte *buf) = 0;
   /**The memory size to save data*/
   virtual uint32_t GetDataLength() const = 0;
   /**The max memory size that can bu used to save this data*/

@@ -26,12 +26,12 @@ public:
   bool PutValue(std::any val) override { return true; };
   void SetNull() override {};
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override { return 0; }
-  uint32_t ReadData(Byte *buf, uint32_t len, SavePosition svPos,
+  uint32_t ReadData(const Byte *buf, uint32_t len, SavePosition svPos,
                     bool bSole = true) override {
     return 0;
   }
   uint32_t WriteData(Byte *buf) const override { return 0; }
-  uint32_t ReadData(Byte *buf) override { return 0; }
+  uint32_t ReadData(const Byte *buf) override { return 0; }
   uint32_t GetDataLength() const override { return 0; }
   uint32_t GetMaxLength() const override { return 0; }
   uint32_t GetPersistenceLength(SavePosition dtPos) const override { return 0; }
