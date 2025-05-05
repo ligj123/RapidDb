@@ -111,6 +111,7 @@ bool InsertStatement::InitRecord() {
   PhysTable *table = exprInst->_exprTable->_physTable;
   TableTaskMgr *mgr = table->GetTableTaskMgr();
   IndexProp &priIndex = table->GetVectorIndex()[0];
+  const MVector<PhysColumn> &vctCol = table->GetColumnArray();
 
   if (_vctParas.size() == 0) {
     _vctParas.emplace_back();
@@ -151,6 +152,34 @@ bool InsertStatement::InitRecord() {
         SetStmtFailed(true);
         _status = StmtStatus::Executed;
         return true;
+      }
+
+      for (size_t i = 0; i < vctCol.size(); i++) {
+        assert(vctVal[i] != nullptr &&
+               vctVal[i]->GetDataType() == vctCol[i].GetDataType());
+        if (vctCol[i].GetInitVal() >= 0) {
+          if (vctVal[i] != nullptr) {
+            vctVal[i]->DecRef();
+          }
+
+          vctVal[i] = DataValueFactory(vctCol[i].GetDataType());
+          vctVal[i]->SetMaxValue();
+        } else if (vctVal[i]->IsNull()) {
+          if (vctCol[i].GetDefaultVal() != nullptr) {
+            vctVal[i]->DecRef();
+            IDataValue *idv = vctCol[i].GetDefaultVal();
+            assert(idv->GetDataType() == vctCol[i].GetDataType() &&
+                   idv->GetRef() == UINT16_MAX);
+            vctVal[i] = idv;
+          } else if (!vctCol[i].IsNullable()) {
+            _threadErrorMsg.reset(
+                new ErrorMsg(TB_COLUMN_UNNULLABLE, {vctCol[i].GetName()}));
+            _stmtResult->_vctError.push_back(
+                move(_threadErrorMsg->GetErrorMsg()));
+            SetStmtFailed(true);
+            return true;
+          }
+        }
       }
 
       VectorDataValue vctKey;

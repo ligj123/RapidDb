@@ -159,6 +159,7 @@ public:
   JoinType _joinType{JoinType::JOIN_NULL};
   // The physical table will insert into. Filled when preprocess
   PhysTable *_physTable{nullptr};
+  Database *_db{nullptr}; // The database that hte table belong to
 };
 
 /**

@@ -64,25 +64,25 @@
 #define YYPULL 1
 
 /* Substitute the type names.  */
-#define YYSTYPE DB_STYPE
-#define YYLTYPE DB_LTYPE
+#define YYSTYPE         DB_STYPE
+#define YYLTYPE         DB_LTYPE
 /* Substitute the variable and function names.  */
-#define yyparse db_parse
-#define yylex db_lex
-#define yyerror db_error
-#define yydebug db_debug
-#define yynerrs db_nerrs
+#define yyparse         db_parse
+#define yylex           db_lex
+#define yyerror         db_error
+#define yydebug         db_debug
+#define yynerrs         db_nerrs
 
 /* First part of user prologue.  */
 #line 2 "sql_parser.y"
 
-// clang-format on
-/**
+  // clang-format on
+  /**
  * sql_parser.y
  * defines sql_parser.h
  * outputs sql_parser.cpp
  */
-/*********************************
+  /*********************************
  ** Section 1: C Declarations
  *********************************/
 
@@ -92,13 +92,12 @@
 #include <stdio.h>
 #include <string.h>
 
-int yyerror(YYLTYPE *llocp, ParserResult *result, yyscan_t scanner,
-            const char *msg) {
-  result->SetIsValid(false);
-  result->SetErrorDetails(msg, llocp->first_line, llocp->first_column);
-  return 0;
-}
-// clang-format off
+  int yyerror(YYLTYPE * llocp, ParserResult * result, yyscan_t scanner, const char* msg) {
+    result->SetIsValid(false);
+    result->SetErrorDetails(msg, llocp->first_line, llocp->first_column);
+    return 0;
+  }
+  // clang-format off
 
 #line 103 "sql_parser.cpp"
 
@@ -3448,8 +3447,8 @@ yyreduce:
                                 {
   (yyval.auto_increment) = new AutoIncrement;
   (yyval.auto_increment)->_autoInc = true;
-  (yyval.auto_increment)->_initVal = -1;
-  (yyval.auto_increment)->_incStep = -1;
+  (yyval.auto_increment)->_initVal = 1;
+  (yyval.auto_increment)->_incStep = 1;
 }
 #line 3454 "sql_parser.cpp"
     break;
@@ -3470,8 +3469,8 @@ yyreduce:
                {
   (yyval.auto_increment) = new AutoIncrement;
   (yyval.auto_increment)->_autoInc = false;
-  (yyval.auto_increment)->_initVal = -1;
-  (yyval.auto_increment)->_incStep = -1;  
+  (yyval.auto_increment)->_initVal = 1;
+  (yyval.auto_increment)->_incStep = 1;  
 }
 #line 3476 "sql_parser.cpp"
     break;
@@ -4368,7 +4367,7 @@ yyreturnlab:
     }
 #ifndef yyoverflow
   if (yyss != yyssa)
-    ;//YYSTACK_FREE (yyss);
+    YYSTACK_FREE (yyss);
 #endif
   if (yymsg != yymsgbuf)
     YYSTACK_FREE (yymsg);
@@ -4377,9 +4376,9 @@ yyreturnlab:
 
 #line 897 "sql_parser.y"
 
-// clang-format on
-/*********************************
+    // clang-format on
+    /*********************************
  ** Section 4: Additional C code
  *********************************/
 
-/* empty */
+    /* empty */

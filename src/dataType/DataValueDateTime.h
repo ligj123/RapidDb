@@ -6,7 +6,8 @@ namespace storage {
  * @brief DataTime will be saved as unsigned long int, the unit is millisecond.
  * In future will add the code to support load from string and output to string.
  */
-class DataValueDateTime : public DataValueDigit<uint64_t, DataType::DATETIME> {
+class DataValueDateTime
+    : public DataValueDigit<DT_MicroSec, DataType::DATETIME> {
 public:
   DataValueDateTime() : DataValueDigit() {}
   DataValueDateTime(uint64_t millSec /*The milliseconds since epoch*/)

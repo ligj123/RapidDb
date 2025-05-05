@@ -37,8 +37,19 @@ public:
 
 class ExprShowDatabases : public ExprStatement {
 public:
+  ExprShowDatabases() {
+    ExprColumn *col = new ExprColumn(new MString("Database"), nullptr, nullptr);
+    col->_pos = 0;
+    col->_dataLength = 50;
+    col->_dataType = DataType::VARCHAR;
+    _vctCol.push_back(col);
+  }
+
   ExprType GetType() override { return ExprType::EXPR_SHOW_DATABASES; }
   bool Preprocess(Database *currDb) override { return true; }
+
+public:
+  MVectorPtr<ExprColumn *> _vctCol;
 };
 
 class ExprUseDatabase : public ExprStatement {
@@ -123,6 +134,7 @@ public:
   ~ExprCreateTable() {
     delete _table;
     delete _vctItem;
+    delete _physTable;
   }
   ExprType GetType() override { return ExprType::EXPR_CREATE_TABLE; }
 
@@ -136,6 +148,8 @@ public:
   MVectorPtr<ExprColumnItem *> _vctColumn;
   // Split from _vctElem when preprocess
   MVectorPtr<ExprTableIndex *> _vctIndex;
+
+  PhysTable *_physTable{nullptr};
 };
 
 class ExprDropTable : public ExprStatement {
@@ -158,7 +172,7 @@ public:
 
 public:
   ExprType GetType() override { return ExprType::EXPR_SHOW_TABLES; }
-  bool Preprocess(Database *currDb = nullptr) override;
+  bool Preprocess(Database *currDb = nullptr) override { return true; }
 
 public:
   MString *_dbName;
@@ -179,28 +193,10 @@ class ExprTransaction : public ExprStatement {
 public:
   ExprTransaction(TranAction tranAction) : _tranAction(tranAction) {}
   ExprType GetType() override { return ExprType::EXPR_TRANSACTION; }
-  bool Preprocess(Database *currDb = nullptr) override;
+  bool Preprocess(Database *currDb = nullptr) override { return true; }
 
 public:
   TranAction _tranAction;
 };
 
-// enum class AlterAction : int8_t {
-//   ADD = 0,
-//   CHANGE,
-//   ALTER,
-//   MODIFY,
-//   DROP,
-//   RENAME
-// };
-// class ExprAlterTable : public ExprStatement {
-// public:
-//   bool Preprocess()override {
-//     // TO DO
-//     return false;
-//   }
-
-// public:
-//   AlterAction _action;
-// };
 } // namespace storage

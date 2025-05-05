@@ -17,13 +17,17 @@ void Session::Exec() {
       return;
     }
 
+    TranStatus ts = _transaction.GetTranStatus();
+    assert(ts != TranStatus::AUTO_TRAN);
     _currStatement = _lstWaittingStmt.front();
-    _lstWaittingStmt.pop_front();
+    if (_currStatement->IsSoleTran() && ts == TranStatus::IN_TRAN) {
+      // TO DO
+      // Commit or rollback previous statements
+      abort();
+      return;
+    }
 
-    // _currStatement->GetStmtResult()->SetResultStatus(ResultStatus::FINISHED);
-    // delete _currStatement;
-    // _currStatement = nullptr;
-    // return;
+    _lstWaittingStmt.pop_front();
 
     if (_currStatement->GetType() == ExprType::EXPR_TRANSACTION) {
       StmtStatus s = _currStatement->SessionExec(this);
@@ -35,7 +39,6 @@ void Session::Exec() {
       return;
     }
 
-    TranStatus ts = _transaction.GetTranStatus();
     if (ts == TranStatus::FINISHED || ts == TranStatus::INIT) {
       _transaction.StartTransaction(_bAutoCommit);
     }

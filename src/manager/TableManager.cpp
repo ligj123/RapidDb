@@ -39,8 +39,10 @@ bool TableManager::InitTable(PhysTable *sysTable) {
 
       PhysTable *tbl;
       if (_bAllInMemory) {
-        tbl = new PhysTable();
-        const Byte *bys = dynamic_cast<DataValueBlob *>(vdv[3])->GetBuff();
+        tbl =
+            new PhysTable((int)(*dynamic_cast<DataValueInt *>(vdv[0])),
+                          (MString)(*dynamic_cast<DataValueVarChar *>(vdv[3])));
+        const Byte *bys = dynamic_cast<DataValueBlob *>(vdv[4])->GetBuff();
         if (!tbl->LoadData(bys)) {
           delete tbl;
           LOG_FATAL << "Failed to load data for table information!";
@@ -53,12 +55,14 @@ bool TableManager::InitTable(PhysTable *sysTable) {
         tbl->SetTableTaskMgr(tmgr);
 
       } else {
+        uint32_t tid = (uint32_t)(*dynamic_cast<DataValueInt *>(vdv[0]));
         MString dbName = (MString)(*dynamic_cast<DataValueVarChar *>(vdv[1]));
         MString tblName = (MString)(*dynamic_cast<DataValueVarChar *>(vdv[2]));
+        MString folder = (MString)(*dynamic_cast<DataValueVarChar *>(vdv[3]));
         Database *db = DatabaseManager::FindDb(dbName);
         assert(db != nullptr);
 
-        tbl = new PhysTable(db, tblName, vdv[0]->GetLong(), 0, 0,
+        tbl = new PhysTable(db, tblName, vdv[0]->GetLong(), folder, 0, 0,
                             ResStatus::Uninit);
       }
 

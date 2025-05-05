@@ -11,8 +11,8 @@ namespace storage {
 const uint16_t LeafPage::PREV_PAGE_POINTER_OFFSET = 12;
 const uint16_t LeafPage::NEXT_PAGE_POINTER_OFFSET = 16;
 const uint16_t LeafPage::DATA_BEGIN_OFFSET = 20;
-const uint16_t IndexPage::MAX_DATA_LENGTH_LEAF =
-    (uint16_t)(Configure::GetIndexPageSize() - LeafPage::DATA_BEGIN_OFFSET -
+const uint32_t IndexPage::MAX_DATA_LENGTH_LEAF =
+    (uint32_t)(Configure::GetIndexPageSize() - LeafPage::DATA_BEGIN_OFFSET -
                UI32_LEN);
 
 LeafPage::~LeafPage() { ClearRecords(); }
@@ -200,9 +200,10 @@ void LeafPage::DeleteRecord(LeafRecord *lr, int32_t pos) {
   lock->_recResult.store(RecordResult::IN_PAGE, memory_order_release);
 }
 
-bool LeafPage::AddRecord(LeafRecord *lr) {
-  if (_committedDataLength + lr->GetTotalLength() + UI16_LEN >
-      (uint32_t)MAX_DATA_LENGTH_LEAF) {
+bool LeafPage::AppendRecord(LeafRecord *lr, bool bFullPage) {
+  uint32_t maxLen = bFullPage ? MAX_DATA_LENGTH_LEAF
+                              : MAX_DATA_LENGTH_LEAF * LOAD_FACTOR / 100;
+  if (_committedDataLength + lr->GetTotalLength() + UI16_LEN > maxLen) {
     return false;
   }
 

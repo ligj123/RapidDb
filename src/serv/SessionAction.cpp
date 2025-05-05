@@ -8,6 +8,7 @@
 #include "../expr/ExprStatement.h"
 #include "../manager/DatabaseManager.h"
 #include "../sql/Parser.h"
+#include "../statement/DdlStatement.h"
 #include "../statement/DeleteStatement.h"
 #include "../statement/InsertStatement.h"
 #include "../statement/StmtResult.h"
@@ -162,6 +163,11 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
     }
     break;
   }
+  case ExprType::EXPR_CREATE_DATABASE:
+    stmt = new StmtCreateDatabase(_stmtId, TXID_NULL,
+                                  dynamic_cast<ExprCreateDatabase *>(exprStmt),
+                                  _stmtResult);
+    break;
   default:
     LOG_FATAL << "Unsupport ExprType " << exprStmt->GetType();
     abort();

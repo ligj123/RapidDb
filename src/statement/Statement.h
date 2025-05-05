@@ -347,6 +347,10 @@ public:
   void SetFinished(bool b) { _bFinished.store(b, memory_order_release); }
 
   void SendErrMsg(MString &&errMsg);
+  /**
+   * If this statement need sole transaction.
+   */
+  virtual bool IsSoleTran() { return false; }
 
 protected:
   MVector<QueryRange> MergeAndQueryRange(MVector<QueryRange> &vctLeft,

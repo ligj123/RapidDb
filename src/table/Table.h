@@ -104,24 +104,27 @@ public:
 
 public:
   PhysTable(Database *db, const MString &tableName, uint32_t tid,
-            DT_MilliSec dtCreate, DT_MilliSec dtLastUpdate,
-            ResStatus tblStatus = ResStatus::Valid)
+            const MString &folder, DT_MilliSec dtCreate,
+            DT_MilliSec dtLastUpdate, ResStatus tblStatus = ResStatus::Valid)
       : _db(db), _name(tableName),
-        _fullName(_db->GetDbName() + "." + tableName), _tid(tid),
+        _fullName(_db->GetDbName() + "." + tableName),
+        _folder(folder.size() > 0 ? folder : tableName), _tid(tid),
         _dtCreate(dtCreate), _dtLastUpdate(dtLastUpdate),
         _dtLastVisit(MilliSecTime()), _tableStatus(tblStatus) {
     _hash = MStrHash{}(_fullName);
   }
 
-  PhysTable()
-      : _db(nullptr), _name(), _fullName(), _tid(0), _dtCreate(0),
-        _dtLastUpdate(0), _dtLastVisit(0){};
+  PhysTable(uint32_t tid, const MString &folder)
+      : _db(nullptr), _name(), _fullName(), _folder(folder), _tid(tid),
+        _dtCreate(0), _dtLastUpdate(0), _dtLastVisit(0){};
   ~PhysTable() { Clear(); }
 
   const MString &GetTableName() const { return _name; }
   const MString &GetDbName() const { return _db->GetDbName(); }
   const MString &GetFullName() const { return _fullName; }
   uint32_t TableID() { return _tid; }
+  void SetID(uint32_t id) { _tid = id; }
+  const MString GetPath() { return _db->GetDbPath() + "/" + _folder; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   IndexProp &GetPrimaryKey() { return _vctIndex[0]; }
   MVector<IndexProp> &GetVectorIndex() { return _vctIndex; }
@@ -231,7 +234,20 @@ public:
   bool CreateTable() {
     for (size_t i = 0; i < _vctIndex.size(); i++) {
       assert(_vctIndex[i]._tree == nullptr);
-      OpenIndex(i, true);
+      bool b = OpenIndex(i, true);
+      if (!b) {
+        return false;
+      }
+    }
+    return true;
+  }
+  bool OpenTable() {
+    for (size_t i = 0; i < _vctIndex.size(); i++) {
+      assert(_vctIndex[i]._tree == nullptr);
+      bool b = OpenIndex(i, false);
+      if (!b) {
+        return false;
+      }
     }
     return true;
   }
@@ -259,6 +275,8 @@ protected:
   MString _name;
   /**db name + '.' + table name*/
   MString _fullName;
+  // The folder to save this table, not include database path
+  MString _folder;
   // How much time that this instance has been referenced.
   atomic_int32_t _refCount{0};
   // Auto increment id, every time add 256.

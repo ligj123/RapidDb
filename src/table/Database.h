@@ -9,18 +9,22 @@ using namespace std;
 
 class Database {
 public:
-  Database(int id, const MString &dbPath, const MString &dbName,
+  Database(int id, const MString &folder, const MString &dbName,
            DT_MilliSec dtCreate, DT_MilliSec dtLastUpdate)
-      : _id(id), _dbPath(dbPath), _dbName(dbName), _dtCreate(dtCreate),
+      : _id(id), _folder(folder), _dbName(dbName), _dtCreate(dtCreate),
         _dtLastUpdate(dtLastUpdate) {
     _hash = MStrHash{}(_dbName);
     _dtLastVisit = MilliSecTime();
-    if (_dbPath.size() == 0) {
-      _dbPath = Configure::GetDbRootPath();
-    }
   }
 
-  const MString GetDbPath() const { return _dbPath + "/" + _dbName; }
+  const MString GetDbPath() const {
+    MString path;
+    path.reserve(Configure::GetDbRootPath().size() + 1 + _folder.size());
+    path += Configure::GetDbRootPath().c_str();
+    path += "/";
+    path += _folder;
+    return path;
+  }
   const MString &GetDbName() const { return _dbName; }
   void SetResStatus(ResStatus sts) { _dbStatus = sts; }
   ResStatus GetResStatus() const { return _dbStatus; }
@@ -39,8 +43,8 @@ public:
 protected:
   // The id start from 0 and increase 1 every time
   int _id;
-  // The root folder to save this database data.
-  MString _dbPath;
+  // The folder to save this database data, NOT include root path.
+  MString _folder;
   // Database name
   MString _dbName;
   // The create time for this database

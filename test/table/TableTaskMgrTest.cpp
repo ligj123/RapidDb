@@ -26,8 +26,8 @@ static uint32_t stmtId{0};
 static TranID txID{0};
 
 ExprInsert *CreateInsertExpression(Database *db, const MString &tableName) {
-  PhysTable *ptable =
-      new PhysTable(db, tableName, 0x100, MilliSecTime(), MilliSecTime());
+  PhysTable *ptable = new PhysTable(db, tableName, 0x100, tableName,
+                                    MilliSecTime(), MilliSecTime());
   ptable->AddColumn("c1", DataType::FIXCHAR, false, 1000, "primary key",
                     Charsets::UTF8, nullptr);
   ptable->AddColumn("c2", DataType::VARCHAR, false, 1000, "Unique Key",

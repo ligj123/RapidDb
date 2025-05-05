@@ -51,7 +51,7 @@ public:
    * @return True: success to insert into page; False: failed to insert into
    * page due to the page length exceeded the limit.
    */
-  bool AddRecord(BranchRecord *record);
+  bool AppendRecord(BranchRecord *record);
 
   int32_t SearchRecord(const RawRecord &rr) const;
   int32_t SearchKey(const RawKey &key) const;

@@ -12,12 +12,12 @@ public:
    * folder for database and create system tables.
    */
   static bool InitSystemTable();
-  /**
-   * @brief Generate system tables
-   */
-  static bool GenerateSysTables(Database *sysDb,
-                                MStrHashMap<PhysTable *> &hmap);
 
-  static bool LoadSystemTable();
+  static bool LoadTable(PhysTable *table);
+
+  static bool LoadSystemParameter(MString &name);
+
+  static inline const char *SystemDbTableName() { return "rapid.sys_dbs"; }
+  static inline const char *SystemTblTableName() { return "rapid.sys_tables"; }
 };
 } // namespace storage

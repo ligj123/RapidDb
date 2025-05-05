@@ -142,8 +142,8 @@ void CreateDbTable(const string &dbName, bool bExclusive, int sessionGroup) {
   DatabaseManager::AddDb(db);
 
   tableId += 0x100;
-  PhysTable *ptable =
-      new PhysTable(db, TBL_NAME, tableId, MilliSecTime(), MilliSecTime());
+  PhysTable *ptable = new PhysTable(db, TBL_NAME, tableId, TBL_NAME,
+                                    MilliSecTime(), MilliSecTime());
   ptable->AddColumn("c1", DataType::LONG, false, -1, "primary key",
                     Charsets::UNKNOWN, nullptr);
   ptable->AddColumn("c2", DataType::INT, false, -1, "Unique Key",

@@ -100,9 +100,9 @@ protected:
   uint32_t _binLogFileSize{10 * 1024 * 1024};
   // For distribute, every node will assign a unique id to indentify the nodes.
   // In single environment, the node id=0
-  uint16_t _nodeId;
-  string _strLogPath;
+  uint16_t _nodeId{0};
+  string _strLogPath{"./log/"};
   // The database root path, all db data will be saved into here
-  string _strDbRootPath;
+  string _strDbRootPath{"./RootDB/"};
 };
 } // namespace storage

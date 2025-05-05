@@ -618,8 +618,8 @@ default_col_dv : DEFAULT const_dv { $$ = $2; }
 auto_increment : AUTO_INCREMENT {
   $$ = new AutoIncrement;
   $$->_autoInc = true;
-  $$->_initVal = -1;
-  $$->_incStep = -1;
+  $$->_initVal = 1;
+  $$->_incStep = 1;
 }
 | AUTO_INCREMENT '(' INTVAL ',' INTVAL ')' {
   $$ = new AutoIncrement;
@@ -630,8 +630,8 @@ auto_increment : AUTO_INCREMENT {
 |  /* empty */ {
   $$ = new AutoIncrement;
   $$->_autoInc = false;
-  $$->_initVal = -1;
-  $$->_incStep = -1;  
+  $$->_initVal = 1;
+  $$->_incStep = 1;  
 };
 
 opt_index_type : index_type { $$ = $1; }

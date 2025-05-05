@@ -213,7 +213,7 @@ bool PhysTable::AddIndex(IndexType indexType, const MString &indexName,
 }
 
 uint32_t PhysTable::CalcSize() {
-  uint32_t len = UI32_LEN + UI32_LEN + UI32_LEN;
+  uint32_t len = UI32_LEN + UI32_LEN;
   len += UI16_LEN + (uint32_t)_fullName.size();
   len += UI64_LEN + UI64_LEN;
   len += UI16_LEN;
@@ -241,9 +241,7 @@ uint32_t PhysTable::SaveData(Byte *bys) {
   buf++;
   *buf = CURRENT_FILE_VERSION.GetPatchVersion();
   buf++;
-  // Table id
-  *(uint32_t *)buf = _tid;
-  buf += UI32_LEN;
+
   // Table full name
   *(uint16_t *)buf = (uint16_t)_fullName.size();
   buf += UI16_LEN;
@@ -289,9 +287,6 @@ uint32_t PhysTable::LoadData(const Byte *bys) {
   }
   buf += UI32_LEN;
 
-  // Table id
-  _tid = *(uint32_t *)buf;
-  buf += UI32_LEN;
   // Full table name
   uint32_t len = *(uint16_t *)buf;
   buf += UI16_LEN;
@@ -380,16 +375,13 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
     }
   }
 
-  MString idxPath =
-      _db->GetDbPath() + "/" + _name + "/" + _vctIndex[idx]._name + ".idx";
+  MString tblPath = GetPath();
+  MString idxPath = tblPath + "/" + _vctIndex[idx]._name + ".idx";
   prop._tree = new IndexTree();
   if (bCreate) {
-    MString tblPath = _db->GetDbPath() + "/" + _name;
-    fs::path path(tblPath);
-    if (!fs::exists(path)) {
-      if (!fs::create_directories(path)) {
-        return false;
-      }
+    if (idx == 0) {
+      assert(!fs::exists(tblPath));
+      fs::create_directories(tblPath);
     }
 
     bool b =
@@ -399,7 +391,7 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
       return false;
     }
   } else {
-    assert(filesystem::exists(idxPath));
+    assert(fs::exists(idxPath));
     bool b = prop._tree->LoadIndexTree(_name, prop._name, idxPath, dvKey, dvVal,
                                        _tid + (uint32_t)idx);
     if (!b) {

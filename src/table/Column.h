@@ -63,7 +63,7 @@ public:
   int64_t GetInitVal() const { return _initVal; }
   int64_t GetIncStep() const { return _incStep; }
   Charsets GetCharset() const { return _charset; }
-  const IDataValue *GetDefaultVal() const { return _pDefaultVal; }
+  IDataValue *GetDefaultVal() const { return _pDefaultVal; }
   const MString &GetComments() const { return _comments; }
 
   uint32_t ReadData(const Byte *pBuf);

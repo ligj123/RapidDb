@@ -74,10 +74,12 @@ public:
   /** @brief Add a new record to the last position of this page. Only used wehn
    * batch add for ordered records, does not need transaction.
    * @param record The new record
+   * @param bFullPage True: Add the records into page to full all able spaces;
+   *                  False: Not exceed the spaces of LOAD_FACTOR.
    * @return True: passed to add the record; False: failed to add the record due
    * to reach length limit.
    */
-  bool AddRecord(LeafRecord *record);
+  bool AppendRecord(LeafRecord *record, bool bFullPage = true);
   /**
    * @brief Save the records content into byte array
    * @param pageSet If there has OverflowPages that need to write disk, add into

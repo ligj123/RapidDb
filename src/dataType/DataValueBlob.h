@@ -18,6 +18,13 @@ public:
     bysValue_ = CachePool::Apply(soleLength_);
     BytesCopy(bysValue_, val, len);
   }
+  DataValueBlob(int len, const Byte *val, uint32_t maxLength = UINT32_MAX)
+      : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE),
+        maxLength_(maxLength == UINT32_MAX ? len : maxLength),
+        soleLength_(len) {
+    bysValue_ = CachePool::Apply(soleLength_);
+    BytesCopy(bysValue_, val, len);
+  }
   DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength)
       : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE), bysValue_(byArray),
         maxLength_(maxLength), soleLength_(len) {

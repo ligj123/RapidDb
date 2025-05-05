@@ -63,7 +63,8 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
                               MicroSecTime());
   DatabaseManager::AddDb(db);
 
-  PhysTable ptable(db, "testtable", 0x100, MilliSecTime(), MilliSecTime());
+  PhysTable ptable(db, "testtable", 0x100, "testtable", MilliSecTime(),
+                   MilliSecTime());
   ptable.AddColumn("c1", DataType::LONG, "primary key", 100, 2);
   ptable.AddColumn(
       "c2", DataType::VARCHAR, false, 100, "varchar test", Charsets::UTF8,
@@ -161,7 +162,7 @@ BOOST_AUTO_TEST_CASE(PhysTable_test) {
   uint32_t sz2 = ptable.SaveData(buf);
   BOOST_TEST(sz == sz2);
 
-  PhysTable ptable2;
+  PhysTable ptable2(0x100, "testtable");
   sz2 = ptable2.LoadData(buf);
   BOOST_TEST(sz == sz2);
   BOOST_TEST(ptable2.GetIndexType(PRIMARY_KEY) == IndexType::PRIMARY);

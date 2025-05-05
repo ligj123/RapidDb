@@ -88,8 +88,8 @@ StmtStatus DeleteStatement::SessionExec(Session *sess) {
 
     StatementAction *action = new StatementAction(prop._tree, this);
     TableTaskMgr *mgr = table->GetTableTaskMgr();
-    _status = StmtStatus::Executing;
     mgr->AddSessionAction(idxPos, GetSessionGroupId(), action);
+    _status = StmtStatus::Executing;
   } else if (_status == StmtStatus::Executing) {
     if (!_bFinished.load(memory_order_acquire)) {
       return _status;

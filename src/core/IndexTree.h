@@ -16,6 +16,7 @@
 #include <unordered_set>
 
 #define STAMP_BATCH 16
+#define INC_KEY_BATCH 16
 
 namespace storage {
 using namespace std;
@@ -130,6 +131,12 @@ struct IndexRange {
   // time. Only used when multi ranges.
   VersionStamp _recordStampStart{0};
   VersionStamp _recordStampEnd{0};
+
+  // To decrease atomic operation, every range will apply a batch of auto
+  // incrementment keys one time. Only used when multi ranges.
+  uint64_t _incKeyStart{0};
+  uint64_t _incKeyEnd{0};
+
   // The updated CachePages in this range that need to write into disk or need
   // to release lock.
   MTreeMap<uint64_t, CachePage *> _pageMap;
@@ -145,6 +152,16 @@ struct IndexRange {
   MList<LeafRecord *> _lstErrRecord;
   // Task quque for this range.
   IndexActionQueue *_actionQueue{nullptr};
+};
+
+struct SequenceAppend {
+  bool _bFullPage;
+  // The max pages that can be owned in this IndexTree
+  uint32_t _maxPages{UINT32_MAX};
+  LeafPage *_currPage{nullptr};
+  // The queue to send the finished pages and will free them after they have
+  // been write into disk.
+  LineQueue<IndexPage> *_fullPagesQueue;
 };
 
 class IndexTree {
@@ -301,6 +318,7 @@ public:
   bool IsMultiRange() { return _vctRange.size() > 1; }
   void UpdateRecordNumber(int iRange, int64_t recNum);
   VersionStamp ApplyStamp(int iRange);
+  uint64_t ApplyAutoIncKey(int iRange);
 
   // Add IndexAction that generate from current range. The producer and consumer
   // are in same thread.
@@ -356,6 +374,16 @@ public:
   void SetSplitPageLevel(Byte n) { _splitPageLevel = n; }
   SpinMutex &GetRangeMutex() { return _rangMutex; }
 
+  bool AppendRecord(LeafRecord *lr);
+  void StartSequenceAppend(uint32_t maxPages,
+                           LineQueue<IndexPage> *fullPageQueue);
+
+  void AddFullPageQueue(IndexPage *idxPage) {
+    if (_seqAppend->_fullPagesQueue != nullptr) {
+      _seqAppend->_fullPagesQueue->Push(idxPage);
+    }
+  }
+
 protected:
   // To record how much pages of this index tree are in CachePagePool.
   atomic_uint32_t _pagesInMem{0};
@@ -389,10 +417,13 @@ protected:
   atomic_bool _bReranging{false};
   // The page level to split range
   Byte _splitPageLevel{UINT8_MAX};
+
   // The vector of IndexRange
   MVector<IndexRange> _vctRange;
 
   SpinMutex _rangMutex;
+
+  SequenceAppend *_seqAppend{nullptr};
   friend class HeadPage;
 };
 } // namespace storage

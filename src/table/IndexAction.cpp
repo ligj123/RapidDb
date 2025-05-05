@@ -134,6 +134,16 @@ TaskStatus StmtInsertAction::Exec() {
   MVector<storage::IndexProp> &vctProp = _stmtRecord->_table->GetVectorIndex();
   MVector<LeafRecord *> vctLr;
 
+  if (_stmtRecord->_table->GetColumn(0)->GetIncStep() >= 0) {
+    if (_stmtRecord->_vctParas[0] != nullptr) {
+      delete _stmtRecord->_vctParas[0];
+    }
+
+    _stmtRecord->_vctParas[0] =
+        DataValueFactory(_stmtRecord->_table->GetColumn(0)->GetDataType(), 0,
+                         vctProp[0]._tree->ApplyAutoIncKey(_rangePos));
+  }
+
   VersionStamp stamp = vctProp[0]._tree->ApplyStamp(_rangePos);
   LeafRecord *lrPri =
       new LeafRecord(vctProp[0]._tree, _stmtRecord->_priKey,

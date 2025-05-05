@@ -10,24 +10,21 @@ bool ExprTable::Preprocess(Database *currDb) {
   if (_dbName == nullptr) {
     if (currDb != nullptr) {
       _dbName = new MString(currDb->GetDbName());
+      _db = currDb;
     } else {
       _threadErrorMsg.reset(new ErrorMsg(SESSION_NO_CURR_DB, {}));
       return false;
     }
   } else {
-    Database *db = DatabaseManager::FindDb(*_dbName);
-    if (db == nullptr) {
+    _db = DatabaseManager::FindDb(*_dbName);
+    if (_db == nullptr) {
       _threadErrorMsg.reset(new ErrorMsg(DB_NOT_FOUNF, {*_dbName}));
       return false;
     }
   }
 
-  MString tname = *_dbName + "." + *_tName;
-  if (!TableManager::FindTable(tname, _physTable)) {
-    // In following time, add the code to load table from system table. Now only
-    // consider the condition that all tables in memory.
-
-    _threadErrorMsg.reset(new ErrorMsg(TB_INVALID_TABLE_NAME, {tname}));
+  if (!TableManager::FindTable(*_tName, _physTable)) {
+    _threadErrorMsg.reset(new ErrorMsg(TB_INVALID_TABLE_NAME, {*_tName}));
     return false;
   }
 

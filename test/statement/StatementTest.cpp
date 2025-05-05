@@ -78,8 +78,8 @@ MString GenMString(int ival) {
 }
 
 PhysTable *CreateTable(Database *db, const MString &tableName) {
-  PhysTable *ptable =
-      new PhysTable(db, tableName, 0x100, MilliSecTime(), MilliSecTime());
+  PhysTable *ptable = new PhysTable(db, tableName, 0x100, tableName,
+                                    MilliSecTime(), MilliSecTime());
   ptable->AddColumn("c1", DataType::LONG, false, -1, "primary key",
                     Charsets::UNKNOWN, nullptr);
   ptable->AddColumn("c2", DataType::INT, false, -1, "Unique Key",

@@ -41,27 +41,60 @@ bool ExprCreateTable::Preprocess(Database *currDb) {
     }
   }
 
+  _vctItem->clear();
+  _physTable = new PhysTable(currDb, *_table->_tName, UINT32_MAX,
+                             *_table->_tName, MilliSecTime(), MilliSecTime());
+
+  for (ExprColumnItem *col : _vctColumn) {
+    if (col->_autoInc) {
+      _physTable->AddColumn(*col->_colName, col->_dataType,
+                            col->_comment == nullptr ? "" : *col->_comment,
+                            col->_initVal, col->_incStep);
+    } else {
+      _physTable->AddColumn(
+          *col->_colName, col->_dataType, col->_nullable, col->_maxLength,
+          col->_comment == nullptr ? "" : *col->_comment, Charsets::UTF8,
+          col->_defaultVal == nullptr ? nullptr
+                                      : col->_defaultVal->Clone(true));
+    }
+  }
+
+  for (ExprTableIndex *tindex : _vctIndex) {
+    MVector<MString> vct;
+    vct.reserve(tindex->_vctColName->size());
+    for (MString *pstr : *tindex->_vctColName) {
+      vct.push_back(*pstr);
+    }
+    _physTable->AddIndex(tindex->_idxType, *tindex->_idxName, vct);
+  }
+
   return true;
 }
 
 bool ExprDropTable::Preprocess(Database *currDb) {
-  // TO DO
-  return false;
-}
+  if (_table->_dbName == nullptr) {
+    if (currDb == nullptr) {
+      _threadErrorMsg.reset(new ErrorMsg(SESSION_NO_CURR_DB, {}));
+      return false;
+    }
 
-bool ExprShowTables::Preprocess(Database *currDb) {
-  // TO DO
-  return false;
+    _table->_dbName = new MString(currDb->GetDbName());
+  }
+
+  return true;
 }
 
 bool ExprTrunTable::Preprocess(Database *currDb) {
-  // TO DO
-  return false;
-}
+  if (_table->_dbName == nullptr) {
+    if (currDb == nullptr) {
+      _threadErrorMsg.reset(new ErrorMsg(SESSION_NO_CURR_DB, {}));
+      return false;
+    }
 
-bool ExprTransaction::Preprocess(Database *currDb) {
-  // TO DO
-  return false;
+    _table->_dbName = new MString(currDb->GetDbName());
+  }
+
+  return true;
 }
 
 } // namespace storage

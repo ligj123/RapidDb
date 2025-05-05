@@ -38,9 +38,9 @@ public:
   // Parent page point
   static const uint16_t PARENT_PAGE_POINTER_OFFSET;
   // The max records length in leaf page
-  static const uint16_t MAX_DATA_LENGTH_LEAF;
+  static const uint32_t MAX_DATA_LENGTH_LEAF;
   // The max records length in branch page
-  static const uint16_t MAX_DATA_LENGTH_BRANCH;
+  static const uint32_t MAX_DATA_LENGTH_BRANCH;
 
 public:
   // To construct an existed page and it need to put it into read queue
@@ -62,7 +62,7 @@ public:
   ~IndexPage() override;
   void AfterRead() override;
 
-  inline uint16_t GetMaxDataLength() const {
+  inline uint32_t GetMaxDataLength() const {
     return _pageType == PageType::LEAF_PAGE ? MAX_DATA_LENGTH_LEAF
                                             : MAX_DATA_LENGTH_BRANCH;
   };

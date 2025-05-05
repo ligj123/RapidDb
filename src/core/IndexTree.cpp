@@ -665,4 +665,89 @@ VersionStamp IndexTree::ApplyStamp(int iRange) {
     return _headPage->GetAndIncRecordStamp();
   }
 }
+
+uint64_t IndexTree::ApplyAutoIncKey(int iRange) {
+  if (_vctRange.size() > 1) {
+    assert(iRange >= 0 && iRange < _vctRange.size());
+    IndexRange &range = _vctRange[iRange];
+    if (range._incKeyStart >= range._incKeyEnd) {
+      range._incKeyStart = _headPage->GetAndIncAutoIncrementKey(INC_KEY_BATCH);
+      range._incKeyEnd = range._incKeyStart + INC_KEY_BATCH;
+    }
+
+    VersionStamp tmp = range._incKeyStart;
+    range._incKeyStart++;
+    return tmp;
+  } else {
+    return _headPage->GetAndIncAutoIncrementKey();
+  }
+}
+
+bool IndexTree::AppendRecord(LeafRecord *lr) {
+  assert(_seqAppend->_currPage->GetRecordNumber() == 0 ||
+         _seqAppend->_currPage->GetRecord(INT32_MAX).CompareTo(*lr) < 0);
+  bool b = _seqAppend->_currPage->AppendRecord(lr, _seqAppend->_bFullPage);
+  if (b) {
+    return true;
+  }
+
+  uint32_t pid = _headPage->GetAndIncTotalPageCount();
+  if (pid > _seqAppend->_maxPages) {
+    _headPage->SetTotalPageCount(pid - 1);
+    return false;
+  }
+
+  LeafPage *lpNew =
+      new LeafPage(this, pid, _seqAppend->_currPage->GetParentPageId());
+  b = lpNew->AppendRecord(lr, _seqAppend->_bFullPage);
+  assert(b);
+
+  FilePagePool::AddWritePage(ThreadPool::GetThreadId(), _seqAppend->_currPage);
+  AddFullPageQueue(_seqAppend->_currPage);
+
+  BranchPage *parent = _seqAppend->_currPage->GetParentPage();
+  _seqAppend->_currPage = lpNew;
+  IndexPage *idxNew = lpNew;
+
+  while (true) {
+    BranchRecord *br =
+        new BranchRecord(GetIndexType(), lr, idxNew->GetPageId());
+    b = parent->AppendRecord(br);
+    if (b) {
+      return true;
+    }
+
+    FilePagePool::AddWritePage(ThreadPool::GetThreadId(), parent);
+    AddFullPageQueue(parent);
+
+    BranchPage *bp =
+        new BranchPage(this, _headPage->GetAndIncTotalPageCount(),
+                       parent->GetPageLevel(), parent->GetParentPageId());
+    bp->SetParentPage(parent->GetParentPage());
+    idxNew->SetParentPage(bp);
+    idxNew->SetParentPageID(bp->GetPageId());
+
+    b = bp->AppendRecord(br);
+    assert(b);
+
+    idxNew = bp;
+    parent = parent->GetParentPage();
+    if (parent == nullptr) {
+      parent = new BranchPage(this, _headPage->GetAndIncTotalPageCount(),
+                              parent->GetPageLevel(), PAGE_NULL_POINTER);
+    }
+
+    idxNew->SetParentPage(parent);
+    idxNew->SetParentPageID(parent->GetPageId());
+  }
+}
+
+void IndexTree::StartSequenceAppend(uint32_t maxPages,
+                                    LineQueue<IndexPage> *fullPageQueue) {
+  assert(_rootPage->GetPageId() == 0);
+  _seqAppend = new SequenceAppend();
+  _seqAppend->_maxPages = maxPages;
+  _seqAppend->_currPage = dynamic_cast<LeafPage *>(_rootPage);
+  _seqAppend->_fullPagesQueue = fullPageQueue;
+}
 } // namespace storage

@@ -31,7 +31,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
     {TB_INVALID_COLUMN_NAME, "Invalid column name, name={1}."},
     {TB_INVALID_RESULT_SET,
      "Invalid result set, please call it after initalization."},
-    {TB_COLUMN_UNNULLABLE, "The column {1} is be nullable."},
+    {TB_COLUMN_UNNULLABLE, "The column {1} is not nullable."},
 
     // data type error
     {DT_UNSUPPORT_CONVERT, "Unsupport data type conversion from {1} to {2}."},
@@ -86,6 +86,15 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
 
     // Session
     {SESSION_NO_CURR_DB, "Error: No database selected in current session."},
-    {DB_NOT_FOUNF, "Failed to found the database {1}."}};
+    {DB_NOT_FOUNF, "Failed to found the database {1}."},
 
+    // DDL
+    {DDL_DATABASE_EXIST, "Database {1} has existed."},
+    {DDL_DATABASE_CREATE_FAILED, "Failed to create the database  {1}."},
+    {DDL_DATABASE_NOT_EXIST, "Failed to find the database {1}."},
+    {DDL_TABLE_EXIST, "Table {1} has exist."},
+    {DDL_TABLE_CREATE_FAILED, "Failed to create the table  {1}."},
+    {DDL_TABLE_NOT_EXIST, "Failed to find the table {1}."}
+
+};
 } // namespace storage
