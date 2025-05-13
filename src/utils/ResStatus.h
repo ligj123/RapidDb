@@ -15,7 +15,9 @@ enum class ResStatus : uint8_t {
              // service.
   Valid,     // This resource is in working status and can supply service
   Obsolete,  // This resource is obsolete and will be free in following time. It
-             // can not offer service again.
+            // can not offer service again.
+  Droped, // The table has been droped and all resource should be freed in
+          // future
   Invalid // The resource is invalid and need to fix. The function of fix will
           // be realized in future.
 };

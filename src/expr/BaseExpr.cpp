@@ -23,7 +23,8 @@ bool ExprTable::Preprocess(Database *currDb) {
     }
   }
 
-  if (!TableManager::FindTable(*_tName, _physTable)) {
+  MString fname = *_dbName + "." + *_tName;
+  if (!TableManager::FindTable(fname, _physTable)) {
     _threadErrorMsg.reset(new ErrorMsg(TB_INVALID_TABLE_NAME, {*_tName}));
     return false;
   }

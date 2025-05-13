@@ -104,7 +104,7 @@ void CheckAllRecord(const string &fullTblName, int rowNum) {
     for (int i = 0; i < lpage->GetRecordNumber(); i++) {
       LeafRecord &lr = lpage->GetRecord(i);
       if (lr.ReleaseLockAble()) {
-        lr.ReleaseLock(idxTree);
+        lpage->ReleaseLock(&lr);
       }
 
       while (true) {

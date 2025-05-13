@@ -37,8 +37,11 @@ public:
   void Exec();
 
   bool IsEmpty() {
-    return _currStatement == nullptr && _lstWaittingStmt.size() == 0;
+    return _currStatement == nullptr && _lstWaittingStmt.size() == 0 &&
+           _transaction.IsEmpty();
   }
+
+  void SetChechTime();
 
 public:
   // session id, only valid in this server and to identify the sessions.It will

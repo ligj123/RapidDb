@@ -85,4 +85,17 @@ void Transaction::CloseTransaction() {
   _lstStatement.clear();
 }
 
+bool Transaction::IsNeedLog() {
+#ifdef WITHOUT_BIN_LOG
+  return false;
+#else
+  for (Statement *stmt : _lstStatement) {
+    if (!stmt->IsReadonly() && stmt->GetRecordSize() > 0) {
+      return true;
+    }
+  }
+
+  return false;
+#endif
+}
 } // namespace storage

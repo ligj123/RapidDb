@@ -250,11 +250,12 @@ public:
    * tree.
    * @return The start key
    */
-  inline uint64_t GetAndIncAutoIncrementKey(uint64_t step = 1) {
+  inline uint64_t GetAndIncAutoIncrementKey(uint64_t step = 1,
+                                            bool atomic = false) {
     _bDirty = true;
-    if (step == 1) {
+    if (!atomic) {
       auto tmp = _autoIncrementKey;
-      _autoIncrementKey++;
+      _autoIncrementKey += step;
       return tmp;
     } else {
       return atomic_ref<uint64_t>(_autoIncrementKey)

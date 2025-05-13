@@ -151,7 +151,6 @@ bool IndexTree::CreateIndexTree(const MString &tableName,
   _rootPage = ApplyIndexPages(nullptr, 0, 1).at(0);
   _rootPage->SetBeginPage(true);
   _rootPage->SetEndPage(true);
-  _rootPage->SetDirty();
   FilePagePool::SyncWritePage(_headPage);
   FilePagePool::SyncWritePage(_rootPage);
 
@@ -511,22 +510,13 @@ void IndexTree::ReleaseIndexPage(IndexPage *idxPage) {
       }
     } else {
       LeafPage *lp = (LeafPage *)page;
-      LeafPage *pnext = lp->GetNextPage();
+      LeafPage *pnext = lp->GetNextPage(false);
       if (pnext != nullptr) {
         if (pnext->GetParentPage() == nullptr) {
           lst.push_back(pnext);
         }
 
         lp->SetNextPage(nullptr);
-      }
-
-      LeafPage *pprev = lp->GetPrevPage();
-      if (pprev != nullptr) {
-        if (pprev->GetParentPage() != nullptr) {
-          lst.push_back(pprev);
-        }
-
-        lp->SetPrevPage(nullptr);
       }
     }
 
@@ -666,20 +656,23 @@ VersionStamp IndexTree::ApplyStamp(int iRange) {
   }
 }
 
-uint64_t IndexTree::ApplyAutoIncKey(int iRange) {
+uint64_t IndexTree::ApplyAutoIncKey(int iRange, int64_t step) {
+  assert(_indexType == IndexType::PRIMARY);
+
   if (_vctRange.size() > 1) {
     assert(iRange >= 0 && iRange < _vctRange.size());
     IndexRange &range = _vctRange[iRange];
     if (range._incKeyStart >= range._incKeyEnd) {
-      range._incKeyStart = _headPage->GetAndIncAutoIncrementKey(INC_KEY_BATCH);
+      range._incKeyStart =
+          _headPage->GetAndIncAutoIncrementKey(INC_KEY_BATCH, true);
       range._incKeyEnd = range._incKeyStart + INC_KEY_BATCH;
     }
 
     VersionStamp tmp = range._incKeyStart;
-    range._incKeyStart++;
+    range._incKeyStart += step;
     return tmp;
   } else {
-    return _headPage->GetAndIncAutoIncrementKey();
+    return _headPage->GetAndIncAutoIncrementKey(step);
   }
 }
 

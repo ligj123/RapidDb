@@ -181,11 +181,7 @@ TriBool TableSelectStatement::HandleLeafRecord(LeafPage *page, int pagePos,
 
   LeafRecord *lr = &page->GetRecord(pagePos);
   if (lr->ReleaseLockAble()) {
-    int32_t commLen1, commLen2, tempLen1, tempLen2;
-    lr->GetLength(tempLen1, commLen1);
-    lr->ReleaseLock(page->GetIndexTree());
-    lr->GetLength(tempLen2, commLen2);
-    page->UpdateDataLength(commLen2 - commLen1, tempLen2 - tempLen1);
+    page->ReleaseLock(lr);
   }
 
   VectorDataValue vdv;

@@ -11,10 +11,13 @@ public:
 public:
   static bool InitTable(PhysTable *sysTable);
   static bool AddTable(PhysTable *table);
-  static bool RemoveTable(const MString &tblFullName);
+  static bool RemoveTable(const MString &tblFullName, bool bDroped);
   static bool FindTable(const MString &tblFullName, PhysTable *&tbl);
   static bool ListTables(const MString &dbName, MVector<MString> &vctTbl);
   static void ClearTable();
+  static vector<PhysTable *> &GetDiscardTable() { return _discardTable; }
+  // For test
+  static void CloseTasksAndPages();
 
 protected:
   static void AddFastTable(PhysTable *table);

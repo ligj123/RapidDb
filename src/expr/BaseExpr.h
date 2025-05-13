@@ -196,6 +196,9 @@ class ExprStatement : public BaseExpr {
 public:
   virtual bool Preprocess(Database *currDb) = 0;
   virtual bool IsNeedOptimize() { return false; }
+  virtual bool IsCacheExpr() { return true; }
+
+  virtual void CheckObsoleteTable() { _dtLastCheck = MilliSecTime(); }
 
 public:
   // The vector of parameters. Params are duplications of its child class
@@ -205,6 +208,8 @@ public:
   // Every seesion has its unify id, start from 1 and can not exceed
   // 0x0FFFFFFFFFFFFFFF. 0 means unitialization id and need to assign an id.
   uint32_t _exprId{0};
+  // The last time to check if this statement is been used
+  DT_MilliSec _dtLastCheck{0};
 };
 
 } // namespace storage

@@ -16,6 +16,7 @@ public:
   ~ExprCreateDatabase() { delete _dbName; }
   ExprType GetType() override { return ExprType::EXPR_CREATE_DATABASE; }
   bool Preprocess(Database *currDb = nullptr) override { return true; }
+  bool IsCacheExpr() override { return false; }
 
 public:
   MString *_dbName;
@@ -29,6 +30,7 @@ public:
   ~ExprDropDatabase() { delete _dbName; }
   ExprType GetType() override { return ExprType::EXPR_DROP_DATABASE; }
   bool Preprocess(Database *currDb = nullptr) override { return true; }
+  bool IsCacheExpr() override { return false; }
 
 public:
   MString *_dbName;
@@ -47,6 +49,7 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_SHOW_DATABASES; }
   bool Preprocess(Database *currDb) override { return true; }
+  bool IsCacheExpr() override { return false; }
 
 public:
   MVectorPtr<ExprColumn *> _vctCol;
@@ -139,6 +142,7 @@ public:
   ExprType GetType() override { return ExprType::EXPR_CREATE_TABLE; }
 
   bool Preprocess(Database *currDb = nullptr) override;
+  bool IsCacheExpr() override { return false; }
 
 public:
   ExprTable *_table;
@@ -159,6 +163,7 @@ public:
   ~ExprDropTable() { delete _table; }
   ExprType GetType() override { return ExprType::EXPR_DROP_TABLE; }
   bool Preprocess(Database *currDb = nullptr) override;
+  bool IsCacheExpr() override { return false; }
 
 public:
   ExprTable *_table;
@@ -167,15 +172,27 @@ public:
 
 class ExprShowTables : public ExprStatement {
 public:
-  ExprShowTables(MString *dbName) : _dbName(dbName) {}
+  ExprShowTables(MString *dbName) : _dbName(dbName) {
+    ExprColumn *col = new ExprColumn(new MString("Table"), nullptr, nullptr);
+    col->_pos = 0;
+    col->_dataLength = 50;
+    col->_dataType = DataType::VARCHAR;
+    _vctCol.push_back(col);
+  }
   ~ExprShowTables() { delete _dbName; }
-
-public:
   ExprType GetType() override { return ExprType::EXPR_SHOW_TABLES; }
-  bool Preprocess(Database *currDb = nullptr) override { return true; }
+  bool Preprocess(Database *currDb = nullptr) override {
+    if (_dbName == nullptr) {
+      _dbName = new MString(currDb->GetDbName());
+    }
+
+    return true;
+  }
+  bool IsCacheExpr() override { return false; }
 
 public:
   MString *_dbName;
+  MVectorPtr<ExprColumn *> _vctCol;
 };
 
 class ExprTrunTable : public ExprStatement {
@@ -184,6 +201,12 @@ public:
   ~ExprTrunTable() { delete _table; }
   ExprType GetType() override { return ExprType::EXPR_TRUN_TABLE; }
   bool Preprocess(Database *currDb = nullptr) override;
+  void CheckObsoleteTable() override {
+    _dtLastCheck = MilliSecTime();
+    assert(_table != nullptr && _table->_physTable != nullptr);
+    _table->_physTable->SetCheckTime();
+    _table->_db->SetCheckTime();
+  }
 
 public:
   ExprTable *_table;

@@ -661,7 +661,7 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
   return true;
 }
 
-LeafPage *LeafPage::GetPrevPage() {
+LeafPage *LeafPage::GetPrevPage(bool bLoad) {
   abort();
   if (_prevPage != nullptr) {
     return _prevPage;
@@ -670,12 +670,17 @@ LeafPage *LeafPage::GetPrevPage() {
     return nullptr;
   }
 
-  _prevPage = (LeafPage *)_indexTree->GetPage(_prevPageId, PageType::LEAF_PAGE);
-  _prevPage->SetNextPage(this);
-  return _prevPage;
+  if (bLoad) {
+    _prevPage =
+        (LeafPage *)_indexTree->GetPage(_prevPageId, PageType::LEAF_PAGE);
+    _prevPage->SetNextPage(this);
+    return _prevPage;
+  } else {
+    return nullptr;
+  }
 }
 
-LeafPage *LeafPage::GetNextPage() {
+LeafPage *LeafPage::GetNextPage(bool bLoad) {
   if (_nextPage != nullptr) {
     return _nextPage;
   }
@@ -683,9 +688,13 @@ LeafPage *LeafPage::GetNextPage() {
     return nullptr;
   }
 
-  assert(_parentPage != nullptr);
-  _parentPage->FillNextPage(this, false);
-  return _nextPage;
+  if (bLoad) {
+    assert(_parentPage != nullptr);
+    _parentPage->FillNextPage(this, false);
+    return _nextPage;
+  } else {
+    return nullptr;
+  }
 }
 
 void LeafPage::ClearObsoleteLocks() {
@@ -698,4 +707,12 @@ void LeafPage::ClearObsoleteLocks() {
   }
 }
 
+ReleaseResult LeafPage::ReleaseLock(LeafRecord *lr) {
+  int32_t commLen1, commLen2, tempLen1, tempLen2;
+  lr->GetLength(tempLen1, commLen1);
+  ReleaseResult rr = lr->ReleaseLock(GetIndexTree());
+  lr->GetLength(tempLen2, commLen2);
+  UpdateDataLength(commLen2 - commLen1, tempLen2 - tempLen1);
+  return rr;
+}
 } // namespace storage

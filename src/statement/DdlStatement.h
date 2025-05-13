@@ -56,7 +56,11 @@ public:
 
   bool IsSoleTran() override { return true; }
 
+  TriBool HandleLeafRecord(LeafPage *page, int pagePos, int rangePos,
+                           VectorLeafRecord *vctLeafRec = nullptr);
+
 protected:
+  bool _bDropingTable{true}; // If the database has tables and need to drop them
 };
 
 class StmtShowDatabases : public Statement {

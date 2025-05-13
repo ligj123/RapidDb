@@ -15,8 +15,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#define STAMP_BATCH 16
-#define INC_KEY_BATCH 16
+#define STAMP_BATCH 64
+#define INC_KEY_BATCH 64
 
 namespace storage {
 using namespace std;
@@ -318,7 +318,7 @@ public:
   bool IsMultiRange() { return _vctRange.size() > 1; }
   void UpdateRecordNumber(int iRange, int64_t recNum);
   VersionStamp ApplyStamp(int iRange);
-  uint64_t ApplyAutoIncKey(int iRange);
+  uint64_t ApplyAutoIncKey(int iRange, int64_t step);
 
   // Add IndexAction that generate from current range. The producer and consumer
   // are in same thread.

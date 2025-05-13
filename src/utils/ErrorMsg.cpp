@@ -71,6 +71,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
     {TRAN_PARAM_INVALID,
      "The byte array for statement's parameters is invalid."},
     {TRAN_LOCK_CONFLICT, "Try to visit a locked record by other transaction."},
+    {TRAN_WITH_UNFINISHED, "There has unfinished transaction."},
 
     // Statement
     {STMT_PARAM_NUM_INVALID,
@@ -92,7 +93,7 @@ unordered_map<int, MString> ErrorMsg::_mapErrorMsg = {
     {DDL_DATABASE_EXIST, "Database {1} has existed."},
     {DDL_DATABASE_CREATE_FAILED, "Failed to create the database  {1}."},
     {DDL_DATABASE_NOT_EXIST, "Failed to find the database {1}."},
-    {DDL_TABLE_EXIST, "Table {1} has exist."},
+    {DDL_TABLE_EXIST, "Table {1} has existed."},
     {DDL_TABLE_CREATE_FAILED, "Failed to create the table  {1}."},
     {DDL_TABLE_NOT_EXIST, "Failed to find the table {1}."}
 

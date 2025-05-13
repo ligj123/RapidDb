@@ -66,14 +66,14 @@ bool DatabaseManager::AddDb(Database *db) {
   return true;
 }
 
-bool DatabaseManager::DelDb(const MString &dbName) {
+bool DatabaseManager::RemoveDb(const MString &dbName, bool bDroped) {
   unique_lock<SpinMutex> lock(_spinMutex);
   auto iter = _mapDb.find(dbName);
   if (iter == _mapDb.end())
     return false;
 
   Database *db = iter->second;
-  db->SetResStatus(ResStatus::Obsolete);
+  db->SetResStatus(bDroped ? ResStatus::Droped : ResStatus::Obsolete);
 
   Database **pArrDb = _fastDbCache[db->Hash() % FAST_SIZE];
   for (size_t i = 0; i < 4; i++) {

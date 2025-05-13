@@ -49,8 +49,19 @@ public:
            _pageStatus.load(memory_order_relaxed) == PageStatus::VALID;
   }
 
-  LeafPage *GetPrevPage();
-  LeafPage *GetNextPage();
+  /**
+   * @brief Get the previoue page. This method is unused for a while
+   * @param bLoad If the previous page is not in memory, load it from disk or
+   * not
+   * @return The previous page
+   */
+  LeafPage *GetPrevPage(bool bLoad = true);
+  /**
+   * @brief Get the next page
+   * @param bLoad If the next page is not in memory, load it from disk or not
+   * @return The next page
+   */
+  LeafPage *GetNextPage(bool bLoad = true);
 
   /**
    * @brief Insert a leaf record into position pos in this page
@@ -112,6 +123,8 @@ public:
    * freed.
    */
   void ClearObsoleteLocks();
+
+  ReleaseResult ReleaseLock(LeafRecord *lr);
 
   inline bool IsRangBeginPage() { return _bRangeBeginPage; }
   inline void SetRangeBeginPage(bool b) { _bRangeBeginPage = b; }

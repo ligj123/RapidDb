@@ -249,7 +249,12 @@ public:
       : _id(id), _txid(txid), _stmtResult(nullptr), _exprStmt(nullptr) {
     _createTime = MicroSecTime();
   }
-  virtual ~Statement() { delete _midVar; }
+  virtual ~Statement() {
+    delete _midVar;
+    if (!_exprStmt->IsCacheExpr()) {
+      delete _exprStmt;
+    }
+  }
   /**
    * @brief Return the expression type
    */
@@ -351,6 +356,10 @@ public:
    * If this statement need sole transaction.
    */
   virtual bool IsSoleTran() { return false; }
+
+  void FailWithUnfinishedTran();
+
+  size_t GetRecordSize() { return _lstFinishRecord.size(); }
 
 protected:
   MVector<QueryRange> MergeAndQueryRange(MVector<QueryRange> &vctLeft,

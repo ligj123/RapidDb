@@ -1,5 +1,6 @@
 
 #include "ExprDdl.h"
+#include "../manager/DatabaseManager.h"
 #include "../serv/Session.h"
 #include "../utils/ErrorMsg.h"
 #include "ExprStatement.h"
@@ -15,6 +16,16 @@ bool ExprCreateTable::Preprocess(Database *currDb) {
     }
 
     _table->_dbName = new MString(currDb->GetDbName());
+    _table->_db = currDb;
+  } else {
+    _table->_db = DatabaseManager::FindDb(*_table->_dbName);
+    if (_table->_db == nullptr) {
+      if (currDb == nullptr) {
+        _threadErrorMsg.reset(
+            new ErrorMsg(DDL_DATABASE_NOT_EXIST, {*_table->_dbName}));
+        return false;
+      }
+    }
   }
 
   for (ExprCreateTableItem *item : *_vctItem) {
@@ -79,6 +90,9 @@ bool ExprDropTable::Preprocess(Database *currDb) {
     }
 
     _table->_dbName = new MString(currDb->GetDbName());
+    _table->_db = currDb;
+  } else {
+    _table->_db = DatabaseManager::FindDb(*_table->_dbName);
   }
 
   return true;

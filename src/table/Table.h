@@ -124,6 +124,7 @@ public:
   const MString &GetFullName() const { return _fullName; }
   uint32_t TableID() { return _tid; }
   void SetID(uint32_t id) { _tid = id; }
+  void SetFolder(const MString &folder) { _folder = folder; }
   const MString GetPath() { return _db->GetDbPath() + "/" + _folder; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   IndexProp &GetPrimaryKey() { return _vctIndex[0]; }
@@ -262,6 +263,8 @@ public:
   }
 
   size_t Hash() { return _hash; }
+  DT_MilliSec GetLastCheckTime() { return _dtLastChecked; }
+  void SetCheckTime() { _dtLastChecked = MilliSecTime(); }
 
 protected:
   inline bool IsExistedColumn(MString &name) {
@@ -306,6 +309,8 @@ protected:
   DT_MilliSec _dtLastVisit{0};
   // This table status.
   ResStatus _tableStatus{ResStatus::Uninit};
+  // The microsecond to check this table. Only used when it is obsolete.
+  DT_MilliSec _dtLastChecked{0};
   // The transaction to lock this table
   Transaction *_lockTran{nullptr};
   // The mutex for table lock

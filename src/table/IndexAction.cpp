@@ -134,14 +134,18 @@ TaskStatus StmtInsertAction::Exec() {
   MVector<storage::IndexProp> &vctProp = _stmtRecord->_table->GetVectorIndex();
   MVector<LeafRecord *> vctLr;
 
-  if (_stmtRecord->_table->GetColumn(0)->GetIncStep() >= 0) {
+  if (_stmtRecord->_table->GetColumn(0)->GetIncStep() > 0) {
     if (_stmtRecord->_vctParas[0] != nullptr) {
       delete _stmtRecord->_vctParas[0];
     }
 
-    _stmtRecord->_vctParas[0] =
-        DataValueFactory(_stmtRecord->_table->GetColumn(0)->GetDataType(), 0,
-                         vctProp[0]._tree->ApplyAutoIncKey(_rangePos));
+    _stmtRecord->_vctParas[0] = DataValueFactory(
+        _stmtRecord->_table->GetColumn(0)->GetDataType(), 0,
+        vctProp[0]._tree->ApplyAutoIncKey(
+            _rangePos, _stmtRecord->_table->GetColumn(0)->GetIncStep()));
+    VectorDataValue vdv;
+    vdv.push_back(_stmtRecord->_vctParas[0]->AddRef());
+    _stmtRecord->_priKey = RawKey(vdv);
   }
 
   VersionStamp stamp = vctProp[0]._tree->ApplyStamp(_rangePos);

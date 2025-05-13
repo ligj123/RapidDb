@@ -97,7 +97,7 @@ bool TableManager::AddTable(PhysTable *table) {
   return true;
 }
 
-bool TableManager::RemoveTable(const MString &tblFullName) {
+bool TableManager::RemoveTable(const MString &tblFullName, bool bDroped) {
   unique_lock<SpinMutex> lock(_spinMutex);
   auto iter = _mapTable.find(tblFullName);
   if (iter == _mapTable.end()) {
@@ -105,7 +105,7 @@ bool TableManager::RemoveTable(const MString &tblFullName) {
   }
 
   PhysTable *tbl = iter->second;
-  tbl->SetTableStatus(ResStatus::Obsolete);
+  tbl->SetTableStatus(bDroped ? ResStatus::Droped : ResStatus::Obsolete);
 
   PhysTable **pArrTbl = _fastTableCache[tbl->Hash() % FAST_SIZE];
   for (int i = 0; i < 4; i++) {
@@ -213,5 +213,40 @@ void TableManager::AddFastTable(PhysTable *table) {
 void TableManager::LoadTable(PhysTable *table) {
   // TO DO
   abort();
+}
+
+void TableManager::CloseTasksAndPages() {
+  unique_lock<SpinMutex> lock(_spinMutex);
+  for (auto iter = _mapTable.begin(); iter != _mapTable.end(); iter++) {
+    auto vctTasks = iter->second->GetTableTaskMgr()->GetVctIndexTasks();
+    for (MVector<IndexTask *> &vctTask : vctTasks) {
+      for (IndexTask *task : vctTask) {
+        task->SetStatus(TaskStatus::FINISHED, false);
+        task->SetRemovedPool(true);
+      }
+    }
+
+    for (IndexProp &prop : iter->second->GetVectorIndex()) {
+      for (IndexRange &range : prop._tree->GetVctRange()) {
+        prop._tree->SettleUpdatedPages(range._pageMap);
+      }
+    }
+  }
+
+  for (PhysTable *table : _discardTable) {
+    auto vctTasks = table->GetTableTaskMgr()->GetVctIndexTasks();
+    for (MVector<IndexTask *> &vctTask : vctTasks) {
+      for (IndexTask *task : vctTask) {
+        task->SetStatus(TaskStatus::FINISHED, false);
+        task->SetRemovedPool(true);
+      }
+    }
+
+    for (IndexProp &prop : table->GetVectorIndex()) {
+      for (IndexRange &range : prop._tree->GetVctRange()) {
+        prop._tree->SettleUpdatedPages(range._pageMap);
+      }
+    }
+  }
 }
 } // namespace storage

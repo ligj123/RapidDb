@@ -164,6 +164,12 @@ public:
   }
   ExprType GetType() override { return ExprType::EXPR_SELECT; }
   bool Preprocess(Database *currDb = nullptr) override;
+  void CheckObsoleteTable() override {
+    _dtLastCheck = MilliSecTime();
+    if (_exprDestSelect != nullptr) {
+      _exprDestSelect->CheckObsoleteTable();
+    }
+  }
 
 public:
   // Remove repeated rows or not
@@ -198,6 +204,11 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_TABLE_SELECT; }
   bool Preprocess(Database *currDb = nullptr) override;
+  void CheckObsoleteTable() override {
+    _dtLastCheck = MilliSecTime();
+    _exprTable->_db->SetCheckTime();
+    _exprTable->_physTable->SetCheckTime();
+  }
 
 public:
   // This select is to return final result or as bottom of join tables.
@@ -238,6 +249,12 @@ public:
     return false;
   }
 
+  void CheckObsoleteTable() override {
+    _dtLastCheck = MilliSecTime();
+    _leftTable->CheckObsoleteTable();
+    _rightTable->CheckObsoleteTable();
+  }
+
 public:
   // This select
   bool _bTop{true};
@@ -267,6 +284,14 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_INSERT; }
   bool Preprocess(Database *currDb = nullptr) override;
+  void CheckObsoleteTable() override {
+    _dtLastCheck = MilliSecTime();
+    _exprTable->_db->SetCheckTime();
+    _exprTable->_physTable->SetCheckTime();
+    if (_exprSelect != nullptr) {
+      _exprSelect->CheckObsoleteTable();
+    }
+  }
 
 public:
   // The destion table
@@ -294,6 +319,11 @@ public:
   }
   ExprType GetType() override { return ExprType::EXPR_UPDATE; }
   bool Preprocess(Database *currDb = nullptr) override;
+  void CheckObsoleteTable() override {
+    _dtLastCheck = MilliSecTime();
+    _exprTable->_db->SetCheckTime();
+    _exprTable->_physTable->SetCheckTime();
+  }
 
 public:
   // The destion table information
@@ -317,6 +347,11 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_DELETE; }
   bool Preprocess(Database *currDb = nullptr) override;
+  void CheckObsoleteTable() override {
+    _dtLastCheck = MilliSecTime();
+    _exprTable->_db->SetCheckTime();
+    _exprTable->_physTable->SetCheckTime();
+  }
 
 public:
   // The destion table information

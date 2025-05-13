@@ -380,15 +380,22 @@ bool PhysTable::OpenIndex(size_t idx, bool bCreate) {
   prop._tree = new IndexTree();
   if (bCreate) {
     if (idx == 0) {
-      assert(!fs::exists(tblPath));
-      fs::create_directories(tblPath);
+      if (!fs::exists(tblPath)) {
+        fs::create_directories(tblPath);
+      }
     }
 
     bool b =
         prop._tree->CreateIndexTree(_name, prop._name, idxPath, dvKey, dvVal,
                                     _tid + (uint32_t)idx, prop._type);
+
     if (!b) {
       return false;
+    }
+
+    if (idx == 0 && _vctColumn[0].GetInitVal() >= 0) {
+      prop._tree->GetHeadPage()->SetAutoIncrementKey(
+          _vctColumn[0].GetInitVal());
     }
   } else {
     assert(fs::exists(idxPath));

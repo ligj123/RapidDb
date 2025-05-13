@@ -384,8 +384,9 @@ public:
       lr = lr->_recLock->_undoRec;
     }
 
-    if (_bDelete || (_recLock != nullptr &&
-                     (_recLock->_actType & ActionType::UPDATEABLE_MASK) != 0)) {
+    if (lr->_bDelete ||
+        (lr->_recLock != nullptr &&
+         (lr->_recLock->_actType & ActionType::UPDATEABLE_MASK) != 0)) {
       commitLen = 0;
     } else {
       commitLen = lr->GetTotalLength() + UI16_LEN;

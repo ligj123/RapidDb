@@ -7,6 +7,7 @@
 #include "../expr/ExprLogic.h"
 #include "../expr/ExprStatement.h"
 #include "../manager/DatabaseManager.h"
+#include "../manager/TableManager.h"
 #include "../sql/Parser.h"
 #include "../statement/DdlStatement.h"
 #include "../statement/DeleteStatement.h"
@@ -17,6 +18,9 @@
 #include "../utils/Log.h"
 #include "SessionPool.h"
 
+#include <filesystem>
+
+namespace fs = std::filesystem;
 namespace storage {
 TaskStatus SessionRecordAction::Exec(SessionGroup &sGroup) {
   _stmt->AddLeafRecords(_vctLr);
@@ -111,8 +115,10 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
         return TaskStatus::FINISHED;
       }
 
-      sGroup._mapSqlExprStatement.emplace(dbSql, exprStmt);
-      sGroup._mapIdExprStatement.emplace(exprId, exprStmt);
+      if (exprStmt->IsCacheExpr()) {
+        sGroup._mapSqlExprStatement.emplace(dbSql, exprStmt);
+        sGroup._mapIdExprStatement.emplace(exprId, exprStmt);
+      }
     } else {
       exprStmt = itSql->second;
       sGroup._mapIdExprStatement.emplace(exprId, exprStmt);
@@ -168,6 +174,46 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
                                   dynamic_cast<ExprCreateDatabase *>(exprStmt),
                                   _stmtResult);
     break;
+  case ExprType::EXPR_DROP_DATABASE:
+    stmt = new StmtDropDatabase(_stmtId, TXID_NULL,
+                                dynamic_cast<ExprDropDatabase *>(exprStmt),
+                                _stmtResult);
+    break;
+  case ExprType::EXPR_SHOW_DATABASES:
+    stmt = new StmtShowDatabases(_stmtId, TXID_NULL,
+                                 dynamic_cast<ExprShowDatabases *>(exprStmt),
+                                 _stmtResult);
+    break;
+  case ExprType::EXPR_USE_DATABASE:
+    stmt = new StmtUseDatabase(_stmtId, TXID_NULL,
+                               dynamic_cast<ExprUseDatabase *>(exprStmt),
+                               _stmtResult);
+    break;
+  case ExprType::EXPR_CREATE_TABLE:
+    stmt = new StmtCreateTable(_stmtId, TXID_NULL,
+                               dynamic_cast<ExprCreateTable *>(exprStmt),
+                               _stmtResult);
+    break;
+  case ExprType::EXPR_DROP_TABLE:
+    stmt =
+        new StmtDropTable(_stmtId, TXID_NULL,
+                          dynamic_cast<ExprDropTable *>(exprStmt), _stmtResult);
+    break;
+  case ExprType::EXPR_SHOW_TABLES:
+    stmt = new StmtShowTables(_stmtId, TXID_NULL,
+                              dynamic_cast<ExprShowTables *>(exprStmt),
+                              _stmtResult);
+    break;
+  case ExprType::EXPR_TRUN_TABLE:
+    stmt =
+        new StmtTrunTable(_stmtId, TXID_NULL,
+                          dynamic_cast<ExprTrunTable *>(exprStmt), _stmtResult);
+    break;
+  case ExprType::EXPR_TRANSACTION:
+    stmt = new StmtTransaction(_stmtId, TXID_NULL,
+                               dynamic_cast<ExprTransaction *>(exprStmt),
+                               _stmtResult);
+    break;
   default:
     LOG_FATAL << "Unsupport ExprType " << exprStmt->GetType();
     abort();
@@ -203,4 +249,67 @@ TaskStatus SessionUseDB::Exec(SessionGroup &sGroup) {
 
   return TaskStatus::FINISHED;
 }
+
+TaskStatus SessionCleaner::Exec(SessionGroup &sGroup) {
+  for (auto iter = sGroup._obsoleteSession.begin();
+       iter != sGroup._obsoleteSession.end(); iter++) {
+    if ((*iter)->IsEmpty()) {
+      sGroup._obsoleteSession.erase(iter);
+    } else {
+      (*iter)->SetChechTime();
+    }
+  }
+
+  for (auto iter = sGroup._mapSession.begin(); iter != sGroup._mapSession.end();
+       iter++) {
+    iter->second->SetChechTime();
+  }
+
+  for (auto iter = sGroup._mapIdExprStatement.begin();
+       iter != sGroup._mapIdExprStatement.end(); iter++) {
+    if (iter->second->_dtLastCheck < _dtStart &&
+        _dtStart - iter->second->_dtLastCheck > 3600 * 1000ULL) {
+      sGroup._mapIdExprStatement.erase(iter);
+    }
+  }
+
+  for (auto iter = sGroup._mapSqlExprStatement.begin();
+       iter != sGroup._mapSqlExprStatement.end(); iter++) {
+    if (iter->second->_dtLastCheck < _dtStart &&
+        _dtStart - iter->second->_dtLastCheck > 3600 * 1000ULL) {
+      delete iter->second;
+      sGroup._mapSqlExprStatement.erase(iter);
+    }
+  }
+
+  size_t num = _cntFinished.fetch_add(1, memory_order_acq_rel);
+  size_t gCnt = SessionPool::GetVctSessionGroup().size();
+  if (num == gCnt - 1) {
+    auto &vctTbl = TableManager::GetDiscardTable();
+    for (auto iter = vctTbl.begin(); iter != vctTbl.end(); iter++) {
+      if ((*iter)->GetLastCheckTime() < _dtStart) {
+        if ((*iter)->GetTableStatus() == ResStatus::Droped) {
+          fs::remove_all((*iter)->GetPath());
+        }
+        delete *iter;
+        iter = vctTbl.erase(iter);
+      }
+    }
+
+    auto &vctDb = DatabaseManager::GetDiscardDb();
+    for (auto iter = vctDb.begin(); iter != vctDb.end(); iter++) {
+      if ((*iter)->GetLastCheckTime() < _dtStart) {
+        if ((*iter)->GetResStatus() == ResStatus::Droped) {
+          fs::remove_all((*iter)->GetDbPath());
+        }
+
+        delete *iter;
+        iter = vctDb.erase(iter);
+      }
+    }
+  }
+
+  return TaskStatus::FINISHED;
+}
+
 } // namespace storage

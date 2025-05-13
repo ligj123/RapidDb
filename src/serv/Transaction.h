@@ -45,7 +45,11 @@ public:
 
   TranStatus GetTranStatus() { return _tranStatus; }
   void SetTranStatus(TranStatus s) { _tranStatus = s; }
-  bool IsAutoCommit() { return _bAutoCommit; }
+  bool IsAutoCommit() {
+    assert(_tranStatus == TranStatus::AUTO_TRAN ||
+           _tranStatus == TranStatus::IN_TRAN);
+    return _tranStatus == TranStatus::AUTO_TRAN;
+  }
   void SetLogged() { _bLogged.store(true, memory_order_relaxed); }
   bool IsLogged() { return _bLogged.load(memory_order_relaxed); }
   void WriteLog(LogTask *logTask);
@@ -55,6 +59,13 @@ public:
    * @brief Close the transaction and delete all internal statements.
    */
   void CloseTransaction();
+
+  bool IsNeedLog();
+
+  bool IsEmpty() {
+    return _lstStatement.size() == 0 && (_tranStatus == TranStatus::INIT ||
+                                         _tranStatus == TranStatus::FINISHED);
+  }
 
 protected:
   TranID _tid{TXID_NULL};
@@ -67,7 +78,6 @@ protected:
   Session *_session;
 
   TranStatus _tranStatus{TranStatus::INIT};
-  bool _bAutoCommit{true};
   IsoLevel _isoLevel{IsoLevel::ReadCommited};
   CcProtocol _ccProtocol{CcProtocol::OCC};
   // The log has been wrote into log files or not

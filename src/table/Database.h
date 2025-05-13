@@ -21,16 +21,24 @@ public:
     MString path;
     path.reserve(Configure::GetDbRootPath().size() + 1 + _folder.size());
     path += Configure::GetDbRootPath().c_str();
-    path += "/";
+    if (path.back() != '/' && path.back() != '\\') {
+      path += "/";
+    }
     path += _folder;
     return path;
   }
   const MString &GetDbName() const { return _dbName; }
   void SetResStatus(ResStatus sts) { _dbStatus = sts; }
   ResStatus GetResStatus() const { return _dbStatus; }
+  bool IsObsolete() {
+    return _dbStatus == ResStatus::Droped || _dbStatus == ResStatus::Obsolete;
+  }
   DT_MilliSec GetLastVisitTime() const { return _dtLastVisit; }
   void SetLastVisitTime() { _dtLastVisit = MilliSecTime(); }
   size_t Hash() const { return _hash; }
+  int GetID() { return _id; }
+  DT_MilliSec GetLastCheckTime() { return _dtLastChecked; }
+  void SetCheckTime() { _dtLastChecked = MilliSecTime(); }
 
 public:
   static void *operator new(size_t size) {
@@ -57,6 +65,8 @@ protected:
   bool _bValid{true};
   // Database status
   ResStatus _dbStatus{ResStatus::Valid};
+  // The microsecond to check this table. Only used when it is obsolete.
+  DT_MilliSec _dtLastChecked;
   // string hash of db name
   size_t _hash;
 };

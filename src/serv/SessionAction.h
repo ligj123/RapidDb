@@ -127,4 +127,14 @@ protected:
   StmtResult *_result;
   MString _dbName;
 };
+
+class SessionCleaner : public SessionAction {
+public:
+  SessionCleaner() : _dtStart(MicroSecTime()) {}
+  TaskStatus Exec(SessionGroup &sGroup) override;
+
+protected:
+  atomic_int _cntFinished{0};
+  DT_MilliSec _dtStart;
+};
 } // namespace storage

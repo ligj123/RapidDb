@@ -510,6 +510,7 @@ uint32_t LeafRecord::CalcValueLength(IndexTree *idxTree,
 
   uint32_t lenVal = (uint32_t)(vctVal.size() + 7) / 8 + idxTree->GetValVarLen();
   for (size_t i = 0; i < vctVal.size(); i++) {
+    assert(vctVal[i] != nullptr);
     lenVal += vctVal[i]->GetPersistenceLength(SavePosition::VALUE);
   }
   return lenVal;

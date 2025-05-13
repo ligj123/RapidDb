@@ -20,14 +20,16 @@ void Session::Exec() {
     TranStatus ts = _transaction.GetTranStatus();
     assert(ts != TranStatus::AUTO_TRAN);
     _currStatement = _lstWaittingStmt.front();
+    _lstWaittingStmt.pop_front();
+
     if (_currStatement->IsSoleTran() && ts == TranStatus::IN_TRAN) {
-      // TO DO
-      // Commit or rollback previous statements
-      abort();
+      // This version does not support auto coomit when run DDL statement.
+      // This design maybe is changed in future.
+      _currStatement->FailWithUnfinishedTran();
+      delete _currStatement;
+      _currStatement = nullptr;
       return;
     }
-
-    _lstWaittingStmt.pop_front();
 
     if (_currStatement->GetType() == ExprType::EXPR_TRANSACTION) {
       StmtStatus s = _currStatement->SessionExec(this);
@@ -40,7 +42,8 @@ void Session::Exec() {
     }
 
     if (ts == TranStatus::FINISHED || ts == TranStatus::INIT) {
-      _transaction.StartTransaction(_bAutoCommit);
+      _transaction.StartTransaction(
+          _currStatement->IsSoleTran() ? true : _bAutoCommit);
     }
 
     _currStatement->SetTxID(_transaction.GetTranID());
@@ -54,6 +57,24 @@ void Session::Exec() {
   } else if (s == StmtStatus::Executed) {
     assert(!_transaction.IsAutoCommit());
     _currStatement = nullptr;
+  }
+}
+
+void Session::SetChechTime() {
+  if (_currDb != nullptr) {
+    if (_bObsolete) {
+      _currDb = nullptr;
+    } else if (_currDb->IsObsolete())
+      _currDb = nullptr;
+  }
+
+  for (Statement *stmt : _lstWaittingStmt) {
+    stmt->GetExprStatement()->CheckObsoleteTable();
+  }
+
+  MList<Statement *> &lst = _transaction.GetListStatement();
+  for (Statement *stmt : lst) {
+    stmt->GetExprStatement()->CheckObsoleteTable();
   }
 }
 } // namespace storage

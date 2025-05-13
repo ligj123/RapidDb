@@ -17,7 +17,7 @@ public:
    */
   static bool InitDb(PhysTable *dbTable);
   static bool AddDb(Database *db);
-  static bool DelDb(const MString &dbName);
+  static bool RemoveDb(const MString &dbName, bool bDroped);
   static bool ListDb(MVector<MString> &vctDb);
   static Database *FindDb(const MString &db);
   static bool LockDb(bool bWait = true) {
@@ -33,6 +33,8 @@ public:
     _spinMutex.unlock();
   }
   static void ClearDB();
+
+  static vector<Database *> &GetDiscardDb() { return _discardDb; }
 
 protected:
   static void AddFastDB(Database *db);

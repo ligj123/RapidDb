@@ -541,11 +541,7 @@ bool Statement::SacnIndex(int rangePos) {
         } else {
           LeafRecord *lr = &lpage->GetRecord(pos);
           if (lr->ReleaseLockAble()) {
-            int32_t commLen1, commLen2, tempLen1, tempLen2;
-            lr->GetLength(tempLen1, commLen1);
-            lr->ReleaseLock(lpage->GetIndexTree());
-            lr->GetLength(tempLen2, commLen2);
-            lpage->UpdateDataLength(commLen2 - commLen1, tempLen2 - tempLen1);
+            lpage->ReleaseLock(lr);
           }
 
           SecLockResult slr =
@@ -577,11 +573,7 @@ bool Statement::SacnIndex(int rangePos) {
           }
         } else {
           if (lr->ReleaseLockAble()) {
-            int32_t commLen1, commLen2, tempLen1, tempLen2;
-            lr->GetLength(tempLen1, commLen1);
-            lr->ReleaseLock(lpage->GetIndexTree());
-            lr->GetLength(tempLen2, commLen2);
-            lpage->UpdateDataLength(commLen2 - commLen1, tempLen2 - tempLen1);
+            lpage->ReleaseLock(lr);
           }
 
           SecLockResult slr =
@@ -647,5 +639,15 @@ void Statement::SendErrMsg(MString &&errMsg) {
     SessionPool::AddAction(ThreadPool::GetThreadId(), GetTxId(), eAction);
   }
   SetStmtFailed(true);
+}
+
+void Statement::FailWithUnfinishedTran() {
+  _threadErrorMsg.reset(new ErrorMsg(TRAN_WITH_UNFINISHED, {}));
+  _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
+  _stmtFailed.store(true, memory_order_relaxed);
+  _stmtResult->_bFailed = true;
+  _stmtResult->_rowNum = 0;
+  _stmtResult->SetResultStatus(ResultStatus::FINISHED);
+  _status = StmtStatus::Finished;
 }
 } // namespace storage
