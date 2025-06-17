@@ -5,6 +5,7 @@
 #include "CachePage.h"
 #include "CoreEnum.h"
 
+#include <boost/crc.hpp>
 #include <map>
 
 namespace storage {
@@ -92,8 +93,18 @@ public:
   }
   ~HeadPage() { CachePool::Release(_bysPage, HEAD_PAGE_SIZE); }
   void AfterRead() override {
-    InitParameters();
-    _pageStatus.store(PageStatus::VALID, memory_order_release);
+    boost::crc_32_type crc32;
+    crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
+    if (crc32.checksum() != (uint32_t)ReadInt(CRC32_HEAD_OFFSET)) {
+      _pageStatus.store(PageStatus::INVALID, memory_order_relaxed);
+      // TO DO
+      // Now if cache page is invalid, it will abort; In following version, it
+      // will add the function to fix the invalid page
+      abort();
+    } else {
+      InitParameters();
+      _pageStatus.store(PageStatus::READED, memory_order_release);
+    }
   }
   // Create a new head page and initialize it.
   void InitHeadPage(IndexType iType, const VectorDataValue &vctVal);

@@ -27,7 +27,7 @@ public:
     if (_currPos < _vctRow.size()) {
       return true;
     } else {
-      return true;
+      return false;
     }
   }
   bool Last() override {

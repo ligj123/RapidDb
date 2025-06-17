@@ -15,6 +15,7 @@
 #include "../statement/StmtResult.h"
 #include "../statement/TableSelectStatement.h"
 #include "../statement/UpdateStatement.h"
+#include "../table/TableTaskMgr.h"
 #include "../utils/Log.h"
 #include "SessionPool.h"
 
@@ -139,6 +140,7 @@ TaskStatus SessionStatementAction::Exec(SessionGroup &sGroup) {
   // _stmtResult->SetResultStatus(ResultStatus::FINISHED);
   // return TaskStatus::FINISHED;
 
+  exprStmt->_dtLastVisit = MilliSecTime();
   Statement *stmt = nullptr;
   switch (exprStmt->GetType()) {
   case ExprType::EXPR_INSERT:
@@ -266,19 +268,24 @@ TaskStatus SessionCleaner::Exec(SessionGroup &sGroup) {
   }
 
   for (auto iter = sGroup._mapIdExprStatement.begin();
-       iter != sGroup._mapIdExprStatement.end(); iter++) {
-    if (iter->second->_dtLastCheck < _dtStart &&
-        _dtStart - iter->second->_dtLastCheck > 3600 * 1000ULL) {
-      sGroup._mapIdExprStatement.erase(iter);
+       iter != sGroup._mapIdExprStatement.end();) {
+    if (iter->second->_dtLastVisit < _dtStart &&
+        _dtStart - iter->second->_dtLastVisit > 3600 * 1000ULL) {
+      iter = sGroup._mapIdExprStatement.erase(iter);
+    } else {
+      iter++;
     }
   }
 
   for (auto iter = sGroup._mapSqlExprStatement.begin();
-       iter != sGroup._mapSqlExprStatement.end(); iter++) {
-    if (iter->second->_dtLastCheck < _dtStart &&
-        _dtStart - iter->second->_dtLastCheck > 3600 * 1000ULL) {
+       iter != sGroup._mapSqlExprStatement.end();) {
+    if (iter->second->_dtLastVisit < _dtStart &&
+        _dtStart - iter->second->_dtLastVisit > 3600 * 1000ULL) {
       delete iter->second;
-      sGroup._mapSqlExprStatement.erase(iter);
+      iter = sGroup._mapSqlExprStatement.erase(iter);
+    } else {
+      iter->second->CheckObsoleteTable();
+      iter++;
     }
   }
 
@@ -286,18 +293,42 @@ TaskStatus SessionCleaner::Exec(SessionGroup &sGroup) {
   size_t gCnt = SessionPool::GetVctSessionGroup().size();
   if (num == gCnt - 1) {
     auto &vctTbl = TableManager::GetDiscardTable();
-    for (auto iter = vctTbl.begin(); iter != vctTbl.end(); iter++) {
+    for (auto iter = vctTbl.begin(); iter != vctTbl.end();) {
       if ((*iter)->GetLastCheckTime() < _dtStart) {
+        PhysTable *tbl = *iter;
+        bool bStoped = true;
+        auto &vctTasks = tbl->GetTableTaskMgr()->GetVctIndexTasks();
+        for (MVector<IndexTask *> &vctTask : vctTasks) {
+          for (IndexTask *task : vctTask) {
+            if (!task->IsRemovedPool()) {
+              bStoped = false;
+              break;
+            }
+          }
+
+          if (!bStoped) {
+            break;
+          }
+        }
+
+        if (!bStoped) {
+          tbl->GetDb()->SetCheckTime();
+          tbl->SetCheckTime();
+          continue;
+        }
+
         if ((*iter)->GetTableStatus() == ResStatus::Droped) {
           fs::remove_all((*iter)->GetPath());
         }
         delete *iter;
         iter = vctTbl.erase(iter);
+      } else {
+        iter++;
       }
     }
 
     auto &vctDb = DatabaseManager::GetDiscardDb();
-    for (auto iter = vctDb.begin(); iter != vctDb.end(); iter++) {
+    for (auto iter = vctDb.begin(); iter != vctDb.end();) {
       if ((*iter)->GetLastCheckTime() < _dtStart) {
         if ((*iter)->GetResStatus() == ResStatus::Droped) {
           fs::remove_all((*iter)->GetDbPath());
@@ -305,6 +336,8 @@ TaskStatus SessionCleaner::Exec(SessionGroup &sGroup) {
 
         delete *iter;
         iter = vctDb.erase(iter);
+      } else {
+        iter++;
       }
     }
   }

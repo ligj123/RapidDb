@@ -36,7 +36,7 @@ StmtStatus StmtCreateDatabase::SessionExec(Session *sess) {
     assert(b && dbTable != nullptr);
 
     string path = Configure::GetDbRootPath() + string(dbName->c_str()) + "_";
-    int ii = 1;
+    DT_Second ii = SecondTime();
     MString folder;
 
     while (true) {
@@ -396,6 +396,7 @@ StmtStatus StmtUseDatabase::SessionExec(Session *sess) {
     _threadErrorMsg.reset(
         new ErrorMsg(DDL_DATABASE_NOT_EXIST, {*expr->_dbName}));
     _stmtResult->_vctError.push_back(move(_threadErrorMsg->GetErrorMsg()));
+    _stmtResult->SetResultStatus(ResultStatus::FINISHED);
     SetStmtFailed(true);
     return StmtStatus::Finished;
   }
@@ -436,7 +437,7 @@ StmtStatus StmtCreateTable::SessionExec(Session *sess) {
     MString spath =
         expr->_table->_db->GetDbPath() + "/" + *expr->_table->_tName + "_";
     MString folder = *expr->_table->_tName + "_";
-    int ii = 1;
+    DT_Second ii = SecondTime();
 
     while (true) {
       MString ss = spath + ToMString(ii);

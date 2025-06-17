@@ -440,8 +440,16 @@ void Statement::SendStmtRecord(int rangePos, PhysTable *table, Statement *stmt,
   idxTree->AddToPrimaryAction(rangePos, action);
 }
 
-void Statement::CollectLogRecords(TreeSetRecord &setRec) {
-  assert(!_stmtFailed.load(memory_order_relaxed) && !IsReadonly());
+void Statement::CollectLogRecords(
+    MHashMap<PhysTable *, TreeSetRecord> &mapSetRec) {
+  assert(!_stmtFailed.load(memory_order_relaxed));
+  if (IsReadonly()) {
+    return;
+  }
+
+  PhysTable *tbl = _exprStmt->GetTable();
+  assert(tbl != nullptr);
+  auto pr = mapSetRec.emplace(tbl, TreeSetRecord());
 
   for (LeafRecord *lr : _lstFinishRecord) {
     assert(lr->GetLock()->_recResult != RecordResult::INIT);
@@ -449,7 +457,7 @@ void Statement::CollectLogRecords(TreeSetRecord &setRec) {
       continue;
     }
 
-    setRec.insert(lr);
+    pr.first->second.insert(lr);
   }
 }
 

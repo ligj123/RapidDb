@@ -39,6 +39,7 @@ public:
   int GetID() { return _id; }
   DT_MilliSec GetLastCheckTime() { return _dtLastChecked; }
   void SetCheckTime() { _dtLastChecked = MilliSecTime(); }
+  MString &GetFolder() { return _folder; }
 
 public:
   static void *operator new(size_t size) {

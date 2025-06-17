@@ -62,7 +62,8 @@ TaskStatus IndexTask::Run() {
   if (TableTaskMgr::_dtLastWriteDisk > range._dtLastWriteDisk) {
     idxTree->SettleUpdatedPages(range._pageMap);
     range._dtLastWriteDisk = TableTaskMgr::_dtLastWriteDisk + 1;
-  } else if (_taskMgr->GetMgrStatus() == MgrStatus::SET_STOP) {
+  } else if (_taskMgr->GetMgrStatus() == MgrStatus::SET_STOP ||
+             ThreadPool::IsStoped()) {
     if (lstAction.size() == 0 && (_taskPos == 0 && range._pageMap.size() <= 1 ||
                                   _taskPos > 0 && range._pageMap.size() == 0)) {
       if (range._dtTaskStop == 0) {

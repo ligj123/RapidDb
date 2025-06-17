@@ -35,9 +35,10 @@ struct SessionGroup {
     assert(_lstAction.size() == 0);
     assert(_threaPoolQueue.RoughSize() == 0 && _outerQueue.RoughSize() == 0);
     for (auto iter = _mapSession.begin(); iter != _mapSession.end(); iter++) {
-      assert(iter->second->_lstWaittingStmt.size() == 0 &&
-             iter->second->_transaction.GetTranStatus() ==
-                 TranStatus::FINISHED);
+      assert(
+          iter->second->_lstWaittingStmt.size() == 0 &&
+          (iter->second->_transaction.GetTranStatus() == TranStatus::FINISHED ||
+           iter->second->_transaction.GetTranStatus() == TranStatus::INIT));
       delete iter->second;
     }
 

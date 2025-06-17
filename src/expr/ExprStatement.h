@@ -164,11 +164,12 @@ public:
   }
   ExprType GetType() override { return ExprType::EXPR_SELECT; }
   bool Preprocess(Database *currDb = nullptr) override;
-  void CheckObsoleteTable() override {
-    _dtLastCheck = MilliSecTime();
+  bool CheckObsoleteTable() override {
     if (_exprDestSelect != nullptr) {
-      _exprDestSelect->CheckObsoleteTable();
+      return _exprDestSelect->CheckObsoleteTable();
     }
+
+    return false;
   }
 
 public:
@@ -204,10 +205,15 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_TABLE_SELECT; }
   bool Preprocess(Database *currDb = nullptr) override;
-  void CheckObsoleteTable() override {
-    _dtLastCheck = MilliSecTime();
-    _exprTable->_db->SetCheckTime();
-    _exprTable->_physTable->SetCheckTime();
+  bool CheckObsoleteTable() override {
+    ResStatus s = _exprTable->_physTable->GetTableStatus();
+    bool b = (s == ResStatus::Droped || s == ResStatus::Obsolete);
+    if (!b) {
+      _exprTable->_physTable->SetCheckTime();
+      _exprTable->_db->SetCheckTime();
+    }
+
+    return b;
   }
 
 public:
@@ -249,11 +255,7 @@ public:
     return false;
   }
 
-  void CheckObsoleteTable() override {
-    _dtLastCheck = MilliSecTime();
-    _leftTable->CheckObsoleteTable();
-    _rightTable->CheckObsoleteTable();
-  }
+  bool CheckObsoleteTable() override { return false; }
 
 public:
   // This select
@@ -284,14 +286,22 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_INSERT; }
   bool Preprocess(Database *currDb = nullptr) override;
-  void CheckObsoleteTable() override {
-    _dtLastCheck = MilliSecTime();
-    _exprTable->_db->SetCheckTime();
-    _exprTable->_physTable->SetCheckTime();
+  bool CheckObsoleteTable() override {
+    ResStatus s = _exprTable->_physTable->GetTableStatus();
+    bool b = (s == ResStatus::Droped || s == ResStatus::Obsolete);
     if (_exprSelect != nullptr) {
-      _exprSelect->CheckObsoleteTable();
+      b |= _exprSelect->CheckObsoleteTable();
     }
+
+    if (!b) {
+      _exprTable->_physTable->SetCheckTime();
+      _exprTable->_db->SetCheckTime();
+    }
+
+    return b;
   }
+
+  PhysTable *GetTable() override { return _exprTable->_physTable; }
 
 public:
   // The destion table
@@ -319,11 +329,18 @@ public:
   }
   ExprType GetType() override { return ExprType::EXPR_UPDATE; }
   bool Preprocess(Database *currDb = nullptr) override;
-  void CheckObsoleteTable() override {
-    _dtLastCheck = MilliSecTime();
-    _exprTable->_db->SetCheckTime();
-    _exprTable->_physTable->SetCheckTime();
+  bool CheckObsoleteTable() override {
+    ResStatus s = _exprTable->_physTable->GetTableStatus();
+    bool b = (s == ResStatus::Droped || s == ResStatus::Obsolete);
+    if (!b) {
+      _exprTable->_physTable->SetCheckTime();
+      _exprTable->_db->SetCheckTime();
+    }
+
+    return b;
   }
+
+  PhysTable *GetTable() override { return _exprTable->_physTable; }
 
 public:
   // The destion table information
@@ -347,11 +364,18 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_DELETE; }
   bool Preprocess(Database *currDb = nullptr) override;
-  void CheckObsoleteTable() override {
-    _dtLastCheck = MilliSecTime();
-    _exprTable->_db->SetCheckTime();
-    _exprTable->_physTable->SetCheckTime();
+  bool CheckObsoleteTable() override {
+    ResStatus s = _exprTable->_physTable->GetTableStatus();
+    bool b = (s == ResStatus::Droped || s == ResStatus::Obsolete);
+    if (!b) {
+      _exprTable->_physTable->SetCheckTime();
+      _exprTable->_db->SetCheckTime();
+    }
+
+    return b;
   }
+
+  PhysTable *GetTable() override { return _exprTable->_physTable; }
 
 public:
   // The destion table information

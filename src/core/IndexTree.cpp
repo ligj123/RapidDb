@@ -151,6 +151,12 @@ bool IndexTree::CreateIndexTree(const MString &tableName,
   _rootPage = ApplyIndexPages(nullptr, 0, 1).at(0);
   _rootPage->SetBeginPage(true);
   _rootPage->SetEndPage(true);
+  _rootPage->SetDirty();
+  _headPage->SaveToBuffer();
+  MTreeMap<uint64_t, CachePage *> pageMap;
+  dynamic_cast<LeafPage *>(_rootPage)->SaveRecords(pageMap);
+  assert(pageMap.size() == 0);
+
   FilePagePool::SyncWritePage(_headPage);
   FilePagePool::SyncWritePage(_rootPage);
 

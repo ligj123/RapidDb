@@ -299,7 +299,7 @@ public:
    * first, the first statement should be the last one to call this method.
    * @param setRec: The tree set to save the LeafRecords to write log
    */
-  void CollectLogRecords(TreeSetRecord &setRec);
+  void CollectLogRecords(MHashMap<PhysTable *, TreeSetRecord> &mapSetRec);
   /**
    * @brief To update RecordStatus into COMMITED of all locked LeafRecord in
    * this statement.
@@ -360,6 +360,7 @@ public:
   void FailWithUnfinishedTran();
 
   size_t GetRecordSize() { return _lstFinishRecord.size(); }
+  MList<LeafRecord *> &GetRecords() { return _lstFinishRecord; }
 
 protected:
   MVector<QueryRange> MergeAndQueryRange(MVector<QueryRange> &vctLeft,

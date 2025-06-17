@@ -2,13 +2,14 @@
 #include "../serv/Transaction.h"
 #include "../utils/RapidQueue.h"
 #include "../utils/ThreadPool.h"
+#include "LogType.h"
 
 #include <boost/crc.hpp>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 
-#define PREFIX_LOG_NAME "/rapid_log_"
+#define PREFIX_LOG_NAME "/redo_log_"
 #define LOG_FILE_LEN_LIMIT 64000000
 #define BUFF_SIZE 10000000
 
@@ -40,18 +41,27 @@ public:
     _queueTran->Push(tid, tran);
   }
 
-  // Only for test purpose
+  // Remove all waitting tasks in _queueTran. Only for test purpose
   static void Clear();
 
   static LogTask *GetTask() { return _logTask; }
 
 public:
   LogTask(ThreadPool *threadPool, const MString &logPath);
-  ~LogTask() {}
+  ~LogTask() {
+    _logStream.close();
+    delete[] _buff;
+  }
   TaskStatus Run() override;
 
-  void WriteBuff(int64_t dataLen, bool bTranStart);
+  void WriteBuff(Byte *buff, int64_t dataLen);
   Byte *GetBuff() { return _buff; }
+
+protected:
+  void RecreateLogFile();
+  void WriteDmlLog(Transaction *tran);
+  void WriteSplitePageLog(Transaction *tran);
+  void WriteDdlLog(Transaction *tran);
 
 protected:
   static LogTask *_logTask;

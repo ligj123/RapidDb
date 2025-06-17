@@ -1,6 +1,7 @@
 #pragma once
 #include "../cache/Mallocator.h"
 #include "../core/CoreEnum.h"
+#include "../table/Table.h"
 #include "BaseExpr.h"
 #include "ExprData.h"
 #include "ExprLogic.h"
@@ -49,7 +50,7 @@ public:
 
   ExprType GetType() override { return ExprType::EXPR_SHOW_DATABASES; }
   bool Preprocess(Database *currDb) override { return true; }
-  bool IsCacheExpr() override { return false; }
+  bool IsCacheExpr() override { return true; }
 
 public:
   MVectorPtr<ExprColumn *> _vctCol;
@@ -188,7 +189,7 @@ public:
 
     return true;
   }
-  bool IsCacheExpr() override { return false; }
+  bool IsCacheExpr() override { return true; }
 
 public:
   MString *_dbName;
@@ -201,11 +202,16 @@ public:
   ~ExprTrunTable() { delete _table; }
   ExprType GetType() override { return ExprType::EXPR_TRUN_TABLE; }
   bool Preprocess(Database *currDb = nullptr) override;
-  void CheckObsoleteTable() override {
-    _dtLastCheck = MilliSecTime();
+  bool CheckObsoleteTable() override {
     assert(_table != nullptr && _table->_physTable != nullptr);
-    _table->_physTable->SetCheckTime();
-    _table->_db->SetCheckTime();
+    ResStatus s = _table->_physTable->GetTableStatus();
+    bool b = (s == ResStatus::Droped || s == ResStatus::Obsolete);
+    if (!b) {
+      _table->_physTable->SetCheckTime();
+      _table->_db->SetCheckTime();
+    }
+
+    return b;
   }
 
 public:

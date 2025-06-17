@@ -10,6 +10,8 @@ struct SessionGroup;
 class Statement;
 class Session;
 class LogTask;
+class RawRecord;
+class BranchRecord;
 
 class Transaction {
 public:
@@ -50,7 +52,7 @@ public:
            _tranStatus == TranStatus::IN_TRAN);
     return _tranStatus == TranStatus::AUTO_TRAN;
   }
-  void SetLogged() { _bLogged.store(true, memory_order_relaxed); }
+  virtual void SetLogged() { _bLogged.store(true, memory_order_relaxed); }
   bool IsLogged() { return _bLogged.load(memory_order_relaxed); }
   void WriteLog(LogTask *logTask);
   TranID GetTranID() { return _tid; }
@@ -84,4 +86,20 @@ protected:
   atomic_bool _bLogged{false};
 };
 
+class SplitPageTran : public Transaction {
+public:
+  SplitPageTran(PageID parentPid, PageID splitPid,
+                MVector<BranchRecord *> &&vctNewRec)
+      : Transaction(nullptr), _parentPageID(parentPid), _splitPageID(splitPid),
+        _vctNewRec(move(vctNewRec)) {}
+  void SetLogged() { delete this; }
+  PageID GetParentPageID() { return _parentPageID; }
+  PageID GetSplitPageID() { return _splitPageID; }
+  MVector<BranchRecord *> &GetVctNewRec() { return _vctNewRec; }
+
+protected:
+  PageID _parentPageID;
+  PageID _splitPageID;
+  MVector<BranchRecord *> _vctNewRec;
+};
 } // namespace storage

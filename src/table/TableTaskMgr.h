@@ -143,8 +143,6 @@ public:
 
   // To check if all IndexTasks have finished
   void CheckMgrStatus() {
-    assert(_mgrStatus.load(memory_order_relaxed) == MgrStatus::SET_STOP);
-
     for (auto &vct : _vctIndexTasks) {
       for (auto task : vct) {
         if (task->GetStatus(true) != TaskStatus::FINISHED) {

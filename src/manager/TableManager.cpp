@@ -22,8 +22,14 @@ bool TableManager::_bAllInMemory{true};
 
 bool TableManager::InitTable(PhysTable *sysTable) {
   IndexTree *ptree = sysTable->GetPrimaryKey()._tree;
-  BranchPage *bp = dynamic_cast<BranchPage *>(ptree->GetRootPage());
-  LeafPage *lp = bp->GetLeftLeafChild();
+  IndexPage *rp = ptree->GetRootPage();
+  LeafPage *lp = nullptr;
+  if (rp->GetPageType() == PageType::BRANCH_PAGE) {
+    BranchPage *bp = dynamic_cast<BranchPage *>(rp);
+    lp = bp->GetLeftLeafChild();
+  } else {
+    lp = dynamic_cast<LeafPage *>(rp);
+  }
 
   while (lp != nullptr) {
     uint32_t num = lp->GetRecordNumber();
@@ -46,6 +52,12 @@ bool TableManager::InitTable(PhysTable *sysTable) {
         if (!tbl->LoadData(bys)) {
           delete tbl;
           LOG_FATAL << "Failed to load data for table information!";
+          return false;
+        }
+
+        if (!tbl->OpenTable()) {
+          delete tbl;
+          LOG_FATAL << "Failed to open table " << tbl->GetFullName();
           return false;
         }
 
@@ -106,6 +118,7 @@ bool TableManager::RemoveTable(const MString &tblFullName, bool bDroped) {
 
   PhysTable *tbl = iter->second;
   tbl->SetTableStatus(bDroped ? ResStatus::Droped : ResStatus::Obsolete);
+  tbl->GetTableTaskMgr()->SetMgrStatus(MgrStatus::SET_STOP);
 
   PhysTable **pArrTbl = _fastTableCache[tbl->Hash() % FAST_SIZE];
   for (int i = 0; i < 4; i++) {
@@ -218,7 +231,7 @@ void TableManager::LoadTable(PhysTable *table) {
 void TableManager::CloseTasksAndPages() {
   unique_lock<SpinMutex> lock(_spinMutex);
   for (auto iter = _mapTable.begin(); iter != _mapTable.end(); iter++) {
-    auto vctTasks = iter->second->GetTableTaskMgr()->GetVctIndexTasks();
+    auto &vctTasks = iter->second->GetTableTaskMgr()->GetVctIndexTasks();
     for (MVector<IndexTask *> &vctTask : vctTasks) {
       for (IndexTask *task : vctTask) {
         task->SetStatus(TaskStatus::FINISHED, false);
@@ -234,7 +247,7 @@ void TableManager::CloseTasksAndPages() {
   }
 
   for (PhysTable *table : _discardTable) {
-    auto vctTasks = table->GetTableTaskMgr()->GetVctIndexTasks();
+    auto &vctTasks = table->GetTableTaskMgr()->GetVctIndexTasks();
     for (MVector<IndexTask *> &vctTask : vctTasks) {
       for (IndexTask *task : vctTask) {
         task->SetStatus(TaskStatus::FINISHED, false);

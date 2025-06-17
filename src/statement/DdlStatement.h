@@ -30,6 +30,7 @@ public:
   }
 
   bool IsSoleTran() override { return true; }
+  Database *GetDb() { return _db; }
 
 protected:
   // To save the paras after handle

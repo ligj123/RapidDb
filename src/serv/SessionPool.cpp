@@ -193,7 +193,9 @@ void SessionPool::AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
                                VectorRow &&paras, StmtResult *result) {
   // result->SetResultStatus(ResultStatus::FINISHED);
   // return;
-
+  if (paras.size() == 0) {
+    paras.emplace_back();
+  }
   result->Reset();
   SessionStatementAction *action = new SessionStatementAction(
       sid, stmtId, exprId, move(sql), move(paras), result);
@@ -202,7 +204,10 @@ void SessionPool::AddStatement(uint16_t outerTid, uint32_t sid, uint32_t stmtId,
 
 void SessionPool::AddAction(uint16_t outId, uint32_t sid, SessionAction *action,
                             StmtResult *result) {
-  result->Reset();
+  if (result != nullptr) {
+    result->Reset();
+  }
+
   _vctGroup[sid % _vctGroup.size()]._outerQueue.Push(outId, action);
 }
 

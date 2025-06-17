@@ -78,7 +78,11 @@ bool HeadPage::SaveToBuffer() {
   WriteLong(CURRENT_RECORD_STAMP_OFFSET, _currRecordStamp);
   WriteLong(AUTO_INCREMENT_KEY_OFFSET, _autoIncrementKey);
 
+  boost::crc_32_type crc32;
+  crc32.process_bytes(_bysPage, CRC32_HEAD_OFFSET);
+  WriteInt(CRC32_HEAD_OFFSET, crc32.checksum());
   _bDirty = false;
+
   return true;
 }
 

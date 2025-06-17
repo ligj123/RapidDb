@@ -126,6 +126,7 @@ public:
   void SetID(uint32_t id) { _tid = id; }
   void SetFolder(const MString &folder) { _folder = folder; }
   const MString GetPath() { return _db->GetDbPath() + "/" + _folder; }
+  Database *GetDb() { return _db; }
   const char *GetPrimaryName() const { return PRIMARY_KEY; }
   IndexProp &GetPrimaryKey() { return _vctIndex[0]; }
   MVector<IndexProp> &GetVectorIndex() { return _vctIndex; }

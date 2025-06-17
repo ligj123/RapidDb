@@ -134,6 +134,9 @@ public:
   inline void SetRemovedPool(bool b) {
     _bRemovedPool.store(b, memory_order_relaxed);
   }
+  inline bool IsRemovedPool() {
+    return _bRemovedPool.load(memory_order_relaxed);
+  }
 
 protected:
   ThreadPool *_threadPool;

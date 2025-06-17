@@ -119,8 +119,8 @@ public:
   void LoadRecords() override;
   bool SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) override;
   /**
-   * @brief Clear all RecordLock in this page if the locks has been commited or
-   * freed.
+   * @brief Clear all RecordLocks in this page if the locks has been commited or
+   * rollbacked.
    */
   void ClearObsoleteLocks();
 

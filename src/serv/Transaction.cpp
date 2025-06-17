@@ -34,46 +34,46 @@ void Transaction::WriteLog(LogTask *logTask) {
   // Now does not consider DDL statement
   bool bStart = true;
 
-  Byte *sBuff = logTask->GetBuff();
-  Byte *cBuff = sBuff;
-  *((uint64_t *)cBuff) = _tid;
-  cBuff += UI64_LEN;
+  // Byte *sBuff = logTask->GetBuff();
+  // Byte *cBuff = sBuff;
+  // *((uint64_t *)cBuff) = _tid;
+  // cBuff += UI64_LEN;
 
-  TreeSetRecord setRec;
-  for (auto iter = _lstStatement.rbegin(); iter != _lstStatement.rend();
-       iter++) {
-    assert(_tid == (*iter)->GetTxId());
-    (*iter)->CollectLogRecords(setRec);
-  }
+  // TreeSetRecord setRec;
+  // for (auto iter = _lstStatement.rbegin(); iter != _lstStatement.rend();
+  //      iter++) {
+  //   assert(_tid == (*iter)->GetTxId());
+  //   (*iter)->CollectLogRecords(setRec);
+  // }
 
-  *((uint32_t *)cBuff) = (uint32_t)setRec.size();
-  cBuff += UI32_LEN;
+  // *((uint32_t *)cBuff) = (uint32_t)setRec.size();
+  // cBuff += UI32_LEN;
 
-  for (LeafRecord *lr : setRec) {
-    uint16_t len = lr->GetActualLength();
-    if (cBuff - sBuff > BUFF_SIZE - len) {
-      logTask->WriteBuff(cBuff - sBuff, bStart);
-      bStart = false;
-      cBuff = sBuff;
-    }
+  // for (LeafRecord *lr : setRec) {
+  //   uint16_t len = lr->GetActualLength();
+  //   if (cBuff - sBuff > BUFF_SIZE - len) {
+  //     logTask->WriteBuff(cBuff - sBuff, bStart);
+  //     bStart = false;
+  //     cBuff = sBuff;
+  //   }
 
-    BytesCopy(cBuff, lr->GetBysValue(), len);
-    cBuff += len;
+  //   BytesCopy(cBuff, lr->GetBysValue(), len);
+  //   cBuff += len;
 
-    if (lr->HasOverflowPage()) {
-      OverflowPage *ovPage = lr->GetOverflowPage();
-      if (cBuff - sBuff > BUFF_SIZE - ovPage->PageSize()) {
-        logTask->WriteBuff(cBuff - sBuff, bStart);
-        bStart = false;
-        cBuff = sBuff;
-      }
+  //   if (lr->HasOverflowPage()) {
+  //     OverflowPage *ovPage = lr->GetOverflowPage();
+  //     if (cBuff - sBuff > BUFF_SIZE - ovPage->PageSize()) {
+  //       logTask->WriteBuff(cBuff - sBuff, bStart);
+  //       bStart = false;
+  //       cBuff = sBuff;
+  //     }
 
-      BytesCopy(cBuff, ovPage->GetBysPage(), ovPage->PageSize());
-      cBuff += ovPage->PageSize();
-    }
-  }
+  //     BytesCopy(cBuff, ovPage->GetBysPage(), ovPage->PageSize());
+  //     cBuff += ovPage->PageSize();
+  //   }
+  // }
 
-  logTask->WriteBuff(cBuff - sBuff, bStart);
+  // logTask->WriteBuff(cBuff - sBuff, bStart);
 }
 
 void Transaction::CloseTransaction() {

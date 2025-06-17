@@ -116,6 +116,8 @@ public:
   virtual bool GetCurrDataValueRow(VectorDataValue &vct) = 0;
   virtual void close() {}
 
+  MVectorPtr<ExprColumn *> *GetVctColumn() { return _vctCol; }
+
 protected:
   MVectorPtr<ExprColumn *> *_vctCol;
   MHashMap<MString, int> _mapColPos;

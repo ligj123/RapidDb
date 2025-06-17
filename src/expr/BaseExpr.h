@@ -197,8 +197,16 @@ public:
   virtual bool Preprocess(Database *currDb) = 0;
   virtual bool IsNeedOptimize() { return false; }
   virtual bool IsCacheExpr() { return true; }
-
-  virtual void CheckObsoleteTable() { _dtLastCheck = MilliSecTime(); }
+  /**
+   * @brief To check if the related resources are using
+   * @return If there has obsolete tables or databases.
+   */
+  virtual bool CheckObsoleteTable() { return false; }
+  /**
+   * @brief Get the table of current statement, only used for NO readonly DML
+   * statement.
+   */
+  virtual PhysTable *GetTable() { return nullptr; }
 
 public:
   // The vector of parameters. Params are duplications of its child class
@@ -209,7 +217,7 @@ public:
   // 0x0FFFFFFFFFFFFFFF. 0 means unitialization id and need to assign an id.
   uint32_t _exprId{0};
   // The last time to check if this statement is been used
-  DT_MilliSec _dtLastCheck{0};
+  DT_MilliSec _dtLastVisit{MilliSecTime()};
 };
 
 } // namespace storage

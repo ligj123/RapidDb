@@ -4,31 +4,21 @@
 namespace storage {
 enum class LogType : uint8_t {
   UNKNOWN = 0,
-  RECORD,     // Insert, update or delete a record
-  PAGE_SPLIT, // Split a IndexPage
-  TABLE_OP,
-  DATABASE_OP
+  DML_OP,     // DML operation, Insert, update or delete the records
+  PAGE_SPLIT, // Split an IndexPage, inlude alloc new pages
+  DDL_OP      // DML operation, create, drop database or tables.
 };
 
 inline std::ostream &operator<<(std::ostream &os, const LogType &type) {
   switch (type) {
-  case LogType::RECORD:
-    os << "RECORD(" << (int)LogType::RECORD << ")";
+  case LogType::DML_OP:
+    os << "DML_OP(" << (int)LogType::DML_OP << ")";
     break;
   case LogType::PAGE_SPLIT:
     os << "PAGE_SPLIT(" << (int)LogType::PAGE_SPLIT << ")";
     break;
-  case LogType::TABLE_OP:
-    os << "TABLE_OP(" << (int)LogType::TABLE_OP << ")";
-    break;
-  case LogType::TABLE_DELETE:
-    os << "TABLE_DELETE(" << (int)LogType::TABLE_DELETE << ")";
-    break;
-  case LogType::DATABASE_OP:
-    os << "DATABASE_OP(" << (int)LogType::DATABASE_OP << ")";
-    break;
-  case LogType::UNKNOWN:
-    os << "UNKNOWN(" << (int)LogType::UNKNOWN << ")";
+  case LogType::DDL_OP:
+    os << "DDL_OP(" << (int)LogType::DDL_OP << ")";
     break;
   default:
     os << "ERROR LogType(" << (int)type << ")";

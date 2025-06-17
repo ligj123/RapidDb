@@ -379,6 +379,35 @@ BOOST_AUTO_TEST_CASE(DDL_Statement_test) {
   BOOST_TEST(result._bFailed == false);
   BOOST_TEST(result._vctError.size() == 0);
 
+  // Clear obsolete resource
+  SessionCleaner *action = new SessionCleaner();
+  SessionPool::AddAction(0, 0, action, nullptr);
+  sessTask->Run();
+  BOOST_TEST(TableManager::GetDiscardTable().size() == 2);
+  BOOST_TEST(DatabaseManager::GetDiscardDb().size() == 1);
+
+  for (PhysTable *table : TableManager::GetDiscardTable()) {
+    auto &vctTasks = table->GetTableTaskMgr()->GetVctIndexTasks();
+    for (MVector<IndexTask *> &vctTask : vctTasks) {
+      for (IndexTask *task : vctTask) {
+        task->SetStatus(TaskStatus::FINISHED, false);
+        task->SetRemovedPool(true);
+      }
+    }
+
+    for (IndexProp &prop : table->GetVectorIndex()) {
+      for (IndexRange &range : prop._tree->GetVctRange()) {
+        prop._tree->SettleUpdatedPages(range._pageMap);
+      }
+    }
+  }
+
+  action = new SessionCleaner();
+  SessionPool::AddAction(0, 0, action, nullptr);
+  sessTask->Run();
+  BOOST_TEST(TableManager::GetDiscardTable().size() == 0);
+  BOOST_TEST(DatabaseManager::GetDiscardDb().size() == 0);
+
   TableManager::CloseTasksAndPages();
   this_thread::sleep_for(1ms);
   TableManager::ClearTable();

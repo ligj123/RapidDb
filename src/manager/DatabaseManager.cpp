@@ -18,8 +18,14 @@ vector<Database *> DatabaseManager::_discardDb;
 
 bool DatabaseManager::InitDb(PhysTable *dbTable) {
   IndexTree *ptree = dbTable->GetPrimaryKey()._tree;
-  BranchPage *bp = dynamic_cast<BranchPage *>(ptree->GetRootPage());
-  LeafPage *lp = bp->GetLeftLeafChild();
+  IndexPage *rp = ptree->GetRootPage();
+  LeafPage *lp = nullptr;
+  if (rp->GetPageType() == PageType::BRANCH_PAGE) {
+    BranchPage *bp = dynamic_cast<BranchPage *>(rp);
+    lp = bp->GetLeftLeafChild();
+  } else {
+    lp = dynamic_cast<LeafPage *>(rp);
+  }
 
   while (lp != nullptr) {
     uint32_t num = lp->GetRecordNumber();
@@ -35,8 +41,8 @@ bool DatabaseManager::InitDb(PhysTable *dbTable) {
       }
 
       Database *db = new Database((int)*(DataValueInt *)vdv[0],
-                                  (MString) * (DataValueVarChar *)vdv[1],
                                   (MString) * (DataValueVarChar *)vdv[2],
+                                  (MString) * (DataValueVarChar *)vdv[1],
                                   (DT_MilliSec) * (DataValueDateTime *)vdv[3],
                                   (DT_MilliSec) * (DataValueDateTime *)vdv[4]);
       _mapDb.insert({db->GetDbName(), db});

@@ -130,7 +130,7 @@ protected:
 
 class SessionCleaner : public SessionAction {
 public:
-  SessionCleaner() : _dtStart(MicroSecTime()) {}
+  SessionCleaner() : _dtStart(MilliSecTime()) {}
   TaskStatus Exec(SessionGroup &sGroup) override;
 
 protected:

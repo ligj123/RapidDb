@@ -1,3 +1,84 @@
+# 编译和测试
+
+1. 环境 Ubuntu22.04以上版本
+<br>
+2. 安装依赖软件：<br>
+sudo apt-get install libboost-all-dev -y<br>
+sudo apt install build-essential -y<br>
+sudo apt install clang clang-format -y<br>
+sudo apt-get install openssh-server -y<br>
+sudo apt-get install vim cmake bison flex net-tools git  -y<br>
+sudo apt install libaio-dev -y<br>
+sudo apt-get install ncurses-dev -y<br>
+sudo apt install libreadline-dev -y<br>
+<br>
+
+3. 编译<br>
+a) Release版本 <br>
+mkdir ./Release<br>
+cp ErrorMsg.txt ./Release<br>
+cd Release<br>
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc<br> -DWITHOUT_BIN_LOG=off -DNO_WRITE_DISK=off ..<br>
+cd ..<br><br>
+b) Debug版本<br>
+mkdir ./Debug<br>
+cp ErrorMsg.txt ./Debug<br>
+cd Debug<br>
+cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DCACHE_TRACE=off -DWITHOUT_BIN_LOG=off -DNO_WRITE_DISK=off .. <br><br>
+c) 执行构建<br>
+cmake --build .<br><br>
+d) 参数定义<br>
+WITHOUT_BIN_LOG  是否把更新写入BinLog文件用于崩溃恢复。<br>
+NO_WRITE_DISK  是否把索引文件写盘。<br>
+CACHE_TRACE 是否打印内存申请释放调试信息<br><br>
+4. 测试<br>
+a) 单元测试 <br>
+使用boost test开发单元测试用例，可以使用下面命令查看如何运行单元测试<br>
+ ./UnitTest --help<br><br>
+b) 压力测试  <br>
+该测试的目的是通过大规模的输入请求，测试出该软件最快能够达到的可处理的请求。<br>
+<1> ./PressTest 11 [thread number] [row number]<br>
+11 插入记录压力测试，通过多个线程同时互不相扰的压力插入记录，测试CPU的最大并发能力。<br>
+thread number 同时运行线程数<br>
+row number 每个线程插入的记录数<br>
+<2> ./PressTest 12 [user threads] [session group num] [table task num] [sesion num] [row num] [query times]<br>
+12 创建一个table，插入制定的记录数，然后执行指定次数的查询<br>
+user threads 多少用户线程执行查询任务<br>
+session group num 多少Session group去接收来自客户端的任务并处理，每个group占用一个线程去执行<br>
+table task num 把table分成多少块，每块分别执行各自范围的查询任务<br>
+sesion num 每个Session group有多少可以并发执行的session。<br>
+row num 插入多少条记录用于测试<br>
+query times 总的查询次数<br>
+<3> ./PressTest 13 [session group num] [table num] [sesion num] [row num] [query times]<br>
+13 创建若干个个table，每个user thread发起对应table的插入和查询请求，把请求发送到SessionGroup，然后分发到对应的table task执行<br>
+session group num 多少Session group去接收来自客户端的任务并处理，每个group占用一个线程去执行<br>
+table num 建立多少table，每个table对应一个user thread和后台table task，每个table task独占一个thread。<br>
+sesion num 每个Session group有多少可以并发执行的session。<br>
+row num 插入多少条记录用于测试<br>
+query times 总的查询次数<br>
+<br>
+c) 命令行客户端<br>
+这是一个服务端和客户端在一个进程中的运行SQL测试的命令行客户端代码，启动命令为：<br>
+./sClient<br>
+目前支持的SQL语法：<br>
+show databases;<br>
+create database "dbname";<br>
+drop database "dbname";<br>
+use "dbname";<br>
+show tables [from "dbname"];<br>
+create table "tblname"(<br>
+    col1 datatype primayy key,<br>
+    col2 datatype,<br>
+    ...<br>
+);<br>
+drop table "tblname";<br>
+insert into "tblname" values(...);
+update "tblname" set col="val" ... where conditions;
+delete from "tblname" where condition;
+select * from  "tblname" where condition;
+select col1,col2,... from  "tblname" where condition;
+<br>
+
 # RepidDB数据库简介  
 &emsp;&emsp;RapidDB数据库是完全从头设计开发的数据库，实现了可以达到千万QPS级别的世界最快的数据库。RapidDB能够达到如此高的速度，是因为完全从头设计开发，没有依赖任何现有数据库产品，并在设计中充分利用目前计算机CPU超多内核和大内存的优势，通过多线程、高并发等技术来实现的。
 

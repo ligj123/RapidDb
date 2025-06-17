@@ -29,7 +29,11 @@ StmtStatus TableSelectStatement::SessionExec(Session *sess) {
     }
 
     PhysTable *table = exprSel->_exprTable->_physTable;
-    IndexSearch *idxSearch = exprSel->_exprWhere->_indexSearch;
+    IndexSearch *idxSearch = nullptr;
+    if (exprSel->_exprWhere != nullptr) {
+      idxSearch = exprSel->_exprWhere->_indexSearch;
+    }
+
     int idxPos = (idxSearch == nullptr ? 0 : idxSearch->_indexPos);
     _midVar->_table = table;
     _midVar->_indexPos = idxPos;
