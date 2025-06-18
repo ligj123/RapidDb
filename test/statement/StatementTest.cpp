@@ -645,7 +645,9 @@ BOOST_AUTO_TEST_CASE(Statement_Point_test) {
     task->SetRemovedPool(true);
   }
 
+#ifndef WITHOUT_BIN_LOG
   logTask->SetRemovedPool(true);
+#endif
   stmtResult.Reset();
   table->CloseIndex();
   TableManager::ClearTable();
@@ -991,7 +993,9 @@ BOOST_AUTO_TEST_CASE(Statement_Range_test) {
     task->SetRemovedPool(true);
   }
 
+#ifndef WITHOUT_BIN_LOG
   logTask->SetRemovedPool(true);
+#endif
   stmtResult.Reset();
   table->CloseIndex();
   TableManager::ClearTable();

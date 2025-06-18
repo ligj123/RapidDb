@@ -57,22 +57,22 @@ int main(int argc, char *argv[]) {
     }
     storage::MultiThreadInsertTest(tNum, rowNum);
   } else if (str == "12") {
-    int userNum = (argc >= 3 ? atoi(argv[2]) : 1);
-    int sgNum = (argc >= 4 ? atoi(argv[3]) : 1);
-    int tblNum = (argc >= 5 ? atoi(argv[4]) : 1);
-    int sessNum = (argc >= 6 ? atoi(argv[5]) : 100);
-    int rowNum = argc >= 7 ? atoi(argv[7]) : 5000000;
-    int opTimes = argc >= 8 ? atoi(argv[8]) : 10000000;
-    int multi = 10; // argc >= 9 ? atoi(argv[6]) : 10;
+    int userNum = (argc > 3 ? atoi(argv[2]) : 1);
+    int sgNum = (argc > 4 ? atoi(argv[3]) : 1);
+    int tblNum = (argc > 5 ? atoi(argv[4]) : 1);
+    int sessNum = (argc > 6 ? atoi(argv[5]) : 100);
+    int rowNum = argc > 7 ? atoi(argv[7]) : 5000000;
+    int opTimes = argc > 8 ? atoi(argv[8]) : 10000000;
+    int multi = 10; // argc > 9 ? atoi(argv[6]) : 10;
     storage::TablePointTest(userNum, tblNum, sgNum, sessNum, rowNum, opTimes,
                             multi);
   } else if (str == "13") {
-    int sessGroupNum = argc >= 3 ? atoi(argv[2]) : 1;
-    int tblNum = argc >= 4 ? atoi(argv[3]) : 1;
-    int sessNum = argc >= 5 ? atoi(argv[4]) : 100;
-    int rowNum = argc >= 6 ? atoi(argv[6]) : 5000000;
-    int opTimes = argc >= 7 ? atoi(argv[7]) : 10000000;
-    int multi = 10; // argc >= 8 ? atoi(argv[5]) : 10;
+    int sessGroupNum = argc > 3 ? atoi(argv[2]) : 1;
+    int tblNum = argc > 4 ? atoi(argv[3]) : 1;
+    int sessNum = argc > 5 ? atoi(argv[4]) : 100;
+    int rowNum = argc > 6 ? atoi(argv[6]) : 5000000;
+    int opTimes = argc > 7 ? atoi(argv[7]) : 10000000;
+    int multi = 10; // argc > 8 ? atoi(argv[5]) : 10;
 
     storage::TestMultiTable(tblNum, sessGroupNum, sessNum, rowNum, opTimes,
                             multi);

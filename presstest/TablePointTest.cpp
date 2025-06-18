@@ -189,7 +189,9 @@ void TablePointTest(uint16_t userThreads, uint16_t tblThreads,
       ThreadPool::CreateMainPool("press", 1, tblThreads + sessGroupNum + 2);
   ThreadPool::SetThreadId(0);
   FilePagePool::Start(tblThreads + sessGroupNum + 2);
-  // LogTask::InitLogTask(tpool, "./binlog/", true);
+#ifdef WITHOUT_BIN_LOG
+  LogTask::InitLogTask(tpool, "./binlog/", true);
+#endif
   SessionPool::InitPool(sessGroupNum, sessGroupNum, 0, userThreads, tpool,
                         true);
   // CachePagePoolTask::Init(tpool);

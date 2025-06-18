@@ -18,7 +18,7 @@ a) Release版本 <br>
 mkdir ./Release<br>
 cp ErrorMsg.txt ./Release<br>
 cd Release<br>
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc<br> -DWITHOUT_BIN_LOG=off -DNO_WRITE_DISK=off ..<br>
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc<br> -DWITHOUT_BIN_LOG=on -DNO_WRITE_DISK=on ..<br>
 cd ..<br><br>
 b) Debug版本<br>
 mkdir ./Debug<br>

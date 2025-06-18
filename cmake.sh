@@ -7,7 +7,7 @@ fi
 mkdir ./Release
 cp ErrorMsg.txt ./Release
 cd Release
-cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DWITHOUT_BIN_LOG=off -DNO_WRITE_DISK=off ..
+cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc -DWITHOUT_BIN_LOG=on -DNO_WRITE_DISK=on ..
 cd ..
 
 if [ -d ./Debug ] ; then

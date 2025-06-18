@@ -84,9 +84,9 @@ BOOST_AUTO_TEST_CASE(DDL_Statement_test) {
 
   s = sessTask->Run();
   BOOST_TEST(s == TaskStatus::INTERVAL);
+  Session *session = SessionPool::GetSession(sessId);
 
 #ifndef WITHOUT_BIN_LOG
-  Session *session = SessionPool::GetSession(sessId);
   session->_transaction.SetLogged();
   sessTask->Run();
 #endif

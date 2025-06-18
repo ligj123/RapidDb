@@ -176,7 +176,9 @@ void TestMultiTable(int tblNum, int sessGroupNum, int sessNum, int rowNum,
       ThreadPool::CreateMainPool("press", 1, tblNum * 2 + sessGroupNum + 2);
   FilePagePool::Start(tblNum * 2 + sessGroupNum + 2);
   ThreadPool::SetThreadId(0);
-  // LogTask::InitLogTask(tpool, "./binlog/", true);
+#ifdef WITHOUT_BIN_LOG
+  LogTask::InitLogTask(tpool, "./binlog/", true);
+#endif
   SessionPool::InitPool(sessGroupNum, sessGroupNum, 0, tblNum, tpool, true);
   vector<MVector<uint32_t>> vctArrSessId;
   vector<StmtResult> vctStmtRes(sessNum);
