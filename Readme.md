@@ -72,12 +72,12 @@ create table "tblname"(<br>
     ...<br>
 );<br>
 drop table "tblname";<br>
-insert into "tblname" values(...);
-update "tblname" set col="val" ... where conditions;
-delete from "tblname" where condition;
-select * from  "tblname" where condition;
-select col1,col2,... from  "tblname" where condition;
-<br>
+insert into "tblname" values(...);<br>
+update "tblname" set col="val" ... where conditions;<br>
+delete from "tblname" where condition;<br>
+select * from  "tblname" where condition;<br>
+select col1,col2,... from  "tblname" where condition;<br>
+<br><br>
 
 # RepidDB数据库简介  
 &emsp;&emsp;RapidDB数据库是完全从头设计开发的数据库，实现了可以达到千万QPS级别的世界最快的数据库。RapidDB能够达到如此高的速度，是因为完全从头设计开发，没有依赖任何现有数据库产品，并在设计中充分利用目前计算机CPU超多内核和大内存的优势，通过多线程、高并发等技术来实现的。
