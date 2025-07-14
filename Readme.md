@@ -89,7 +89,8 @@ select col1,col2,... from  "tblname" where condition;<br>
 3.	设计实现了可自动伸缩的线程池，可以根据任务的繁忙程度自动增加或减少活跃线程，极大的增加了进程的伸缩性。
 4.	对B+ tree进行了优化改进，对数据页的修改不再直接写入到数据页的内存块中，而是采用了缓存机制，使用一个数组对页内的记录进行管理维护，所有的增删改查操作全部直接在数组上，在符合一定条件时，例如写盘时间到了，或者数据页过大需要分页，才会考虑把数据的变动写入到数据页的内存块中。数据页也不会在数据量大于一页的限制时，马上分页，而是在需要写盘时或者数据量超过最大限额后才会分页，这样就减少了分页的次数，可以极大的提高效率。
 5.	使用了Delay-Free技术，对于一些基本不需要修改的对象，例如table，SQL解析后的statement等对象，创建后不会对object本身进行修改，如需要修改则free旧的，创建新的object。旧的不会直接free掉，而是放到一个Obsolete队列中，有专门的ThreadTask定期访问这些 队列，确认没有地方使用后再free，这样就可以避免加锁的过程。
-6.	通过把整个流程划分为Session Pool和Table Manager两个阶段，在代码中实现了更加灵活高效的设计。Client端发起的每一个链接称为一个Session，同一个Client可以建立若干个Session。Session Pool统一管理这些Session，按照Session ID把这些Session分成若干Group，一个或者多个Group运行在一个ThreadTask上。Session负责接收来自Client的request，，并进行初步处理后按照情况把request的后续处理发到对应的Table Manager进行处理。Table Manger为每个Index建立对应的ThreadTask，根据需要，可以为每个Index建立一到多个ThreadTask，每个task负责执行该table对应的Action。
+6. 尽可能使用对象复用，而不是创建新的对象。在程序中，Record和字段数据使用计数来保证数据的安全性。
+7. 通过把整个流程划分为Session Pool和Table Manager两个阶段，在代码中实现了更加灵活高效的设计。Client端发起的每一个链接称为一个Session，同一个Client可以建立若干个Session。Session Pool统一管理这些Session，按照Session ID把这些Session分成若干Group，一个或者多个Group运行在一个ThreadTask上。Session负责接收来自Client的request，，并进行初步处理后按照情况把request的后续处理发到对应的Table Manager进行处理。Table Manger为每个Index建立对应的ThreadTask，根据需要，可以为每个Index建立一到多个ThreadTask，每个task负责执行该table对应的Action。
 下面是一个查询statement执行的时序图：
 
 
