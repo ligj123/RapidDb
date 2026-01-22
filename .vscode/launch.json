@@ -30,7 +30,7 @@
             "name": "(gdb) Attach",
             "type": "cppdbg",
             "request": "attach",
-            "program": "/home/lgj/mydb/RapidDb/Debug/UnitTest",
+            "program": "/home/lgj/mydb/RapidDb/Debug/sClient",
             "processId": "${command:pickProcess}",
             "MIMode": "gdb",
             "setupCommands": [
@@ -45,13 +45,25 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "/home/lgj/mydb/RapidDb/Debug/PressTest",
-            "args": [
-                "11",
-                "100000"
-            ],
+            // "program": "/home/lgj/mydb/RapidDb/Debug/PressTest",
+            // "args": [
+            //     "13",
+            //     "1",
+            //     "1",
+            //     "10",
+            //     "2",
+            //     "100000",
+            //     "100000"
+            // ],
+            // "program": "/home/lgj/mydb/RapidDb/Debug/UnitTest",
+            // "args": [
+            //     "-t",
+            //     "StatementTest/DDL_Statement_test"
+            // ],
+            "program": "/home/lgj/mydb/RapidDb/Debug/sClient",
+            "args": [],
             "stopAtEntry": false,
-            "cwd": "/home/lgj/mydb/RapidDb",
+            "cwd": "/home/lgj/mydb/RapidDb/Debug",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
