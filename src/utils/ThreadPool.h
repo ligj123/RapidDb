@@ -315,7 +315,7 @@ protected:
   int32_t _minThreads;
   int32_t _maxThreads;
   int32_t _aliveThreads{0};
-  // The threads' parameters in this poll
+  // The threads' parameters in this pool
   vector<ThreadPara> _vctThreadPara;
   // Receive IndexTask From the threads in this pool
   RapidQueue<ThreadTask> _rapidTaskQueue;

@@ -38,6 +38,9 @@ protected:
   static unordered_map<uint64_t, IndexPage *> _mapCache;
   static SpinMutex _spinMutex;
   static uint64_t _midPage;
+  // To temporaily save the new added pages. They will be moved into _mapCache
+  // in following task run.
+  static MTreeMap<uint64_t, IndexPage *> _tmpCache;
 
   friend class CachePagePoolTask;
 };

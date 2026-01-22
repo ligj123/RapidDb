@@ -14,6 +14,7 @@ unordered_map<uint64_t, IndexPage *>
 SpinMutex CachePagePool::_spinMutex;
 uint64_t CachePagePool::_midPage{UINT64_MAX};
 CachePagePoolTask *CachePagePoolTask::_instance{nullptr};
+MTreeMap<uint64_t, IndexPage *> CachePagePool::_tmpCache;
 
 void CachePagePoolTask::Init(ThreadPool *tpool) {
   _instance = new CachePagePoolTask();
@@ -31,7 +32,8 @@ TaskStatus CachePagePoolTask::Run() {
   }
   _taskStatus.store(TaskStatus::RUNNING, memory_order_relaxed);
   CachePagePool::PoolManage(status);
-  if (_bStoped && CachePagePool::_mapCache.size() == 0) {
+  if (_bStoped && CachePagePool::_mapCache.size() == 0 &&
+      CachePagePool::_tmpCache.size() == 0) {
     _taskStatus.store(TaskStatus::FINISHED, memory_order_relaxed);
     return TaskStatus::FINISHED;
   } else {
@@ -42,13 +44,17 @@ TaskStatus CachePagePoolTask::Run() {
 
 void CachePagePool::AddPage(IndexPage *page) {
   unique_lock<SpinMutex> lock(_spinMutex);
-  _mapCache.emplace(page->HashCode(), page);
+  assert(_mapCache.find(page->HashCode()) == _mapCache.end());
+  auto res = _tmpCache.emplace(page->HashCode(), page);
+  assert(res.second); // To ensure the page is new.
 }
 
 void CachePagePool::AddPages(MVector<IndexPage *> &vctPage) {
   unique_lock<SpinMutex> lock(_spinMutex);
   for (auto page : vctPage) {
-    _mapCache.emplace(page->HashCode(), page);
+    assert(_mapCache.find(page->HashCode()) == _mapCache.end());
+    auto res = _tmpCache.emplace(page->HashCode(), page);
+    assert(res.second); // To ensure the page is new.
   }
 }
 
@@ -58,6 +64,12 @@ IndexPage *CachePagePool::GetPage(IndexTree *idxTree, PageID pageId,
   uint64_t hashId = CachePage::CalcHashCode(idxTree->GetFileId(), pageId);
   auto iter = _mapCache.find(hashId);
   if (iter == _mapCache.end()) {
+    auto iter2 = _tmpCache.find(hashId);
+    if (iter2 != _tmpCache.end()) {
+      iter2->second->SetReferred(true);
+      return iter2->second;
+    }
+
     IndexPage *page;
     if (type == PageType::LEAF_PAGE) {
       page = new LeafPage(idxTree, pageId);
@@ -87,6 +99,13 @@ MVector<IndexPage *> CachePagePool::GetPages(IndexTree *idxTree, PageType type,
     uint64_t hashId = CachePage::CalcHashCode(idxTree->GetFileId(), pid);
     auto iter = _mapCache.find(hashId);
     if (iter == _mapCache.end()) {
+      auto iter2 = _tmpCache.find(hashId);
+      if (iter2 != _tmpCache.end()) {
+        iter2->second->SetReferred(true);
+        vctPage.push_back(iter2->second);
+        continue;
+      }
+
       IndexPage *page;
       if (type == PageType::LEAF_PAGE) {
         page = new LeafPage(idxTree, pid);
@@ -116,7 +135,14 @@ void CachePagePool::ClearPool() {
     delete page;
   }
 
+  for (auto iter = _tmpCache.begin(); iter != _tmpCache.end(); iter++) {
+    IndexPage *page = iter->second;
+    assert(!page->IsRefered());
+    delete page;
+  }
+
   _mapCache.clear();
+  _tmpCache.clear();
 }
 
 void CachePagePool::PoolManage(MemoryStatus status) {
@@ -138,13 +164,11 @@ void CachePagePool::PoolManage(MemoryStatus status) {
     break;
   }
 
-  MList<CachePage *> lst;
-  unique_lock<SpinMutex> lock(_spinMutex);
+  MList<unordered_map<uint64_t, IndexPage *>::iterator> lst;
   auto iter =
       (_midPage == UINT64_MAX ? _mapCache.begin() : _mapCache.find(_midPage));
-  uint64_t cnt = 0;
-  for (; iter != _mapCache.end() && cnt < 100000; iter++) {
-    cnt++;
+
+  for (; iter != _mapCache.end() && lst.size() < 100000; iter++) {
     CachePage *page = iter->second;
     uint32_t score = page->CalcScore();
 
@@ -156,7 +180,7 @@ void CachePagePool::PoolManage(MemoryStatus status) {
       continue;
     }
 
-    lst.push_back(page);
+    lst.push_back(iter);
   }
 
   if (iter == _mapCache.end()) {
@@ -165,14 +189,23 @@ void CachePagePool::PoolManage(MemoryStatus status) {
     _midPage = UINT64_MAX;
   }
 
-  if (lst.empty())
+  if (lst.empty() && _tmpCache.size() == 0)
     return;
 
-  for (CachePage *page : lst) {
-    page->GetIndexTree()->DecPages();
-    _mapCache.erase(page->HashCode());
+  unique_lock<SpinMutex> lock(_spinMutex);
+
+  for (auto iter : lst) {
+    iter->second->GetIndexTree()->DecPages();
+    delete iter->second;
+    _mapCache.erase(iter);
   }
 
+  for (auto iter = _tmpCache.begin(); iter != _tmpCache.end(); iter++) {
+    auto iter2 = _mapCache.emplace(iter->second->HashCode(), iter->second);
+    assert(iter2.second);
+  }
+
+  _tmpCache.clear();
   lock.unlock();
 
   LOG_INFO << "MaxPage=" << _maxCacheSize << "\tUsedPage=" << _mapCache.size()

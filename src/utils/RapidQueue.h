@@ -4,8 +4,8 @@
 #include <atomic>
 #include <iostream>
 
-#define BLOCK_SIZE 256
-#define ELE_SIZE 32
+#define BLOCK_SIZE 256 // The bytes for every block
+#define ELE_SIZE 32    // The elements size per block
 #define ELE_SIZE_NOT 0xFFFFFFFFFFFFFFE0LL
 
 using namespace std;
@@ -42,8 +42,7 @@ public:
 
   LineQueue(LineQueue &&src)
       : _startNode(src._startNode), _endNode(src._endNode), _head(src._head),
-        _submited(src._submited.load(memory_order_relaxed)),
-        _tail(src._tail.load(memory_order_relaxed)) {
+        _submited(src._submited.load(memory_order_relaxed)), _tail(src._tail) {
     src._startNode = nullptr;
     src._endNode = nullptr;
     src._head = 0;
@@ -88,53 +87,48 @@ public:
 
   void Pop(MList<T *> &lst) {
     uint64_t head = _submited.load(memory_order_relaxed);
-    uint64_t tail = _tail.load(memory_order_acquire);
-    if (head == tail) {
+    if (head == _tail) {
       return;
     }
 
-    while (tail > head) [[unlikely]] {
-      if (tail % ELE_SIZE == 0) {
+    while (_tail > head) [[unlikely]] {
+      if (_tail % ELE_SIZE == 0) {
         LinkNode<T> *node = _endNode;
         _endNode = _endNode->_next;
         delete node;
         assert(_endNode != nullptr);
       }
 
-      assert(_endNode->_block[tail % ELE_SIZE] != nullptr);
-      lst.push_back(_endNode->_block[tail % ELE_SIZE]);
-      tail++;
+      assert(_endNode->_block[_tail % ELE_SIZE] != nullptr);
+      lst.push_back(_endNode->_block[_tail % ELE_SIZE]);
+      _tail++;
     }
 
-    while (tail < head) {
-      if (tail % ELE_SIZE == 0) {
+    while (_tail < head) {
+      if (_tail % ELE_SIZE == 0) {
         LinkNode<T> *node = _endNode;
         _endNode = _endNode->_next;
         delete node;
         assert(_endNode != nullptr);
       }
 
-      assert(_endNode->_block[tail % ELE_SIZE] != nullptr);
-      lst.push_back(_endNode->_block[tail % ELE_SIZE]);
-      tail++;
+      assert(_endNode->_block[_tail % ELE_SIZE] != nullptr);
+      lst.push_back(_endNode->_block[_tail % ELE_SIZE]);
+      _tail++;
     }
-
-    _tail.store(tail, memory_order_release);
   }
 
   bool IsEmpty() {
-    uint64_t tail = _tail.load(memory_order_relaxed);
     uint64_t submit = _submited.load(memory_order_acquire);
-    return tail == submit && _head == submit;
+    return _tail == submit && _head == submit;
   }
 
   size_t RoughSize() {
-    uint64_t tail = _tail.load(memory_order_relaxed);
     uint64_t submit = _submited.load(memory_order_relaxed);
-    if (tail > submit) [[unlikely]] {
-      return submit + (UINT64_MAX - tail + 1);
+    if (_tail > submit) [[unlikely]] {
+      return submit + (UINT64_MAX - _tail + 1);
     } else {
-      return submit - tail;
+      return submit - _tail;
     }
   }
 
@@ -150,7 +144,7 @@ protected:
   // _head
   atomic_uint64_t _submited{0};
   // The tail of queue that obtain inserted elements.
-  atomic_uint64_t _tail{0};
+  uint64_t _tail{0};
 };
 
 template <class T> class RapidQueue {
@@ -292,7 +286,7 @@ protected:
   // to ensure all data will be picked after reset thread number and new number
   // is small than old, here will pop 5 time before use new thread number.
   int16_t _popNum{0};
-  // The array of line queue , every line response to a thread.
+  // The array of line queue , every line response to a pair of threads.
   MVector<LineQueue<T>> _vctLine;
 };
 } // namespace storage

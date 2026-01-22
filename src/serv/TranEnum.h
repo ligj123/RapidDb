@@ -34,6 +34,27 @@ enum class TranType : uint8_t {
   MANUAL_ATONCE
 };
 
+inline std::ostream &operator<<(std::ostream &os, const CcProtocol &level) {
+  os << "CcProtocol::";
+  switch (level) {
+  case CcProtocol::OCC:
+    os << "OCC(" << (int)CcProtocol::OCC << ")";
+    break;
+  case CcProtocol::OccRead:
+    os << "OccRead(" << (int)CcProtocol::OccRead << ")";
+    break;
+  case CcProtocol::Locking:
+    os << "Locking(" << (int)CcProtocol::Locking << ")";
+    break;
+  default:
+    assert(false);
+    os << "UNKNOWN(" << (int)level << ")";
+    break;
+  }
+
+  return os;
+}
+
 inline std::ostream &operator<<(std::ostream &os, const IsoLevel &level) {
   os << "IsoLevel::";
   switch (level) {

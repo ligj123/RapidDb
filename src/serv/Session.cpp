@@ -24,7 +24,7 @@ void Session::Exec() {
     _lstWaittingStmt.pop_front();
 
     if (_currStatement->IsSoleTran() && ts == TranStatus::IN_TRAN) {
-      // This version does not support auto coomit when run DDL statement.
+      // This version does not support auto commit when run DDL statement.
       // This design maybe is changed in future.
       _currStatement->FailWithUnfinishedTran();
       delete _currStatement;

@@ -192,7 +192,7 @@ protected:
   vector<Byte *> _vctFreeBlock;
   /**Total number allocated result blocks, include free blocks in queue*/
   uint64_t _totalBlockNum;
-  /**Mutex for block memory,used to create IDataValue etc. One block can create
+  /**Mutex for block memory, used to create IDataValue etc. One block can create
    * multi objects.*/
   SpinMutex _spinMutex;
 

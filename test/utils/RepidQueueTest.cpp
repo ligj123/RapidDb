@@ -60,13 +60,13 @@ BOOST_AUTO_TEST_CASE(LineQueue_test) {
 
   BOOST_TEST(lq._startNode == lq._endNode);
   BOOST_TEST(lq._head == lq._submited.load(memory_order_relaxed));
-  BOOST_TEST(lq._head == lq._tail.load(memory_order_relaxed));
+  BOOST_TEST(lq._head == lq._tail);
   BOOST_TEST(lq.IsEmpty());
   BOOST_TEST(lq.RoughSize() == 0);
 
   lq._head = ELE_SIZE_NOT;
   lq._submited.store(ELE_SIZE_NOT, memory_order_relaxed);
-  lq._tail.store(ELE_SIZE_NOT, memory_order_relaxed);
+  lq._tail = ELE_SIZE_NOT;
 
   for (size_t i = 0; i < CNT; i++) {
     if (i % 10000 == 0) {
@@ -77,7 +77,7 @@ BOOST_AUTO_TEST_CASE(LineQueue_test) {
   }
   lq.Submit();
 
-  BOOST_TEST(lq._tail.load(memory_order_relaxed) == ELE_SIZE_NOT);
+  BOOST_TEST(lq._tail == ELE_SIZE_NOT);
   BOOST_TEST(lq._head == lq._submited.load(memory_order_relaxed));
   BOOST_TEST(lq._head == (CNT - 32));
   delete[] arr;
