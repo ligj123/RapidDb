@@ -8,7 +8,7 @@ using namespace std;
 
 class DataValueBlob : public IDataValue {
 public:
-  DataValueBlob(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
+  explicit DataValueBlob(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
       : IDataValue(DataType::BLOB, ValueType::NULL_VALUE),
         maxLength_(maxLength), bysValue_(nullptr), soleLength_(0) {}
   DataValueBlob(const char *val, int len, uint32_t maxLength = UINT32_MAX)
@@ -42,11 +42,58 @@ public:
       BytesCopy(bysValue_, src.bysValue_, soleLength_);
     }
   }
+
+  DataValueBlob(DataValueBlob &&src) : IDataValue(std::move(src)) {
+    maxLength_ = src.maxLength_;
+    soleLength_ = src.soleLength_;
+    bysValue_ = src.bysValue_;
+  }
   ~DataValueBlob() {
     if (valType_ == ValueType::SOLE_VALUE) {
       CachePool::Release(bysValue_, soleLength_);
       valType_ = ValueType::NULL_VALUE;
     }
+  }
+
+  DataValueBlob &operator=(const DataValueBlob &src) {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::Release(bysValue_, soleLength_);
+    }
+
+    dataType_ = src.dataType_;
+    valType_ = src.valType_;
+    refCount_ = 1;
+    maxLength_ = src.maxLength_;
+    soleLength_ = src.soleLength_;
+
+    if (valType_ == ValueType::NULL_VALUE) {
+      bysValue_ = nullptr;
+    } else if (valType_ == ValueType::BYTES_VALUE) {
+      bysValue_ = src.bysValue_;
+    } else {
+      valType_ = ValueType::SOLE_VALUE;
+      bysValue_ = CachePool::Apply(soleLength_);
+      BytesCopy(bysValue_, src.bysValue_, soleLength_);
+    }
+
+    return *this;
+  }
+
+  DataValueBlob &operator=(DataValueBlob &&src) {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::Release(bysValue_, soleLength_);
+    }
+
+    dataType_ = src.dataType_;
+    valType_ = src.valType_;
+    refCount_ = 1;
+    maxLength_ = src.maxLength_;
+    soleLength_ = src.soleLength_;
+    bysValue_ = src.bysValue_;
+    src.bysValue_ = nullptr;
+    src.valType_ = ValueType::NULL_VALUE;
+
+    return *this;
   }
 
 public:
@@ -113,7 +160,7 @@ public:
     len = soleLength_;
     return (char *)bysValue_;
   }
-  DataValueBlob &operator=(const DataValueBlob &src);
+
   bool operator==(const DataValueBlob &dv) const;
   const Byte *GetBuff() const override { return bysValue_; }
   void ToString(StrBuff &sb) const override;

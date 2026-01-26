@@ -7,7 +7,7 @@ using namespace std;
 
 class DataValueVarChar : public IDataValue {
 public:
-  DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
+  explicit DataValueVarChar(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
       : IDataValue(DataType::VARCHAR, ValueType::NULL_VALUE),
         maxLength_(maxLength), soleLength_(0), bysValue_(nullptr) {}
   DataValueVarChar(const char *val, uint32_t len,
@@ -31,6 +31,8 @@ public:
 
     if (valType_ == ValueType::NULL_VALUE) {
       bysValue_ = nullptr;
+    } else if (valType_ == ValueType::BYTES_VALUE) {
+      bysValue_ = src.bysValue_;
     } else {
       valType_ = ValueType::SOLE_VALUE;
       bysValue_ = CachePool::Apply(soleLength_);
@@ -38,11 +40,58 @@ public:
     }
   }
 
+  DataValueVarChar(DataValueVarChar &&src) : IDataValue(move(src)) {
+    maxLength_ = src.maxLength_;
+    soleLength_ = src.soleLength_;
+    bysValue_ = src.bysValue_;
+    src.bysValue_ = nullptr;
+  }
+
   ~DataValueVarChar() {
     if (valType_ == ValueType::SOLE_VALUE) {
       CachePool::Release((Byte *)bysValue_, soleLength_);
       valType_ = ValueType::NULL_VALUE;
     }
+  }
+
+  DataValueVarChar &operator=(const DataValueVarChar &src) {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::Release(bysValue_, soleLength_);
+    }
+
+    dataType_ = src.dataType_;
+    valType_ = src.valType_;
+    refCount_ = 1;
+    maxLength_ = src.maxLength_;
+    soleLength_ = src.soleLength_;
+
+    if (valType_ == ValueType::NULL_VALUE) {
+      bysValue_ = nullptr;
+    } else if (valType_ == ValueType::BYTES_VALUE) {
+      bysValue_ = src.bysValue_;
+    } else {
+      valType_ = ValueType::SOLE_VALUE;
+      bysValue_ = CachePool::Apply(soleLength_);
+      BytesCopy(bysValue_, src.bysValue_, soleLength_);
+    }
+
+    return *this;
+  }
+
+  DataValueVarChar &operator=(DataValueVarChar &&src) {
+    if (valType_ == ValueType::SOLE_VALUE) {
+      CachePool::Release(bysValue_, soleLength_);
+    }
+
+    dataType_ = src.dataType_;
+    valType_ = src.valType_;
+    refCount_ = 1;
+    maxLength_ = src.maxLength_;
+    soleLength_ = src.soleLength_;
+    bysValue_ = src.bysValue_;
+    src.bysValue_ = nullptr;
+    src.valType_ = ValueType::NULL_VALUE;
+    return *this;
   }
 
 public:
@@ -151,7 +200,6 @@ public:
   DataValueVarChar &operator=(const char *val);
   DataValueVarChar &operator=(const MString val);
   DataValueVarChar &operator=(const string val);
-  DataValueVarChar &operator=(const DataValueVarChar &src);
 
   bool EQ(const IDataValue &dv) const override {
     assert(dataType_ == dv.GetDataType());

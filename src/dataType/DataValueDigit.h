@@ -10,11 +10,32 @@ namespace storage {
 template <class T, DataType DT> class DataValueDigit : public IDataValue {
 public:
   DataValueDigit() : IDataValue(DT, ValueType::NULL_VALUE), _value(0) {}
-  DataValueDigit(T val) : IDataValue(DT, ValueType::SOLE_VALUE), _value(val) {}
+  explicit DataValueDigit(T val)
+      : IDataValue(DT, ValueType::SOLE_VALUE), _value(val) {}
   DataValueDigit(const DataValueDigit &src) : IDataValue(src) {
     _value = src._value;
   }
+  DataValueDigit(DataValueDigit &&src) : IDataValue(std::move(src)) {
+    _value = src._value;
+  }
   ~DataValueDigit() {}
+
+  DataValueDigit &operator=(const DataValueDigit &src) {
+    dataType_ = src.dataType_;
+    valType_ = src.valType_;
+    refCount_ = 1;
+    _value = src._value;
+    return *this;
+  }
+  DataValueDigit &operator=(DataValueDigit &&src) {
+    dataType_ = src.dataType_;
+    valType_ = src.valType_;
+    refCount_ = 1;
+    _value = src._value;
+    src.valType_ = ValueType::NULL_VALUE;
+    return *this;
+  }
+
   bool SetValue(T val) {
     _value = val;
     valType_ = ValueType::SOLE_VALUE;
@@ -195,13 +216,6 @@ public:
   DataValueDigit &operator=(T val) {
     valType_ = ValueType::SOLE_VALUE;
     _value = val;
-    return *this;
-  }
-  DataValueDigit &operator=(const DataValueDigit &src) {
-    valType_ = src.valType_;
-    dataType_ = src.dataType_;
-    _value = src._value;
-
     return *this;
   }
 

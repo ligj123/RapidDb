@@ -10,11 +10,9 @@ class DataValueDateTime
     : public DataValueDigit<DT_MicroSec, DataType::DATETIME> {
 public:
   DataValueDateTime() : DataValueDigit() {}
-  DataValueDateTime(uint64_t millSec /*The milliseconds since epoch*/)
+  explicit DataValueDateTime(uint64_t millSec /*The milliseconds since epoch*/)
       : DataValueDigit(millSec) {}
-  // DataValueDateTime(char* dtStr, size_t dtLen, const char* format) :
-  // DataValueDigit() {
-  // }
+
   DataValueDateTime(const DataValueDateTime &src) : DataValueDigit(src) {}
   ~DataValueDateTime() {}
 

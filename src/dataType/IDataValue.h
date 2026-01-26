@@ -65,11 +65,19 @@ public:
     return dataType_ == DataType::FIXCHAR || dataType_ == DataType::VARCHAR;
   }
 
-  IDataValue(const IDataValue &dv)
-      : dataType_(dv.dataType_), valType_(dv.valType_), refCount_(1) {}
   IDataValue(DataType dataType, ValueType valType)
       : dataType_(dataType), valType_(valType), refCount_(1) {}
+  IDataValue(const IDataValue &src)
+      : dataType_(src.dataType_), valType_(src.valType_), refCount_(1) {}
+  IDataValue(IDataValue &&src)
+      : dataType_(src.dataType_), valType_(src.valType_), refCount_(1) {
+    src.valType_ = ValueType::NULL_VALUE;
+  }
   virtual ~IDataValue() { assert(refCount_ == 1 || refCount_ == UINT16_MAX); }
+
+  IDataValue &operator=(const IDataValue &dv) = delete;
+  IDataValue &operator=(IDataValue &&dv) = delete;
+
   // return the data type for this data value
   inline DataType GetDataType() const { return dataType_; }
   inline ValueType GetValueType() const { return valType_; }

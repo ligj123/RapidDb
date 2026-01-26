@@ -330,31 +330,6 @@ DataValueFixChar *DataValueFixChar::operator=(const string val) {
   return this;
 }
 
-DataValueFixChar *DataValueFixChar::operator=(const DataValueFixChar &src) {
-  if (valType_ == ValueType::SOLE_VALUE)
-    CachePool::Release(bysValue_, maxLength_);
-
-  dataType_ = src.dataType_;
-  valType_ = src.valType_;
-  maxLength_ = src.maxLength_;
-
-  switch (valType_) {
-  case ValueType::SOLE_VALUE:
-    bysValue_ = CachePool::Apply(maxLength_);
-    BytesCopy(bysValue_, src.bysValue_, maxLength_);
-    break;
-  case ValueType::BYTES_VALUE:
-    bysValue_ = src.bysValue_;
-    break;
-  case ValueType::NULL_VALUE:
-  default:
-    bysValue_ = nullptr;
-    break;
-  }
-
-  return this;
-}
-
 std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv) {
   switch (dv.valType_) {
   case ValueType::NULL_VALUE:

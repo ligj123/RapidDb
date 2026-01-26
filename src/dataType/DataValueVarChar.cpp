@@ -341,32 +341,6 @@ DataValueVarChar &DataValueVarChar::operator=(const string val) {
   return *this;
 }
 
-DataValueVarChar &DataValueVarChar::operator=(const DataValueVarChar &src) {
-  if (valType_ == ValueType::SOLE_VALUE)
-    CachePool::Release((Byte *)bysValue_, soleLength_);
-
-  dataType_ = src.dataType_;
-  valType_ = src.valType_;
-  maxLength_ = src.maxLength_;
-  soleLength_ = src.soleLength_;
-
-  switch (valType_) {
-  case ValueType::SOLE_VALUE:
-    bysValue_ = CachePool::Apply(soleLength_);
-    BytesCopy(bysValue_, src.bysValue_, soleLength_);
-    break;
-  case ValueType::BYTES_VALUE:
-    bysValue_ = src.bysValue_;
-    break;
-  case ValueType::NULL_VALUE:
-  default:
-    bysValue_ = nullptr;
-    break;
-  }
-
-  return *this;
-}
-
 std::ostream &operator<<(std::ostream &os, const DataValueVarChar &dv) {
   switch (dv.valType_) {
   case ValueType::NULL_VALUE:

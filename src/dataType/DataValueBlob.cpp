@@ -240,31 +240,6 @@ DataValueBlob::operator const char *() const {
   return nullptr;
 }
 
-DataValueBlob &DataValueBlob::operator=(const DataValueBlob &src) {
-  if (valType_ == ValueType::SOLE_VALUE)
-    CachePool::Release(bysValue_, soleLength_);
-
-  valType_ = src.valType_;
-  dataType_ = src.dataType_;
-  maxLength_ = src.maxLength_;
-  soleLength_ = src.soleLength_;
-
-  switch (valType_) {
-  case ValueType::SOLE_VALUE:
-    bysValue_ = CachePool::Apply(soleLength_);
-    BytesCopy(bysValue_, src.bysValue_, soleLength_);
-    break;
-  case ValueType::BYTES_VALUE:
-    bysValue_ = src.bysValue_;
-    break;
-  case ValueType::NULL_VALUE:
-  default:
-    break;
-  }
-
-  return *this;
-}
-
 bool DataValueBlob::operator==(const DataValueBlob &dv) const {
   if (valType_ == ValueType::NULL_VALUE) {
     return dv.valType_ == ValueType::NULL_VALUE;
