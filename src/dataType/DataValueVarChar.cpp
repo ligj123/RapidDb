@@ -297,7 +297,7 @@ void DataValueVarChar::SetDefaultValue() {
 }
 
 DataValueVarChar &DataValueVarChar::operator=(const char *val) {
-  uint32_t len = (uint32_t)strlen(val) + 1;
+  uint32_t len = (uint32_t)strlen(val);
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
                    {ToMString(maxLength_), ToMString(soleLength_)});
@@ -312,7 +312,7 @@ DataValueVarChar &DataValueVarChar::operator=(const char *val) {
 }
 
 DataValueVarChar &DataValueVarChar::operator=(const MString val) {
-  uint32_t len = (uint32_t)val.size() + 1;
+  uint32_t len = (uint32_t)val.size();
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
                    {ToMString(maxLength_), ToMString(soleLength_)});
@@ -327,7 +327,7 @@ DataValueVarChar &DataValueVarChar::operator=(const MString val) {
 }
 
 DataValueVarChar &DataValueVarChar::operator=(const string val) {
-  uint32_t len = (uint32_t)val.size() + 1;
+  uint32_t len = (uint32_t)val.size();
   if (len >= maxLength_ - 1)
     throw ErrorMsg(DT_INPUT_OVER_LENGTH,
                    {ToMString(maxLength_), ToMString(soleLength_)});

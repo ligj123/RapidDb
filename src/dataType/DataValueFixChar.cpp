@@ -21,8 +21,7 @@ bool DataValueFixChar::SetValue(const char *val, uint32_t len) {
 
   valType_ = ValueType::SOLE_VALUE;
   BytesCopy(bysValue_, val, len);
-  memset(bysValue_ + len, ' ', maxLength_ - len - 1);
-  bysValue_[maxLength_ - 1] = 0;
+  memset(bysValue_ + len, ' ', maxLength_ - len);
   return true;
 }
 
@@ -65,7 +64,7 @@ bool DataValueFixChar::PutValue(std::any val) {
 
   if (len == 0)
     len = strlen(buf);
-  if (len + 1 > maxLength_) {
+  if (len > maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return false;
@@ -76,8 +75,7 @@ bool DataValueFixChar::PutValue(std::any val) {
 
   valType_ = ValueType::SOLE_VALUE;
   BytesCopy(bysValue_, buf, len);
-  memset(bysValue_ + len, ' ', maxLength_ - len - 1);
-  bysValue_[maxLength_ - 1] = 0;
+  memset(bysValue_ + len, ' ', maxLength_ - len);
   return true;
 }
 
@@ -97,10 +95,10 @@ bool DataValueFixChar::Copy(IDataValue &dv, bool bMove) {
   if (!dv.IsStringType()) {
     StrBuff sb(0);
     dv.ToString(sb);
-    if (maxLength_ < sb.GetStrLen() + 1) {
+    if (maxLength_ < sb.GetStrLen()) {
       _threadErrorMsg.reset(
           new ErrorMsg(DT_INPUT_OVER_LENGTH,
-                       {ToMString(maxLength_), ToMString(sb.GetStrLen() + 1)}));
+                       {ToMString(maxLength_), ToMString(sb.GetStrLen())}));
       return false;
     }
 
@@ -111,8 +109,7 @@ bool DataValueFixChar::Copy(IDataValue &dv, bool bMove) {
     int len = sb.GetStrLen();
     valType_ = ValueType::SOLE_VALUE;
     BytesCopy(bysValue_, sb.GetBuff(), len);
-    memset(bysValue_ + len, ' ', maxLength_ - len - 1);
-    bysValue_[maxLength_ - 1] = 0;
+    memset(bysValue_ + len, ' ', maxLength_ - len);
     return true;
   }
 
@@ -148,11 +145,9 @@ bool DataValueFixChar::Copy(IDataValue &dv, bool bMove) {
     BytesCopy(bysValue_, ((DataValueFixChar &)dv).bysValue_,
               dv.GetMaxLength() - 1);
     if (maxLength_ > dv.GetMaxLength()) {
-      memset(bysValue_ + dv.GetMaxLength() - 1, ' ',
+      memset(bysValue_ + dv.GetMaxLength(), ' ',
              maxLength_ - dv.GetMaxLength());
     }
-
-    bysValue_[maxLength_ - 1] = 0;
   }
   return true;
 }
@@ -160,8 +155,7 @@ bool DataValueFixChar::Copy(IDataValue &dv, bool bMove) {
 uint32_t DataValueFixChar::WriteData(Byte *buf, SavePosition svPos) const {
   if (svPos == SavePosition::KEY) {
     if (valType_ == ValueType::NULL_VALUE) {
-      memset(buf, ' ', maxLength_ - 1);
-      buf[maxLength_ - 1] = 0;
+      memset(buf, ' ', maxLength_);
     } else {
       BytesCopy(buf, bysValue_, maxLength_);
     }
@@ -275,13 +269,12 @@ void DataValueFixChar::SetDefaultValue() {
   }
 
   valType_ = ValueType::SOLE_VALUE;
-  memset(bysValue_, ' ', maxLength_ - 1);
-  bysValue_[maxLength_ - 1] = 0;
+  memset(bysValue_, ' ', maxLength_);
 }
 
 DataValueFixChar *DataValueFixChar::operator=(const char *val) {
   uint32_t len = (uint32_t)strlen(val);
-  if (len + 1 >= maxLength_) {
+  if (len >= maxLength_) {
     _threadErrorMsg.reset(new ErrorMsg(
         DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
     return nullptr;
@@ -291,8 +284,7 @@ DataValueFixChar *DataValueFixChar::operator=(const char *val) {
 
   valType_ = ValueType::SOLE_VALUE;
   BytesCopy(bysValue_, val, len);
-  memset(bysValue_ + len, ' ', maxLength_ - len - 1);
-  bysValue_[maxLength_ - 1] = 0;
+  memset(bysValue_ + len, ' ', maxLength_ - len);
   return this;
 }
 
@@ -308,8 +300,7 @@ DataValueFixChar *DataValueFixChar::operator=(const MString val) {
 
   valType_ = ValueType::SOLE_VALUE;
   BytesCopy(bysValue_, val.c_str(), len);
-  memset(bysValue_ + len, ' ', maxLength_ - len - 1);
-  bysValue_[maxLength_ - 1] = 0;
+  memset(bysValue_ + len, ' ', maxLength_ - len);
   return this;
 }
 
@@ -325,8 +316,7 @@ DataValueFixChar *DataValueFixChar::operator=(const string val) {
 
   valType_ = ValueType::SOLE_VALUE;
   BytesCopy(bysValue_, val.c_str(), len);
-  memset(bysValue_ + len, ' ', maxLength_ - len - 1);
-  bysValue_[maxLength_ - 1] = 0;
+  memset(bysValue_ + len, ' ', maxLength_ - len);
   return this;
 }
 

@@ -13,12 +13,11 @@ public:
 
   DataValueFixChar(const char *val, uint32_t len, uint32_t maxLength = 0)
       : IDataValue(DataType::FIXCHAR, ValueType::SOLE_VALUE),
-        maxLength_(maxLength == 0 ? len + 1 : maxLength), bysValue_(nullptr) {
-    assert(len + 1 <= maxLength_);
+        maxLength_(maxLength == 0 ? len : maxLength), bysValue_(nullptr) {
+    assert(len <= maxLength_);
     bysValue_ = CachePool::Apply(maxLength_);
     BytesCopy(bysValue_, val, len);
-    memset(bysValue_ + len, ' ', maxLength_ - len - 1);
-    bysValue_[maxLength_ - 1] = 0;
+    memset(bysValue_ + len, ' ', maxLength_ - len);
   }
 
   DataValueFixChar(Byte *byArray, uint32_t maxLength)
@@ -101,7 +100,7 @@ public:
     switch (valType_) {
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return MString((char *)bysValue_, maxLength_ - 1);
+      return string((char *)bysValue_, maxLength_);
     case ValueType::NULL_VALUE:
     default:
       return std::any();
@@ -139,7 +138,7 @@ public:
       return;
     }
 
-    sb.Cat((char *)bysValue_, maxLength_ - 1);
+    sb.Cat((char *)bysValue_, maxLength_);
   }
 
   operator MString() const {
@@ -149,7 +148,7 @@ public:
       return MString("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return MString((char *)bysValue_);
+      return MString((char *)bysValue_, maxLength_);
     }
   }
 
@@ -160,7 +159,7 @@ public:
       return string("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return string((char *)bysValue_);
+      return string((char *)bysValue_, maxLength_);
     }
   }
   void SetNull() override {

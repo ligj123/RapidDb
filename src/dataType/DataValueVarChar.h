@@ -13,15 +13,20 @@ public:
   DataValueVarChar(const char *val, uint32_t len,
                    uint32_t maxLength = UINT32_MAX)
       : IDataValue(DataType::VARCHAR, ValueType::SOLE_VALUE),
-        maxLength_(maxLength == UINT32_MAX ? len + 1 : maxLength),
-        soleLength_(len + 1) {
+        maxLength_(maxLength == UINT32_MAX ? len : maxLength),
+        soleLength_(len) {
     bysValue_ = CachePool::Apply(soleLength_);
     BytesCopy(bysValue_, val, len);
-    bysValue_[len] = 0;
   }
   DataValueVarChar(Byte *byArray, uint32_t strLen, uint32_t maxLength)
       : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE),
         maxLength_(maxLength), soleLength_(strLen), bysValue_(byArray) {
+    assert(soleLength_ <= maxLength_);
+  }
+  DataValueVarChar(uint32_t strLen, const char *byConstCast)
+      : IDataValue(DataType::VARCHAR, ValueType::BYTES_VALUE),
+        maxLength_(strLen), soleLength_(strLen),
+        bysValue_(reinterpret_cast<Byte *>(const_cast<char *>(byConstCast))) {
     assert(soleLength_ <= maxLength_);
   }
 
@@ -107,7 +112,7 @@ public:
     switch (valType_) {
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return MString((char *)bysValue_, soleLength_ - 1);
+      return string((char *)bysValue_, soleLength_);
     case ValueType::NULL_VALUE:
     default:
       return std::any();
@@ -148,7 +153,7 @@ public:
       return;
     }
 
-    sb.Cat((char *)bysValue_, soleLength_ - 1);
+    sb.Cat((char *)bysValue_, soleLength_);
   }
   operator MString() const {
     switch (valType_) {
@@ -157,7 +162,7 @@ public:
       return MString("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return MString((char *)bysValue_, soleLength_ - 1);
+      return MString((char *)bysValue_, soleLength_);
     }
   }
 
@@ -168,7 +173,7 @@ public:
       return string("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return string((char *)bysValue_, soleLength_ - 1);
+      return string((char *)bysValue_, soleLength_);
     }
   }
   uint32_t GetMaxLength() const override { return maxLength_; }

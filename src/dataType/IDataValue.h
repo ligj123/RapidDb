@@ -202,6 +202,11 @@ protected:
 class VectorDataValue : public MVector<IDataValue *> {
 public:
   using MVector<IDataValue *>::MVector;
+  VectorDataValue(const VectorDataValue &src) noexcept {
+    for (auto iter = src.begin(); iter != src.end(); iter++) {
+      push_back((*iter)->AddRef());
+    }
+  }
 
   VectorDataValue(VectorDataValue &&src) noexcept
       : MVector<IDataValue *>(move(src)) {}
@@ -211,6 +216,15 @@ public:
   VectorDataValue &operator=(VectorDataValue &&src) noexcept {
     clear();
     swap(src);
+    return *this;
+  }
+
+  VectorDataValue &operator=(const VectorDataValue &src) noexcept {
+    clear();
+    reserve(src.size());
+    for (auto iter = src.begin(); iter != src.end(); iter++) {
+      push_back((*iter)->AddRef());
+    }
     return *this;
   }
 
@@ -234,6 +248,92 @@ public:
   VectorRow &operator=(VectorRow &&src) {
     MVector<VectorDataValue>::operator=(move(src));
     return *this;
+  }
+};
+
+class TreeMapLongDataValue : public MTreeMap<int64_t, IDataValue *> {
+public:
+  using MTreeMap<int64_t, IDataValue *>::MTreeMap;
+
+  TreeMapLongDataValue(const TreeMapLongDataValue &src) noexcept
+      : MTreeMap<int64_t, IDataValue *>(src) {
+    for (auto iter = begin(); iter != end(); iter++) {
+      iter->second->AddRef();
+    }
+  }
+
+  TreeMapLongDataValue(TreeMapLongDataValue &&src) noexcept
+      : MTreeMap<int64_t, IDataValue *>(move(src)) {}
+
+  ~TreeMapLongDataValue() { clear(); }
+
+  TreeMapLongDataValue &operator=(TreeMapLongDataValue &&src) noexcept {
+    clear();
+    swap(src);
+    return *this;
+  }
+
+  TreeMapLongDataValue &operator=(const TreeMapLongDataValue &src) noexcept {
+    clear();
+    MTreeMap<int64_t, IDataValue *>::operator=(src);
+    for (auto iter = begin(); iter != end(); iter++) {
+      iter->second->AddRef();
+    }
+    return *this;
+  }
+
+  void clear() {
+    for (auto iter = begin(); iter != end(); iter++) {
+      IDataValue *dv = iter->second;
+      if (dv != nullptr) {
+        dv->DecRef();
+      }
+    }
+
+    erase(begin(), end());
+  }
+};
+
+class HashMapLongDataValue : public MHashMap<int64_t, IDataValue *> {
+public:
+  using MHashMap<int64_t, IDataValue *>::MHashMap;
+
+  HashMapLongDataValue(const HashMapLongDataValue &src) noexcept
+      : MHashMap<int64_t, IDataValue *>(src) {
+    for (auto iter = begin(); iter != end(); iter++) {
+      iter->second->AddRef();
+    }
+  }
+
+  HashMapLongDataValue(HashMapLongDataValue &&src) noexcept
+      : MHashMap<int64_t, IDataValue *>(move(src)) {}
+
+  ~HashMapLongDataValue() { clear(); }
+
+  HashMapLongDataValue &operator=(HashMapLongDataValue &&src) noexcept {
+    clear();
+    swap(src);
+    return *this;
+  }
+
+  HashMapLongDataValue &operator=(const HashMapLongDataValue &src) noexcept {
+    clear();
+    MHashMap<int64_t, IDataValue *>::operator=(src);
+    for (auto iter = begin(); iter != end(); iter++) {
+      iter->second->AddRef();
+    }
+    return *this;
+  }
+
+  void clear() {
+    for (auto iter = begin(); iter != end(); iter++) {
+      IDataValue *dv = iter->second;
+      if (dv != nullptr) {
+        dv->DecRef();
+      }
+    }
+
+    erase(begin(), end());
   }
 };
 
