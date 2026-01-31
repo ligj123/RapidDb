@@ -102,10 +102,10 @@ BOOST_AUTO_TEST_CASE(DataValueBlobCopy_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   class DataValueBlobEx : public DataValueBlob {
   public:
-    using DataValueBlob::bysValue_;
+    using DataValueBlob::_bysValue;
+    using DataValueBlob::_maxLength;
+    using DataValueBlob::_soleLength;
     using DataValueBlob::DataValueBlob;
-    using DataValueBlob::maxLength_;
-    using DataValueBlob::soleLength_;
   };
 
   DataValueInt dvi(100);
@@ -127,21 +127,21 @@ BOOST_AUTO_TEST_CASE(DataValueBlobCopy_test) {
 
   dvb2.ReadData((Byte *)buf, 7, SavePosition::VALUE, false);
   dvb.Copy(dvb2, true);
-  BOOST_TEST(dvb.bysValue_ == (Byte *)buf);
-  BOOST_TEST(dvb2.bysValue_ == nullptr);
+  BOOST_TEST(dvb._bysValue == (Byte *)buf);
+  BOOST_TEST(dvb2._bysValue == nullptr);
   BOOST_TEST(dvb2.GetValueType() == ValueType::NULL_VALUE);
   BOOST_TEST(dvb != dvb2);
 
   dvb2.ReadData((Byte *)buf, 7, SavePosition::VALUE, false);
   dvb.Copy(dvb2, false);
-  BOOST_TEST(dvb.bysValue_ == dvb2.bysValue_);
-  BOOST_TEST(dvb.soleLength_ == dvb2.soleLength_);
+  BOOST_TEST(dvb._bysValue == dvb2._bysValue);
+  BOOST_TEST(dvb._soleLength == dvb2._soleLength);
   BOOST_TEST(dvb == dvb2);
 
   dvb2.ReadData((Byte *)buf, 7, SavePosition::VALUE, true);
   dvb.Copy(dvb2, false);
-  BOOST_TEST(dvb.bysValue_ != dvb2.bysValue_);
-  BOOST_TEST(dvb.soleLength_ == dvb2.soleLength_);
+  BOOST_TEST(dvb._bysValue != dvb2._bysValue);
+  BOOST_TEST(dvb._soleLength == dvb2._soleLength);
   BOOST_TEST(dvb == dvb2);
 
   dvb.Copy(dvb2, true);

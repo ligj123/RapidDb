@@ -10,88 +10,88 @@ class DataValueBlob : public IDataValue {
 public:
   explicit DataValueBlob(uint32_t maxLength = DEFAULT_MAX_VAR_LEN)
       : IDataValue(DataType::BLOB, ValueType::NULL_VALUE),
-        maxLength_(maxLength), bysValue_(nullptr), soleLength_(0) {}
+        _maxLength(maxLength), _bysValue(nullptr), _soleLength(0) {}
   DataValueBlob(const char *val, int len, uint32_t maxLength = UINT32_MAX)
       : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE),
-        maxLength_(maxLength == UINT32_MAX ? len : maxLength),
-        soleLength_(len) {
-    bysValue_ = CachePool::Apply(soleLength_);
-    BytesCopy(bysValue_, val, len);
+        _maxLength(maxLength == UINT32_MAX ? len : maxLength),
+        _soleLength(len) {
+    _bysValue = CachePool::Apply(_soleLength);
+    BytesCopy(_bysValue, val, len);
   }
   DataValueBlob(int len, const Byte *val, uint32_t maxLength = UINT32_MAX)
       : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE),
-        maxLength_(maxLength == UINT32_MAX ? len : maxLength),
-        soleLength_(len) {
-    bysValue_ = CachePool::Apply(soleLength_);
-    BytesCopy(bysValue_, val, len);
+        _maxLength(maxLength == UINT32_MAX ? len : maxLength),
+        _soleLength(len) {
+    _bysValue = CachePool::Apply(_soleLength);
+    BytesCopy(_bysValue, val, len);
   }
   DataValueBlob(Byte *byArray, uint32_t len, uint32_t maxLength)
-      : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE), bysValue_(byArray),
-        maxLength_(maxLength), soleLength_(len) {
-    assert(soleLength_ <= maxLength_);
+      : IDataValue(DataType::BLOB, ValueType::SOLE_VALUE), _bysValue(byArray),
+        _maxLength(maxLength), _soleLength(len) {
+    assert(_soleLength <= _maxLength);
   }
   DataValueBlob(const DataValueBlob &src) : IDataValue(src) {
-    maxLength_ = src.maxLength_;
-    soleLength_ = src.soleLength_;
+    _maxLength = src._maxLength;
+    _soleLength = src._soleLength;
 
-    if (valType_ == ValueType::NULL_VALUE) {
-      bysValue_ = nullptr;
+    if (_valType == ValueType::NULL_VALUE) {
+      _bysValue = nullptr;
     } else {
-      valType_ = ValueType::SOLE_VALUE;
-      bysValue_ = CachePool::Apply(soleLength_);
-      BytesCopy(bysValue_, src.bysValue_, soleLength_);
+      _valType = ValueType::SOLE_VALUE;
+      _bysValue = CachePool::Apply(_soleLength);
+      BytesCopy(_bysValue, src._bysValue, _soleLength);
     }
   }
 
   DataValueBlob(DataValueBlob &&src) : IDataValue(std::move(src)) {
-    maxLength_ = src.maxLength_;
-    soleLength_ = src.soleLength_;
-    bysValue_ = src.bysValue_;
+    _maxLength = src._maxLength;
+    _soleLength = src._soleLength;
+    _bysValue = src._bysValue;
   }
   ~DataValueBlob() {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, soleLength_);
-      valType_ = ValueType::NULL_VALUE;
+    if (_valType == ValueType::SOLE_VALUE) {
+      CachePool::Release(_bysValue, _soleLength);
+      _valType = ValueType::NULL_VALUE;
     }
   }
 
   DataValueBlob &operator=(const DataValueBlob &src) {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, soleLength_);
+    if (_valType == ValueType::SOLE_VALUE) {
+      CachePool::Release(_bysValue, _soleLength);
     }
 
     dataType_ = src.dataType_;
-    valType_ = src.valType_;
-    refCount_ = 1;
-    maxLength_ = src.maxLength_;
-    soleLength_ = src.soleLength_;
+    _valType = src._valType;
+    _refCount = 1;
+    _maxLength = src._maxLength;
+    _soleLength = src._soleLength;
 
-    if (valType_ == ValueType::NULL_VALUE) {
-      bysValue_ = nullptr;
-    } else if (valType_ == ValueType::BYTES_VALUE) {
-      bysValue_ = src.bysValue_;
+    if (_valType == ValueType::NULL_VALUE) {
+      _bysValue = nullptr;
+    } else if (_valType == ValueType::BYTES_VALUE) {
+      _bysValue = src._bysValue;
     } else {
-      valType_ = ValueType::SOLE_VALUE;
-      bysValue_ = CachePool::Apply(soleLength_);
-      BytesCopy(bysValue_, src.bysValue_, soleLength_);
+      _valType = ValueType::SOLE_VALUE;
+      _bysValue = CachePool::Apply(_soleLength);
+      BytesCopy(_bysValue, src._bysValue, _soleLength);
     }
 
     return *this;
   }
 
   DataValueBlob &operator=(DataValueBlob &&src) {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, soleLength_);
+    if (_valType == ValueType::SOLE_VALUE) {
+      CachePool::Release(_bysValue, _soleLength);
     }
 
     dataType_ = src.dataType_;
-    valType_ = src.valType_;
-    refCount_ = 1;
-    maxLength_ = src.maxLength_;
-    soleLength_ = src.soleLength_;
-    bysValue_ = src.bysValue_;
-    src.bysValue_ = nullptr;
-    src.valType_ = ValueType::NULL_VALUE;
+    _valType = src._valType;
+    _refCount = 1;
+    _maxLength = src._maxLength;
+    _soleLength = src._soleLength;
+    _bysValue = src._bysValue;
+    src._bysValue = nullptr;
+    src._valType = ValueType::NULL_VALUE;
 
     return *this;
   }
@@ -101,7 +101,7 @@ public:
     if (incVal) {
       return new DataValueBlob(*this);
     } else {
-      return new DataValueBlob(maxLength_);
+      return new DataValueBlob(_maxLength);
     }
   }
 
@@ -110,10 +110,10 @@ public:
   uint32_t GetPersistenceLength(
       SavePosition dtPos = SavePosition::VALUE) const override {
     assert(dtPos == SavePosition::VALUE);
-    switch (valType_) {
+    switch (_valType) {
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return soleLength_;
+      return _soleLength;
     case ValueType::NULL_VALUE:
     default:
       return 0;
@@ -121,23 +121,23 @@ public:
   }
 
   size_t Hash() const override {
-    if (valType_ == ValueType::NULL_VALUE)
+    if (_valType == ValueType::NULL_VALUE)
       return 0;
 
-    return BytesHash(bysValue_, soleLength_);
+    return BytesHash(_bysValue, _soleLength);
   }
 
   uint32_t GetDataLength() const override {
-    return (valType_ == ValueType::NULL_VALUE ? 0 : soleLength_);
+    return (_valType == ValueType::NULL_VALUE ? 0 : _soleLength);
   }
 
-  uint32_t GetMaxLength() const override { return maxLength_; }
+  uint32_t GetMaxLength() const override { return _maxLength; }
   void SetNull() override {
-    if (valType_ == ValueType::SOLE_VALUE)
-      CachePool::Release(bysValue_, soleLength_);
+    if (_valType == ValueType::SOLE_VALUE)
+      CachePool::Release(_bysValue, _soleLength);
 
-    valType_ = ValueType::NULL_VALUE;
-    bysValue_ = nullptr;
+    _valType = ValueType::NULL_VALUE;
+    _bysValue = nullptr;
   }
 
   bool SetValue(vector<char> val) {
@@ -157,12 +157,12 @@ public:
   void SetDefaultValue() override;
   operator const char *() const;
   char *Get(uint32_t &len) {
-    len = soleLength_;
-    return (char *)bysValue_;
+    len = _soleLength;
+    return (char *)_bysValue;
   }
 
   bool operator==(const DataValueBlob &dv) const;
-  const Byte *GetBuff() const override { return bysValue_; }
+  const Byte *GetBuff() const override { return _bysValue; }
   void ToString(StrBuff &sb) const override;
 
   bool EQ(const IDataValue &dv) const override {
@@ -176,9 +176,9 @@ public:
   friend std::ostream &operator<<(std::ostream &os, const DataValueBlob &dv);
 
 protected:
-  uint32_t maxLength_;
-  uint32_t soleLength_;
-  Byte *bysValue_;
+  uint32_t _maxLength;
+  uint32_t _soleLength;
+  Byte *_bysValue;
 };
 
 std::ostream &operator<<(std::ostream &os, const DataValueBlob &dv);

@@ -9,19 +9,19 @@
 
 namespace storage {
 bool DataValueFixChar::SetValue(const char *val, uint32_t len) {
-  if (len >= maxLength_) {
+  if (len >= _maxLength) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(_maxLength), ToMString(len)}));
     return false;
   }
 
-  if (valType_ != ValueType::SOLE_VALUE) {
-    bysValue_ = CachePool::Apply(maxLength_);
+  if (_valType != ValueType::SOLE_VALUE) {
+    _bysValue = CachePool::Apply(_maxLength);
   }
 
-  valType_ = ValueType::SOLE_VALUE;
-  BytesCopy(bysValue_, val, len);
-  memset(bysValue_ + len, ' ', maxLength_ - len);
+  _valType = ValueType::SOLE_VALUE;
+  BytesCopy(_bysValue, val, len);
+  memset(_bysValue + len, ' ', _maxLength - len);
   return true;
 }
 
@@ -64,18 +64,18 @@ bool DataValueFixChar::PutValue(std::any val) {
 
   if (len == 0)
     len = strlen(buf);
-  if (len > maxLength_) {
+  if (len > _maxLength) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(_maxLength), ToMString(len)}));
     return false;
   }
 
-  if (valType_ != ValueType::SOLE_VALUE)
-    bysValue_ = CachePool::Apply(maxLength_);
+  if (_valType != ValueType::SOLE_VALUE)
+    _bysValue = CachePool::Apply(_maxLength);
 
-  valType_ = ValueType::SOLE_VALUE;
-  BytesCopy(bysValue_, buf, len);
-  memset(bysValue_ + len, ' ', maxLength_ - len);
+  _valType = ValueType::SOLE_VALUE;
+  BytesCopy(_bysValue, buf, len);
+  memset(_bysValue + len, ' ', _maxLength - len);
   return true;
 }
 
@@ -84,69 +84,69 @@ bool DataValueFixChar::Copy(IDataValue &dv, bool bMove) {
     bMove = false;
   };
   if (dv.IsNull()) {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, maxLength_);
+    if (_valType == ValueType::SOLE_VALUE) {
+      CachePool::Release(_bysValue, _maxLength);
     }
-    bysValue_ = nullptr;
-    valType_ = ValueType::NULL_VALUE;
+    _bysValue = nullptr;
+    _valType = ValueType::NULL_VALUE;
     return true;
   }
 
   if (!dv.IsStringType()) {
     StrBuff sb(0);
     dv.ToString(sb);
-    if (maxLength_ < sb.GetStrLen()) {
+    if (_maxLength < sb.GetStrLen()) {
       _threadErrorMsg.reset(
           new ErrorMsg(DT_INPUT_OVER_LENGTH,
-                       {ToMString(maxLength_), ToMString(sb.GetStrLen())}));
+                       {ToMString(_maxLength), ToMString(sb.GetStrLen())}));
       return false;
     }
 
-    if (valType_ != ValueType::SOLE_VALUE) {
-      bysValue_ = CachePool::Apply(maxLength_);
+    if (_valType != ValueType::SOLE_VALUE) {
+      _bysValue = CachePool::Apply(_maxLength);
     }
 
     int len = sb.GetStrLen();
-    valType_ = ValueType::SOLE_VALUE;
-    BytesCopy(bysValue_, sb.GetBuff(), len);
-    memset(bysValue_ + len, ' ', maxLength_ - len);
+    _valType = ValueType::SOLE_VALUE;
+    BytesCopy(_bysValue, sb.GetBuff(), len);
+    memset(_bysValue + len, ' ', _maxLength - len);
     return true;
   }
 
-  if (dv.GetDataLength() > maxLength_) {
+  if (dv.GetDataLength() > _maxLength) {
     _threadErrorMsg.reset(
         new ErrorMsg(DT_INPUT_OVER_LENGTH,
-                     {ToMString(maxLength_), ToMString(dv.GetDataLength())}));
+                     {ToMString(_maxLength), ToMString(dv.GetDataLength())}));
     return false;
   }
 
   if (bMove && dv.GetDataType() == DataType::FIXCHAR &&
-      maxLength_ == dv.GetMaxLength()) {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, maxLength_);
+      _maxLength == dv.GetMaxLength()) {
+    if (_valType == ValueType::SOLE_VALUE) {
+      CachePool::Release(_bysValue, _maxLength);
     }
-    bysValue_ = ((DataValueFixChar &)dv).bysValue_;
-    valType_ = dv.GetValueType();
-    ((DataValueFixChar &)dv).bysValue_ = nullptr;
-    ((DataValueFixChar &)dv).valType_ = ValueType::NULL_VALUE;
+    _bysValue = ((DataValueFixChar &)dv)._bysValue;
+    _valType = dv.GetValueType();
+    ((DataValueFixChar &)dv)._bysValue = nullptr;
+    ((DataValueFixChar &)dv)._valType = ValueType::NULL_VALUE;
   } else if (dv.GetValueType() == ValueType::BYTES_VALUE &&
-             maxLength_ == dv.GetMaxLength()) {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, maxLength_);
+             _maxLength == dv.GetMaxLength()) {
+    if (_valType == ValueType::SOLE_VALUE) {
+      CachePool::Release(_bysValue, _maxLength);
     }
 
-    bysValue_ = ((DataValueFixChar &)dv).bysValue_;
-    valType_ = ValueType::BYTES_VALUE;
+    _bysValue = ((DataValueFixChar &)dv)._bysValue;
+    _valType = ValueType::BYTES_VALUE;
   } else {
-    if (valType_ != ValueType::SOLE_VALUE) {
-      bysValue_ = CachePool::Apply(maxLength_);
+    if (_valType != ValueType::SOLE_VALUE) {
+      _bysValue = CachePool::Apply(_maxLength);
     }
-    valType_ = ValueType::SOLE_VALUE;
-    BytesCopy(bysValue_, ((DataValueFixChar &)dv).bysValue_,
+    _valType = ValueType::SOLE_VALUE;
+    BytesCopy(_bysValue, ((DataValueFixChar &)dv)._bysValue,
               dv.GetMaxLength() - 1);
-    if (maxLength_ > dv.GetMaxLength()) {
-      memset(bysValue_ + dv.GetMaxLength(), ' ',
-             maxLength_ - dv.GetMaxLength());
+    if (_maxLength > dv.GetMaxLength()) {
+      memset(_bysValue + dv.GetMaxLength(), ' ',
+             _maxLength - dv.GetMaxLength());
     }
   }
   return true;
@@ -154,180 +154,180 @@ bool DataValueFixChar::Copy(IDataValue &dv, bool bMove) {
 
 uint32_t DataValueFixChar::WriteData(Byte *buf, SavePosition svPos) const {
   if (svPos == SavePosition::KEY) {
-    if (valType_ == ValueType::NULL_VALUE) {
-      memset(buf, ' ', maxLength_);
+    if (_valType == ValueType::NULL_VALUE) {
+      memset(buf, ' ', _maxLength);
     } else {
-      BytesCopy(buf, bysValue_, maxLength_);
+      BytesCopy(buf, _bysValue, _maxLength);
     }
-    return maxLength_;
+    return _maxLength;
   } else {
-    if (valType_ == ValueType::NULL_VALUE) {
+    if (_valType == ValueType::NULL_VALUE) {
       return 0;
     } else {
-      BytesCopy(buf, bysValue_, maxLength_);
-      return maxLength_;
+      BytesCopy(buf, _bysValue, _maxLength);
+      return _maxLength;
     }
   }
 }
 
 uint32_t DataValueFixChar::ReadData(const Byte *buf, uint32_t len,
                                     SavePosition svPos, bool bSole) {
-  assert(len == 0 || len == maxLength_);
+  assert(len == 0 || len == _maxLength);
   if (svPos == SavePosition::KEY) {
     assert(len > 0);
     if (bSole) {
-      if (valType_ != ValueType::SOLE_VALUE) {
-        bysValue_ = CachePool::Apply(maxLength_);
+      if (_valType != ValueType::SOLE_VALUE) {
+        _bysValue = CachePool::Apply(_maxLength);
       }
-      valType_ = ValueType::SOLE_VALUE;
-      BytesCopy(bysValue_, buf, maxLength_);
+      _valType = ValueType::SOLE_VALUE;
+      BytesCopy(_bysValue, buf, _maxLength);
     } else {
-      if (valType_ == ValueType::SOLE_VALUE) {
-        CachePool::Release(bysValue_, maxLength_);
+      if (_valType == ValueType::SOLE_VALUE) {
+        CachePool::Release(_bysValue, _maxLength);
       }
-      valType_ = ValueType::BYTES_VALUE;
-      bysValue_ = const_cast<Byte *>(buf);
+      _valType = ValueType::BYTES_VALUE;
+      _bysValue = const_cast<Byte *>(buf);
     }
-    return maxLength_;
+    return _maxLength;
   } else {
     if (len == 0) {
-      if (valType_ == ValueType::SOLE_VALUE) {
-        CachePool::Release(bysValue_, maxLength_);
+      if (_valType == ValueType::SOLE_VALUE) {
+        CachePool::Release(_bysValue, _maxLength);
       }
-      valType_ = ValueType::NULL_VALUE;
+      _valType = ValueType::NULL_VALUE;
       return 0;
     }
 
     if (bSole) {
-      if (valType_ != ValueType::SOLE_VALUE)
-        bysValue_ = CachePool::Apply(maxLength_);
-      valType_ = ValueType::SOLE_VALUE;
-      BytesCopy(bysValue_, buf, maxLength_);
+      if (_valType != ValueType::SOLE_VALUE)
+        _bysValue = CachePool::Apply(_maxLength);
+      _valType = ValueType::SOLE_VALUE;
+      BytesCopy(_bysValue, buf, _maxLength);
     } else {
-      if (valType_ == ValueType::SOLE_VALUE)
-        CachePool::Release(bysValue_, maxLength_);
-      valType_ = ValueType::BYTES_VALUE;
-      bysValue_ = const_cast<Byte *>(buf);
+      if (_valType == ValueType::SOLE_VALUE)
+        CachePool::Release(_bysValue, _maxLength);
+      _valType = ValueType::BYTES_VALUE;
+      _bysValue = const_cast<Byte *>(buf);
     }
 
-    return maxLength_;
+    return _maxLength;
   }
 }
 
 uint32_t DataValueFixChar::WriteData(Byte *buf) const {
-  if (valType_ == ValueType::NULL_VALUE) {
+  if (_valType == ValueType::NULL_VALUE) {
     buf[0] = (Byte)DataType::FIXCHAR & DATE_TYPE;
     return 1;
   } else {
     buf[0] = (Byte)(VALUE_TYPE | ((Byte)DataType::FIXCHAR & DATE_TYPE));
-    BytesCopy(buf + 1, (Byte *)&maxLength_, sizeof(uint32_t));
-    BytesCopy(buf + 1 + sizeof(uint32_t), bysValue_, maxLength_);
-    return maxLength_ + 1;
+    BytesCopy(buf + 1, (Byte *)&_maxLength, sizeof(uint32_t));
+    BytesCopy(buf + 1 + sizeof(uint32_t), _bysValue, _maxLength);
+    return _maxLength + 1;
   }
 }
 
 uint32_t DataValueFixChar::ReadData(const Byte *buf) {
-  if (valType_ == ValueType::SOLE_VALUE) {
-    CachePool::Release(bysValue_, maxLength_);
+  if (_valType == ValueType::SOLE_VALUE) {
+    CachePool::Release(_bysValue, _maxLength);
   }
 
-  valType_ =
+  _valType =
       (buf[0] & VALUE_TYPE ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
-  if (valType_ == ValueType::NULL_VALUE) {
-    valType_ = ValueType::NULL_VALUE;
-    bysValue_ = nullptr;
+  if (_valType == ValueType::NULL_VALUE) {
+    _valType = ValueType::NULL_VALUE;
+    _bysValue = nullptr;
     return 1;
   }
 
-  valType_ = ValueType::SOLE_VALUE;
-  BytesCopy((Byte *)&maxLength_, buf + 1, sizeof(uint32_t));
-  bysValue_ = CachePool::Apply(maxLength_);
-  BytesCopy(bysValue_, buf + 1 + sizeof(uint32_t), maxLength_);
-  return maxLength_ + 1;
+  _valType = ValueType::SOLE_VALUE;
+  BytesCopy((Byte *)&_maxLength, buf + 1, sizeof(uint32_t));
+  _bysValue = CachePool::Apply(_maxLength);
+  BytesCopy(_bysValue, buf + 1 + sizeof(uint32_t), _maxLength);
+  return _maxLength + 1;
 }
 
 void DataValueFixChar::SetMinValue() {
-  if (valType_ != ValueType::SOLE_VALUE) {
-    bysValue_ = CachePool::Apply(maxLength_);
+  if (_valType != ValueType::SOLE_VALUE) {
+    _bysValue = CachePool::Apply(_maxLength);
   }
-  valType_ = ValueType::SOLE_VALUE;
-  memset(bysValue_, 0, maxLength_);
+  _valType = ValueType::SOLE_VALUE;
+  memset(_bysValue, 0, _maxLength);
 }
 
 void DataValueFixChar::SetMaxValue() {
-  if (valType_ != ValueType::SOLE_VALUE) {
-    bysValue_ = CachePool::Apply(maxLength_);
+  if (_valType != ValueType::SOLE_VALUE) {
+    _bysValue = CachePool::Apply(_maxLength);
   }
 
-  valType_ = ValueType::SOLE_VALUE;
-  memset(bysValue_, 0xFF, maxLength_);
+  _valType = ValueType::SOLE_VALUE;
+  memset(_bysValue, 0xFF, _maxLength);
 }
 
 void DataValueFixChar::SetDefaultValue() {
-  if (valType_ != ValueType::SOLE_VALUE) {
-    bysValue_ = CachePool::Apply(maxLength_);
+  if (_valType != ValueType::SOLE_VALUE) {
+    _bysValue = CachePool::Apply(_maxLength);
   }
 
-  valType_ = ValueType::SOLE_VALUE;
-  memset(bysValue_, ' ', maxLength_);
+  _valType = ValueType::SOLE_VALUE;
+  memset(_bysValue, ' ', _maxLength);
 }
 
 DataValueFixChar *DataValueFixChar::operator=(const char *val) {
   uint32_t len = (uint32_t)strlen(val);
-  if (len >= maxLength_) {
+  if (len >= _maxLength) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(_maxLength), ToMString(len)}));
     return nullptr;
   }
-  if (valType_ != ValueType::SOLE_VALUE)
-    bysValue_ = CachePool::Apply(maxLength_);
+  if (_valType != ValueType::SOLE_VALUE)
+    _bysValue = CachePool::Apply(_maxLength);
 
-  valType_ = ValueType::SOLE_VALUE;
-  BytesCopy(bysValue_, val, len);
-  memset(bysValue_ + len, ' ', maxLength_ - len);
+  _valType = ValueType::SOLE_VALUE;
+  BytesCopy(_bysValue, val, len);
+  memset(_bysValue + len, ' ', _maxLength - len);
   return this;
 }
 
 DataValueFixChar *DataValueFixChar::operator=(const MString val) {
   uint32_t len = (uint32_t)val.size();
-  if (len >= maxLength_) {
+  if (len >= _maxLength) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(_maxLength), ToMString(len)}));
     return nullptr;
   }
-  if (valType_ != ValueType::SOLE_VALUE)
-    bysValue_ = CachePool::Apply(maxLength_);
+  if (_valType != ValueType::SOLE_VALUE)
+    _bysValue = CachePool::Apply(_maxLength);
 
-  valType_ = ValueType::SOLE_VALUE;
-  BytesCopy(bysValue_, val.c_str(), len);
-  memset(bysValue_ + len, ' ', maxLength_ - len);
+  _valType = ValueType::SOLE_VALUE;
+  BytesCopy(_bysValue, val.c_str(), len);
+  memset(_bysValue + len, ' ', _maxLength - len);
   return this;
 }
 
 DataValueFixChar *DataValueFixChar::operator=(const string val) {
   uint32_t len = (uint32_t)val.size();
-  if (len >= maxLength_) {
+  if (len >= _maxLength) {
     _threadErrorMsg.reset(new ErrorMsg(
-        DT_INPUT_OVER_LENGTH, {ToMString(maxLength_), ToMString(len)}));
+        DT_INPUT_OVER_LENGTH, {ToMString(_maxLength), ToMString(len)}));
     return nullptr;
   }
-  if (valType_ != ValueType::SOLE_VALUE)
-    bysValue_ = CachePool::Apply(maxLength_);
+  if (_valType != ValueType::SOLE_VALUE)
+    _bysValue = CachePool::Apply(_maxLength);
 
-  valType_ = ValueType::SOLE_VALUE;
-  BytesCopy(bysValue_, val.c_str(), len);
-  memset(bysValue_ + len, ' ', maxLength_ - len);
+  _valType = ValueType::SOLE_VALUE;
+  BytesCopy(_bysValue, val.c_str(), len);
+  memset(_bysValue + len, ' ', _maxLength - len);
   return this;
 }
 
 std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv) {
-  switch (dv.valType_) {
+  switch (dv._valType) {
   case ValueType::NULL_VALUE:
     os << "nullptr";
     break;
   case ValueType::SOLE_VALUE:
   case ValueType::BYTES_VALUE:
-    os << (char *)dv.bysValue_;
+    os << (char *)dv._bysValue;
     break;
   }
 

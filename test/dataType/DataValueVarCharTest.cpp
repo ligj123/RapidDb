@@ -133,18 +133,18 @@ BOOST_AUTO_TEST_CASE(DataValueVarCharCopy_test) {
            << boost::unit_test::framework::current_test_case().p_name;
   class DataValueVarCharEx : public DataValueVarChar {
   public:
-    using DataValueVarChar::bysValue_;
+    using DataValueVarChar::_bysValue;
+    using DataValueVarChar::_maxLength;
+    using DataValueVarChar::_soleLength;
     using DataValueVarChar::DataValueVarChar;
-    using DataValueVarChar::maxLength_;
-    using DataValueVarChar::soleLength_;
   };
 
   DataValueInt dvi(100);
   DataValueVarCharEx dvc(10);
 
   dvc.Copy(dvi);
-  BOOST_TEST(strcmp((char *)dvc.bysValue_, "100") == 0);
-  BOOST_TEST(dvc.soleLength_ == 4);
+  BOOST_TEST(strcmp((char *)dvc._bysValue, "100") == 0);
+  BOOST_TEST(dvc._soleLength == 4);
   BOOST_TEST(dvc.GetValueType() == ValueType::SOLE_VALUE);
 
   const char *pStr = "abcdefghijklmn";
@@ -159,21 +159,21 @@ BOOST_AUTO_TEST_CASE(DataValueVarCharCopy_test) {
 
   dvc2.ReadData((Byte *)buf, 8, SavePosition::VALUE, false);
   dvc.Copy(dvc2, true);
-  BOOST_TEST(dvc.bysValue_ == (Byte *)buf);
-  BOOST_TEST(dvc2.bysValue_ == nullptr);
+  BOOST_TEST(dvc._bysValue == (Byte *)buf);
+  BOOST_TEST(dvc2._bysValue == nullptr);
   BOOST_TEST(dvc2.GetValueType() == ValueType::NULL_VALUE);
   BOOST_TEST(dvc != dvc2);
 
   dvc2.ReadData((Byte *)buf, 8, SavePosition::VALUE, false);
   dvc.Copy(dvc2, false);
-  BOOST_TEST(dvc.bysValue_ == dvc2.bysValue_);
-  BOOST_TEST(dvc.soleLength_ == dvc2.soleLength_);
+  BOOST_TEST(dvc._bysValue == dvc2._bysValue);
+  BOOST_TEST(dvc._soleLength == dvc2._soleLength);
   BOOST_TEST(dvc == dvc2);
 
   dvc2.ReadData((Byte *)buf, 8, SavePosition::VALUE, true);
   dvc.Copy(dvc2, false);
-  BOOST_TEST(dvc.bysValue_ != dvc2.bysValue_);
-  BOOST_TEST(dvc.soleLength_ == dvc2.soleLength_);
+  BOOST_TEST(dvc._bysValue != dvc2._bysValue);
+  BOOST_TEST(dvc._soleLength == dvc2._soleLength);
   BOOST_TEST(dvc == dvc2);
 }
 BOOST_AUTO_TEST_SUITE_END()

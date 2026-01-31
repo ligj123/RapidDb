@@ -21,7 +21,7 @@ public:
     return new DataValueDateTime(*this);
   }
   void ToString(StrBuff &sb) const override {
-    if (valType_ == ValueType::NULL_VALUE) {
+    if (_valType == ValueType::NULL_VALUE) {
       return;
     }
     if (22 > sb.GetFreeLen()) {
@@ -39,7 +39,7 @@ protected:
 };
 
 inline std::ostream &operator<<(std::ostream &os, const DataValueDateTime &dv) {
-  if (dv.valType_ == ValueType::NULL_VALUE)
+  if (dv._valType == ValueType::NULL_VALUE)
     os << "nullptr";
   else
     os << dv._value;

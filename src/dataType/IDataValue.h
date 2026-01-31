@@ -66,42 +66,42 @@ public:
   }
 
   IDataValue(DataType dataType, ValueType valType)
-      : dataType_(dataType), valType_(valType), refCount_(1) {}
+      : dataType_(dataType), _valType(valType), _refCount(1) {}
   IDataValue(const IDataValue &src)
-      : dataType_(src.dataType_), valType_(src.valType_), refCount_(1) {}
+      : dataType_(src.dataType_), _valType(src._valType), _refCount(1) {}
   IDataValue(IDataValue &&src)
-      : dataType_(src.dataType_), valType_(src.valType_), refCount_(1) {
-    src.valType_ = ValueType::NULL_VALUE;
+      : dataType_(src.dataType_), _valType(src._valType), _refCount(1) {
+    src._valType = ValueType::NULL_VALUE;
   }
-  virtual ~IDataValue() { assert(refCount_ == 1 || refCount_ == UINT16_MAX); }
+  virtual ~IDataValue() { assert(_refCount == 1 || _refCount == UINT16_MAX); }
 
   IDataValue &operator=(const IDataValue &dv) = delete;
   IDataValue &operator=(IDataValue &&dv) = delete;
 
   // return the data type for this data value
   inline DataType GetDataType() const { return dataType_; }
-  inline ValueType GetValueType() const { return valType_; }
-  inline bool IsNull() const { return valType_ == ValueType::NULL_VALUE; }
+  inline ValueType GetValueType() const { return _valType; }
+  inline bool IsNull() const { return _valType == ValueType::NULL_VALUE; }
   inline IDataValue *AddRef() {
-    if (refCount_ != UINT16_MAX)
-      ++refCount_;
+    if (_refCount != UINT16_MAX)
+      ++_refCount;
     return this;
   }
   inline void DecRef() {
-    if (refCount_ != UINT16_MAX) {
-      assert(refCount_ >= 1);
-      if (refCount_ == 1) {
+    if (_refCount != UINT16_MAX) {
+      assert(_refCount >= 1);
+      if (_refCount == 1) {
         delete this;
       } else {
-        --refCount_;
+        --_refCount;
       }
     }
   }
-  inline uint16_t GetRef() { return refCount_; }
-  inline void SetConstRef() { refCount_ = UINT16_MAX; }
-  inline bool IsConstRef() { return refCount_ == UINT16_MAX; }
+  inline uint16_t GetRef() { return _refCount; }
+  inline void SetConstRef() { _refCount = UINT16_MAX; }
+  inline bool IsConstRef() { return _refCount == UINT16_MAX; }
   inline void Free() {
-    assert(refCount_ == UINT16_MAX);
+    assert(_refCount == UINT16_MAX);
     delete this;
   }
   // Only copy value from the dv, not include maxlength, bKey. If bMove=true,
@@ -192,11 +192,11 @@ public:
 
 protected:
   DataType dataType_;
-  ValueType valType_;
+  ValueType _valType;
   // The reference count for this DataValue. If it decrease to 0, it will be
   // deleted. When add one reference, it will increase 1.
   // WARNING: here do not consider thread safe and the user to resolve it.
-  uint16_t refCount_;
+  uint16_t _refCount;
 };
 
 class VectorDataValue : public MVector<IDataValue *> {

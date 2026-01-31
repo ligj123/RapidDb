@@ -9,81 +9,81 @@ class DataValueFixChar : public IDataValue {
 public:
   explicit DataValueFixChar(uint32_t maxLength = DEFAULT_MAX_FIX_LEN)
       : IDataValue(DataType::FIXCHAR, ValueType::NULL_VALUE),
-        maxLength_(maxLength), bysValue_(nullptr) {}
+        _maxLength(maxLength), _bysValue(nullptr) {}
 
   DataValueFixChar(const char *val, uint32_t len, uint32_t maxLength = 0)
       : IDataValue(DataType::FIXCHAR, ValueType::SOLE_VALUE),
-        maxLength_(maxLength == 0 ? len : maxLength), bysValue_(nullptr) {
-    assert(len <= maxLength_);
-    bysValue_ = CachePool::Apply(maxLength_);
-    BytesCopy(bysValue_, val, len);
-    memset(bysValue_ + len, ' ', maxLength_ - len);
+        _maxLength(maxLength == 0 ? len : maxLength), _bysValue(nullptr) {
+    assert(len <= _maxLength);
+    _bysValue = CachePool::Apply(_maxLength);
+    BytesCopy(_bysValue, val, len);
+    memset(_bysValue + len, ' ', _maxLength - len);
   }
 
   DataValueFixChar(Byte *byArray, uint32_t maxLength)
       : IDataValue(DataType::FIXCHAR, ValueType::BYTES_VALUE),
-        bysValue_(byArray), maxLength_(maxLength) {}
+        _bysValue(byArray), _maxLength(maxLength) {}
 
   DataValueFixChar(const DataValueFixChar &src) : IDataValue(src) {
-    maxLength_ = src.maxLength_;
+    _maxLength = src._maxLength;
 
-    if (valType_ == ValueType::NULL_VALUE) {
-      bysValue_ = nullptr;
-    } else if (valType_ == ValueType::BYTES_VALUE) {
-      bysValue_ = src.bysValue_;
+    if (_valType == ValueType::NULL_VALUE) {
+      _bysValue = nullptr;
+    } else if (_valType == ValueType::BYTES_VALUE) {
+      _bysValue = src._bysValue;
     } else {
-      valType_ = ValueType::SOLE_VALUE;
-      bysValue_ = CachePool::Apply(maxLength_);
-      BytesCopy(bysValue_, src.bysValue_, maxLength_);
+      _valType = ValueType::SOLE_VALUE;
+      _bysValue = CachePool::Apply(_maxLength);
+      BytesCopy(_bysValue, src._bysValue, _maxLength);
     }
   }
 
   DataValueFixChar(DataValueFixChar &&src) : IDataValue(std::move(src)) {
-    maxLength_ = src.maxLength_;
-    bysValue_ = src.bysValue_;
-    src.bysValue_ = nullptr;
+    _maxLength = src._maxLength;
+    _bysValue = src._bysValue;
+    src._bysValue = nullptr;
   }
 
   ~DataValueFixChar() {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, maxLength_);
+    if (_valType == ValueType::SOLE_VALUE) {
+      CachePool::Release(_bysValue, _maxLength);
     }
   }
 
   DataValueFixChar &operator=(const DataValueFixChar &src) {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, maxLength_);
+    if (_valType == ValueType::SOLE_VALUE) {
+      CachePool::Release(_bysValue, _maxLength);
     }
 
     dataType_ = src.dataType_;
-    valType_ = src.valType_;
-    refCount_ = 1;
-    maxLength_ = src.maxLength_;
+    _valType = src._valType;
+    _refCount = 1;
+    _maxLength = src._maxLength;
 
-    if (valType_ == ValueType::NULL_VALUE) {
-      bysValue_ = nullptr;
-    } else if (valType_ == ValueType::BYTES_VALUE) {
-      bysValue_ = src.bysValue_;
+    if (_valType == ValueType::NULL_VALUE) {
+      _bysValue = nullptr;
+    } else if (_valType == ValueType::BYTES_VALUE) {
+      _bysValue = src._bysValue;
     } else {
-      valType_ = ValueType::SOLE_VALUE;
-      bysValue_ = CachePool::Apply(maxLength_);
-      BytesCopy(bysValue_, src.bysValue_, maxLength_);
+      _valType = ValueType::SOLE_VALUE;
+      _bysValue = CachePool::Apply(_maxLength);
+      BytesCopy(_bysValue, src._bysValue, _maxLength);
     }
 
     return *this;
   }
 
   DataValueFixChar &operator=(DataValueFixChar &&src) {
-    if (valType_ == ValueType::SOLE_VALUE) {
-      CachePool::Release(bysValue_, maxLength_);
+    if (_valType == ValueType::SOLE_VALUE) {
+      CachePool::Release(_bysValue, _maxLength);
     }
 
     dataType_ = src.dataType_;
-    valType_ = src.valType_;
-    refCount_ = 1;
-    maxLength_ = src.maxLength_;
-    bysValue_ = src.bysValue_;
-    src.bysValue_ = nullptr;
+    _valType = src._valType;
+    _refCount = 1;
+    _maxLength = src._maxLength;
+    _bysValue = src._bysValue;
+    src._bysValue = nullptr;
     return *this;
   }
 
@@ -92,15 +92,15 @@ public:
     if (incVal) {
       return new DataValueFixChar(*this);
     } else {
-      return new DataValueFixChar(maxLength_);
+      return new DataValueFixChar(_maxLength);
     }
   }
 
   std::any GetValue() const override {
-    switch (valType_) {
+    switch (_valType) {
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return string((char *)bysValue_, maxLength_);
+      return string((char *)_bysValue, _maxLength);
     case ValueType::NULL_VALUE:
     default:
       return std::any();
@@ -109,12 +109,12 @@ public:
 
   uint32_t GetPersistenceLength(SavePosition dtPos) const override {
     if (dtPos == SavePosition::KEY) {
-      return maxLength_;
+      return _maxLength;
     } else {
-      switch (valType_) {
+      switch (_valType) {
       case ValueType::SOLE_VALUE:
       case ValueType::BYTES_VALUE:
-        return maxLength_;
+        return _maxLength;
       case ValueType::NULL_VALUE:
       default:
         return 0;
@@ -122,54 +122,54 @@ public:
     }
   }
   size_t Hash() const override {
-    if (valType_ == ValueType::NULL_VALUE)
+    if (_valType == ValueType::NULL_VALUE)
       return 0;
 
-    return BytesHash(bysValue_, maxLength_);
+    return BytesHash(_bysValue, _maxLength);
   }
   uint32_t GetDataLength() const override {
-    if (valType_ == ValueType::NULL_VALUE)
+    if (_valType == ValueType::NULL_VALUE)
       return 0;
     else
-      return maxLength_;
+      return _maxLength;
   }
   void ToString(StrBuff &sb) const override {
-    if (valType_ == ValueType::NULL_VALUE) {
+    if (_valType == ValueType::NULL_VALUE) {
       return;
     }
 
-    sb.Cat((char *)bysValue_, maxLength_);
+    sb.Cat((char *)_bysValue, _maxLength);
   }
 
   operator MString() const {
-    switch (valType_) {
+    switch (_valType) {
     case ValueType::NULL_VALUE:
     default:
       return MString("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return MString((char *)bysValue_, maxLength_);
+      return MString((char *)_bysValue, _maxLength);
     }
   }
 
   operator string() const {
-    switch (valType_) {
+    switch (_valType) {
     case ValueType::NULL_VALUE:
     default:
       return string("");
     case ValueType::SOLE_VALUE:
     case ValueType::BYTES_VALUE:
-      return string((char *)bysValue_, maxLength_);
+      return string((char *)_bysValue, _maxLength);
     }
   }
   void SetNull() override {
-    if (valType_ == ValueType::SOLE_VALUE)
-      CachePool::Release(bysValue_, maxLength_);
+    if (_valType == ValueType::SOLE_VALUE)
+      CachePool::Release(_bysValue, _maxLength);
 
-    valType_ = ValueType::NULL_VALUE;
-    bysValue_ = nullptr;
+    _valType = ValueType::NULL_VALUE;
+    _bysValue = nullptr;
   }
-  uint32_t GetMaxLength() const override { return maxLength_; }
+  uint32_t GetMaxLength() const override { return _maxLength; }
 
   bool SetValue(string val) {
     return SetValue(val.c_str(), (uint32_t)val.size());
@@ -206,46 +206,46 @@ public:
   }
 
   bool operator>(const DataValueFixChar &dv) const {
-    if (valType_ == ValueType::NULL_VALUE) {
+    if (_valType == ValueType::NULL_VALUE) {
       return false;
     }
-    if (dv.valType_ == ValueType::NULL_VALUE) {
+    if (dv._valType == ValueType::NULL_VALUE) {
       return true;
     }
 
-    return BytesCompare(bysValue_, maxLength_, dv.bysValue_, dv.maxLength_) > 0;
+    return BytesCompare(_bysValue, _maxLength, dv._bysValue, dv._maxLength) > 0;
   }
   bool operator<(const DataValueFixChar &dv) const { return !(*this >= dv); }
   bool operator>=(const DataValueFixChar &dv) const {
-    if (valType_ == ValueType::NULL_VALUE) {
-      return dv.valType_ == ValueType::NULL_VALUE;
+    if (_valType == ValueType::NULL_VALUE) {
+      return dv._valType == ValueType::NULL_VALUE;
     }
-    if (dv.valType_ == ValueType::NULL_VALUE) {
+    if (dv._valType == ValueType::NULL_VALUE) {
       return true;
     }
 
-    return BytesCompare(bysValue_, maxLength_, dv.bysValue_, dv.maxLength_) >=
+    return BytesCompare(_bysValue, _maxLength, dv._bysValue, dv._maxLength) >=
            0;
   }
   bool operator<=(const DataValueFixChar &dv) const { return !(*this > dv); }
   bool operator==(const DataValueFixChar &dv) const {
-    if (valType_ == ValueType::NULL_VALUE) {
-      return dv.valType_ == ValueType::NULL_VALUE;
+    if (_valType == ValueType::NULL_VALUE) {
+      return dv._valType == ValueType::NULL_VALUE;
     }
-    if (dv.valType_ == ValueType::NULL_VALUE) {
+    if (dv._valType == ValueType::NULL_VALUE) {
       return false;
     }
 
-    return BytesCompare(bysValue_, maxLength_, dv.bysValue_, dv.maxLength_) ==
+    return BytesCompare(_bysValue, _maxLength, dv._bysValue, dv._maxLength) ==
            0;
   }
-  const Byte *GetBuff() const override { return bysValue_; }
+  const Byte *GetBuff() const override { return _bysValue; }
   bool operator!=(const DataValueFixChar &dv) const { return !(*this == dv); }
   friend std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv);
 
 protected:
-  uint32_t maxLength_;
-  Byte *bysValue_;
+  uint32_t _maxLength;
+  Byte *_bysValue;
 };
 
 std::ostream &operator<<(std::ostream &os, const DataValueFixChar &dv);

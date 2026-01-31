@@ -40,8 +40,8 @@ enum class StmtStatus : uint8_t {
 enum class ActionStatus {
   INIT,     // Just initialized
   INTERVAL, // Unfinished and need to execute again
-  SUCEED,   // Succeed to insert
-  FAILED,   // Failed to insert due to error or rollback
+  SUCEED,   // Succeed to execute
+  FAILED,   // Failed to execute due to error or rollback
 };
 
 // To save the handles paras in InsertStatement.

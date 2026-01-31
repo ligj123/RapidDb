@@ -22,27 +22,27 @@ public:
 
   DataValueDigit &operator=(const DataValueDigit &src) {
     dataType_ = src.dataType_;
-    valType_ = src.valType_;
-    refCount_ = 1;
+    _valType = src._valType;
+    _refCount = 1;
     _value = src._value;
     return *this;
   }
   DataValueDigit &operator=(DataValueDigit &&src) {
     dataType_ = src.dataType_;
-    valType_ = src.valType_;
-    refCount_ = 1;
+    _valType = src._valType;
+    _refCount = 1;
     _value = src._value;
-    src.valType_ = ValueType::NULL_VALUE;
+    src._valType = ValueType::NULL_VALUE;
     return *this;
   }
 
   bool SetValue(T val) {
     _value = val;
-    valType_ = ValueType::SOLE_VALUE;
+    _valType = ValueType::SOLE_VALUE;
     return true;
   }
 
-  void SetNull() override { valType_ = ValueType::NULL_VALUE; }
+  void SetNull() override { _valType = ValueType::NULL_VALUE; }
 
   bool PutValue(std::any val) override {
     if (val.type() == typeid(int64_t))
@@ -79,13 +79,13 @@ public:
       abort();
     }
 
-    valType_ = ValueType::SOLE_VALUE;
+    _valType = ValueType::SOLE_VALUE;
     return true;
   }
 
   bool Copy(IDataValue &dv, bool bMove = false) override {
     if (dv.IsNull()) {
-      valType_ = ValueType::NULL_VALUE;
+      _valType = ValueType::NULL_VALUE;
       return true;
     }
     if (dataType_ == dv.GetDataType()) {
@@ -105,7 +105,7 @@ public:
       _value = (T)dv.GetDouble();
     }
 
-    valType_ = ValueType::SOLE_VALUE;
+    _valType = ValueType::SOLE_VALUE;
     return true;
   }
 
@@ -115,26 +115,26 @@ public:
   uint32_t GetPersistenceLength(SavePosition dtPos) const override {
     return dtPos == SavePosition::KEY
                ? sizeof(T)
-               : (valType_ == ValueType::NULL_VALUE ? 0 : sizeof(T));
+               : (_valType == ValueType::NULL_VALUE ? 0 : sizeof(T));
   };
   uint32_t GetDataLength() const override {
-    return valType_ == ValueType::NULL_VALUE ? 0 : sizeof(T);
+    return _valType == ValueType::NULL_VALUE ? 0 : sizeof(T);
   }
   uint32_t GetMaxLength() const override { return sizeof(T); }
   std::any GetValue() const override {
-    if (valType_ == ValueType::NULL_VALUE)
+    if (_valType == ValueType::NULL_VALUE)
       return std::any();
     else
       return _value;
   }
   int64_t GetLong() const override {
-    if (valType_ == ValueType::NULL_VALUE)
+    if (_valType == ValueType::NULL_VALUE)
       return 0;
     else
       return (int64_t)_value;
   }
   double GetDouble() const override {
-    if (valType_ == ValueType::NULL_VALUE)
+    if (_valType == ValueType::NULL_VALUE)
       return 0;
     else
       return (double)_value;
@@ -144,14 +144,14 @@ public:
   uint32_t WriteData(Byte *buf, SavePosition svPos) const override {
     assert(svPos != SavePosition::UNKNOWN);
     if (svPos == SavePosition::KEY) {
-      if (valType_ == ValueType::NULL_VALUE) {
+      if (_valType == ValueType::NULL_VALUE) {
         DigitalToBytes<T, DT>(0, buf, true);
       } else {
         DigitalToBytes<T, DT>(_value, buf, true);
       }
       return sizeof(T);
     } else {
-      if (valType_ == ValueType::NULL_VALUE) {
+      if (_valType == ValueType::NULL_VALUE) {
         return 0;
       } else {
         DigitalToBytes<T, DT>(_value, buf, false);
@@ -163,12 +163,12 @@ public:
                     bool bSole = true) override {
     assert(svPos != SavePosition::UNKNOWN);
     if (svPos == SavePosition::KEY) {
-      valType_ = ValueType::SOLE_VALUE;
+      _valType = ValueType::SOLE_VALUE;
       _value = DigitalFromBytes<T, DT>(buf, true);
       return sizeof(T);
     } else {
-      valType_ = (len != 0 ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
-      if (valType_ == ValueType::NULL_VALUE)
+      _valType = (len != 0 ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
+      if (_valType == ValueType::NULL_VALUE)
         return 0;
 
       _value = DigitalFromBytes<T, DT>(buf, false);
@@ -176,7 +176,7 @@ public:
     }
   }
   uint32_t WriteData(Byte *buf) const override {
-    if (valType_ == ValueType::NULL_VALUE) {
+    if (_valType == ValueType::NULL_VALUE) {
       buf[0] = (Byte)dataType_ & DATE_TYPE;
       return 1;
     } else {
@@ -186,41 +186,41 @@ public:
     }
   }
   uint32_t ReadData(const Byte *buf) override {
-    valType_ =
+    _valType =
         ((buf[0] & VALUE_TYPE) ? ValueType::SOLE_VALUE : ValueType::NULL_VALUE);
-    if (valType_ == ValueType::NULL_VALUE)
+    if (_valType == ValueType::NULL_VALUE)
       return 1;
 
     _value = DigitalFromBytes<T, DT>(buf + 1, false);
     return sizeof(T) + 1;
   }
   void SetMinValue() override {
-    valType_ = ValueType::SOLE_VALUE;
+    _valType = ValueType::SOLE_VALUE;
     _value = MinValue<T, DT>();
   }
   void SetMaxValue() override {
-    valType_ = ValueType::SOLE_VALUE;
+    _valType = ValueType::SOLE_VALUE;
     _value = MaxValue<T, DT>();
   }
   void SetDefaultValue() override {
     _value = 0;
-    valType_ = ValueType::SOLE_VALUE;
+    _valType = ValueType::SOLE_VALUE;
   }
 
   operator T() const {
-    if (valType_ == ValueType::NULL_VALUE)
+    if (_valType == ValueType::NULL_VALUE)
       return 0;
     else
       return _value;
   }
   DataValueDigit &operator=(T val) {
-    valType_ = ValueType::SOLE_VALUE;
+    _valType = ValueType::SOLE_VALUE;
     _value = val;
     return *this;
   }
 
   void ToString(StrBuff &sb) const override {
-    if (valType_ == ValueType::NULL_VALUE) {
+    if (_valType == ValueType::NULL_VALUE) {
       return;
     }
     if (24 > sb.GetFreeLen()) {
@@ -290,10 +290,10 @@ public:
   }
 
   bool operator>(const DataValueDigit &dv) const {
-    if (valType_ == ValueType::NULL_VALUE) {
+    if (_valType == ValueType::NULL_VALUE) {
       return false;
     }
-    if (dv.valType_ == ValueType::NULL_VALUE) {
+    if (dv._valType == ValueType::NULL_VALUE) {
       return true;
     }
 
@@ -301,20 +301,20 @@ public:
   }
   bool operator<(const DataValueDigit &dv) const { return !(*this >= dv); }
   bool operator>=(const DataValueDigit &dv) const {
-    if (valType_ == ValueType::NULL_VALUE) {
-      return dv.valType_ == ValueType::NULL_VALUE;
+    if (_valType == ValueType::NULL_VALUE) {
+      return dv._valType == ValueType::NULL_VALUE;
     }
-    if (dv.valType_ == ValueType::NULL_VALUE) {
+    if (dv._valType == ValueType::NULL_VALUE) {
       return true;
     }
     return _value >= dv._value;
   }
   bool operator<=(const DataValueDigit &dv) const { return !(*this > dv); }
   bool operator==(const DataValueDigit &dv) const {
-    if (valType_ == ValueType::NULL_VALUE) {
-      return dv.valType_ == ValueType::NULL_VALUE;
+    if (_valType == ValueType::NULL_VALUE) {
+      return dv._valType == ValueType::NULL_VALUE;
     }
-    if (dv.valType_ == ValueType::NULL_VALUE) {
+    if (dv._valType == ValueType::NULL_VALUE) {
       return false;
     }
     return _value == dv._value;
