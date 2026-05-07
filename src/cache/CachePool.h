@@ -191,7 +191,7 @@ protected:
   /**memory cache block used in IResultSet*/
   vector<Byte *> _vctFreeBlock;
   /**Total number allocated result blocks, include free blocks in queue*/
-  uint64_t _totalBlockNum;
+  uint64_t _totalBlockNum{0};
   /**Mutex for block memory, used to create IDataValue etc. One block can create
    * multi objects.*/
   SpinMutex _spinMutex;

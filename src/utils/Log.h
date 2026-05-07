@@ -19,7 +19,7 @@
 #include <sstream>
 #include <string>
 
-#ifdef LOG_WITH_FILE
+#ifdef LOG_WITH_FILENAME
 #define LOG_DEBUG                                                              \
   BOOST_LOG_SEV(Logger::slg_, DEBUG)                                           \
       << "<" << ThreadPool::GetThreadName() << ">  ["                          \
@@ -56,7 +56,7 @@
 #define LOG_FATAL                                                              \
   BOOST_LOG_SEV(Logger::slg_, FATAL)                                           \
       << "<" << ThreadPool::GetThreadName() << ">  "
-#endif
+#endif // LOG_WITH_FILENAME
 
 namespace storage {
 namespace logging = boost::log;

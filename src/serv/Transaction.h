@@ -70,6 +70,12 @@ public:
   }
 
 protected:
+  // To generate new TranID, every time it will add 1
+  // Transaction ID is 64 bit unsigned integer. The highest 12 bit is node id
+  // for distribute system, it can support max 4096 nodes. Following 2 bits is
+  // cycle count of system start times, used to avoid transaction repeat. The
+  // following 10 bits is used to save session group id. The last 40 bits is
+  // used as auto increaseing counter.
   TranID _tid{TXID_NULL};
   // The start time of current transaction
   DT_MicroSec _startTime{UINT64_MAX};

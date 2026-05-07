@@ -353,6 +353,11 @@ IndexPage *IndexTree::GetPage(PageID pageId, PageType type,
  */
 bool IndexTree::SearchPage(const RawKey &key, IndexPage *&page) {
   assert(page != nullptr);
+  PageStatus s = page->GetPageStatus();
+  if (s != PageStatus::VALID && s != PageStatus::WRITING) {
+    return false;
+  }
+
   while (true) {
     PageStatus status = page->GetPageStatus();
     if (status == PageStatus::READED) {
@@ -384,6 +389,10 @@ bool IndexTree::SearchPage(const RawKey &key, IndexPage *&page) {
 
 bool IndexTree::SearchPage(const LeafRecord &lr, IndexPage *&page) {
   assert(page != nullptr);
+  PageStatus s = page->GetPageStatus();
+  if (s != PageStatus::VALID && s != PageStatus::WRITING) {
+    return false;
+  }
 
   while (true) {
     if (page->GetPageType() == PageType::LEAF_PAGE) {
@@ -470,7 +479,7 @@ void IndexTree::SettleUpdatedPages(MTreeMap<uint64_t, CachePage *> &pageMap) {
       break;
     }
 
-    if (!bReadonly) {
+    if (iter->second->IsNeedDisk()) {
       FilePagePool::AddWritePage(ThreadPool::GetThreadId(), iter->second,
                                  false);
     }

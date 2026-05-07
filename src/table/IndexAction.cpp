@@ -85,6 +85,11 @@ TaskStatus RecordAction::Exec() {
     if (!b) {
       return TaskStatus::INTERVAL;
     }
+  } else {
+    PageStatus s = _idxPage->GetPageStatus();
+    if (s != PageStatus::VALID && s != PageStatus::WRITING) {
+      return TaskStatus::INTERVAL;
+    }
   }
 
   LeafPage *lp = (LeafPage *)_idxPage;

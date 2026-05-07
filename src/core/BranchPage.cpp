@@ -99,6 +99,8 @@ bool BranchPage::SaveRecords() {
   if (bUnlock) {
     _spinLock.unlock();
   }
+
+  _bNeedDisk = true;
   return true;
 }
 

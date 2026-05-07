@@ -11,7 +11,7 @@ if(CACHE_TRACE STREQUAL "on")
   add_definitions(-DCACHE_TRACE)
 endif()
 
-if(NOT LOG_WITH_FILE STREQUAL "off")
+if(NOT LOG_WITH_FILENAME STREQUAL "off")
   add_definitions(-DLOG_WITH_FILE)
 endif()
 

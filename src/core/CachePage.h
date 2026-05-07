@@ -146,6 +146,8 @@ public:
   }
 
   inline void ClearWriteQueue() { _bWriteQueue = false; }
+  void SetNeedDisk(bool b) { _bNeedDisk = true; }
+  bool IsNeedDisk() { return _bNeedDisk; }
 
 protected:
   // The page byte array to save contents. It should be assigned and released
@@ -171,9 +173,8 @@ protected:
   bool _bRefered{true};
   // If it has added into write queue
   bool _bWriteQueue{false};
-  // In current period this page has been visit how many time. It will be used
-  // to calc score and will clear to zero after calc score.
-  uint16_t _visit{0};
+  // If the page block has been updated and need to write page into disk
+  bool _bNeedDisk{false};
   // Every page has a score. it will be calculated according to page type,
   // previous score, the visit times in current period. CachePagePool will clear
   // pages in cycle according score.

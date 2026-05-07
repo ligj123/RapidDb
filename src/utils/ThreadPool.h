@@ -148,8 +148,6 @@ protected:
   // If the tasks has same mask, they will try to avoid to hand out them into
   // one thread. If equal 0, means it does not to consider it.
   uint32_t _taskMask{0};
-  // The count of current exclusive tasks,it must less than _maxThreads in
-  // thread pool
 
   // Removed from ThreadPool or not
   atomic_bool _bRemovedPool{false};

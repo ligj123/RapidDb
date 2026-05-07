@@ -32,6 +32,10 @@ public:
   static void AddWritePage(uint16_t tid, CachePage *page, bool submit = true) {
     PageStatus s = page->GetPageStatus();
     assert(s == PageStatus::VALID || s == PageStatus::WRITING);
+    if (page->GetPageType() == PageType::BRANCH_PAGE ||
+        page->GetPageType() == PageType::LEAF_PAGE) {
+      page->SetNeedDisk(false);
+    }
 #ifdef NO_WRITE_DISK
     page->AfterWrite();
 #else

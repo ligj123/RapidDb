@@ -34,8 +34,12 @@ public:
 
   uint16_t GetTotalLength() const override { return *((uint16_t *)_bysVal); }
   uint16_t GetValueLength() const override {
-    return (uint16_t)(*((uint16_t *)_bysVal) - UI16_2_LEN - PAGE_ID_LEN -
-                      *((uint16_t *)(_bysVal + sizeof(uint16_t))));
+    if (_indexType == IndexType::NON_UNIQUE) {
+      return (uint16_t)(*((uint16_t *)_bysVal) - UI16_2_LEN - PAGE_ID_LEN -
+                        *((uint16_t *)(_bysVal + sizeof(uint16_t))));
+    } else {
+      return 0;
+    }
   }
   uint16_t GetDataLength() const override {
     assert(_indexType == IndexType::NON_UNIQUE);

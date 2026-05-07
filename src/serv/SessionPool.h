@@ -63,12 +63,13 @@ struct SessionGroup {
   uint16_t _groupSn;    // The serial number of this group
   uint16_t _nodeId;     // The id of this node, for distribute system
   uint16_t _restartNum; // The restart number of this system
+
   // To generate new TranID, every time it will add 1
   // Transaction ID is 64 bit unsigned integer. The highest 12 bit is node id
-  // for distribute system, it can support max 4096 nodes. Following 4 bits is
+  // for distribute system, it can support max 4096 nodes. Following 2 bits is
   // cycle count of system start times, used to avoid transaction repeat. The
-  // following 8 bits is used to save session group id. The last 40 bits is used
-  // as auto increaseing counter.
+  // following 10 bits is used to save session group id. The last 40 bits is
+  // used as auto increaseing counter.
   TranID _currTranId;
   // The actions need to run
   MList<SessionAction *> _lstAction;

@@ -163,6 +163,7 @@ bool LeafPage::SaveRecords(MTreeMap<uint64_t, CachePage *> &pageMap) {
   crc32.process_bytes(_bysPage, CRC32_INDEX_OFFSET);
   WriteInt(CRC32_INDEX_OFFSET, crc32.checksum());
   _bDirty = bClean ? false : true;
+  _bNeedDisk = true;
   return bClean;
 }
 
@@ -637,14 +638,14 @@ bool LeafPage::SplitPage(MTreeMap<uint64_t, CachePage *> &pageMap) {
 
   for (int i = 0; i < vctPage.size(); i++) {
     ((LeafPage *)vctPage[i])->SetRecordUpdated();
-    ((LeafPage *)vctPage[i])->SaveRecords(pageMap);
     ((LeafPage *)vctPage[i])->SetDirty();
+    ((LeafPage *)vctPage[i])->SaveRecords(pageMap);
     vctPage[i]->AddWriteQueue(pageMap);
   }
 
   SetRecordUpdated();
-  SaveRecords(pageMap);
   SetDirty();
+  SaveRecords(pageMap);
   AddWriteQueue(pageMap);
   _parentPage->SetRecordUpdated();
   _parentPage->AddWriteQueue(pageMap);

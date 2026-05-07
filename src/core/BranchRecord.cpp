@@ -9,7 +9,7 @@ BranchRecord::BranchRecord(IndexType type, RawRecord *rec, uint32_t childPageId,
                            IndexPage *childPage)
     : RawRecord(nullptr, true, type), _childPage(childPage) {
   uint16_t lenKey = rec->GetKeyLength();
-  uint16_t lenVal = (type == IndexType::NON_UNIQUE ? rec->GetValueLength() : 0);
+  uint16_t lenVal = rec->GetValueLength();
   uint16_t totalLen = lenKey + lenVal + PAGE_ID_LEN + UI16_2_LEN;
   _bysVal = CachePool::Apply(totalLen);
 

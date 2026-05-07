@@ -48,10 +48,6 @@ TaskStatus SessionTask::Run() {
         iter++;
       }
     }
-
-    // if (group->_lstBusySession.size() > 0) {
-    //   sessEmpty = false;
-    // }
   }
 
   if (_bStop) [[unlikely]] {
